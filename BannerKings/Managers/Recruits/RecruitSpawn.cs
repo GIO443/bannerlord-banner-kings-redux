@@ -1,4 +1,4 @@
-﻿using BannerKings.Managers.Innovations.Eras;
+using BannerKings.Managers.Innovations.Eras;
 using Microsoft.Extensions.Options;
 using System.Collections.Generic;
 using System.Linq;
@@ -13,7 +13,7 @@ namespace BannerKings.Managers.Recruits
     {
         public RecruitSpawn() : base("") 
         {
-            Initialize(TextObject.Empty, TextObject.Empty);
+            Initialize(TextObject.GetEmpty(), TextObject.GetEmpty());
             FiefStrings = new HashSet<string>(1);
         }
 

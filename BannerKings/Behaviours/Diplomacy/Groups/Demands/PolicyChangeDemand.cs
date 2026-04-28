@@ -31,7 +31,7 @@ namespace BannerKings.Behaviours.Diplomacy.Groups.Demands
         public override void SetTexts()
         {
             Initialize(new TextObject("{=swnsBayb}Policy Change"),
-                new TextObject());
+                TextObject.GetEmpty());
         }
 
         public override DemandResponse PositiveAnswer => new DemandResponse(new TextObject("{=kyB8tkgY}Concede"),

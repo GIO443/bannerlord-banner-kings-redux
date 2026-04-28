@@ -1,3 +1,4 @@
+using Helpers;
 using BannerKings.Actions;
 using BannerKings.CampaignContent.Traits;
 using BannerKings.Utils.Models;
@@ -8,6 +9,7 @@ using TaleWorlds.CampaignSystem;
 using TaleWorlds.CampaignSystem.Actions;
 using TaleWorlds.CampaignSystem.CharacterDevelopment;
 using TaleWorlds.Core;
+using TaleWorlds.Core.ImageIdentifiers;
 using TaleWorlds.Library;
 using TaleWorlds.Localization;
 using TaleWorlds.SaveSystem;
@@ -91,7 +93,7 @@ namespace BannerKings.Behaviours.Diplomacy.Groups.Demands
                    (Hero fulfiller) =>
                    {
                        float result = 5f;
-                       if (FactionManager.GetEnemyKingdoms(fulfiller.MapFaction as Kingdom).Count() == 0) result += 2f;
+                       if (!FactionHelper.GetEnemyKingdoms(fulfiller.MapFaction as Kingdom).Any()) result += 2f;
                        int gold = fulfiller.Clan.Gold;
                        if (gold > 100000) result += 2f;
                        else if (gold > 50000) result += 1f;
@@ -231,7 +233,7 @@ namespace BannerKings.Behaviours.Diplomacy.Groups.Demands
             var playerClan = Clan.PlayerClan;
             list.Add(new InquiryElement(playerClan,
                 playerClan.Name.ToString(),
-                new ImageIdentifier(playerClan.Banner)));
+                new BannerImageIdentifier(playerClan.Banner)));
 
             foreach (Clan clan in Group.KingdomDiplomacy.Kingdom.Clans)
             {
@@ -253,7 +255,7 @@ namespace BannerKings.Behaviours.Diplomacy.Groups.Demands
 
                 list.Add(new InquiryElement(clan,
                     clan.Name.ToString(),
-                    new ImageIdentifier(clan.Banner),
+                    new BannerImageIdentifier(clan.Banner),
                     join.ResultNumber > 0f,
                     hint.ToString()));
             }

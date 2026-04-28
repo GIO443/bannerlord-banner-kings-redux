@@ -77,7 +77,7 @@ namespace BannerKings.Managers.CampaignStart
                     Kingdom kingdom = Kingdom.All.FirstOrDefault(x => x.Culture == Hero.MainHero.Culture);
                     if (kingdom != null)
                     {
-                        ChangeKingdomAction.ApplyByJoinToKingdom(Clan.PlayerClan, kingdom, false);
+                        ChangeKingdomAction.ApplyByJoinToKingdom(Clan.PlayerClan, kingdom, default(CampaignTime), false);
                         BannerKingsConfig.Instance.TitleManager.GiveLordshipOnKingdomJoin(kingdom, Clan.PlayerClan, true);
                     }
                 });
@@ -158,7 +158,7 @@ namespace BannerKings.Managers.CampaignStart
                 () =>
                 {
                     var templates = Game.Current.ObjectManager.GetObjectTypeList<PartyTemplateObject>();
-                    var template = Hero.MainHero.Culture.CaravanPartyTemplate;
+                    var template = Hero.MainHero.Culture.CaravanPartyTemplates.GetRandomElement();
                     var party = MobileParty.MainParty;
 
                     var items = Game.Current.ObjectManager.GetObjectTypeList<ItemObject>();

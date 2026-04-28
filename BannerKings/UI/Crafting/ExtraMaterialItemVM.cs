@@ -1,5 +1,6 @@
 ﻿using TaleWorlds.CampaignSystem.Party;
 using TaleWorlds.Core;
+using TaleWorlds.Core.ViewModelCollection.ImageIdentifiers;
 using TaleWorlds.Core.ViewModelCollection.Information;
 using TaleWorlds.Library;
 
@@ -9,12 +10,12 @@ namespace BannerKings.UI.Crafting
     {
         private HintViewModel hint;
         private int resourceChange, resourceAmount;
-        private ImageIdentifierVM visual;
+        private ItemImageIdentifierVM visual;
 
         public ExtraMaterialItemVM(ItemObject material)
         {
             Material = material;
-            Visual = new ImageIdentifierVM(material);
+            Visual = new ItemImageIdentifierVM(material);
             foreach (ItemRosterElement element in PartyBase.MainParty.ItemRoster)
             {
                 if (element.EquipmentElement.Item == material)
@@ -71,7 +72,7 @@ namespace BannerKings.UI.Crafting
         }
 
         [DataSourceProperty]
-        public ImageIdentifierVM Visual
+        public ItemImageIdentifierVM Visual
         {
             get => visual;
             set

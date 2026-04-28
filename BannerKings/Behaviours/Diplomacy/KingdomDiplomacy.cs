@@ -206,7 +206,7 @@ namespace BannerKings.Behaviours.Diplomacy
                         .SetTextVariable("REASON", reason),
                         0,
                         null,
-                        Utils.Helpers.GetKingdomDecisionSound());
+                        null, Utils.Helpers.GetKingdomDecisionSound());
                 }
             }
         }
@@ -229,7 +229,7 @@ namespace BannerKings.Behaviours.Diplomacy
                         .SetTextVariable("REASON", reason),
                         0,
                         null,
-                        Utils.Helpers.GetKingdomDecisionSound());
+                        null, Utils.Helpers.GetKingdomDecisionSound());
                 }
             }
         }
@@ -326,7 +326,7 @@ namespace BannerKings.Behaviours.Diplomacy
             {
                 if (clan.IsUnderMercenaryService) continue;
 
-                foreach (var member in clan.Lords)
+                foreach (var member in clan.AliveLords)
                 {
                     if (member == Hero.MainHero) continue;
                     EvaluateJoinAGroup(member);

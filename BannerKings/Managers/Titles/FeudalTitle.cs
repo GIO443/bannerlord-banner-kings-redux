@@ -155,7 +155,7 @@ namespace BannerKings.Managers.Titles
                 if (contestors.Count > 0)
                 {
                     var highestCount = contestors.Values.Max();
-                    var highestCountHeroes = contestors.Keys.ToList().FindAll(x => contestors[x] == highestCount);
+                    var highestCountHeroes = contestors.Keys.Where(x => contestors[x] == highestCount).ToList();
                     if (highestCountHeroes.Contains(deJure))
                     {
                         return deJure;
@@ -476,7 +476,7 @@ namespace BannerKings.Managers.Titles
                         .SetTextVariable("TITLE", FullName),
                         0,
                         null,
-                        Utils.Helpers.GetKingdomDecisionSound());
+                        null, Utils.Helpers.GetKingdomDecisionSound());
                 }
             }
 

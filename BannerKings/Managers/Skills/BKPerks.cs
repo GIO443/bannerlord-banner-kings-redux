@@ -275,11 +275,11 @@ namespace BannerKings.Managers.Skills
                 80,
                 null,
                 "{=MaAXE1ZC}Duration of disorganized state reduced by 10%.",
-                SkillEffect.PerkRole.PartyLeader, 0.15f,
-                SkillEffect.EffectIncrementType.AddFactor,
+                PartyRole.PartyLeader, 0.1f,
+                EffectIncrementType.AddFactor,
                 "{=zL9p3Rsk}Party size increased by 5.",
-                SkillEffect.PerkRole.PartyLeader, 5,
-                SkillEffect.EffectIncrementType.Add);
+                PartyRole.PartyLeader, 5,
+                EffectIncrementType.Add);
 
             CommanderInspirer = Game.Current.ObjectManager.RegisterPresumedObject(new PerkObject("LifestyleCommanderInspirer"));
             CommanderInspirer.Initialize("{=87ounFBE}Inspirer",
@@ -287,11 +287,11 @@ namespace BannerKings.Managers.Skills
                 160,
                 null,
                 "{=5bjivtCf}As army leader, army cohesion loss is 12% slower.",
-                SkillEffect.PerkRole.PartyLeader, -0.08f,
-                SkillEffect.EffectIncrementType.AddFactor,
+                PartyRole.PartyLeader, -0.08f,
+                EffectIncrementType.AddFactor,
                 "{=9z8WsGPr}Cultural difference morale impact reduced by 50%.",
-                SkillEffect.PerkRole.PartyLeader, 0.15f,
-                SkillEffect.EffectIncrementType.AddFactor);
+                PartyRole.PartyLeader, 0.5f,
+                EffectIncrementType.AddFactor);
 
             CommanderWarband = Game.Current.ObjectManager.RegisterPresumedObject(new PerkObject("LifestyleCommanderWarband"));
             CommanderWarband.Initialize("{=3N5dPLiM}Warband",
@@ -299,11 +299,11 @@ namespace BannerKings.Managers.Skills
                 240,
                 null,
                 "{=dPo5goLo}{VALUE}% influence gain from winning battles.",
-                SkillEffect.PerkRole.PartyLeader, 0.25f,
-                SkillEffect.EffectIncrementType.AddFactor,
+                PartyRole.PartyLeader, 0.25f,
+                EffectIncrementType.AddFactor,
                 "{=WUT6h0VG}Party size increased by 8%.",
-                SkillEffect.PerkRole.PartyLeader, 0.08f,
-                SkillEffect.EffectIncrementType.AddFactor);
+                PartyRole.PartyLeader, 0.08f,
+                EffectIncrementType.AddFactor);
 
             #endregion Commander
 
@@ -314,33 +314,33 @@ namespace BannerKings.Managers.Skills
                 80,
                 null,
                 "{=JepDTW31}You are 10% more competent at council positions.",
-                SkillEffect.PerkRole.Personal, 0.1f,
-                SkillEffect.EffectIncrementType.AddFactor,
+                PartyRole.Personal, 0.1f,
+                EffectIncrementType.AddFactor,
                 "{=s61aKi0v}Your position yields 15% more influence.",
-                SkillEffect.PerkRole.Personal, 0.15f,
-                SkillEffect.EffectIncrementType.AddFactor);
+                PartyRole.Personal, 0.15f,
+                EffectIncrementType.AddFactor);
 
-            CourtierCompanion.Initialize("{=Y5boR1SF}Appointee",
+            CourtierCompanion.Initialize("{=!}Companion",
                 null,
                 160,
                 null,
                 "{=2XMaaF8K}You are 10% more likely to be accepted for a council position.",
-                SkillEffect.PerkRole.Personal, 0.1f,
-                SkillEffect.EffectIncrementType.AddFactor,
+                PartyRole.Personal, 0.1f,
+                EffectIncrementType.AddFactor,
                 "{=s61aKi0v}Your position yields 15% more influence.",
-                SkillEffect.PerkRole.Personal, 0.15f,
-                SkillEffect.EffectIncrementType.AddFactor);
+                PartyRole.Personal, 0.15f,
+                EffectIncrementType.AddFactor);
 
-            CourtierRoyalCouncillor.Initialize("{=Y5boR1SF}Appointee",
+            CourtierRoyalCouncillor.Initialize("{=!}Royal Councillor",
                 null,
                 240,
                 null,
                 "{=2XMaaF8K}You are 10% more likely to be accepted for a council position.",
-                SkillEffect.PerkRole.Personal, 0.1f,
-                SkillEffect.EffectIncrementType.AddFactor,
+                PartyRole.Personal, 0.1f,
+                EffectIncrementType.AddFactor,
                 "{=s61aKi0v}Your position yields 15% more influence.",
-                SkillEffect.PerkRole.Personal, 0.15f,
-                SkillEffect.EffectIncrementType.AddFactor);
+                PartyRole.Personal, 0.15f,
+                EffectIncrementType.AddFactor);
 
             #endregion Courtier
 
@@ -351,33 +351,33 @@ namespace BannerKings.Managers.Skills
                 80, 
                 null,
                 "{=WgmJfTeR}Increases your movement speed by 5%.",
-                SkillEffect.PerkRole.Personal, 0.05f,
-                SkillEffect.EffectIncrementType.AddFactor,
+                PartyRole.Personal, 0.05f,
+                EffectIncrementType.AddFactor,
                 "{=10HppTfS}You and your formation deal 4% more damage with greatswords while on foot.",
-                SkillEffect.PerkRole.Personal, 0.03f,
-                SkillEffect.EffectIncrementType.AddFactor);
+                PartyRole.Personal, 0.04f,
+                EffectIncrementType.AddFactor);
 
             FianRanger = Game.Current.ObjectManager.RegisterPresumedObject(new PerkObject("LifestyleFianRanger"));
             FianRanger.Initialize("{=w7GFfrAy}Ranger", null, 
                 160, 
                 null,
                 "{=ZK5MjmMK}Increase maximum track life by 20%.",
-                SkillEffect.PerkRole.Personal, 0.05f,
-                SkillEffect.EffectIncrementType.AddFactor,
+                PartyRole.Personal, 0.2f,
+                EffectIncrementType.AddFactor,
                 "{=RKMxkhwX}Increases your damage with bows by 8%.",
-                SkillEffect.PerkRole.Personal, 0.03f,
-                SkillEffect.EffectIncrementType.AddFactor);
+                PartyRole.Personal, 0.08f,
+                EffectIncrementType.AddFactor);
 
             FianFennid = Game.Current.ObjectManager.RegisterPresumedObject(new PerkObject("LifestyleFianFennid"));
             FianFennid.Initialize("{=qvQEEEM4}Fénnid", null, 
                 240, 
                 null,
                 "{=4oCh1aji}You and your formation take aim 10% while on foot.",
-                SkillEffect.PerkRole.Personal, 0.05f,
-                SkillEffect.EffectIncrementType.AddFactor,
+                PartyRole.Personal, 0.1f,
+                EffectIncrementType.AddFactor,
                 "{=fxuVYTrJ}Increases your two handed weapon damage by 10%.",
-                SkillEffect.PerkRole.Personal, 0.03f,
-                SkillEffect.EffectIncrementType.AddFactor);
+                PartyRole.Personal, 0.1f,
+                EffectIncrementType.AddFactor);
 
             #endregion Fian
 
@@ -388,33 +388,33 @@ namespace BannerKings.Managers.Skills
                 80,
                 null,
                 "{=XM607d99}Cattle heads reduce party food consumption while party is on plains or steppes.",
-                SkillEffect.PerkRole.Personal, 0.05f,
-                SkillEffect.EffectIncrementType.AddFactor,
+                PartyRole.Personal, 0.05f,
+                EffectIncrementType.AddFactor,
                 "{=PawhUHjG}Raiding villages is 15% faster.",
-                SkillEffect.PerkRole.Personal, 0.03f,
-                SkillEffect.EffectIncrementType.AddFactor);
+                PartyRole.Personal, 0.15f,
+                EffectIncrementType.AddFactor);
 
             KheshigOutrider = Game.Current.ObjectManager.RegisterPresumedObject(new PerkObject("LifestyleKheshigOutrider"));
             KheshigOutrider.Initialize("{=aAMdXCsc}Outrider", null,
                 160,
                 null,
                 "{=rY9vNqxW}Increase your and your formation's mount speed by 5%.",
-                SkillEffect.PerkRole.Personal, 0.05f,
-                SkillEffect.EffectIncrementType.AddFactor,
+                PartyRole.Personal, 0.05f,
+                EffectIncrementType.AddFactor,
                 "{=XQQnhzC0}Increase your and your formation's mounted archery damage by 5%.",
-                SkillEffect.PerkRole.Personal, 0.03f,
-                SkillEffect.EffectIncrementType.AddFactor);
+                PartyRole.Personal, 0.05f,
+                EffectIncrementType.AddFactor);
 
             KheshigHonorGuard = Game.Current.ObjectManager.RegisterPresumedObject(new PerkObject("LifestyleKheshigHonorGuard"));
             KheshigHonorGuard.Initialize("{=m7ScWpVb}Honor Guard", null,
                 240,
                 null,
                 "{=oDG0PFMM}Gain 30% more influence for army participation.",
-                SkillEffect.PerkRole.Personal, 0.05f,
-                SkillEffect.EffectIncrementType.AddFactor,
+                PartyRole.Personal, 0.3f,
+                EffectIncrementType.AddFactor,
                 "{=pSdJAe7r}Increase recruitment level with notables by 1.",
-                SkillEffect.PerkRole.Personal, 0.03f,
-                SkillEffect.EffectIncrementType.AddFactor);
+                PartyRole.Personal, 0.03f,
+                EffectIncrementType.AddFactor);
 
             #endregion Kheshig
 
@@ -426,11 +426,11 @@ namespace BannerKings.Managers.Skills
                 80,
                 null,
                 "{=J6oPqQmt}Settlements have an additional catapult during siege start.",
-                SkillEffect.PerkRole.Personal, 0.05f,
-                SkillEffect.EffectIncrementType.AddFactor,
+                PartyRole.Personal, 0.05f,
+                EffectIncrementType.AddFactor,
                 "{=8AmeeiL0}Workforce yields 20% extra construction.",
-                SkillEffect.PerkRole.Personal, 0.03f,
-                SkillEffect.EffectIncrementType.AddFactor);
+                PartyRole.Personal, 0.2f,
+                EffectIncrementType.AddFactor);
 
             CivilCultivator = Game.Current.ObjectManager.RegisterPresumedObject(new PerkObject("LifestyleCivilCultivator"));
             LifestylePerks.Add(CivilCultivator);
@@ -438,11 +438,11 @@ namespace BannerKings.Managers.Skills
                 160, 
                 null,
                 "{=EH3ExMr9}Agricultural yield increases by flat 5%.",
-                SkillEffect.PerkRole.Personal, 0.05f,
-                SkillEffect.EffectIncrementType.AddFactor,
+                PartyRole.Personal, 0.05f,
+                EffectIncrementType.AddFactor,
                 "{=Z2cPBwOj}Village hearth growth increases by 1.",
-                SkillEffect.PerkRole.Personal, 0.03f,
-                SkillEffect.EffectIncrementType.AddFactor);
+                PartyRole.Personal, 0.03f,
+                EffectIncrementType.AddFactor);
 
             CivilOverseer = Game.Current.ObjectManager.RegisterPresumedObject(new PerkObject("LifestyleCivilOverseer"));
             CivilManufacturer = Game.Current.ObjectManager.RegisterPresumedObject(new PerkObject("LifestyleCivilManufacturer"));
@@ -451,22 +451,22 @@ namespace BannerKings.Managers.Skills
                 320, 
                 null,
                 "{=zaVqT3bv}Stability increases by flat 5%.",
-                SkillEffect.PerkRole.Personal, 0.05f,
-                SkillEffect.EffectIncrementType.AddFactor,
+                PartyRole.Personal, 0.05f,
+                EffectIncrementType.AddFactor,
                 "{=wBqTCqgx}Increases infrastructure limit by flat 5.",
-                SkillEffect.PerkRole.Personal, 0.03f,
-                SkillEffect.EffectIncrementType.AddFactor);
+                PartyRole.Personal, 0.03f,
+                EffectIncrementType.AddFactor);
 
             LifestylePerks.Add(CivilManufacturer);
             CivilManufacturer.Initialize("{=UmFnG5z2}Manufacturer", null, 
                 240, 
                 null,
                 "{=UruYDkr2}Production efficiency increases by flat 15%.",
-                SkillEffect.PerkRole.Personal, 0.05f,
-                SkillEffect.EffectIncrementType.AddFactor,
+                PartyRole.Personal, 0.15f,
+                EffectIncrementType.AddFactor,
                 "{=eQQW0Brf}Production quality increases by flat 10%.",
-                SkillEffect.PerkRole.Personal, 0.03f,
-                SkillEffect.EffectIncrementType.AddFactor);
+                PartyRole.Personal, 0.1f,
+                EffectIncrementType.AddFactor);
 
             #endregion Civil
 
@@ -477,33 +477,33 @@ namespace BannerKings.Managers.Skills
                 80, 
                 null,
                 "{=2jDEHBg3}Get a pre-built ballista as attacker during siege.",
-                SkillEffect.PerkRole.Personal, 0.05f,
-                SkillEffect.EffectIncrementType.AddFactor,
+                PartyRole.Personal, 0.05f,
+                EffectIncrementType.AddFactor,
                 "{=mcVnKCsL}Damage to walls increased by 10% during siege.",
-                SkillEffect.PerkRole.Personal, 0.03f,
-                SkillEffect.EffectIncrementType.AddFactor);
+                PartyRole.Personal, 0.1f,
+                EffectIncrementType.AddFactor);
 
             SiegePlanner = Game.Current.ObjectManager.RegisterPresumedObject(new PerkObject("LifestyleSiegePlanner"));
             SiegePlanner.Initialize("{=VyzxZL7T}Siege Planner", null, 
                 160,
                 null,
                 "{=5jMZb0xZ}Ranged infantry deals 15% more damage in siege simulations.",
-                SkillEffect.PerkRole.Personal, 0.05f,
-                SkillEffect.EffectIncrementType.AddFactor,
+                PartyRole.Personal, 0.15f,
+                EffectIncrementType.AddFactor,
                 "{=KWfdgmuc}Wall hit points are increased by 25%.",
-                SkillEffect.PerkRole.Personal, 0.03f,
-                SkillEffect.EffectIncrementType.AddFactor);
+                PartyRole.Personal, 0.25f,
+                EffectIncrementType.AddFactor);
 
             SiegeOverseer = Game.Current.ObjectManager.RegisterPresumedObject(new PerkObject("LifestyleSiegeOverseer"));
             SiegeOverseer.Initialize("{=tWvXqDWY}Siege Overseer", null, 
                 240, 
                 null,
                 "{=9SoSFu8s}Army consumes 15% less food during sieges, either attacking or defending.",
-                SkillEffect.PerkRole.Personal, 0.05f,
-                SkillEffect.EffectIncrementType.AddFactor,
+                PartyRole.Personal, 0.15f,
+                EffectIncrementType.AddFactor,
                 "{=nvJhzGbv}Camp preparation is 20% faster.",
-                SkillEffect.PerkRole.Personal, 0.03f,
-                SkillEffect.EffectIncrementType.AddFactor);
+                PartyRole.Personal, 0.2f,
+                EffectIncrementType.AddFactor);
 
             #endregion Siege
 
@@ -514,33 +514,33 @@ namespace BannerKings.Managers.Skills
                 80,
                 null,
                 "{=PawhUHjG}Raiding villages is 15% faster.",
-                SkillEffect.PerkRole.Personal, 0.05f,
-                SkillEffect.EffectIncrementType.AddFactor,
+                PartyRole.Personal, 0.15f,
+                EffectIncrementType.AddFactor,
                 "{=8V2avPGC}Camels have 12% more health.",
-                SkillEffect.PerkRole.Personal, 0.03f,
-                SkillEffect.EffectIncrementType.AddFactor);
+                PartyRole.Personal, 0.12f,
+                EffectIncrementType.AddFactor);
 
             JawwalCamelMaster = Game.Current.ObjectManager.RegisterPresumedObject(new PerkObject("LifestyleJawwalCamelMaster"));
             JawwalCamelMaster.Initialize("{=DiGKj6HS}Camel Master", null,
                 160,
                 null,
                 "{=DD8PV3zG}You and soldiers in your formation are 8% faster when mounted in camels.",
-                SkillEffect.PerkRole.Personal, 0.05f,
-                SkillEffect.EffectIncrementType.AddFactor,
+                PartyRole.Personal, 0.08f,
+                EffectIncrementType.AddFactor,
                 "{=9kDvMoNQ}You and soldiers in your formation deal 10% more throwing damage while mounted.",
-                SkillEffect.PerkRole.Personal, 0.03f,
-                SkillEffect.EffectIncrementType.AddFactor);
+                PartyRole.Personal, 0.1f,
+                EffectIncrementType.AddFactor);
 
             JawwalDuneRider = Game.Current.ObjectManager.RegisterPresumedObject(new PerkObject("LifestyleJawwalDuneRider"));
             JawwalDuneRider.Initialize("{=me23NvbZ}Dune Rider", null,
                 240,
                 null,
                 "{=MbEcXyGc}You and troops in your formation have 5% chance to dismount riders when hitting with javelins.",
-                SkillEffect.PerkRole.Personal, 0.05f,
-                SkillEffect.EffectIncrementType.AddFactor,
+                PartyRole.Personal, 0.05f,
+                EffectIncrementType.AddFactor,
                 "{=dLnLYNRE}Party is 8% faster in deserts.",
-                SkillEffect.PerkRole.Personal, 0.03f,
-                SkillEffect.EffectIncrementType.AddFactor);
+                PartyRole.Personal, 0.08f,
+                EffectIncrementType.AddFactor);
 
             #endregion Jawwal
 
@@ -552,11 +552,11 @@ namespace BannerKings.Managers.Skills
                 80,
                 null,
                 "{=DWEDZjn1}Increases your party size by 5.",
-                SkillEffect.PerkRole.Personal, 0.05f,
-                SkillEffect.EffectIncrementType.AddFactor,
+                PartyRole.Personal, 0.05f,
+                EffectIncrementType.AddFactor,
                 "{=OxaKMeUa}Increases party morale by flat 3%.",
-                SkillEffect.PerkRole.Personal, 0.03f,
-                SkillEffect.EffectIncrementType.AddFactor);
+                PartyRole.Personal, 0.03f,
+                EffectIncrementType.AddFactor);
 
             AugustDeFacto = Game.Current.ObjectManager.RegisterPresumedObject(new PerkObject("LifestyleAugustDeFacto"));
             LifestylePerks.Add(AugustDeFacto);
@@ -564,11 +564,11 @@ namespace BannerKings.Managers.Skills
                 160, 
                 null,
                 "{=J6oPqQmt}Settlement autonomy reduced by flat 3%.",
-                SkillEffect.PerkRole.Personal, 0.05f,
-                SkillEffect.EffectIncrementType.AddFactor,
+                PartyRole.Personal, 0.03f,
+                EffectIncrementType.AddFactor,
                 "{=o4Ptq4SC}Randomly receive positive relations with a councillour.",
-                SkillEffect.PerkRole.Personal, 0.03f,
-                SkillEffect.EffectIncrementType.AddFactor);
+                PartyRole.Personal, 0.03f,
+                EffectIncrementType.AddFactor);
 
             AugustDeJure = Game.Current.ObjectManager.RegisterPresumedObject(new PerkObject("LifestyleAugustDeJure"));
             LifestylePerks.Add(AugustDeJure);
@@ -576,11 +576,11 @@ namespace BannerKings.Managers.Skills
                 240, 
                 null,
                 "{=nBZtX2R0}Demesne limit increased by 1.",
-                SkillEffect.PerkRole.Personal, 0.05f,
-                SkillEffect.EffectIncrementType.AddFactor,
+                PartyRole.Personal, 0.05f,
+                EffectIncrementType.AddFactor,
                 "{=tbJa33Qp}Title actions cost / yield 5% less / more denarii and influence.",
-                SkillEffect.PerkRole.Personal, 0.03f,
-                SkillEffect.EffectIncrementType.AddFactor);
+                PartyRole.Personal, 0.05f,
+                EffectIncrementType.AddFactor);
 
             AugustKingOfKings = Game.Current.ObjectManager.RegisterPresumedObject(new PerkObject("LifestyleAugustKingOfKings"));
             LifestylePerks.Add(AugustKingOfKings);
@@ -588,11 +588,11 @@ namespace BannerKings.Managers.Skills
                 320, 
                 null,
                 "{=fyoL3m5n}If king level or higher, increase vassal limit by 2.",
-                SkillEffect.PerkRole.Personal, 0.05f,
-                SkillEffect.EffectIncrementType.AddFactor,
+                PartyRole.Personal, 0.05f,
+                EffectIncrementType.AddFactor,
                 "{=aeGjJJZw}If king level or higher, increase unlanded demesne limit by 1.",
-                SkillEffect.PerkRole.Personal, 0.03f,
-                SkillEffect.EffectIncrementType.AddFactor);
+                PartyRole.Personal, 0.03f,
+                EffectIncrementType.AddFactor);
 
             #endregion August
 
@@ -601,38 +601,38 @@ namespace BannerKings.Managers.Skills
             CataphractEquites = Game.Current.ObjectManager.RegisterPresumedObject(new PerkObject("LifestyleCataphractEquites"));
             LifestylePerks.Add(CataphractEquites);
             CataphractEquites.Initialize("{=oYAOv2KP}Equites", null,
-                80, 
+                80,
                 null,
                 "{=BpFCxR6C}You and troops in your formation deal 10% more charge damage.",
-                SkillEffect.PerkRole.Captain, 4f,
-                SkillEffect.EffectIncrementType.AddFactor,
+                PartyRole.Captain, 0.1f,
+                EffectIncrementType.AddFactor,
                 "{=R5NiPF7H}Mounted troops cost 10% less denarii maintenance.",
-                SkillEffect.PerkRole.Personal, 0.03f,
-                SkillEffect.EffectIncrementType.AddFactor);
+                PartyRole.Personal, 0.1f,
+                EffectIncrementType.AddFactor);
 
             CataphractAdaptiveTactics = Game.Current.ObjectManager.RegisterPresumedObject(new PerkObject("LifestyleCataphractAdaptiveTactics"));
             LifestylePerks.Add(CataphractAdaptiveTactics);
             CataphractAdaptiveTactics.Initialize("{=gg9Yxqfy}Adaptive Tactics", null,
-                160, 
+                160,
                 null,
                 "{=Pup1khtn}Increased damage on horseback with polearms, sidearms and bows by 5%.",
-                SkillEffect.PerkRole.Personal, 5f,
-                SkillEffect.EffectIncrementType.AddFactor,
+                PartyRole.Personal, 0.05f,
+                EffectIncrementType.AddFactor,
                 "{=oYKOf3zK}You and troops in your formation have 8% more maneuvering.",
-                SkillEffect.PerkRole.Captain, 8f,
-                SkillEffect.EffectIncrementType.AddFactor);
+                PartyRole.Captain, 0.08f,
+                EffectIncrementType.AddFactor);
 
             CataphractKlibanophoros = Game.Current.ObjectManager.RegisterPresumedObject(new PerkObject("LifestyleCataphractKlibanophori"));
             LifestylePerks.Add(CataphractKlibanophoros);
-            CataphractKlibanophoros.Initialize("{=iETO50gi}Klibanophori", null, 
-                240, 
+            CataphractKlibanophoros.Initialize("{=iETO50gi}Klibanophori", null,
+                240,
                 null,
                 "{=a2sO3wbW}You and troops in your formation receive 5% less damange when mounted.",
-                SkillEffect.PerkRole.Personal, 0.05f,
-                SkillEffect.EffectIncrementType.AddFactor,
+                PartyRole.Personal, 0.05f,
+                EffectIncrementType.AddFactor,
                 "{=JSxDnFbu}You and troops in your formation deal 6% extra thrust damage when mounted.",
-                SkillEffect.PerkRole.Personal, 0.03f,
-                SkillEffect.EffectIncrementType.AddFactor);
+                PartyRole.Personal, 0.06f,
+                EffectIncrementType.AddFactor);
 
             #endregion Cataphract
 
@@ -640,75 +640,75 @@ namespace BannerKings.Managers.Skills
 
             CaravaneerStrider = Game.Current.ObjectManager.RegisterPresumedObject(new PerkObject("LifestyleCaravaneerStrider"));
             LifestylePerks.Add(CaravaneerStrider);
-            CaravaneerStrider.Initialize("{=Nk505umn}Strider", null, 
+            CaravaneerStrider.Initialize("{=Nk505umn}Strider", null,
                 80,
                 null,
                 "{=s0zsXS2Z}Increases your movement speed by 3%.",
-                SkillEffect.PerkRole.PartyLeader, 3f,
-                SkillEffect.EffectIncrementType.AddFactor,
+                PartyRole.PartyLeader, 0.03f,
+                EffectIncrementType.AddFactor,
                 "{=NGas0eu2}Increases carry capacity of pack animals by 20%.",
-                SkillEffect.PerkRole.PartyLeader, 20f,
-                SkillEffect.EffectIncrementType.AddFactor);
+                PartyRole.PartyLeader, 0.2f,
+                EffectIncrementType.AddFactor);
 
             CaravaneerDealer = Game.Current.ObjectManager.RegisterPresumedObject(new PerkObject("LifestyleCaravaneerDealer"));
             LifestylePerks.Add(CaravaneerDealer);
-            CaravaneerDealer.Initialize("{=6yEOGwgd}Dealer", null, 
-                150, 
+            CaravaneerDealer.Initialize("{=6yEOGwgd}Dealer", null,
+                150,
                 null,
                 "{=njAV5qnr}Caravan wages are reduced by 10%.",
-                SkillEffect.PerkRole.PartyOwner, 10f,
-                SkillEffect.EffectIncrementType.AddFactor,
+                PartyRole.PartyOwner, 0.1f,
+                EffectIncrementType.AddFactor,
                 "{=REgC6u81}Your caravans move 4% faster during daytime.",
-                SkillEffect.PerkRole.PartyOwner, 8f,
-                SkillEffect.EffectIncrementType.AddFactor);
+                PartyRole.PartyOwner, 0.04f,
+                EffectIncrementType.AddFactor);
 
             CaravaneerOutsideConnections = Game.Current.ObjectManager.RegisterPresumedObject(new PerkObject("LifestyleCaravaneerOutsideConnections"));
             CaravaneerOutsideConnections.Initialize("{=ZX0fpu3t}Outside Connections", null, 
                 240, 
                 null,
                 "{=0C3HpYf5}Your caravans have 5% less trade penalty.",
-                SkillEffect.PerkRole.PartyOwner, 5f,
-                SkillEffect.EffectIncrementType.Add,
+                PartyRole.PartyOwner, 5f,
+                EffectIncrementType.Add,
                 "{=TWFxSheh}Randomly gain relations with merchants where your caravans trade.",
-                SkillEffect.PerkRole.PartyOwner, 5f,
-                SkillEffect.EffectIncrementType.AddFactor);
+                PartyRole.PartyOwner, 0.05f,
+                EffectIncrementType.AddFactor);
 
             #endregion Caravaneer
 
             #region Artisan
 
             ArtisanSmith = Game.Current.ObjectManager.RegisterPresumedObject(new PerkObject("LifestyleArtisanSmith"));
-            ArtisanSmith.Initialize("{=etbv7s6N}Smith", null, 
-                80, 
+            ArtisanSmith.Initialize("{=etbv7s6N}Smith", null,
+                80,
                 null,
                 "{=zOzu5By2}Crafting items costs 10% less energy.",
-                SkillEffect.PerkRole.Personal, 10f,
-                SkillEffect.EffectIncrementType.AddFactor,
+                PartyRole.Personal, 0.1f,
+                EffectIncrementType.AddFactor,
                 "{=etbv7s6N}Smithy hourly cost is 15% cheaper.",
-                SkillEffect.PerkRole.Personal, 15f,
-                SkillEffect.EffectIncrementType.AddFactor);
+                PartyRole.Personal, 0.15f,
+                EffectIncrementType.AddFactor);
 
             ArtisanCraftsman = Game.Current.ObjectManager.RegisterPresumedObject(new PerkObject("LifestyleArtisanCraftsman"));
-            ArtisanCraftsman.Initialize("{=iktjoMi1}Craftsman", null, 
-                160, 
+            ArtisanCraftsman.Initialize("{=iktjoMi1}Craftsman", null,
+                160,
                 null,
                 "{=3TB6TJvJ}Your workshops have 5% increase in production quality.",
-                SkillEffect.PerkRole.ClanLeader, 5f,
-                SkillEffect.EffectIncrementType.AddFactor,
+                PartyRole.ClanLeader, 0.05f,
+                EffectIncrementType.AddFactor,
                 "{=GqTajw9S}You are 5% more likely to craft an item with a better modifier.",
-                SkillEffect.PerkRole.Personal, 5f,
-                SkillEffect.EffectIncrementType.AddFactor);
+                PartyRole.Personal, 0.05f,
+                EffectIncrementType.AddFactor);
 
             ArtisanEntrepeneur = Game.Current.ObjectManager.RegisterPresumedObject(new PerkObject("LifestyleArtisanEntrepeneur"));
-            ArtisanEntrepeneur.Initialize("{=hNHACmv9}Entrepeneur", null, 
+            ArtisanEntrepeneur.Initialize("{=hNHACmv9}Entrepeneur", null,
                 240,
                 null,
                 "{=qiMW8Wio}Increased settlement production efficiency by flat 10%.",
-                SkillEffect.PerkRole.ClanLeader, 10f,
-                SkillEffect.EffectIncrementType.Add,
+                PartyRole.ClanLeader, 0.1f,
+                EffectIncrementType.Add,
                 "{=p70n92jh}You pay 20% less workshop taxes to other clans. Your settlements tax others' workshops 20% more.",
-                SkillEffect.PerkRole.ClanLeader, 20f,
-                SkillEffect.EffectIncrementType.AddFactor);
+                PartyRole.ClanLeader, 0.2f,
+                EffectIncrementType.AddFactor);
 
             #endregion Artisan
 
@@ -720,11 +720,11 @@ namespace BannerKings.Managers.Skills
                 80, 
                 null,
                 "{=kbBbDiyR}30% better deals reansoming lords.",
-                SkillEffect.PerkRole.PartyLeader, 3f,
-                SkillEffect.EffectIncrementType.AddFactor,
+                PartyRole.PartyLeader, 0.3f,
+                EffectIncrementType.AddFactor,
                 "{=hBQu6YKu}Decreases the duration of the disorganized state after breaking sieges and raids by 30%.",
-                SkillEffect.PerkRole.Personal, 0.03f,
-                SkillEffect.EffectIncrementType.AddFactor);
+                PartyRole.Personal, 0.3f,
+                EffectIncrementType.AddFactor);
 
             OutlawPlunderer = Game.Current.ObjectManager.RegisterPresumedObject(new PerkObject("LifestyleOutlawPlunderer"));
             LifestylePerks.Add(OutlawPlunderer);
@@ -732,11 +732,11 @@ namespace BannerKings.Managers.Skills
                 160,
                 null,
                 "{=njer0pyD}Bandit troops in your party yield influence.",
-                SkillEffect.PerkRole.PartyOwner, 10f,
-                SkillEffect.EffectIncrementType.AddFactor,
+                PartyRole.PartyOwner, 0.1f,
+                EffectIncrementType.AddFactor,
                 "{=PawhUHjG}Raiding villages is 15% faster.",
-                SkillEffect.PerkRole.Captain, 8f,
-                SkillEffect.EffectIncrementType.AddFactor);
+                PartyRole.Captain, 0.15f,
+                EffectIncrementType.AddFactor);
 
             OutlawNightPredator = Game.Current.ObjectManager.RegisterPresumedObject(new PerkObject("LifestyleOutlawNightPredator"));
             LifestylePerks.Add(OutlawNightPredator);
@@ -744,11 +744,11 @@ namespace BannerKings.Managers.Skills
                 240,
                 null,
                 "{=MB9f1s0O}Your party is 50% harder to spot in forests.",
-                SkillEffect.PerkRole.Personal, 10f,
-                SkillEffect.EffectIncrementType.Add,
+                PartyRole.Personal, 10f,
+                EffectIncrementType.Add,
                 "{=HWydDHb3}Increased nighttime movement by 6%.",
-                SkillEffect.PerkRole.Personal, 20f,
-                SkillEffect.EffectIncrementType.AddFactor);
+                PartyRole.Personal, 0.06f,
+                EffectIncrementType.AddFactor);
 
             OutlawUnderworldKing = Game.Current.ObjectManager.RegisterPresumedObject(new PerkObject("LifestyleOutlawUnderworldKing"));
             LifestylePerks.Add(OutlawUnderworldKing);
@@ -756,11 +756,11 @@ namespace BannerKings.Managers.Skills
                 320, 
                 null,
                 "{=GpcWSVCy}Killing bandit leaders yields renown.",
-                SkillEffect.PerkRole.Personal, 10f,
-                SkillEffect.EffectIncrementType.Add,
+                PartyRole.Personal, 10f,
+                EffectIncrementType.Add,
                 "{=!}",
-                SkillEffect.PerkRole.Personal, 20f,
-                SkillEffect.EffectIncrementType.AddFactor);
+                PartyRole.Personal, 0.2f,
+                EffectIncrementType.AddFactor);
 
             #endregion Outlaw
 
@@ -771,33 +771,33 @@ namespace BannerKings.Managers.Skills
                 80, 
                 null,
                 "{=jhZ8TFCB}While serving as mercenary, gain the ability to recruit from local minor factions in towns.",
-                SkillEffect.PerkRole.PartyLeader, 3f,
-                SkillEffect.EffectIncrementType.AddFactor,
+                PartyRole.PartyLeader, 0.03f,
+                EffectIncrementType.AddFactor,
                 "{=JMubUFej}Recruiting mercenary troops is 10% cheaper.",
-                SkillEffect.PerkRole.Personal, 0.03f,
-                SkillEffect.EffectIncrementType.AddFactor);
+                PartyRole.Personal, 0.1f,
+                EffectIncrementType.AddFactor);
 
             MercenaryRansacker = Game.Current.ObjectManager.RegisterPresumedObject(new PerkObject("LifestyleMercenaryRansacker"));
             MercenaryRansacker.Initialize("{=n9ZMPe6w}Ransacker", null, 
                 160, 
                 null,
                 "{=TAfrnnO4}Killing enemies provides 10% more share battle contribution.",
-                SkillEffect.PerkRole.PartyOwner, 10f,
-                SkillEffect.EffectIncrementType.AddFactor,
+                PartyRole.PartyOwner, 0.1f,
+                EffectIncrementType.AddFactor,
                 "{=PawhUHjG}Raiding villages is 15% faster.",
-                SkillEffect.PerkRole.Captain, 8f,
-                SkillEffect.EffectIncrementType.AddFactor);
+                PartyRole.Captain, 0.15f,
+                EffectIncrementType.AddFactor);
 
             MercenaryFamousSellswords = Game.Current.ObjectManager.RegisterPresumedObject(new PerkObject("LifestyleMercenarySellswords"));
             MercenaryFamousSellswords.Initialize("{=976FNbqA}Famous Sellswords", null, 
                 240, 
                 null,
                 "{=EkFaisgP}Influence award for army participation increased by 30%.",
-                SkillEffect.PerkRole.Personal, 10f,
-                SkillEffect.EffectIncrementType.Add,
+                PartyRole.Personal, 10f,
+                EffectIncrementType.Add,
                 "{=35Mq4ASE}Renown award for victories increased by 20%.",
-                SkillEffect.PerkRole.Personal, 20f,
-                SkillEffect.EffectIncrementType.AddFactor);
+                PartyRole.Personal, 0.2f,
+                EffectIncrementType.AddFactor);
 
             #endregion Mercenary
 
@@ -808,33 +808,33 @@ namespace BannerKings.Managers.Skills
                 80,
                 null,
                 "{=jCBbUvHx}Mounts of your commanded troops have 10% more hit points.",
-                SkillEffect.PerkRole.PartyLeader, 3f,
-                SkillEffect.EffectIncrementType.AddFactor,
+                PartyRole.PartyLeader, 0.1f,
+                EffectIncrementType.AddFactor,
                 "{=3GsZXXOi}10% production bonus to villages that are bound to castles.",
-                SkillEffect.PerkRole.Personal, 0.03f,
-                SkillEffect.EffectIncrementType.AddFactor);
+                PartyRole.Personal, 0.1f,
+                EffectIncrementType.AddFactor);
 
             RitterOathbound = Game.Current.ObjectManager.RegisterPresumedObject(new PerkObject("LifestyleRitterOathbound"));
             RitterOathbound.Initialize("{=DrdTH6yF}Oathbound", null,
                 160,
                 null,
                 "{=5LgkGVPg}Every season, get a chance of improving relations with your suzerain.",
-                SkillEffect.PerkRole.PartyOwner, 10f,
-                SkillEffect.EffectIncrementType.AddFactor,
+                PartyRole.PartyOwner, 0.1f,
+                EffectIncrementType.AddFactor,
                 "{=rDHnyE3V}Recruting mounted troops from your settlements is 15% cheaper.",
-                SkillEffect.PerkRole.Captain, 8f,
-                SkillEffect.EffectIncrementType.AddFactor);
+                PartyRole.Captain, 0.15f,
+                EffectIncrementType.AddFactor);
 
             RitterPettySuzerain = Game.Current.ObjectManager.RegisterPresumedObject(new PerkObject("LifestyleRitterPettySuzerain"));
             RitterPettySuzerain.Initialize("{=zL894U8E}Petty Suzerain", null,
                 240,
                 null,
                 "{=sYD7tjoy}Village notables are 20% more likely to produce noble troops instead of peasants.",
-                SkillEffect.PerkRole.Personal, 10f,
-                SkillEffect.EffectIncrementType.Add,
+                PartyRole.Personal, 10f,
+                EffectIncrementType.Add,
                 "{=fesQ44gc}Village hearths increase by +0.1 daily.",
-                SkillEffect.PerkRole.Personal, 20f,
-                SkillEffect.EffectIncrementType.AddFactor);
+                PartyRole.Personal, 0.2f,
+                EffectIncrementType.AddFactor);
 
             #endregion Ritter
 
@@ -845,33 +845,33 @@ namespace BannerKings.Managers.Skills
                 80,
                 null,
                 "{=qDJmqZrJ}Infantry troops take 4% less melee damage while in shield wall formation.",
-                SkillEffect.PerkRole.PartyLeader, 3f,
-                SkillEffect.EffectIncrementType.AddFactor,
+                PartyRole.PartyLeader, 0.04f,
+                EffectIncrementType.AddFactor,
                 "{=PawhUHjG}Raiding villages is 15% faster",
-                SkillEffect.PerkRole.Personal, 0.03f,
-                SkillEffect.EffectIncrementType.AddFactor);
+                PartyRole.Personal, 0.15f,
+                EffectIncrementType.AddFactor);
 
             VaryagRecognizedMercenary = Game.Current.ObjectManager.RegisterPresumedObject(new PerkObject("LifestyleVaryagRecognizedMercenary"));
             VaryagRecognizedMercenary.Initialize("{=yHe78yMm}Recognized Mercenary", null,
                 160,
                 null,
                 "{=Mc2tRSxH}Influence is 10% more profitable as mercenary.",
-                SkillEffect.PerkRole.PartyOwner, 10f,
-                SkillEffect.EffectIncrementType.AddFactor,
+                PartyRole.PartyOwner, 0.1f,
+                EffectIncrementType.AddFactor,
                 "{=aUGUXnb5}For every year spent under mercenary service, gain 30 renown.",
-                SkillEffect.PerkRole.Captain, 8f,
-                SkillEffect.EffectIncrementType.AddFactor);
+                PartyRole.Captain, 0.08f,
+                EffectIncrementType.AddFactor);
 
             VaryagDrengr = Game.Current.ObjectManager.RegisterPresumedObject(new PerkObject("LifestyleVaryagDrengr"));
             VaryagDrengr.Initialize("{=ofYg0u8k}Drengr", null,
                 240,
                 null,
                 "{=bFJmErzs}Infantry troops in the formation you are leading take 20% less affected by negative morale changes.",
-                SkillEffect.PerkRole.Personal, 10f,
-                SkillEffect.EffectIncrementType.Add,
+                PartyRole.Personal, 10f,
+                EffectIncrementType.Add,
                 "{=XAwb1Yhg}Infantry troops in the formation you are leading have their melee weapon damage increased by 10%.",
-                SkillEffect.PerkRole.Personal, 20f,
-                SkillEffect.EffectIncrementType.AddFactor);
+                PartyRole.Personal, 0.1f,
+                EffectIncrementType.AddFactor);
 
             #endregion Varyag
 
@@ -882,33 +882,33 @@ namespace BannerKings.Managers.Skills
                 80,
                 null,
                 "{=kVzwAnmL}Gain 30% more profit from bets.",
-                SkillEffect.PerkRole.Personal, 3f,
-                SkillEffect.EffectIncrementType.AddFactor,
+                PartyRole.Personal, 0.3f,
+                EffectIncrementType.AddFactor,
                 "{=rjTcZpvc}Gain 2 relations with a random notable on tournament victory.",
-                SkillEffect.PerkRole.Personal, 0.03f,
-                SkillEffect.EffectIncrementType.AddFactor);
+                PartyRole.Personal, 0.03f,
+                EffectIncrementType.AddFactor);
 
             GladiatorTourDeCalradia = Game.Current.ObjectManager.RegisterPresumedObject(new PerkObject("LifestyleGladiatorTourDeCalradia"));
             GladiatorTourDeCalradia.Initialize("{=eRSMJMDu}Tour de Calradia", null,
                 160,
                 null,
                 "{=eZAQi931}After a tournament is finished, receive a notification of the neartest ongoing tournament.",
-                SkillEffect.PerkRole.Personal, 0f,
-                SkillEffect.EffectIncrementType.AddFactor,
+                PartyRole.Personal, 0f,
+                EffectIncrementType.AddFactor,
                 "{=ilKDq9f5}Double the amount of betting you can use in tournaments.",
-                SkillEffect.PerkRole.Personal, 0f,
-                SkillEffect.EffectIncrementType.AddFactor);
+                PartyRole.Personal, 0f,
+                EffectIncrementType.AddFactor);
 
             GladiatorCrowdsFavorite = Game.Current.ObjectManager.RegisterPresumedObject(new PerkObject("LifestyleGladiatorCrowdsFavorite"));
             GladiatorCrowdsFavorite.Initialize("{=UE5e5Mjz}Crowds' Favorite", null,
                 240,
                 null,
                 "{=e84fYWSo}Gain double renown rewards for tournament victories.",
-                SkillEffect.PerkRole.Personal, 10f,
-                SkillEffect.EffectIncrementType.Add,
+                PartyRole.Personal, 10f,
+                EffectIncrementType.Add,
                 "{=Vn7uf9MZ}Gain 10 influence from tournament victories.",
-                SkillEffect.PerkRole.Personal, 20f,
-                SkillEffect.EffectIncrementType.AddFactor);
+                PartyRole.Personal, 0.2f,
+                EffectIncrementType.AddFactor);
 
             #endregion Gladiator
         }
@@ -924,33 +924,33 @@ namespace BannerKings.Managers.Skills
                 GetTierCost(1),
                 null,
                 "{=8zbXJZWL}Piety gain is increased by +0.2 daily.",
-                SkillEffect.PerkRole.Personal, 0.2f,
-                SkillEffect.EffectIncrementType.Add,
+                PartyRole.Personal, 0.2f,
+                EffectIncrementType.Add,
                 "{=TYjyR0Ls}Religious notables' volunteers may be recruited.",
-                SkillEffect.PerkRole.Ruler, 1f,
-                SkillEffect.EffectIncrementType.Add);
+                PartyRole.Ruler, 1f,
+                EffectIncrementType.Add);
 
             TheologyBlessed = Game.Current.ObjectManager.RegisterPresumedObject(new PerkObject("TheologyBlessed"));
             TheologyBlessed.Initialize("{=hmysbhA8}Blessed", BKSkills.Instance.Theology, 
                 GetTierCost(2),
                 null,
                 "{=p2ekwXZR}Blessings last a season longer.",
-                SkillEffect.PerkRole.Personal, 0.2f,
-                SkillEffect.EffectIncrementType.Add,
+                PartyRole.Personal, 0.2f,
+                EffectIncrementType.Add,
                 "{=CsHxKFue}Blessings cost 10% less piety.",
-                SkillEffect.PerkRole.Ruler, 1f,
-                SkillEffect.EffectIncrementType.Add);
+                PartyRole.Ruler, 1f,
+                EffectIncrementType.Add);
 
             TheologyReligiousTeachings = Game.Current.ObjectManager.RegisterPresumedObject(new PerkObject("TheologyReligiousTeachings"));
             TheologyReligiousTeachings.Initialize("{=jAXfadxv}Religious Teachings", BKSkills.Instance.Theology, 
                 GetTierCost(3),
                 null,
                 "{=c7v8hrEa}Children receive 1 extra Wisdom when becoming adults.",
-                SkillEffect.PerkRole.Personal, 0.2f,
-                SkillEffect.EffectIncrementType.Add,
+                PartyRole.Personal, 0.2f,
+                EffectIncrementType.Add,
                 "{=yctR4vY6}Daily experience points in Theology for companions and family in party.",
-                SkillEffect.PerkRole.Ruler, 1f,
-                SkillEffect.EffectIncrementType.Add);
+                PartyRole.Ruler, 1f,
+                EffectIncrementType.Add);
 
             TheologyRitesOfPassage = Game.Current.ObjectManager.RegisterPresumedObject(new PerkObject("TheologyRitesOfPassage"));
             TheologyPreacher = Game.Current.ObjectManager.RegisterPresumedObject(new PerkObject("TheologyPreacher"));
@@ -959,76 +959,76 @@ namespace BannerKings.Managers.Skills
                 GetTierCost(4),
                 TheologyRitesOfPassage,
                 "{=!}Settlement religious tensions reduced by 5%.",
-                SkillEffect.PerkRole.Personal, 0.2f,
-                SkillEffect.EffectIncrementType.Add,
+                PartyRole.Personal, 0.2f,
+                EffectIncrementType.Add,
                 "{=J6oPqQmt}Settlement conversion speed increased by 5%.",
-                SkillEffect.PerkRole.Ruler, 1f,
-                SkillEffect.EffectIncrementType.Add);
+                PartyRole.Ruler, 1f,
+                EffectIncrementType.Add);
 
             TheologyRitesOfPassage.Initialize("{=or8rXdjy}Rites Of Passage", BKSkills.Instance.Theology, 
                 GetTierCost(4),
                 TheologyPreacher,
                 "{=mbfGsOCE}Rites can be performed again 1 season sooner.",
-                SkillEffect.PerkRole.Personal, 0.2f,
-                SkillEffect.EffectIncrementType.Add,
+                PartyRole.Personal, 0.2f,
+                EffectIncrementType.Add,
                 "{=aTGOhnQS}Rites yield 5 renown.",
-                SkillEffect.PerkRole.Ruler, 1f,
-                SkillEffect.EffectIncrementType.Add);
+                PartyRole.Ruler, 1f,
+                EffectIncrementType.Add);
 
             TheologyLithurgy = Game.Current.ObjectManager.RegisterPresumedObject(new PerkObject("TheologyLithurgy"));
             TheologyLithurgy.Initialize("{=n3FhFzTo}Lithurgy", BKSkills.Instance.Theology, 
                 GetTierCost(5),
                 null,
                 "{=4hNMnjUh}Randomly receive relations with religious notables in your settlements.",
-                SkillEffect.PerkRole.Personal, 0.2f,
-                SkillEffect.EffectIncrementType.Add,
+                PartyRole.Personal, 0.2f,
+                EffectIncrementType.Add,
                 "{=!}Increased Relations Target with preachers",
-                SkillEffect.PerkRole.Ruler, 5f,
-                SkillEffect.EffectIncrementType.Add);
+                PartyRole.Ruler, 5f,
+                EffectIncrementType.Add);
 
             TheologyMatrimony = Game.Current.ObjectManager.RegisterPresumedObject(new PerkObject("TheologyMatrimony"));
             TheologyMatrimony.Initialize("{=!}Holy Matrimony", BKSkills.Instance.Theology,
                 GetTierCost(6),
                 TheologyConvert,
                 "{=!}When marrying into your faith, get 5% more Spouse Score.",
-                SkillEffect.PerkRole.Personal, 0.05f,
-                SkillEffect.EffectIncrementType.AddFactor,
+                PartyRole.Personal, 0.05f,
+                EffectIncrementType.AddFactor,
                 "{=!}Reduced marriage influence costs by 15% for your clan.",
-                SkillEffect.PerkRole.ClanLeader, -0.15f,
-                SkillEffect.EffectIncrementType.AddFactor);
+                PartyRole.ClanLeader, -0.15f,
+                EffectIncrementType.AddFactor);
 
             TheologyConvert = Game.Current.ObjectManager.RegisterPresumedObject(new PerkObject("TheologyConvert"));
             TheologyConvert.Initialize("{=!}Converter", BKSkills.Instance.Theology,
                 GetTierCost(6),
                 TheologyMatrimony,
                 "{=!}Converting others requires 10% less influence and piety.",
-                SkillEffect.PerkRole.Personal, -0.1f,
-                SkillEffect.EffectIncrementType.AddFactor,
+                PartyRole.Personal, -0.1f,
+                EffectIncrementType.AddFactor,
                 "{=!}Clan members are more likely to accept converting to your faith.",
-                SkillEffect.PerkRole.Ruler, 4f,
-                SkillEffect.EffectIncrementType.Add);
+                PartyRole.Ruler, 4f,
+                EffectIncrementType.Add);
 
             TheologyArchPriest = Game.Current.ObjectManager.RegisterPresumedObject(new PerkObject("TheologyArchPriest"));
             TheologyArchPriest.Initialize("{=!}Arch Priest", BKSkills.Instance.Theology,
                 GetTierCost(7),
                 TheologySect,
                 "{=!}Increased Relations Target with leader of your faith.",
-                SkillEffect.PerkRole.Personal, 5f,
-                SkillEffect.EffectIncrementType.Add,
+                PartyRole.Personal, 5f,
+                EffectIncrementType.Add,
                 "{=!}Reduced cost to appoint new preachers.",
-                SkillEffect.PerkRole.Ruler, 1f,
-                SkillEffect.EffectIncrementType.Add);
+                PartyRole.Ruler, 1f,
+                EffectIncrementType.Add);
 
             TheologySect = Game.Current.ObjectManager.RegisterPresumedObject(new PerkObject("TheologySect"));
             TheologySect.Initialize("{=!}Sect", BKSkills.Instance.Theology,
                 GetTierCost(7),
                 TheologyArchPriest,
                 "{=!}Religious mercenary clans are more likely to serve you.",
-                SkillEffect.PerkRole.Ruler, 0.1f,
-                SkillEffect.EffectIncrementType.AddFactor,
+                PartyRole.Ruler, 0.1f,
+                EffectIncrementType.AddFactor,
                 "{=!}Gain piety while serving as mercenary to a realm of your faith.",
-                SkillEffect.PerkRole.ClanLeader, 0.1f,
-                SkillEffect.EffectIncrementType.Add);
+                PartyRole.ClanLeader, 0.1f,
+                EffectIncrementType.Add);
 
             #endregion Theology
 
@@ -1040,21 +1040,21 @@ namespace BannerKings.Managers.Skills
                 GetTierCost(3),
                 LordshipAdaptive,
                 "{=rEZSUexA}Increased cultural assimilation speed by 10%",
-                SkillEffect.PerkRole.Ruler, 0.1f,
-                SkillEffect.EffectIncrementType.AddFactor,
+                PartyRole.Ruler, 0.1f,
+                EffectIncrementType.AddFactor,
                 "{=bqxzRYLB}Increased militarism in assimilated settlements by flat 1%",
-                SkillEffect.PerkRole.Ruler, 1f,
-                SkillEffect.EffectIncrementType.Add);
+                PartyRole.Ruler, 1f,
+                EffectIncrementType.Add);
 
             LordshipAdaptive.Initialize("{=G8gRRBpj}Adaptive", BKSkills.Instance.Lordship,
                 GetTierCost(3),
                 LordshipTraditionalist,
                 "{=!}Reduced loyalty onus from different cultures by 15%",
-                SkillEffect.PerkRole.Governor, 0.1f,
-                SkillEffect.EffectIncrementType.Add,
+                PartyRole.Governor, 0.1f,
+                EffectIncrementType.Add,
                 "{=EVeiLBOF}Increased settlement stability target by flat 2%",
-                SkillEffect.PerkRole.Ruler, 1f,
-                SkillEffect.EffectIncrementType.Add);
+                PartyRole.Ruler, 1f,
+                EffectIncrementType.Add);
 
             LordshipAccolade = Game.Current.ObjectManager.RegisterPresumedObject(new PerkObject("LordshipAccolade"));
             LordshipManorLord = Game.Current.ObjectManager.RegisterPresumedObject(new PerkObject("LordshipManorLord"));
@@ -1062,43 +1062,43 @@ namespace BannerKings.Managers.Skills
                 GetTierCost(2), 
                 LordshipManorLord,
                 "{=KynB5Njq}Knighting requires 15% less influence",
-                SkillEffect.PerkRole.Ruler, -0.15f,
-                SkillEffect.EffectIncrementType.AddFactor,
+                PartyRole.Ruler, -0.15f,
+                EffectIncrementType.AddFactor,
                 "{=ZzDmAkN4}Vassal limit increased by 1",
-                SkillEffect.PerkRole.Ruler, 1f,
-                SkillEffect.EffectIncrementType.Add);
+                PartyRole.Ruler, 1f,
+                EffectIncrementType.Add);
 
             LordshipManorLord.Initialize("{=XUu53n1F}Manor Lord", BKSkills.Instance.Lordship, 
                 GetTierCost(2), 
                 LordshipAccolade,
                 "{=uanVb5h8}Villages weigh 20% less in demesne limit",
-                SkillEffect.PerkRole.Ruler, -0.20f,
-                SkillEffect.EffectIncrementType.AddFactor,
+                PartyRole.Ruler, -0.20f,
+                EffectIncrementType.AddFactor,
                 "{=kJD93Rh2}Manors provide extra flat 0.2 influence",
-                SkillEffect.PerkRole.ClanLeader, 0.2f,
-                SkillEffect.EffectIncrementType.Add);
+                PartyRole.ClanLeader, 0.2f,
+                EffectIncrementType.Add);
 
             LordshipSellswordCareer = Game.Current.ObjectManager.RegisterPresumedObject(new PerkObject("LordshipSellswordCareer"));
             LordshipSellswordCareer.Initialize("{=!}Sellsword Career", BKSkills.Instance.Lordship,
                 GetTierCost(1),
                 LordshipRogueConnections,
                 "{=!}Mercenary Career point gain increased by 15%.",
-                SkillEffect.PerkRole.ClanLeader, 0.15f,
-                SkillEffect.EffectIncrementType.AddFactor,
+                PartyRole.ClanLeader, 0.15f,
+                EffectIncrementType.AddFactor,
                 "{=!}Earnest-money and firing payments increased by 10%.",
-                SkillEffect.PerkRole.ClanLeader, 0.1f,
-                SkillEffect.EffectIncrementType.AddFactor);
+                PartyRole.ClanLeader, 0.1f,
+                EffectIncrementType.AddFactor);
 
             LordshipRogueConnections = Game.Current.ObjectManager.RegisterPresumedObject(new PerkObject("LordshipRogueConnections"));
             LordshipRogueConnections.Initialize("{=!}Rogue Connections", BKSkills.Instance.Lordship,
                 GetTierCost(1),
                 LordshipSellswordCareer,
                 "{=!}Mercenary clans are 10% more willing to join / stay in service.",
-                SkillEffect.PerkRole.Ruler, 0.2f,
-                SkillEffect.EffectIncrementType.AddFactor,
+                PartyRole.Ruler, 0.1f,
+                EffectIncrementType.AddFactor,
                 "{=!}Mercenary earnest-money and firing payments are 5% cheaper.",
-                SkillEffect.PerkRole.Ruler, 0.1f,
-                SkillEffect.EffectIncrementType.AddFactor);
+                PartyRole.Ruler, 0.05f,
+                EffectIncrementType.AddFactor);
 
             LordshipMilitaryAdministration = Game.Current.ObjectManager.RegisterPresumedObject(new PerkObject("LordshipMilitaryAdministration"));
             LordshipEconomicAdministration = Game.Current.ObjectManager.RegisterPresumedObject(new PerkObject("LordshipEconomicAdministration"));
@@ -1106,21 +1106,21 @@ namespace BannerKings.Managers.Skills
                 GetTierCost(4), 
                 LordshipEconomicAdministration,
                 "{=tqWtfNch}Increased settlement militarism in settlements by 2%",
-                SkillEffect.PerkRole.Ruler, 0.02f,
-                SkillEffect.EffectIncrementType.Add,
+                PartyRole.Ruler, 0.02f,
+                EffectIncrementType.Add,
                 "{=6hRejPPe}Increased settlement drafting speed by 20%",
-                SkillEffect.PerkRole.Ruler, 0.2f,
-                SkillEffect.EffectIncrementType.AddFactor);
+                PartyRole.Ruler, 0.2f,
+                EffectIncrementType.AddFactor);
 
             LordshipEconomicAdministration.Initialize("{=SEB2hNAG}Economic Administration", BKSkills.Instance.Lordship, 
                 GetTierCost(4),
                 LordshipMilitaryAdministration,
                 "{=w2KEdfGJ}Increased settlement production efficiency by 10%",
-                SkillEffect.PerkRole.Ruler, 0.2f,
-                SkillEffect.EffectIncrementType.AddFactor,
+                PartyRole.Ruler, 0.1f,
+                EffectIncrementType.AddFactor,
                 "{=UjmvizdY}Increased settlement production quality by 5%",
-                SkillEffect.PerkRole.Ruler, 0.1f,
-                SkillEffect.EffectIncrementType.AddFactor);
+                PartyRole.Ruler, 0.05f,
+                EffectIncrementType.AddFactor);
 
             LordshipClaimant = Game.Current.ObjectManager.RegisterPresumedObject(new PerkObject("LordshipClaimant"));
             LordshipPatron = Game.Current.ObjectManager.RegisterPresumedObject(new PerkObject("LordshipPatron"));
@@ -1128,76 +1128,76 @@ namespace BannerKings.Managers.Skills
                 GetTierCost(5), 
                 LordshipPatron,
                 "{=6hY9WysN}Claims are built 30% faster",
-                SkillEffect.PerkRole.Ruler, 0.3f,
-                SkillEffect.EffectIncrementType.AddFactor,
+                PartyRole.Ruler, 0.3f,
+                EffectIncrementType.AddFactor,
                 "{=pQ6oCYEb}Hostile actions (claim, usurp & revoke) are 5% cheaper",
-                SkillEffect.PerkRole.Ruler, 0.05f,
-                SkillEffect.EffectIncrementType.AddFactor);
+                PartyRole.Ruler, 0.05f,
+                EffectIncrementType.AddFactor);
 
             LordshipPatron.Initialize("{=aHL9od5c}Patron", BKSkills.Instance.Lordship, 
                 GetTierCost(5),
                 LordshipClaimant,
                 "{=moMBKpGt}Grating titles yields renown",
-                SkillEffect.PerkRole.ClanLeader, 0.2f,
-                SkillEffect.EffectIncrementType.AddFactor,
+                PartyRole.ClanLeader, 0.2f,
+                EffectIncrementType.AddFactor,
                 "{=jndzbOjF}Amicable actions (grant, negotiate) yield more positive relation",
-                SkillEffect.PerkRole.ClanLeader, 0.1f,
-                SkillEffect.EffectIncrementType.AddFactor);
+                PartyRole.ClanLeader, 0.1f,
+                EffectIncrementType.AddFactor);
 
             LordshipCourtly = Game.Current.ObjectManager.RegisterPresumedObject(new PerkObject("LordshipCourtly")); 
             LordshipCourtly.Initialize("{=!}Courtly Cerimonies", BKSkills.Instance.Lordship,
                 GetTierCost(6),
                 LordshipAdvisor,
                 "{=!}Council members are 5% more effective at their tasks.",
-                SkillEffect.PerkRole.ClanLeader, 0.05f,
-                SkillEffect.EffectIncrementType.AddFactor,
+                PartyRole.ClanLeader, 0.05f,
+                EffectIncrementType.AddFactor,
                 "{=!}Filled in council positions yield 10% more Grace.",
-                SkillEffect.PerkRole.ClanLeader, 0.1f,
-                SkillEffect.EffectIncrementType.AddFactor);
+                PartyRole.ClanLeader, 0.1f,
+                EffectIncrementType.AddFactor);
 
             LordshipAdvisor = Game.Current.ObjectManager.RegisterPresumedObject(new PerkObject("LordshipAdvisor"));
             LordshipAdvisor.Initialize("{=!}Advisor", BKSkills.Instance.Lordship,
                 GetTierCost(6),
                 LordshipCourtly,
                 "{=!}Personal competence for council tasks increased by 15%",
-                SkillEffect.PerkRole.ClanLeader, 0.15f,
-                SkillEffect.EffectIncrementType.AddFactor,
+                PartyRole.ClanLeader, 0.15f,
+                EffectIncrementType.AddFactor,
                 "{=!}Influence cap from council positions fulfilled by you increased by 25%",
-                SkillEffect.PerkRole.ClanLeader, 1.25f,
-                SkillEffect.EffectIncrementType.AddFactor);
+                PartyRole.ClanLeader, 0.25f,
+                EffectIncrementType.AddFactor);
 
             LordshipAristocraticRites = Game.Current.ObjectManager.RegisterPresumedObject(new PerkObject("LordshipAristocraticRites"));
             LordshipAristocraticRites.Initialize("{=!}Aristocratic Rites", BKSkills.Instance.Lordship,
                 GetTierCost(7),
                 LordshipSenateOrator,
                 "{=!}Grace is increased by 4%, doubly so as ruler.",
-                SkillEffect.PerkRole.ClanLeader, 0.04f,
-                SkillEffect.EffectIncrementType.AddFactor,
+                PartyRole.ClanLeader, 0.04f,
+                EffectIncrementType.AddFactor,
                 "{=!}Increased vassal limit by 1.",
-                SkillEffect.PerkRole.ClanLeader, 1f,
-                SkillEffect.EffectIncrementType.Add);
+                PartyRole.ClanLeader, 1f,
+                EffectIncrementType.Add);
 
             LordshipSenateOrator = Game.Current.ObjectManager.RegisterPresumedObject(new PerkObject("LordshipSenateOrator"));
             LordshipSenateOrator.Initialize("{=!}Senate Orator", BKSkills.Instance.Lordship,
                 GetTierCost(7),
                 LordshipAristocraticRites,
                 "{=!}Influence cap increased by 6% for non-rulers.",
-                SkillEffect.PerkRole.ClanLeader, 0.06f,
-                SkillEffect.EffectIncrementType.AddFactor,
+                PartyRole.ClanLeader, 0.06f,
+                EffectIncrementType.AddFactor,
                 "{=!}Proposing diplomatic actions, such as warfare, costs 8% less influence.",
-                SkillEffect.PerkRole.ClanLeader, 0.1f,
-                SkillEffect.EffectIncrementType.AddFactor);
+                PartyRole.ClanLeader, 0.08f,
+                EffectIncrementType.AddFactor);
 
             LordshipDiplomaticTies = Game.Current.ObjectManager.RegisterPresumedObject(new PerkObject("LordshipDiplomaticTies"));
             LordshipDiplomaticTies.Initialize("{=!}Diplomatic Ties", BKSkills.Instance.Lordship,
                 GetTierCost(8),
                 LordshipPatron,
                 "{=!}Foreign rulers are more willing to make amicable diplomatic pacts.",
-                SkillEffect.PerkRole.Ruler, 10f,
-                SkillEffect.EffectIncrementType.Add,
+                PartyRole.Ruler, 10f,
+                EffectIncrementType.Add,
                 "{=!}Increased Relations Target with foreign rulers.",
-                SkillEffect.PerkRole.Ruler, 3f,
-                SkillEffect.EffectIncrementType.Add);
+                PartyRole.Ruler, 3f,
+                EffectIncrementType.Add);
 
             #endregion Lordship
 
@@ -1208,44 +1208,44 @@ namespace BannerKings.Managers.Skills
                 GetTierCost(1), 
                 null,
                 "{=bm513T3G}Allows reading books", 
-                SkillEffect.PerkRole.Personal, 0f,
-                SkillEffect.EffectIncrementType.Invalid, 
+                PartyRole.Personal, 0f,
+                EffectIncrementType.Invalid, 
                 string.Empty,
-                SkillEffect.PerkRole.None, 0f,
-                SkillEffect.EffectIncrementType.Invalid);
+                PartyRole.None, 0f,
+                EffectIncrementType.Invalid);
 
             ScholarshipAvidLearner = Game.Current.ObjectManager.RegisterPresumedObject(new PerkObject("ScholarshipLearner"));
             ScholarshipAvidLearner.Initialize("{=tmS5CdWA}Avid Learner", BKSkills.Instance.Scholarship, 
                 GetTierCost(2), 
                 null,
                 "{=JNDa4Q9N}Increase language learning rate",
-                SkillEffect.PerkRole.Personal, 20f,
-                SkillEffect.EffectIncrementType.AddFactor,
+                PartyRole.Personal, 0.2f,
+                EffectIncrementType.AddFactor,
                 "{=iE5hXmjw}Language limit is increased by 1",
-                SkillEffect.PerkRole.Personal, 1f,
-                SkillEffect.EffectIncrementType.Add);
+                PartyRole.Personal, 1f,
+                EffectIncrementType.Add);
 
             ScholarshipTutor = Game.Current.ObjectManager.RegisterPresumedObject(new PerkObject("ScholarshipTutor"));
             ScholarshipTutor.Initialize("{=T5khtP0R}Tutor", BKSkills.Instance.Scholarship, 
                 GetTierCost(3), 
                 null,
                 "{=uXF06oDk}Additional attribute point to clan children coming of age.",
-                SkillEffect.PerkRole.ClanLeader, 1f,
-                SkillEffect.EffectIncrementType.Add,
+                PartyRole.ClanLeader, 1f,
+                EffectIncrementType.Add,
                 "{=uFKqv5XM}Extra experience gain for companions and family members in party",
-                SkillEffect.PerkRole.PartyLeader, 5f,
-                SkillEffect.EffectIncrementType.AddFactor);
+                PartyRole.PartyLeader, 0.05f,
+                EffectIncrementType.AddFactor);
 
             ScholarshipWellRead = Game.Current.ObjectManager.RegisterPresumedObject(new PerkObject("ScholarshipWellRead"));
             ScholarshipWellRead.Initialize("{=ntTyYVuH}Well Read", BKSkills.Instance.Scholarship, 
                 GetTierCost(4), 
                 null,
                 "{=BfnH3yR4}Increased reading rates for books",
-                SkillEffect.PerkRole.Personal, 12f,
-                SkillEffect.EffectIncrementType.AddFactor,
+                PartyRole.Personal, 0.12f,
+                EffectIncrementType.AddFactor,
                 "{=XxqhKKR5}Cultural fascination progresses faster",
-                SkillEffect.PerkRole.Personal, 10f,
-                SkillEffect.EffectIncrementType.AddFactor);
+                PartyRole.Personal, 0.1f,
+                EffectIncrementType.AddFactor);
 
             ScholarshipAccountant = Game.Current.ObjectManager.RegisterPresumedObject(new PerkObject("ScholarshipAccountant"));
             ScholarshipMechanic = Game.Current.ObjectManager.RegisterPresumedObject(new PerkObject("ScholarshipMechanic"));
@@ -1253,65 +1253,65 @@ namespace BannerKings.Managers.Skills
                 GetTierCost(5),
                 ScholarshipAccountant,
                 "{=iY5A6B2Y}Engineering skill tree yields both perks rather than 1",
-                SkillEffect.PerkRole.Personal, 0f,
-                SkillEffect.EffectIncrementType.Invalid,
+                PartyRole.Personal, 0f,
+                EffectIncrementType.Invalid,
                 string.Empty,
-                SkillEffect.PerkRole.None, 0f,
-                SkillEffect.EffectIncrementType.Invalid);
+                PartyRole.None, 0f,
+                EffectIncrementType.Invalid);
 
             ScholarshipAccountant.Initialize("{=o8yaA6r6}Accountant", BKSkills.Instance.Scholarship, 
                 GetTierCost(5),
                 ScholarshipMechanic,
                 "{=zQT8PzBc}Stewardship skill tree yields both perks rather than 1",
-                SkillEffect.PerkRole.Personal, 0f,
-                SkillEffect.EffectIncrementType.Invalid,
+                PartyRole.Personal, 0f,
+                EffectIncrementType.Invalid,
                 string.Empty,
-                SkillEffect.PerkRole.None, 0f,
-                SkillEffect.EffectIncrementType.Invalid);
+                PartyRole.None, 0f,
+                EffectIncrementType.Invalid);
 
             ScholarshipTeacher = Game.Current.ObjectManager.RegisterPresumedObject(new PerkObject("ScholarshipTeacher"));
             ScholarshipTeacher.Initialize("{=cYxDhcpG}Teacher", BKSkills.Instance.Scholarship,
                 GetTierCost(6),
                 null,
                 "{=fPje2R7V}Additional focus points to children coming of age",
-                SkillEffect.PerkRole.ClanLeader, 2f,
-                SkillEffect.EffectIncrementType.Add,
+                PartyRole.ClanLeader, 2f,
+                EffectIncrementType.Add,
                 "{=!}",
-                SkillEffect.PerkRole.None, 10f,
-                SkillEffect.EffectIncrementType.AddFactor);
+                PartyRole.None, 0.1f,
+                EffectIncrementType.AddFactor);
 
             ScholarshipBookWorm = Game.Current.ObjectManager.RegisterPresumedObject(new PerkObject("ScholarshipBookWorm"));
             ScholarshipBookWorm.Initialize("{=4S4MV14E}Book Worm", BKSkills.Instance.Scholarship,
                 GetTierCost(7), 
                 null,
                 "{=BfnH3yR4}Increased reading rates for books",
-                SkillEffect.PerkRole.Personal, 20f,
-                SkillEffect.EffectIncrementType.Add,
+                PartyRole.Personal, 20f,
+                EffectIncrementType.Add,
                 "{=iE5hXmjw}Language limit is increased by 1",
-                SkillEffect.PerkRole.Personal, 1f,
-                SkillEffect.EffectIncrementType.Add);
+                PartyRole.Personal, 1f,
+                EffectIncrementType.Add);
              
             ScholarshipPeerReview = Game.Current.ObjectManager.RegisterPresumedObject(new PerkObject("ScholarshipPeerReview"));
             ScholarshipPeerReview.Initialize("{=o2cMkCJt}Peer Review", BKSkills.Instance.Scholarship, 
                 GetTierCost(8), 
                 null,
                 "{=XdiiPz1L}Clan settlements yield more research points",
-                SkillEffect.PerkRole.Personal, 20f,
-                SkillEffect.EffectIncrementType.AddFactor,
+                PartyRole.Personal, 0.2f,
+                EffectIncrementType.AddFactor,
                 "{=Tr4vXMDi}Books yield double skill experience",
-                SkillEffect.PerkRole.Personal, 100f,
-                SkillEffect.EffectIncrementType.AddFactor);
+                PartyRole.Personal, 1f,
+                EffectIncrementType.AddFactor);
 
             ScholarshipBedTimeStory = Game.Current.ObjectManager.RegisterPresumedObject(new PerkObject("ScholarshipBedTimeStory"));
             ScholarshipBedTimeStory.Initialize("{=S8D75zGm}Bed Time Story", BKSkills.Instance.Scholarship,
                 GetTierCost(9), 
                 null,
                 "{=dsaqAcgd}Daily experience points in random skill for companions and family in party",
-                SkillEffect.PerkRole.PartyLeader, 10f,
-                SkillEffect.EffectIncrementType.Add,
+                PartyRole.PartyLeader, 10f,
+                EffectIncrementType.Add,
                 string.Empty,
-                SkillEffect.PerkRole.Personal, 100f,
-                SkillEffect.EffectIncrementType.AddFactor);
+                PartyRole.Personal, 1f,
+                EffectIncrementType.AddFactor);
 
             ScholarshipTreasurer = Game.Current.ObjectManager.RegisterPresumedObject(new PerkObject("ScholarshipTreasurer"));
             ScholarshipNaturalScientist = Game.Current.ObjectManager.RegisterPresumedObject(new PerkObject("ScholarshipNaturalScientist"));
@@ -1319,41 +1319,41 @@ namespace BannerKings.Managers.Skills
                 GetTierCost(10),
                 ScholarshipNaturalScientist,
                 "{=at3o6Jsb}Trade skill tree yields both perks rather than 1",
-                SkillEffect.PerkRole.Personal, 0f,
-                SkillEffect.EffectIncrementType.Invalid,
+                PartyRole.Personal, 0f,
+                EffectIncrementType.Invalid,
                 string.Empty,
-                SkillEffect.PerkRole.None, 0f,
-                SkillEffect.EffectIncrementType.Invalid);
+                PartyRole.None, 0f,
+                EffectIncrementType.Invalid);
 
             ScholarshipNaturalScientist.Initialize("{=y34n8Mxh}Natural Scientist", BKSkills.Instance.Scholarship,
                 GetTierCost(10), ScholarshipTreasurer,
                 "{=W6FgZML0}Medicine skill tree yields both perks rather than 1",
-                SkillEffect.PerkRole.Personal, 0f,
-                SkillEffect.EffectIncrementType.Invalid,
+                PartyRole.Personal, 0f,
+                EffectIncrementType.Invalid,
                 string.Empty,
-                SkillEffect.PerkRole.None, 0f,
-                SkillEffect.EffectIncrementType.Invalid);
+                PartyRole.None, 0f,
+                EffectIncrementType.Invalid);
 
             ScholarshipPolyglot = Game.Current.ObjectManager.RegisterPresumedObject(new PerkObject("ScholarshipPolyglot"));
             ScholarshipPolyglot.Initialize("{=LbpgEp03}Polyglot", BKSkills.Instance.Scholarship, 
                 GetTierCost(11),
                 null,
-                "{=28gM5dpU}Language limit is increased by 2", SkillEffect.PerkRole.Personal, 10f,
-                SkillEffect.EffectIncrementType.AddFactor,
+                "{=28gM5dpU}Language limit is increased by 2", PartyRole.Personal, 10f,
+                EffectIncrementType.AddFactor,
                 "{=A81Gi3e4}Language learning is significantly increased",
-                SkillEffect.PerkRole.None, 0f,
-                SkillEffect.EffectIncrementType.Invalid);
+                PartyRole.None, 0f,
+                EffectIncrementType.Invalid);
 
             ScholarshipMagnumOpus = Game.Current.ObjectManager.RegisterPresumedObject(new PerkObject("ScholarshipMagnumOpus"));
             ScholarshipMagnumOpus.Initialize("{=CjDwUkqP}Magnum Opus", BKSkills.Instance.Scholarship,
                 GetTierCost(11),
                 null,
                 "{=iDdeeLXK}+0.2% experience gain for every skill point in Scholarship above 230",
-                SkillEffect.PerkRole.Personal, 0.2f,
-                SkillEffect.EffectIncrementType.AddFactor,
+                PartyRole.Personal, 0.02f,
+                EffectIncrementType.AddFactor,
                 "{=DAvAqkn3}Focus points add 50% more learning limit",
-                SkillEffect.PerkRole.Personal, 50f,
-                SkillEffect.EffectIncrementType.AddFactor);
+                PartyRole.Personal, 0.5f,
+                EffectIncrementType.AddFactor);
             #endregion Scholarship
         }
 

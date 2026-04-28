@@ -104,7 +104,7 @@ namespace BannerKings.Behaviours
                 return;
             }
 
-            if (perk == BKPerks.Instance.ScholarshipMechanic || perk == BKPerks.Instance.ScholarshipMechanic || perk == BKPerks.Instance.ScholarshipMechanic || perk == BKPerks.Instance.ScholarshipMechanic)
+            if (perk == BKPerks.Instance.ScholarshipMechanic || perk == BKPerks.Instance.ScholarshipAccountant || perk == BKPerks.Instance.ScholarshipNaturalScientist || perk == BKPerks.Instance.ScholarshipTreasurer)
             {
                 if (hero == Hero.MainHero)
                 {
@@ -187,7 +187,7 @@ namespace BannerKings.Behaviours
 
         private void OnWeeklyTick()
         {
-            if (bookSellers.Count < DesiredSellerCount())
+            if (bookSellers == null || bookSellers.Count < DesiredSellerCount())
             {
                 SpawnInitialSellers();
             }
@@ -283,7 +283,7 @@ namespace BannerKings.Behaviours
 
         private void SpawnInitialSellers()
         {
-            var templates = CharacterObject.All.ToList().FindAll(x =>
+            var templates = CharacterObject.All.Where(x =>
                 x.Occupation == Occupation.Special && x.StringId.Contains("bannerkings_bookseller_"));
             foreach (var character in templates)
             {
@@ -566,12 +566,27 @@ namespace BannerKings.Behaviours
         [HarmonyPatch(typeof(Attributes), "All", MethodType.Getter)]
         internal class AttributesPatch
         {
+            // Hides BK's Wisdom attribute from vanilla iterations of Attributes.All.
+            // Must NEVER throw — this getter is called from inside vanilla VM
+            // constructors (e.g., CharacterCreationGainedPropertiesVM .ctor), and a
+            // throw here propagates up through Activator.CreateInstance as a
+            // TargetInvocationException that crashes character-creation stage activation.
             private static bool Prefix(ref MBReadOnlyList<CharacterAttribute> __result)
             {
-                var list = new List<CharacterAttribute>(BKAttributes.AllAttributes);
-                list.Remove(BKAttributes.Instance.Wisdom);
-                __result = new MBReadOnlyList<CharacterAttribute>(list);
-                return false;
+                try
+                {
+                    var all = BKAttributes.AllAttributes;
+                    if (all == null) return true; // fall through to vanilla
+                    var wisdom = BKAttributes.Instance?.Wisdom;
+                    var list = new List<CharacterAttribute>(all);
+                    if (wisdom != null) list.Remove(wisdom);
+                    __result = new MBReadOnlyList<CharacterAttribute>(list);
+                    return false;
+                }
+                catch
+                {
+                    return true; // any failure -> let vanilla return its own list
+                }
             }
         }
     }

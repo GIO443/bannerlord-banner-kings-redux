@@ -1,4 +1,4 @@
-using BannerKings.Managers.Titles;
+﻿using BannerKings.Managers.Titles;
 using System;
 using System.Collections.Generic;
 using TaleWorlds.CampaignSystem;
@@ -6,6 +6,7 @@ using TaleWorlds.CampaignSystem.Actions;
 using TaleWorlds.CampaignSystem.Party;
 using TaleWorlds.CampaignSystem.ViewModelCollection;
 using TaleWorlds.Core;
+using TaleWorlds.Core.ImageIdentifiers;
 using TaleWorlds.Localization;
 
 namespace BannerKings.Managers.Goals.Decisions
@@ -85,7 +86,7 @@ namespace BannerKings.Managers.Goals.Decisions
                     .SetTextVariable("COUNT", army.TotalManCount)
                     .SetTextVariable("INFLUENCE", cost)
                     .ToString(),
-                    new ImageIdentifier(CampaignUIHelper.GetCharacterCode(army.LeaderParty.LeaderHero.CharacterObject, false)),
+                    new CharacterImageIdentifier(CampaignUIHelper.GetCharacterCode(army.LeaderParty.LeaderHero.CharacterObject, false)),
                     available.Item1,
                     available.Item2.ToString()));
             }
@@ -166,7 +167,7 @@ namespace BannerKings.Managers.Goals.Decisions
                 DisbandArmyAction.ApplyByUnknownReason(selectedArmy);
                 foreach (MobileParty party in parties)
                 {
-                    SetPartyAiAction.GetActionForEscortingParty(party, hero.PartyBelongedTo);
+                    SetPartyAiAction.GetActionForEscortingParty(party, hero.PartyBelongedTo, MobileParty.NavigationType.All, false, false);
                 }
                 ChangeClanInfluenceAction.Apply(hero.Clan, -cost);
             }

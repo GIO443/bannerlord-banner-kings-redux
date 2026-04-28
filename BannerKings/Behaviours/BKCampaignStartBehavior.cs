@@ -1,4 +1,4 @@
-using StoryMode;
+﻿using StoryMode;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -10,6 +10,7 @@ using TaleWorlds.CampaignSystem.Actions;
 using TaleWorlds.CampaignSystem.Extensions;
 using TaleWorlds.CampaignSystem.Party;
 using TaleWorlds.Core;
+using TaleWorlds.Core.ImageIdentifiers;
 using TaleWorlds.Library;
 using TaleWorlds.Localization;
 using TaleWorlds.CampaignSystem.Settlements;
@@ -129,7 +130,7 @@ namespace BannerKings.Behaviours
                 foreach (var kingdom in Kingdom.All)
                 {
                     list.Add(new InquiryElement(kingdom, kingdom.Name.ToString(),
-                        new ImageIdentifier(kingdom.Banner)));
+                        new BannerImageIdentifier(kingdom.Banner)));
                 }
 
                 MBInformationManager.ShowMultiSelectionInquiry(new MultiSelectionInquiryData(
@@ -233,13 +234,13 @@ namespace BannerKings.Behaviours
             LearningElement start = new LearningElement(
                 new TextObject("{=tScOpxMZ}Custom Start ({CURRENT})")
                 .SetTextVariable("CURRENT", option != null ? option.Name : new TextObject("{=rj6769F8}None selected")),
-                TextObject.Empty,
-                new TextObject(),
+                TextObject.GetEmpty(),
+                TextObject.GetEmpty(),
                 () => UIManager.Instance.ShowWindow("campaignStart"));
             elements.Add(new InquiryElement(start, start.Name.ToString(), null));
 
             int count = DefaultReligions.Instance.All.Count();
-            TextObject relHint = TextObject.Empty;
+            TextObject relHint = TextObject.GetEmpty();
             bool relAllowed = true;
             if (count == 0)
             {
@@ -250,7 +251,7 @@ namespace BannerKings.Behaviours
             LearningElement religion = new LearningElement(
                 new TextObject("{=Y1giFY9O}Religion ({CURRENT})")
                 .SetTextVariable("CURRENT", this.religion != null ? this.religion.Faith.GetFaithName() : new TextObject("{=rj6769F8}None selected")),
-                TextObject.Empty,
+                TextObject.GetEmpty(),
                 relHint,
                 () => UIManager.Instance.ShowWindow("religionStart"));
             elements.Add(new InquiryElement(religion, 
@@ -261,21 +262,21 @@ namespace BannerKings.Behaviours
 
             LearningElement importantConcepts = new LearningElement(
                 new TextObject("{=f3GuDtEU}Important Concepts"),
-                TextObject.Empty,
+                TextObject.GetEmpty(),
                 new TextObject("{=ju5qvoMH}The main topics a newcomer to the mod should become familiarized with, concerning essential gameplay systems and balance changes."),
                 () => ShowInquiry2());
             elements.Add(new InquiryElement(importantConcepts, importantConcepts.Name.ToString(), null, true, importantConcepts.Hint.ToString()));
 
             LearningElement concepts = new LearningElement(
                 new TextObject("{=j9h1yOpp}Learning Concepts"),
-                TextObject.Empty,
+                TextObject.GetEmpty(),
                 new TextObject("{=cMzxQoUS}Learn about the various topics of the mod."),
                 () => ShowInquiry());
             elements.Add(new InquiryElement(concepts, concepts.Name.ToString(), null, true, concepts.Hint.ToString()));     
 
             LearningElement finish = new LearningElement(
                 new TextObject("{=ktbC3W5M}Finish"),
-                TextObject.Empty,
+                TextObject.GetEmpty(),
                 new TextObject("{=SgJXJKeu}Start the game with the chosen start and religion."),
                 () =>
                 {
@@ -310,7 +311,7 @@ namespace BannerKings.Behaviours
             {
                 if (concept.StringId.StartsWith("str_bk"))
                 {
-                    LearningElement element = new LearningElement(concept.Title, concept.Description, TextObject.Empty, null, concept);
+                    LearningElement element = new LearningElement(concept.Title, concept.Description, TextObject.GetEmpty(), null, concept);
                     elements.Add(new InquiryElement(element, element.Name.ToString(), null, true, element.Hint.ToString()));
                 }
             }
@@ -353,7 +354,7 @@ namespace BannerKings.Behaviours
 
             foreach (Concept concept in concepts)
             {
-                LearningElement element = new LearningElement(concept.Title, concept.Description, TextObject.Empty, null, concept);
+                LearningElement element = new LearningElement(concept.Title, concept.Description, TextObject.GetEmpty(), null, concept);
                 elements.Add(new InquiryElement(element, element.Name.ToString(), null, true, element.Hint.ToString()));
             }
 

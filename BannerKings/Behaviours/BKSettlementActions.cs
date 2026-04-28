@@ -13,12 +13,13 @@ using TaleWorlds.CampaignSystem.ComponentInterfaces;
 using TaleWorlds.CampaignSystem.Encounters;
 using TaleWorlds.CampaignSystem.GameMenus;
 using TaleWorlds.CampaignSystem.Inventory;
-using TaleWorlds.CampaignSystem.Overlay;
+using TaleWorlds.CampaignSystem.GameMenus;
 using TaleWorlds.CampaignSystem.Party;
 using TaleWorlds.CampaignSystem.Roster;
 using TaleWorlds.CampaignSystem.Settlements;
 using TaleWorlds.CampaignSystem.ViewModelCollection;
 using TaleWorlds.Core;
+using TaleWorlds.Core.ImageIdentifiers;
 using TaleWorlds.Library;
 using TaleWorlds.Localization;
 
@@ -47,7 +48,7 @@ namespace BannerKings.Behaviours
             float cost = 0;
             foreach (var element in roster.GetTroopRoster())
             {
-                cost += TaleWorlds.CampaignSystem.Campaign.Current.Models.PartyWageModel.GetTroopRecruitmentCost(element.Character, hero)
+                cost += TaleWorlds.CampaignSystem.Campaign.Current.Models.PartyWageModel.GetTroopRecruitmentCost(element.Character, hero).ResultNumber
                     * (float)element.Number * 5f;
             }
 
@@ -116,7 +117,7 @@ namespace BannerKings.Behaviours
                 MenuGuardActionPeasantCondition,
                 MenuActionConsequenceWithGold,
                 TickWaitGuard, GameMenu.MenuAndOptionType.WaitMenuShowProgressAndHoursOption,
-                GameOverlays.MenuOverlayType.SettlementWithBoth, 8f);
+                GameMenu.MenuOverlayType.SettlementWithBoth, 8f);
 
             campaignGameStarter.AddGameMenuOption("bannerkings_wait_guard", "wait_leave", "{=1kJ3hNWg}Leave",
                 delegate (MenuCallbackArgs args)
@@ -137,7 +138,7 @@ namespace BannerKings.Behaviours
                 MenuTrainGuardActionPeasantCondition,
                 MenuActionConsequenceWithGold,
                 TickWaitTrainGuard, GameMenu.MenuAndOptionType.WaitMenuShowProgressAndHoursOption,
-                GameOverlays.MenuOverlayType.SettlementWithBoth, 8f);
+                GameMenu.MenuOverlayType.SettlementWithBoth, 8f);
 
             campaignGameStarter.AddGameMenuOption("bannerkings_wait_train_guards", "wait_leave", "{=1kJ3hNWg}Leave",
                 delegate (MenuCallbackArgs args)
@@ -158,7 +159,7 @@ namespace BannerKings.Behaviours
                 MenuHuntingActionCondition,
                 MenuActionHuntingConsequence,
                 TickWaitHunt, GameMenu.MenuAndOptionType.WaitMenuShowProgressAndHoursOption,
-                GameOverlays.MenuOverlayType.SettlementWithBoth, 8f);
+                GameMenu.MenuOverlayType.SettlementWithBoth, 8f);
 
             campaignGameStarter.AddGameMenuOption("bannerkings_wait_hunt", "wait_leave", "{=1kJ3hNWg}Leave",
                 delegate (MenuCallbackArgs args)
@@ -179,7 +180,7 @@ namespace BannerKings.Behaviours
                 MenuMeetNobilityActionCondition,
                 MenuActionMeetNobilityConsequence,
                 TickWaitMeetNobility, GameMenu.MenuAndOptionType.WaitMenuShowProgressAndHoursOption,
-                GameOverlays.MenuOverlayType.SettlementWithBoth, 4f);
+                GameMenu.MenuOverlayType.SettlementWithBoth, 4f);
 
             campaignGameStarter.AddGameMenuOption("bannerkings_wait_meet_nobility", "wait_leave", "{=1kJ3hNWg}Leave",
                 delegate (MenuCallbackArgs args)
@@ -200,7 +201,7 @@ namespace BannerKings.Behaviours
                 MenuActionResearchCondition,
                 MenuActionConsequenceNeutral,
                 TickWaitResearch, GameMenu.MenuAndOptionType.WaitMenuShowProgressAndHoursOption,
-                GameOverlays.MenuOverlayType.SettlementWithBoth, 4f);
+                GameMenu.MenuOverlayType.SettlementWithBoth, 4f);
 
             campaignGameStarter.AddWaitGameMenu("bannerkings_wait_study",
                "{=533oQJOp}You are studying scholarship with {SCHOLARSHIP_TUTOR}. The instruction costs {SCHOLARSHIP_GOLD} per hour.",
@@ -208,7 +209,7 @@ namespace BannerKings.Behaviours
                MenuActionStudyCondition,
                MenuActionConsequenceNeutral,
                TickWaitStudy, GameMenu.MenuAndOptionType.WaitMenuShowProgressAndHoursOption,
-               GameOverlays.MenuOverlayType.SettlementWithBoth, 4f);
+               GameMenu.MenuOverlayType.SettlementWithBoth, 4f);
 
             campaignGameStarter.AddGameMenuOption("bannerkings_wait_study", "wait_leave", "{=1kJ3hNWg}Leave",
                 delegate (MenuCallbackArgs args)
@@ -229,7 +230,7 @@ namespace BannerKings.Behaviours
                 _ => true,
                 MenuActionConsequenceNeutral,
                 TickWaitCrafting, GameMenu.MenuAndOptionType.WaitMenuShowProgressAndHoursOption,
-                GameOverlays.MenuOverlayType.SettlementWithBoth);
+                GameMenu.MenuOverlayType.SettlementWithBoth);
 
             // ------- ACTIONS --------
 
@@ -239,7 +240,7 @@ namespace BannerKings.Behaviours
                (MenuCallbackArgs args) =>
                {
                    args.optionLeaveType = GameMenuOption.LeaveType.Continue;
-                   return DefaultShippingLanes.Instance.GetSettlementLanes(Settlement.CurrentSettlement).Count() > 0;
+                   return DefaultShippingLanes.Instance.GetSettlementLanes(Settlement.CurrentSettlement).Any();
                },
                (MenuCallbackArgs args) =>
                {
@@ -279,7 +280,7 @@ namespace BannerKings.Behaviours
                                    .SetTextVariable("GOLD", price)
                                    .SetTextVariable("ARRIVAL", arrival.RemainingDaysFromNow.ToString("0"))
                                    .ToString(),
-                                   new ImageIdentifier(port.MapFaction.Banner),
+                                   new BannerImageIdentifier(port.MapFaction.Banner),
                                    Hero.MainHero.Gold >= price,
                                    port.EncyclopediaText.ToString()));
                            }
@@ -414,10 +415,7 @@ namespace BannerKings.Behaviours
                 (MenuCallbackArgs args) =>
                 {
                     LocationEncounter locationEncounter = PlayerEncounter.LocationEncounter;
-                    InventoryManager.OpenScreenAsTrade(Settlement.CurrentSettlement.ItemRoster,
-                        Settlement.CurrentSettlement.SettlementComponent, 
-                        InventoryManager.InventoryCategoryType.None, 
-                        null);
+                    // InventoryManager removed in 1.3.x
                 }, 
                 false, -1, false, null);
 
@@ -978,7 +976,7 @@ namespace BannerKings.Behaviours
             {
                 var roster = GetMercenaryTemplateRoster(tuple.Item1);
                 var characterCode = CampaignUIHelper.GetCharacterCode(tuple.Item1.Stacks[0].Character, false);
-                var identifier = new ImageIdentifier(characterCode);
+                var identifier = new CharacterImageIdentifier(characterCode);
                 var cost = GetRosterCost(roster, Hero.MainHero);
                 var hint = new TextObject("{=ywMJqWA8}Recruit {COUNT} of the {NAME} mercenaries. This will cost {GOLD}{GOLD_ICON}")
                     .SetTextVariable("COUNT", roster.TotalManCount)

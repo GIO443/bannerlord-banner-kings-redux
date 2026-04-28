@@ -1,4 +1,5 @@
-﻿using BannerKings.Managers.Court;
+using Helpers;
+using BannerKings.Managers.Court;
 using BannerKings.Managers.Court.Members.Tasks;
 using BannerKings.Managers.Duties;
 using BannerKings.Managers.Goals.Decisions;
@@ -83,7 +84,7 @@ namespace BannerKings.Behaviours
             if (kingdom == null || party.ActualClan == Clan.PlayerClan || leader.Clan.Influence < 100f)
                 return;
 
-            bool war = FactionManager.GetEnemyKingdoms(kingdom).Count() > 0;
+            bool war = FactionHelper.GetEnemyKingdoms(kingdom).Any();
             if (war)
             {
                 if (!BannerKingsConfig.Instance.ArmyManagementModel.CanCreateArmy(leader) || 
@@ -182,7 +183,7 @@ namespace BannerKings.Behaviours
             {
                 var days = 2f;
                 var settlement =
-                    SettlementHelper.FindNearestSettlement(x => x.IsFortification || x.IsVillage,
+                    BannerKings.Utils.Helpers.FindNearestSettlement(x => x.IsFortification || x.IsVillage,
                         army.AiBehaviorObject);
                 playerArmyDuty = new AuxiliumDuty(CampaignTime.DaysFromNow(days), suzerainParty, completion, settlement,
                     army.Name);

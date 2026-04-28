@@ -199,14 +199,14 @@ namespace BannerKings.UI.Extensions
                     MBInformationManager.AddQuickInformation(new TextObject("{=A15k4LQS}{HERO} has botched {ITEM}!")
                             .SetTextVariable("HERO", crafting.CurrentCraftingHero.Hero.Name)
                             .SetTextVariable("ITEM", item.Name),
-                        0, null, "event:/ui/notification/relation");
+                        0, null, null, "event:/ui/notification/relation");
 
                     staminaSpent = (int) (staminaSpent * 0.5f);
                     goto FINISH;
                 }
 
                 var element = new EquipmentElement(item);
-                var qualityText = new TextObject();
+                var qualityText = TextObject.GetEmpty();
                 if ((item.HasWeaponComponent && item.WeaponComponent.ItemModifierGroup != null) ||
                     (item.HasArmorComponent && item.ArmorComponent.ItemModifierGroup != null))
                 {
@@ -234,7 +234,7 @@ namespace BannerKings.UI.Extensions
                         .SetTextVariable("HERO", crafting.CurrentCraftingHero.Hero.Name)
                         .SetTextVariable("ITEM", item.Name)
                         .SetTextVariable("QUALITY", qualityText),
-                    0, null, "event:/ui/notification/relation");
+                    0, null, null, "event:/ui/notification/relation");
                 PartyBase.MainParty.ItemRoster.AddToCounts(element, 1);
 
 

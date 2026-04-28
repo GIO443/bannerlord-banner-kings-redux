@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?>
+﻿<?xml version="1.0" encoding="utf-8"?>
 
 <base xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema" type="string">
 	<titles autoGenerate="true">
@@ -250,6 +250,31 @@
 				<county settlement="town_K1" deJure="lord_6_4">
 					<barony settlement="castle_K9" deJure="lord_6_18" />
 					<barony settlement="castle_K6" deJure="lord_6_18" />
+				</county>
+			</duchy>
+		</kingdom>
+
+
+		<kingdom faction="nord" name="{=hvcyO1P4}Kingdom of the Nordvyg" government="Tribal" succession="WilundingElective" inheritance="Seniority" genderLaw="Agnatic" deJure="lord_7_1">
+			<duchy name="{=!}Frostveld" deJure="lord_7_3">
+				<county settlement="town_N1" deJure="lord_7_5">
+					<barony settlement="castle_N7" deJure="lord_7_5" />
+					<barony settlement="castle_N2" deJure="lord_7_3" />
+				</county>
+				<county settlement="town_N2" deJure="lord_7_3">
+					<barony settlement="castle_N3" deJure="lord_7_18" />
+					<barony settlement="castle_N5" deJure="lord_7_25" />
+				</county>
+			</duchy>
+			<duchy name="{=!}Throndarmark" deJure="lord_7_1">
+				<county settlement="town_N3" deJure="lord_7_1">
+					<barony settlement="castle_N1" deJure="lord_7_17" />
+					<barony settlement="castle_N4" deJure="lord_7_20" />
+					<barony settlement="castle_N9" deJure="lord_7_19" />
+				</county>
+				<county settlement="town_N4" deJure="lord_7_14">
+					<barony settlement="castle_N6" deJure="lord_7_14" />
+					<barony settlement="castle_N8" deJure="lord_7_1" />
 				</county>
 			</duchy>
 		</kingdom>

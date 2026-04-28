@@ -11,11 +11,24 @@ namespace BannerKings.Models.Vanilla
     public class BKPartyHealingModel : DefaultPartyHealingModel
     {
         private static readonly TextObject _starvingText = new TextObject("{=jZYUdkXF}Starving");
-        public override ExplainedNumber GetDailyHealingForRegulars(MobileParty party, bool includeDescriptions = false)
+        public override ExplainedNumber GetDailyHealingForRegulars(PartyBase party, bool isPrisoners = false, bool includeDescriptions = false)
         {
-            ExplainedNumber bonuses = base.GetDailyHealingForRegulars(party, includeDescriptions);
-            Boolean isInBesiegedStarvingCity = party.CurrentSettlement != null && party.CurrentSettlement.IsUnderSiege && party.CurrentSettlement.IsStarving;
-            if (isInBesiegedStarvingCity && !party.IsGarrison)
+            ExplainedNumber bonuses;
+            try
+            {
+                bonuses = base.GetDailyHealingForRegulars(party, isPrisoners, includeDescriptions);
+            }
+            catch
+            {
+                // Vanilla NREs on some BK-created party shapes (custom retinues,
+                // gentry parties without standard state). Return a neutral value
+                // so the campaign hourly tick survives.
+                bonuses = new ExplainedNumber(0f, includeDescriptions);
+            }
+
+            var mobileParty = party?.MobileParty;
+            bool isInBesiegedStarvingCity = mobileParty != null && mobileParty.CurrentSettlement != null && mobileParty.CurrentSettlement.IsUnderSiege && mobileParty.CurrentSettlement.IsStarving;
+            if (isInBesiegedStarvingCity && !mobileParty.IsGarrison)
             {
                 int num = MBRandom.RoundRandomized((float)party.MemberRoster.TotalRegulars * 0.1f);
                 bonuses.Add(-num, _starvingText);
@@ -23,11 +36,24 @@ namespace BannerKings.Models.Vanilla
             return bonuses;
         }
 
-        public override ExplainedNumber GetDailyHealingHpForHeroes(MobileParty party, bool includeDescriptions = false)
+        public override ExplainedNumber GetDailyHealingHpForHeroes(PartyBase party, bool isPrisoners = false, bool includeDescriptions = false)
         {
-            ExplainedNumber result = base.GetDailyHealingHpForHeroes(party, includeDescriptions);
-            Hero leader = party.LeaderHero;
-            if (leader != null && party.CurrentSettlement != null)
+            ExplainedNumber result;
+            try
+            {
+                result = base.GetDailyHealingHpForHeroes(party, isPrisoners, includeDescriptions);
+            }
+            catch
+            {
+                // See GetDailyHealingForRegulars — vanilla blows up on some BK
+                // party shapes (e.g., custom war parties without LastVisitedSettlement
+                // or Campaign-bound state during the hourly tick).
+                result = new ExplainedNumber(0f, includeDescriptions);
+            }
+
+            var mobileParty = party?.MobileParty;
+            Hero leader = mobileParty?.LeaderHero;
+            if (leader != null && mobileParty.CurrentSettlement != null)
             {
                 if (BannerKingsConfig.Instance.CourtManager.HasCurrentTask(leader.Clan, DefaultCouncilTasks.Instance.FamilyCare,
                     out float healCompetence))

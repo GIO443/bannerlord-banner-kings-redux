@@ -94,7 +94,7 @@ namespace BannerKings.Models.Vanilla
                     {
                         PerkHelper.AddPerkBonusForParty(DefaultPerks.Scouting.ForcedMarch, mobileParty, false, ref result);
                     }
-                    if (mobileParty.ItemRoster.TotalWeight > (float)mobileParty.InventoryCapacity)
+                    if (mobileParty.TotalWeightCarried > (float)mobileParty.InventoryCapacity)
                     {
                         PerkHelper.AddPerkBonusForParty(DefaultPerks.Scouting.Unburdened, mobileParty, false, ref result);
                     }

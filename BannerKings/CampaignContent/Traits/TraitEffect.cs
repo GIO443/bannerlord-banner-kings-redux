@@ -10,7 +10,7 @@ namespace BannerKings.CampaignContent.Traits
         {
         }
 
-        public void Initialize(TextObject description, TraitObject trait, SkillEffect.PerkRole role, float bonusPerPoint,
+        public void Initialize(TextObject description, TraitObject trait, PartyRole role, float bonusPerPoint,
             bool addFactor = false)
         {
             this.description = description;
@@ -29,7 +29,7 @@ namespace BannerKings.CampaignContent.Traits
         }  
 
         public TraitObject Trait { get; set; }
-        public SkillEffect.PerkRole Role { get; set; }
+        public PartyRole Role { get; set; }
         public float BonusPerPoint { get; set; }
         public bool AddFactor {  get; set; }    
     }

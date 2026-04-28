@@ -60,7 +60,7 @@ namespace BannerKings.Managers.Education.Lifestyles
         {
             var cultures = Game.Current.ObjectManager.GetObjectTypeList<CultureObject>();
             Commander.Initialize(new TextObject("Commander"),
-                new TextObject(),
+                TextObject.GetEmpty(),
                 DefaultSkills.Leadership,
                 DefaultSkills.Tactics,
                 new List<PerkObject>()

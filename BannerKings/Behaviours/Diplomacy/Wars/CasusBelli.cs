@@ -131,9 +131,9 @@ namespace BannerKings.Behaviours.Diplomacy.Wars
             .SetTextVariable("HOSTAGE", CaptureWeight * 100)
             .SetTextVariable("RAID", RaidWeight * 100);
 
-        public TextObject WarDeclaredText => warDeclaredText.SetTextVariable("FIEF", Fief != null ? Fief.Name : new TextObject())
-            .SetTextVariable("ATTACKER", Attacker != null ? Attacker.Name : new TextObject())
-            .SetTextVariable("DEFENDER", Defender != null ? Defender.Name : new TextObject());
+        public TextObject WarDeclaredText => warDeclaredText.SetTextVariable("FIEF", Fief != null ? Fief.Name : TextObject.GetEmpty())
+            .SetTextVariable("ATTACKER", Attacker != null ? Attacker.Name : TextObject.GetEmpty())
+            .SetTextVariable("DEFENDER", Defender != null ? Defender.Name : TextObject.GetEmpty());
 
         public TextObject QueryNameText => Fief != null ? new TextObject("{=TZXcmqKk}{FIEF} - {NAME}")
             .SetTextVariable("FIEF", Fief.Name)

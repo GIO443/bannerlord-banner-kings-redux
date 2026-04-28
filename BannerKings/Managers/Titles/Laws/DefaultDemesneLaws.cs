@@ -85,7 +85,7 @@ namespace BannerKings.Managers.Titles.Laws
             }
         }
 
-        public List<DemesneLaw> GetLawsByType(DemesneLawTypes type) => All.ToList().FindAll(x => x.LawType == type);
+        public List<DemesneLaw> GetLawsByType(DemesneLawTypes type) => All.Where(x => x.LawType == type).ToList();
 
         public DemesneLaw GetLawByIndex(DemesneLawTypes type, int index)
         {

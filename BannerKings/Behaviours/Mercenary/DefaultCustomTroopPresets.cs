@@ -51,8 +51,8 @@ namespace BannerKings.Behaviours.Mercenary
             }
         }
 
-        public IEnumerable<CustomTroopPreset> Levies => All.ToList().FindAll(x => x.Level == 16);
-        public IEnumerable<CustomTroopPreset> Professionals => All.ToList().FindAll(x => x.Level == 26);
+        public IEnumerable<CustomTroopPreset> Levies => All.Where(x => x.Level == 16);
+        public IEnumerable<CustomTroopPreset> Professionals => All.Where(x => x.Level == 26);
 
         public IEnumerable<CustomTroopPreset> GetAdequatePresets(bool levy)
         {

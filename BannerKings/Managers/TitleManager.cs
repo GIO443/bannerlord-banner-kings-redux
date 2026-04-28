@@ -484,7 +484,7 @@ namespace BannerKings.Managers
                 .SetTextVariable("TITLE", title.FullName),
                 0,
                 null,
-                Utils.Helpers.GetKingdomDecisionSound());
+                null, Utils.Helpers.GetKingdomDecisionSound());
 
             title.RemoveClaim(action.ActionTaker);
             ExecuteOwnershipChange(null, action.ActionTaker, title, true);
@@ -603,7 +603,7 @@ namespace BannerKings.Managers
                     .SetTextVariable("TITLE", action.Title.FullName), 
                     300, 
                     grantor.CharacterObject,
-                    Utils.Helpers.GetKingdomDecisionSound());
+                    null, Utils.Helpers.GetKingdomDecisionSound());
 
                 InformationManager.DisplayMessage(new InformationMessage(
                     new TextObject("{=!}{GRANTOR} of the {CLAN} has decided to grant you the {TITLE} in a gesture of good will.")

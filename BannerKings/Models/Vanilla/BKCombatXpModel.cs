@@ -1,5 +1,6 @@
 ﻿using TaleWorlds.CampaignSystem.ComponentInterfaces;
 using TaleWorlds.CampaignSystem;
+using TaleWorlds.Library;
 using TaleWorlds.CampaignSystem.GameComponents;
 using TaleWorlds.CampaignSystem.Party;
 using BannerKings.Managers.Education;
@@ -10,20 +11,20 @@ namespace BannerKings.Models.Vanilla
     public class BKCombatXpModel : DefaultCombatXpModel
     {
 
-        public override void GetXpFromHit(CharacterObject attackerTroop, CharacterObject captain, CharacterObject attackedTroop, 
-            PartyBase attackerParty, int damage, bool isFatal, CombatXpModel.MissionTypeEnum missionType, out int xpAmount)
+        public override ExplainedNumber GetXpFromHit(CharacterObject attackerTroop, CharacterObject captain, CharacterObject attackedTroop,
+            PartyBase attackerParty, int damage, bool isFatal, CombatXpModel.MissionTypeEnum missionType)
         {
-            base.GetXpFromHit(attackerTroop, captain, attackedTroop, attackerParty, damage, isFatal, missionType, out xpAmount);
+            ExplainedNumber result = base.GetXpFromHit(attackerTroop, captain, attackedTroop, attackerParty, damage, isFatal, missionType);
             var hero = attackedTroop.HeroObject;
             if (hero != null && missionType == MissionTypeEnum.Tournament)
             {
                 var data = BannerKingsConfig.Instance.EducationManager.GetHeroEducation(hero);
                 if (data.Lifestyle != null && data.Lifestyle.Equals(DefaultLifestyles.Instance.Gladiator))
                 {
-                    var xp = xpAmount;
-                    xpAmount = (int)(xp * 3f);
+                    result.AddFactor(2f, DefaultLifestyles.Instance.Gladiator.Name);
                 }
             }
+            return result;
         }
     }
 }

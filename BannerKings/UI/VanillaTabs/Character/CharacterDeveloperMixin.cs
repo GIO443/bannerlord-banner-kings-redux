@@ -116,10 +116,20 @@ namespace BannerKings.UI.VanillaTabs.Character
         [DataSourceMethod]
         public void OpenFaith()
         {
-            if (DefaultReligions.Instance.All.Count() > 0)
+            if (DefaultReligions.Instance.All.Any())
             {
                 ReligionVisible = true;
                 EducationVisible = false;
+            }
+            else
+            {
+                // No religions are registered. BK's religion system is scaffolded
+                // but no content is loaded in this build (no Religion data ships
+                // with the fork). Tell the user instead of silently no-opping.
+                TaleWorlds.Library.InformationManager.DisplayMessage(
+                    new TaleWorlds.Library.InformationMessage(
+                        new TextObject("{=!}Religions are not active in this build of Banner Kings.").ToString(),
+                        TaleWorlds.Library.Color.FromUint(0xFFCC9900)));
             }
 
             OnRefresh();

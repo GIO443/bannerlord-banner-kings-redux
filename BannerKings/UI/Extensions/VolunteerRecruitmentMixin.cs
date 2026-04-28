@@ -11,7 +11,9 @@ using TaleWorlds.Localization;
 
 namespace BannerKings.UI.Extensions
 {
-    [ViewModelMixin("RefreshTownManagementStats")]
+    // 1.3.x: RecruitVolunteerVM no longer exposes RefreshTownManagementStats;
+    // hook RefreshValues instead (the standard refresh entry point).
+    [ViewModelMixin("RefreshValues")]
     public class VolunteerRecruitmentMixin : BaseViewModelMixin<RecruitVolunteerVM>
     {
         private readonly RecruitVolunteerVM volunteerVm;

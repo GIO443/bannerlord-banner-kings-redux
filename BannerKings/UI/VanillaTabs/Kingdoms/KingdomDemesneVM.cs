@@ -86,7 +86,7 @@ namespace BannerKings.UI.VanillaTabs.Kingdoms
 
                 foreach (ContractAspect aspect in Title.Contract.ContractAspects)
                 {
-                    TextObject hint = TextObject.Empty;
+                    TextObject hint = TextObject.GetEmpty();
                     if (aspect is ContractRight) hint = (aspect as ContractRight).EffectText;
 
                     Aspects.Add(new TripleStringItemVM(aspect.AspectType.ToString(),
@@ -176,7 +176,7 @@ namespace BannerKings.UI.VanillaTabs.Kingdoms
                     government,
                     new TextObject("{=fgwLSDRL}{NAME} - {SUPPORT}% Support, {INFLUENCE}{INFLUENCE_ICON}")
                     .SetTextVariable("NAME", government.Name)
-                    .SetTextVariable("SUPPORT", new KingdomElection(decision).GetLikelihoodForOutcome(0).ToString("0.00"))
+                    .SetTextVariable("SUPPORT", new KingdomElection(decision).GetLikelihoodForSponsor(decision.ProposerClan).ToString("0.00"))
                     .SetTextVariable("INFLUENCE", decision.GetProposalInfluenceCost())
                     .SetTextVariable("INFLUENCE_ICON", Utils.TextHelper.INFLUENCE_ICON)
                     .ToString(),
@@ -206,7 +206,7 @@ namespace BannerKings.UI.VanillaTabs.Kingdoms
                     succession,
                     new TextObject("{=fgwLSDRL}{NAME} - {SUPPORT}% Support, {INFLUENCE}{INFLUENCE_ICON}")
                     .SetTextVariable("NAME", succession.Name)
-                    .SetTextVariable("SUPPORT", new KingdomElection(decision).GetLikelihoodForOutcome(0).ToString("0.00"))
+                    .SetTextVariable("SUPPORT", new KingdomElection(decision).GetLikelihoodForSponsor(decision.ProposerClan).ToString("0.00"))
                     .SetTextVariable("INFLUENCE", decision.GetProposalInfluenceCost())
                     .SetTextVariable("INFLUENCE_ICON", Utils.TextHelper.INFLUENCE_ICON)
                     .ToString(),
@@ -237,7 +237,7 @@ namespace BannerKings.UI.VanillaTabs.Kingdoms
                     inheritance,
                     new TextObject("{=fgwLSDRL}{NAME} - {SUPPORT}% Support, {INFLUENCE}{INFLUENCE_ICON}")
                     .SetTextVariable("NAME", inheritance.Name)
-                    .SetTextVariable("SUPPORT", new KingdomElection(decision).GetLikelihoodForOutcome(0).ToString("0.00"))
+                    .SetTextVariable("SUPPORT", new KingdomElection(decision).GetLikelihoodForSponsor(decision.ProposerClan).ToString("0.00"))
                     .SetTextVariable("INFLUENCE", decision.GetProposalInfluenceCost())
                     .SetTextVariable("INFLUENCE_ICON", Utils.TextHelper.INFLUENCE_ICON)
                     .ToString(),
@@ -263,7 +263,7 @@ namespace BannerKings.UI.VanillaTabs.Kingdoms
                     genderLaw,
                     new TextObject("{=fgwLSDRL}{NAME} - {SUPPORT}% Support, {INFLUENCE}{INFLUENCE_ICON}")
                     .SetTextVariable("NAME", genderLaw.Name)
-                    .SetTextVariable("SUPPORT", new KingdomElection(decision).GetLikelihoodForOutcome(0).ToString("0.00"))
+                    .SetTextVariable("SUPPORT", new KingdomElection(decision).GetLikelihoodForSponsor(decision.ProposerClan).ToString("0.00"))
                     .SetTextVariable("INFLUENCE", decision.GetProposalInfluenceCost())
                     .SetTextVariable("INFLUENCE_ICON", Utils.TextHelper.INFLUENCE_ICON)
                     .ToString(),

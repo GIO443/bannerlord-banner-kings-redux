@@ -18,22 +18,25 @@ namespace BannerKings.Patches
 {
     internal class NotablePatches
     {
-        [HarmonyPatch(typeof(HeroCreator), "CreateHeroAtOccupation")]
+        [HarmonyPatch(typeof(HeroCreator), "CreateNotable")]
         internal class CreateHeroAtOccupationPatch
         {
-            private static bool Prefix(Occupation neededOccupation, ref Hero __result, Settlement forcedHomeSettlement = null)
+            // 1.3.x sig: CreateNotable(Occupation occupation, Settlement settlement).
+            // Harmony binds prefix args by parameter name, so the names must match
+            // vanilla exactly or PatchAll throws "Parameter ... not found".
+            private static bool Prefix(Occupation occupation, ref Hero __result, Settlement settlement)
             {
-                Settlement settlement = forcedHomeSettlement ?? SettlementHelper.GetRandomTown(null);
-                var data = BannerKingsConfig.Instance.PopulationManager.GetPopData(settlement);
+                Settlement homeSettlement = settlement ?? SettlementHelper.GetRandomTown(null);
+                var data = BannerKingsConfig.Instance.PopulationManager.GetPopData(homeSettlement);
                 IEnumerable<CharacterObject> enumerable;
                 if (data != null && data.CultureData != null)
                 {
-                    enumerable = from x in data.CultureData.GetRandomCulture().NotableAndWandererTemplates
-                                   where x.Occupation == neededOccupation
+                    enumerable = from x in data.CultureData.GetRandomCulture().NotableTemplates
+                                   where x.Occupation == occupation
                                    select x;
                 }
-                else enumerable = from x in settlement.Culture.NotableAndWandererTemplates
-                                  where x.Occupation == neededOccupation
+                else enumerable = from x in homeSettlement.Culture.NotableTemplates
+                                  where x.Occupation == occupation
                                   select x;
 
                 int num = 0;
@@ -49,7 +52,7 @@ namespace BannerKings.Patches
                 }
 
                 CharacterObject template = null;
-                int num3 = settlement.RandomIntWithSeed((uint)settlement.Notables.Count, 1, num);
+                int num3 = homeSettlement.RandomIntWithSeed((uint)homeSettlement.Notables.Count, 1, num);
                 foreach (CharacterObject characterObject2 in enumerable)
                 {
                     int num4 = characterObject2.GetTraitLevel(DefaultTraits.Frequency) * 10;
@@ -60,21 +63,21 @@ namespace BannerKings.Patches
                         break;
                     }
                 }
-                Hero hero = HeroCreator.CreateSpecialHero(template, settlement, null, null, -1);
+                Hero hero = HeroCreator.CreateSpecialHero(template, homeSettlement, null, null, -1);
                 if (hero.HomeSettlement.IsVillage && hero.HomeSettlement.Village.Bound != null && hero.HomeSettlement.Village.Bound.IsCastle)
                 {
                     float value = MBRandom.RandomFloat * 20f;
                     hero.AddPower(value);
                 }
-                if (neededOccupation != Occupation.Wanderer)
+                if (occupation != Occupation.Wanderer)
                 {
                     hero.ChangeState(Hero.CharacterStates.Active);
                 }
-                if (neededOccupation != Occupation.Wanderer)
+                if (occupation != Occupation.Wanderer)
                 {
-                    EnterSettlementAction.ApplyForCharacterOnly(hero, settlement);
+                    EnterSettlementAction.ApplyForCharacterOnly(hero, homeSettlement);
                 }
-                if (neededOccupation != Occupation.Wanderer)
+                if (occupation != Occupation.Wanderer)
                 {
                     int amount = 10000;
                     GiveGoldAction.ApplyBetweenCharacters(null, hero, amount, true);
@@ -88,13 +91,6 @@ namespace BannerKings.Patches
                 {
                     hero.SupporterOf = HeroHelper.GetRandomClanForNotable(hero);
                 }
-                if (neededOccupation != Occupation.Wanderer)
-                {
-                    typeof(HeroCreator)
-                        .GetMethod("AddRandomVarianceToTraits", BindingFlags.Static | BindingFlags.NonPublic)
-                        .Invoke(null, new object[] { hero });
-                }
-
                 __result = hero;
                 return false;
             }
@@ -106,6 +102,9 @@ namespace BannerKings.Patches
         {
             private static bool Prefix(Hero hero, ref List<CharacterObject> __result)
             {
+                // RecruitEverywhere replaces the volunteer pool semantics — defer.
+                if (ModCompat.RecruitEverywhere) return true;
+
                 List<CharacterObject> list = new List<CharacterObject>();
                 for (int i = 0; i < hero.VolunteerTypes.Length; i++)
                 {
@@ -188,7 +187,7 @@ namespace BannerKings.Patches
                     if (list2.Count > 0)
                     {
                         EnterSettlementAction.ApplyForCharacterOnly(
-                            HeroCreator.CreateHeroAtOccupation(list2.GetRandomElement(), settlement), settlement);
+                            HeroCreator.CreateNotable(list2.GetRandomElement(), settlement), settlement);
                     }
                 }
 
@@ -250,103 +249,6 @@ namespace BannerKings.Patches
             }
         }
 
-        // Fix perk crash due to notable not having a Clan.
-        [HarmonyPatch(typeof(Town), "DailyTick")]
-        internal class TownDailyTicktPatch
-        {
-            private static bool Prefix(Town __instance)
-            {
-                var result = true;
-                ExceptionUtils.TryCatch(() =>
-                {
-                    if (__instance.Governor != null && __instance.Governor is { IsNotable: true } && __instance.OwnerClan != null &&
-                        __instance.OwnerClan.Leader != null)
-                    {
-                        result = false;
-                        __instance.Loyalty += __instance.LoyaltyChange;
-                        __instance.Security += __instance.SecurityChange;
-                        __instance.FoodStocks += __instance.FoodChange;
-                        if (__instance.FoodStocks < 0f)
-                        {
-                            __instance.FoodStocks = 0f;
-                            __instance.Owner.RemainingFoodPercentage = -100;
-                        }
-                        else
-                        {
-                            __instance.Owner.RemainingFoodPercentage = 0;
-                        }
-
-                        if (__instance.FoodStocks > __instance.FoodStocksUpperLimit())
-                        {
-                            __instance.FoodStocks = __instance.FoodStocksUpperLimit();
-                        }
-
-                        __instance.Owner.Settlement.Town.Prosperity += __instance.ProsperityChange;
-                        if (__instance.Owner.Settlement.Town.Prosperity < 0f)
-                        {
-                            __instance.Owner.Settlement.Town.Prosperity = 0f;
-                        }
-
-                        __instance.GetType().GetMethod("HandleMilitiaAndGarrisonOfSettlementDaily",
-                                BindingFlags.Instance | BindingFlags.NonPublic)
-                            .Invoke(__instance, null);
-                        __instance.GetType().GetMethod("RepairWallsOfSettlementDaily",
-                                BindingFlags.Instance | BindingFlags.NonPublic)
-                            .Invoke(__instance, null);
-
-                        if (!__instance.CurrentBuilding.BuildingType.IsDefaultProject)
-                        {
-                            __instance.GetType().GetMethod("TickCurrentBuilding",
-                                    BindingFlags.Instance | BindingFlags.NonPublic)
-                                .Invoke(__instance, null);
-                        }
-
-                        else if (__instance.Governor.GetPerkValue(DefaultPerks.Charm.Virile) && MBRandom.RandomFloat < 0.1f)
-                        {
-                            var randomElement = __instance.Settlement.Notables.GetRandomElement();
-                            if (randomElement != null)
-                            {
-                                ChangeRelationAction.ApplyRelationChangeBetweenHeroes(__instance.OwnerClan.Leader,
-                                    randomElement, MathF.Round(DefaultPerks.Charm.Virile.SecondaryBonus), false);
-                            }
-                        }
-
-                        if (__instance.Governor.GetPerkValue(DefaultPerks.Roguery.WhiteLies) &&
-                            MBRandom.RandomFloat < 0.02f)
-                        {
-                            var randomElement2 = __instance.Settlement.Notables.GetRandomElement();
-                            if (randomElement2 != null)
-                            {
-                                ChangeRelationAction.ApplyRelationChangeBetweenHeroes(__instance.Governor,
-                                    randomElement2, MathF.Round(DefaultPerks.Roguery.WhiteLies.SecondaryBonus));
-                            }
-                        }
-
-                        if (__instance.Governor.GetPerkValue(DefaultPerks.Roguery.Scarface) &&
-                            MBRandom.RandomFloat < 0.05f)
-                        {
-                            var randomElementWithPredicate =
-                                __instance.Settlement.Notables.GetRandomElementWithPredicate(x => x.IsGangLeader);
-                            if (randomElementWithPredicate != null)
-                            {
-                                ChangeRelationAction.ApplyRelationChangeBetweenHeroes(__instance.Governor,
-                                    randomElementWithPredicate,
-                                    MathF.Round(DefaultPerks.Roguery.Scarface.SecondaryBonus));
-                            }
-                        }
-                    }
-                },
-                "TownDailyTicktPatch",
-                false);
-
-
-                return result;
-            }
-
-            private static System.Exception Finalize()
-            {
-                return null;
-            }
-        }
     }
 }
+

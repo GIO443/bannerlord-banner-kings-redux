@@ -4,6 +4,7 @@ using BannerKings.Managers.Skills;
 using BannerKings.Managers.Titles;
 using BannerKings.Managers.Titles.Governments;
 using BannerKings.Models.BKModels.Abstract;
+using Helpers;
 using System.Linq;
 using TaleWorlds.CampaignSystem;
 using TaleWorlds.CampaignSystem.Settlements;
@@ -39,7 +40,7 @@ namespace BannerKings.Models.BKModels
                 var peace = true;
                 if (clan.Kingdom != null)
                 {
-                    peace = FactionManager.GetEnemyFactions(clan.Kingdom).Count() == 0;
+                    peace = !FactionHelper.GetEnemyKingdoms(clan.Kingdom).Any();
                 }
 
                 result.Add(peace ? 0.01f : -0.01f, new TextObject(peace ? "{=zgK5zVkQ}Peace" : "{=Ypfy9D3P}War"));

@@ -27,7 +27,7 @@ namespace BannerKings.Managers.Institutions.Religions.Faiths.Rites
                     .SetTextVariable("RITE", GetName()),
                 0, 
                 actionTaker.CharacterObject, 
-                Utils.Helpers.GetRelationDecisionSound());
+                null, Utils.Helpers.GetRelationDecisionSound());
 
             var piety = GetPietyReward();
             BannerKingsConfig.Instance.ReligionsManager.AddPiety(actionTaker, piety, true);

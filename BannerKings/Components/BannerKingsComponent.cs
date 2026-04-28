@@ -55,6 +55,8 @@ namespace BannerKings.Components
             }
         }
 
+        public override Banner GetDefaultComponentBanner() => HomeSettlement?.OwnerClan?.Banner ?? Banner.CreateOneColoredEmptyBanner(0);
+
         public abstract void TickHourly();
     }
 }

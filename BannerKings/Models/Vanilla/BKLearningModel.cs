@@ -1,4 +1,4 @@
-using BannerKings.Managers.Skills;
+﻿using BannerKings.Managers.Skills;
 using System.Collections.Generic;
 using System;
 using TaleWorlds.CampaignSystem;
@@ -60,9 +60,9 @@ namespace BannerKings.Models.Vanilla
             return base.GetXpRequiredForSkillLevel(skillLevel);
         }
 
-        public override List<Tuple<SkillObject, int>> GetSkillsDerivedFromTraits(Hero hero, CharacterObject templateCharacter = null, bool isByNaturalGrowth = false)
+        public List<Tuple<SkillObject, int>> GetSkillsDerivedFromTraits(Hero hero, CharacterObject templateCharacter = null, bool isByNaturalGrowth = false)
         {
-            List <Tuple<SkillObject, int>> list =  base.GetSkillsDerivedFromTraits(hero, templateCharacter, isByNaturalGrowth);
+            List<Tuple<SkillObject, int>> list = new List<Tuple<SkillObject, int>>();
             if (hero == null)
             {
                 return list;
@@ -80,13 +80,9 @@ namespace BannerKings.Models.Vanilla
 
             if (templateCharacter != null)
             {
-                int politician = templateCharacter.GetTraitLevel(DefaultTraits.Politician);
+                // DefaultTraits.Politician and DefaultTraits.Manager removed in 1.3.x
                 int surgery = templateCharacter.GetTraitLevel(DefaultTraits.Surgery);
-                int manager = templateCharacter.GetTraitLevel(DefaultTraits.Manager);
-
                 scholarship += surgery * 10f;
-                scholarship += manager * 8f;
-                lordship += politician * 15f;
             }
 
             list.Add(new Tuple<SkillObject, int>(BKSkills.Instance.Scholarship, (int)scholarship));
@@ -95,22 +91,22 @@ namespace BannerKings.Models.Vanilla
             return list;
         }
 
-        public override float CalculateLearningRate(Hero hero, SkillObject skill)
+        public float CalculateLearningRate(Hero hero, SkillObject skill)
         {
-            ExplainedNumber result = CalculateLearningRate(hero, 
-                hero.GetAttributeValue(skill.CharacterAttribute), 
-                hero.HeroDeveloper.GetFocus(skill), hero.GetSkillValue(skill), 
-                skill.CharacterAttribute.Name);
+            ExplainedNumber result = CalculateLearningRate(hero,
+                hero.GetAttributeValue(skill.Attributes[0]),
+                hero.HeroDeveloper.GetFocus(skill), hero.GetSkillValue(skill),
+                skill.Attributes[0].Name);
 
-            if (skill.CharacterAttribute == DefaultCharacterAttributes.Vigor || skill.CharacterAttribute == DefaultCharacterAttributes.Control)
+            if (skill.Attributes[0] == DefaultCharacterAttributes.Vigor || skill.Attributes[0] == DefaultCharacterAttributes.Control)
             {
                 result.AddFactor(hero.GetTraitLevel(BKTraits.Instance.AptitudeViolence) * 0.6f);
             }
-            else if (skill.CharacterAttribute == DefaultCharacterAttributes.Social)
+            else if (skill.Attributes[0] == DefaultCharacterAttributes.Social)
             {
                 result.AddFactor(hero.GetTraitLevel(BKTraits.Instance.AptitudeSocializing) * 0.6f);
             }
-            else if (skill.CharacterAttribute == DefaultCharacterAttributes.Intelligence || skill.CharacterAttribute == BKAttributes.Instance.Wisdom)
+            else if (skill.Attributes[0] == DefaultCharacterAttributes.Intelligence || skill.Attributes[0] == BKAttributes.Instance.Wisdom)
             {
                 result.AddFactor(hero.GetTraitLevel(BKTraits.Instance.AptitudeErudition) * 0.6f);
             }
@@ -144,18 +140,17 @@ namespace BannerKings.Models.Vanilla
             return result; 
         }
 
-        public override ExplainedNumber CalculateLearningRate(int attributeValue, int focusValue, int skillValue,
-            int characterLevel, TextObject attributeName, bool includeDescriptions = false)
+        public override ExplainedNumber CalculateLearningRate(IReadOnlyPropertyOwner<CharacterAttribute> characterAttributes, int focusValue, int skillValue,
+            SkillObject skill, bool includeDescriptions = false)
         {
-            var baseResult = base.CalculateLearningRate(attributeValue, focusValue, skillValue, characterLevel,
-                attributeName, includeDescriptions);
+            var baseResult = base.CalculateLearningRate(characterAttributes, focusValue, skillValue, skill, includeDescriptions);
             baseResult.LimitMin(0.05f);
             return baseResult;
         }
 
-        public ExplainedNumber CalculateLearningLimit(Hero hero, int attributeValue, int focusValue, TextObject attributeName, bool includeDescriptions = false)
+        public ExplainedNumber CalculateLearningLimit(Hero hero, int attributeValue, int focusValue, SkillObject skill, bool includeDescriptions = false)
         {
-            var baseResult = base.CalculateLearningLimit(attributeValue, focusValue, attributeName, includeDescriptions);
+            var baseResult = base.CalculateLearningLimit(hero.CharacterAttributes, focusValue, skill, includeDescriptions);
             if (hero.GetPerkValue(BKPerks.Instance.ScholarshipMagnumOpus))
             {
                 baseResult.Add(focusValue * 15f, BKPerks.Instance.ScholarshipMagnumOpus.Name);

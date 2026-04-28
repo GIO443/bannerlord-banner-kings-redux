@@ -1,4 +1,4 @@
-using BannerKings.Managers.Court;
+﻿using BannerKings.Managers.Court;
 using BannerKings.Utils;
 using System;
 using System.Collections.Generic;
@@ -6,6 +6,7 @@ using System.Linq;
 using TaleWorlds.CampaignSystem;
 using TaleWorlds.CampaignSystem.ViewModelCollection;
 using TaleWorlds.Core;
+using TaleWorlds.Core.ImageIdentifiers;
 using TaleWorlds.Library;
 using TaleWorlds.Localization;
 using TaleWorlds.SaveSystem;
@@ -34,7 +35,7 @@ namespace BannerKings.Behaviours.Diplomacy.Groups.Demands
         public override void SetTexts()
         {
             Initialize(new TextObject("{=kyB8tkgY}Council Position"),
-                new TextObject());
+                TextObject.GetEmpty());
         }
 
         public override DemandResponse PositiveAnswer => new DemandResponse(new TextObject("{=kyB8tkgY}Concede"),
@@ -235,7 +236,7 @@ namespace BannerKings.Behaviours.Diplomacy.Groups.Demands
                     .SetTextVariable("HERO", member.Name)
                     .SetTextVariable("COMPETENCE", (competence.ResultNumber * 100).ToString("0.00"))
                     .ToString(),
-                    new ImageIdentifier(CampaignUIHelper.GetCharacterCode(member.CharacterObject, true)),
+                    new CharacterImageIdentifier(CampaignUIHelper.GetCharacterCode(member.CharacterObject, true)),
                     true,
                     String.Empty));
             }

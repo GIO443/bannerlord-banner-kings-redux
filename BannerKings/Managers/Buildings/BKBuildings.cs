@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Reflection;
 using TaleWorlds.CampaignSystem.Settlements.Buildings;
@@ -32,6 +32,9 @@ namespace BannerKings.Managers.Buildings
         public BuildingType Port { get; private set; }
         public BuildingType DailyAssimilation { get; private set; }
 
+        public bool IsCastleBuilding(BuildingType type) =>
+            type == CastleMines || type == CastleRetinue || type == Port || type == WarhorseStuds;
+
         public override IEnumerable<BuildingType> All
         {
             get
@@ -64,11 +67,10 @@ namespace BannerKings.Managers.Buildings
                     4500,
                     6000
                 },
-                BuildingLocation.Settlement,
-                new Tuple<BuildingEffectEnum, float, float, float>[]
+                new Tuple<BuildingEffectEnum, BuildingEffectIncrementType, float, float, float>[]
                 {
-                    new Tuple<BuildingEffectEnum, float, float, float>(BuildingEffectEnum.Prosperity, 0.3f, 0.6f, 1.2f)
-                });
+                    new Tuple<BuildingEffectEnum, BuildingEffectIncrementType, float, float, float>(BuildingEffectEnum.Prosperity, BuildingEffectIncrementType.Add, 0.3f, 0.6f, 1.2f)
+                }, false, 0f);
 
             Port = Game.Current.ObjectManager.RegisterPresumedObject(new BuildingType("building_port"));
             Port.Initialize(new TextObject("{=YSv8Dzw1}Port"),
@@ -79,11 +81,10 @@ namespace BannerKings.Managers.Buildings
                     3000,
                     4500
                 },
-                BuildingLocation.Castle,
-                new Tuple<BuildingEffectEnum, float, float, float>[]
+                new Tuple<BuildingEffectEnum, BuildingEffectIncrementType, float, float, float>[]
                 {
-                    new Tuple<BuildingEffectEnum, float, float, float>(BuildingEffectEnum.Prosperity, 0.2f, 0.5f, 1f)
-                });
+                    new Tuple<BuildingEffectEnum, BuildingEffectIncrementType, float, float, float>(BuildingEffectEnum.Prosperity, BuildingEffectIncrementType.Add, 0.2f, 0.5f, 1f)
+                }, false, 0f);
 
             Mines = Game.Current.ObjectManager.RegisterPresumedObject(new BuildingType("building_town_mines"));
             Mines.Initialize(new TextObject("{=iGYstgoo}Mines"),
@@ -94,11 +95,10 @@ namespace BannerKings.Managers.Buildings
                     2500,
                     4000
                 },
-                BuildingLocation.Settlement,
-                new Tuple<BuildingEffectEnum, float, float, float>[]
+                new Tuple<BuildingEffectEnum, BuildingEffectIncrementType, float, float, float>[]
                 {
-                    new Tuple<BuildingEffectEnum, float, float, float>(BuildingEffectEnum.Construction, 0.5f, 1f, 1.5f)
-                });
+                    new Tuple<BuildingEffectEnum, BuildingEffectIncrementType, float, float, float>(BuildingEffectEnum.ConstructionPerDay, BuildingEffectIncrementType.Add, 0.5f, 1f, 1.5f)
+                }, false, 0f);
 
             CastleMines = Game.Current.ObjectManager.RegisterPresumedObject(new BuildingType("building_castle_mines"));
             CastleMines.Initialize(new TextObject("{=iGYstgoo}Mines"),
@@ -109,11 +109,10 @@ namespace BannerKings.Managers.Buildings
                     2500,
                     4000
                 },
-                BuildingLocation.Castle,
-                new Tuple<BuildingEffectEnum, float, float, float>[]
+                new Tuple<BuildingEffectEnum, BuildingEffectIncrementType, float, float, float>[]
                 {
-                    new Tuple<BuildingEffectEnum, float, float, float>(BuildingEffectEnum.Construction, 0.5f, 1f, 1.5f)
-                });
+                    new Tuple<BuildingEffectEnum, BuildingEffectIncrementType, float, float, float>(BuildingEffectEnum.ConstructionPerDay, BuildingEffectIncrementType.Add, 0.5f, 1f, 1.5f)
+                }, false, 0f);
 
 
             CastleRetinue = Game.Current.ObjectManager.RegisterPresumedObject(new BuildingType("building_castle_retinue"));
@@ -124,11 +123,10 @@ namespace BannerKings.Managers.Buildings
                     1000,
                     2000,
                     3000
-                }, 
-                BuildingLocation.Castle,
-                new Tuple<BuildingEffectEnum, float, float, float>[]
+                },
+                new Tuple<BuildingEffectEnum, BuildingEffectIncrementType, float, float, float>[]
                 {
-                });
+                }, false, 0f);
 
             Theater = Game.Current.ObjectManager.RegisterPresumedObject(new BuildingType("bk_building_theater"));
             Theater.Initialize(new TextObject("{=rQmTMDxF}Theater"),
@@ -139,11 +137,10 @@ namespace BannerKings.Managers.Buildings
                     3000,
                     4000
                 },
-                BuildingLocation.Settlement,
-                new Tuple<BuildingEffectEnum, float, float, float>[]
+                new Tuple<BuildingEffectEnum, BuildingEffectIncrementType, float, float, float>[]
                 {
-                    new Tuple<BuildingEffectEnum, float, float, float>(BuildingEffectEnum.Loyalty, 0.2f, 0.5f, 1f)
-                });
+                    new Tuple<BuildingEffectEnum, BuildingEffectIncrementType, float, float, float>(BuildingEffectEnum.Loyalty, BuildingEffectIncrementType.Add, 0.2f, 0.5f, 1f)
+                }, false, 0f);
 
             Armory = Game.Current.ObjectManager.RegisterPresumedObject(new BuildingType("bk_building_armory"));
             Armory.Initialize(new TextObject("{=sBTMZdyq}Armory"),
@@ -154,11 +151,10 @@ namespace BannerKings.Managers.Buildings
                     2000,
                     2500
                 },
-                BuildingLocation.Settlement,
-                new Tuple<BuildingEffectEnum, float, float, float>[]
+                new Tuple<BuildingEffectEnum, BuildingEffectIncrementType, float, float, float>[]
                 {
-                    new Tuple<BuildingEffectEnum, float, float, float>(BuildingEffectEnum.Experience, 1f, 1f, 1f)
-                });
+                    new Tuple<BuildingEffectEnum, BuildingEffectIncrementType, float, float, float>(BuildingEffectEnum.ExperiencePerDay, BuildingEffectIncrementType.Add, 1f, 1f, 1f)
+                }, false, 0f);
 
             CourtHouse = Game.Current.ObjectManager.RegisterPresumedObject(new BuildingType("bk_building_courthouse"));
             CourtHouse.Initialize(new TextObject("{=4CTz9MRe}Court House"),
@@ -169,10 +165,9 @@ namespace BannerKings.Managers.Buildings
                     2600,
                     3200
                 },
-                BuildingLocation.Settlement,
-                new Tuple<BuildingEffectEnum, float, float, float>[]
+                new Tuple<BuildingEffectEnum, BuildingEffectIncrementType, float, float, float>[]
                 {
-                });
+                }, false, 0f);
 
             WarhorseStuds = Game.Current.ObjectManager.RegisterPresumedObject(new BuildingType("bk_building_castle_studs"));
             WarhorseStuds.Initialize(new TextObject("{=PCayirkO}Warhorse Studs"),
@@ -183,20 +178,15 @@ namespace BannerKings.Managers.Buildings
                     1800,
                     2400
                 },
-                BuildingLocation.Castle,
-                new Tuple<BuildingEffectEnum, float, float, float>[]
+                new Tuple<BuildingEffectEnum, BuildingEffectIncrementType, float, float, float>[]
                 {
-                });
+                }, false, 0f);
 
 
             DailyAssimilation = Game.Current.ObjectManager.RegisterPresumedObject(new BuildingType("bk_building_daily_assimilation"));
-            DailyAssimilation.Initialize(new TextObject("{=rZOM0Jit}Cultural assimilation"),
+            DailyAssimilation.InitializeDailyProject(new TextObject("{=rZOM0Jit}Cultural assimilation"),
                 new TextObject("{=QrcPgzMf}Focus efforts on assimilating local pouplace to your culture. Increases Cultural Presence."),
-                new int[3],
-                BuildingLocation.Daily,
-                new Tuple<BuildingEffectEnum, float, float, float>[]
-                {
-                });
+                Array.Empty<Tuple<BuildingEffectEnum, BuildingEffectIncrementType, float, float, float>>());
         }
     }
 }

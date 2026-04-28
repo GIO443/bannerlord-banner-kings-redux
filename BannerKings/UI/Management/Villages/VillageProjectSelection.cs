@@ -51,7 +51,7 @@ namespace BannerKings.UI.Management.Villages
             }
 
             foreach (Building building in from x in buildings
-                                          where x.BuildingType.BuildingLocation != BuildingLocation.Daily
+                                          where x.BuildingType!.IsDailyProject
                                           select x)
             {
                 VillageBuildingProjectVM VillageBuildingProjectVM = new VillageBuildingProjectVM(
@@ -69,7 +69,7 @@ namespace BannerKings.UI.Management.Villages
             if (Settlement.CurrentSettlement != null)
             {
                 foreach (Building building2 in from x in buildings
-                                               where x.BuildingType.BuildingLocation == BuildingLocation.Daily
+                                               where x.BuildingType.IsDailyProject
                                                select x)
                 {
                     VillageBuildingDailyProjectVM VillageBuildingDailyProjectVM = new VillageBuildingDailyProjectVM(
@@ -168,7 +168,7 @@ namespace BannerKings.UI.Management.Villages
                 villageData.BuildingsInProgress = new Queue<Building>();
                 foreach (Building b in LocalDevelopmentList)
                 {
-                    if (!b.BuildingType.IsDefaultProject)
+                    if (!b.BuildingType.IsDailyProject)
                     {
                         villageData.BuildingsInProgress.Enqueue(b);
                     }

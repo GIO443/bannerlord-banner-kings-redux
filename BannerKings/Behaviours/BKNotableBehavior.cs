@@ -1,4 +1,4 @@
-using System.Linq;
+﻿using System.Linq;
 using BannerKings.Settings;
 using BannerKings.UI;
 using BannerKings.Utils;
@@ -44,12 +44,12 @@ namespace BannerKings.Behaviours
                             .GetTargetNotableCountForSettlement(settlement, Occupation.Artisan);
                         for (int i = 0; i < targetNotableCountForSettlement; i++)
                         {
-                            HeroCreator.CreateHeroAtOccupation(Occupation.Artisan, settlement);
+                            HeroCreator.CreateNotable(Occupation.Artisan, settlement);
                         }
                         int targetNotableCountForSettlement2 = TaleWorlds.CampaignSystem.Campaign.Current.Models.NotableSpawnModel.GetTargetNotableCountForSettlement(settlement, Occupation.Merchant);
                         for (int j = 0; j < targetNotableCountForSettlement2; j++)
                         {
-                            HeroCreator.CreateHeroAtOccupation(Occupation.Merchant, settlement);
+                            HeroCreator.CreateNotable(Occupation.Merchant, settlement);
                         }
                     }
             }

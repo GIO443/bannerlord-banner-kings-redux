@@ -193,7 +193,7 @@ namespace BannerKings.Models.Vanilla
             else
             {
                 MapWeatherModel.WeatherEvent weatherEventInPosition = TaleWorlds.CampaignSystem.Campaign.Current.Models.MapWeatherModel
-                              .GetWeatherEventInPosition(party.Position2D);
+                              .GetWeatherEventInPosition(party.GetPosition2D);
                 if (weatherEventInPosition == MapWeatherModel.WeatherEvent.Snowy || weatherEventInPosition == MapWeatherModel.WeatherEvent.Blizzard)
                 {
                     float mounts = CalculateAnimalFoodNeed(party, false);

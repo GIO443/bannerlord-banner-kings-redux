@@ -18,7 +18,7 @@ namespace BannerKings.Actions
             }
 
             var names = new List<string>();
-            foreach (var existingClan in Clan.All.ToList().FindAll(x => x.Culture == culture))
+            foreach (var existingClan in Clan.All.Where(x => x.Culture == culture))
             {
                 names.Add(existingClan.Name.ToString());
             }
@@ -49,13 +49,15 @@ namespace BannerKings.Actions
 
             hero.Clan = null;
             hero.CompanionOf = null;
-            clan.InitializeClan(name, name, hero.Culture, Banner.CreateOneColoredBannerWithOneIcon(
+            clan.ChangeClanName(name, name);
+            clan.Culture = hero.Culture;
+            clan.Banner = Banner.CreateOneColoredBannerWithOneIcon(
                 settlement.MapFaction.Banner.GetFirstIconColor(), settlement.MapFaction.Banner.GetPrimaryColor(),
-                hero.Culture.PossibleClanBannerIconsIDs.GetRandomElement()), settlement.GatePosition);
+                hero.Culture.PossibleClanBannerIconsIDs.GetRandomElement());
             clan.AddRenown(renown);
             hero.Clan = clan;
             clan.SetLeader(hero);
-            clan.UpdateHomeSettlement(settlement);
+            clan.SetInitialHomeSettlement(settlement);
             if (hero.Spouse != null && !Utils.Helpers.IsClanLeader(hero.Spouse))
             {
                 JoinClan(hero.Spouse, clan);
@@ -74,7 +76,7 @@ namespace BannerKings.Actions
 
             if (originalClan != null)
             {
-                ChangeKingdomAction.ApplyByJoinToKingdom(clan, originalClan.Kingdom, false);
+                ChangeKingdomAction.ApplyByJoinToKingdom(clan, originalClan.Kingdom, default(CampaignTime), false);
             }
 
             BannerKingsConfig.Instance.TitleManager.RemoveKnights(hero);
@@ -113,7 +115,7 @@ namespace BannerKings.Actions
         private static bool IsAvailable(TextObject name, CultureObject culture)
         {
             var names = new List<string>();
-            foreach (var existingClan in Clan.All.ToList().FindAll(x => x.Culture == culture))
+            foreach (var existingClan in Clan.All.Where(x => x.Culture == culture))
             {
                 names.Add(existingClan.Name.ToString());
             }

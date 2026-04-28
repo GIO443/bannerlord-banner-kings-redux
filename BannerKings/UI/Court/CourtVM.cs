@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using BannerKings.Behaviours.Diplomacy;
@@ -28,7 +28,8 @@ namespace BannerKings.UI.Court
         private CouncilMember councilPosition;
         private CouncilVM councilVM;
         private MBBindingList<InformationElement> courtInfo, privilegesInfo, courtierInfo;
-        private CharacterVM currentCharacter;
+        private CharacterDeveloperVM currentCharacter;
+        private Hero selectedHero;
         private MBBindingList<ClanLordItemVM> family, courtiers, guests;
         private bool isRoyal, hasExtraPositions, selectorsVisible;
         private string positionName, positionDescription, positionEffects;
@@ -58,7 +59,7 @@ namespace BannerKings.UI.Court
             privilegesInfo = new MBBindingList<InformationElement>();
             guests = new MBBindingList<ClanLordItemVM>();
             isRoyal = royal;
-            currentCharacter = new CharacterVM(Hero.MainHero, null);
+            currentCharacter = new CharacterDeveloperVM(null);
         }
 
         [DataSourceProperty] public string FamilyText => new TextObject("{=QCw05MZN}Household").ToString();
@@ -104,19 +105,22 @@ namespace BannerKings.UI.Court
             {
                 if (hero.Clan == council.Owner.Clan)
                 {
-                    Family.Add(new ClanLordItemVM(hero, teleportationBehavior, null, SetCurrentCharacter,
+                    var h = hero;
+                    Family.Add(new ClanLordItemVM(hero, teleportationBehavior, null, _ => SetCurrentCharacter(h),
                         OnRequestRecall, OnRequestRecall));
                 }
                 else
                 {
-                    Courtiers.Add(new ClanLordItemVM(hero, teleportationBehavior, null, SetCurrentCharacter,
+                    var h = hero;
+                    Courtiers.Add(new ClanLordItemVM(hero, teleportationBehavior, null, _ => SetCurrentCharacter(h),
                         OnRequestRecall, OnRequestRecall));
                 }
             }
 
             foreach (var guest in council.Guests)
             {
-                Guests.Add(new ClanLordItemVM(guest, teleportationBehavior, null, SetCurrentCharacter,
+                var g = guest;
+                Guests.Add(new ClanLordItemVM(guest, teleportationBehavior, null, _ => SetCurrentCharacter(g),
                         OnRequestRecall, OnRequestRecall));
             }
 
@@ -398,7 +402,7 @@ namespace BannerKings.UI.Court
                             .SetTextVariable("ADM_COST", ((current.AdministrativeCost - expense.AdministrativeCost) * 100f).ToString("0"));
                     }
 
-                    InformationManager.ShowInquiry(new InquiryData(new TextObject().ToString(),
+                    InformationManager.ShowInquiry(new InquiryData(TextObject.GetEmpty().ToString(),
                         description.ToString(),
                         Hero.MainHero.Gold >= cost,
                         true,
@@ -420,15 +424,15 @@ namespace BannerKings.UI.Court
             {
                 CourtierInfo.Clear();
                 CourtierInfo.Add(new InformationElement(GameTexts.FindText("str_enc_sf_occupation").ToString(),
-                    CampaignUIHelper.GetHeroOccupationName(currentCharacter.Hero), string.Empty));
+                    CampaignUIHelper.GetHeroOccupationName(selectedHero), string.Empty));
 
                 var positionString = GameTexts.FindText("role", "None").ToString();
-                var heroPosition = council.GetHeroPositions(currentCharacter.Hero).FirstOrDefault();
+                var heroPosition = council.GetHeroPositions(selectedHero).FirstOrDefault();
                 if (heroPosition != null)
                 {
                     positionString = heroPosition.Name.ToString();
                 }
-                else if (currentCharacter.Hero == council.Owner)
+                else if (selectedHero == council.Owner)
                 {
                     positionString = GameTexts.FindText("role", "ClanLeader").ToString();
                 }
@@ -437,7 +441,7 @@ namespace BannerKings.UI.Court
                     string.Empty));
 
                 var languagesString = "";
-                foreach (var pair in BannerKingsConfig.Instance.EducationManager.GetHeroEducation(currentCharacter.Hero)
+                foreach (var pair in BannerKingsConfig.Instance.EducationManager.GetHeroEducation(selectedHero)
                              .Languages)
                 {
                     languagesString += new TextObject("{=4fLp8Y5t}{LANGUAGE} ({COMPETENCE}),")
@@ -491,9 +495,10 @@ namespace BannerKings.UI.Court
             RefreshValues();
         }
 
-        private void SetCurrentCharacter(ClanLordItemVM vm)
+        private void SetCurrentCharacter(Hero hero)
         {
-            CurrentCharacter = new CharacterVM(vm.GetHero(), null);
+            selectedHero = hero;
+            CurrentCharacter = new CharacterDeveloperVM(null);
             RefreshCharacter();
         }
 
@@ -652,7 +657,7 @@ namespace BannerKings.UI.Court
         }
 
         [DataSourceProperty]
-        public CharacterVM CurrentCharacter
+        public CharacterDeveloperVM CurrentCharacter
         {
             get => currentCharacter;
             set

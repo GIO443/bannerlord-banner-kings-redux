@@ -176,7 +176,7 @@ namespace BannerKings.Managers.Goals.Decisions
                 Renown = 100,
             };
             var vassals = new List<FeudalTitle>();
-            IEnumerable<Kingdom> kingdoms = Kingdom.All.ToList().FindAll(x => x.StringId == "empire" ||
+            IEnumerable<Kingdom> kingdoms = Kingdom.All.Where(x => x.StringId == "empire" ||
                 x.StringId == "empire_w" || x.StringId == "empire_s");
 
             foreach (var kingdom in kingdoms)

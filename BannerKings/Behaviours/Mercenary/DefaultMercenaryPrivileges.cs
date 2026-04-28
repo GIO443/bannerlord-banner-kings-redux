@@ -72,7 +72,7 @@ namespace BannerKings.Behaviours.Mercenary
                             .SetTextVariable("TOWN", workshop.Settlement.Name),
                             0,
                             null,
-                            Utils.Helpers.GetRelationDecisionSound());
+                            null, Utils.Helpers.GetRelationDecisionSound());
                         return true;
                     }
 

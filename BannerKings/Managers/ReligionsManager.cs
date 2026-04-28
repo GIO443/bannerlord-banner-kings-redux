@@ -239,7 +239,7 @@ namespace BannerKings.Managers
                             MBInformationManager.AddQuickInformation(new TextObject("{=sjy26XtU}{HERO} has converted to the {FAITH} faith.")
                                     .SetTextVariable("HERO", hero.Name)
                                     .SetTextVariable("FAITH", religion.Faith.GetFaithName()),
-                                0, hero.CharacterObject, Utils.Helpers.GetKingdomDecisionSound());
+                                0, hero.CharacterObject, null, Utils.Helpers.GetKingdomDecisionSound());
                         }
 
                         if (hero == hero.Clan.Leader)
@@ -261,7 +261,7 @@ namespace BannerKings.Managers
                     MBInformationManager.AddQuickInformation(new TextObject("{=sjy26XtU}{HERO} has converted to the {FAITH} faith.")
                         .SetTextVariable("HERO", hero.Name)
                         .SetTextVariable("FAITH", religion.Faith.GetFaithName()),
-                        0, hero.CharacterObject, Utils.Helpers.GetKingdomDecisionSound());
+                        0, hero.CharacterObject, null, Utils.Helpers.GetKingdomDecisionSound());
                 }
             }
         }
@@ -322,7 +322,7 @@ namespace BannerKings.Managers
                 MBInformationManager.AddQuickInformation(religion.Faith.GetBlessingQuickInformation()
                         .SetTextVariable("HERO", hero.Name)
                         .SetTextVariable("DIVINITY", divinity.Name),
-                    0, hero.CharacterObject, "event:/ui/notification/relation");
+                    0, hero.CharacterObject, null, "event:/ui/notification/relation");
             }
             AddPiety(religion, hero, -divinity.BlessingCost(hero, religion.Faith), notify);
         }

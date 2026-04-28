@@ -5,6 +5,7 @@ using TaleWorlds.CampaignSystem;
 using TaleWorlds.CampaignSystem.CharacterDevelopment;
 using TaleWorlds.CampaignSystem.Election;
 using TaleWorlds.Core;
+using TaleWorlds.Core.ImageIdentifiers;
 using TaleWorlds.Library;
 using TaleWorlds.Localization;
 using TaleWorlds.SaveSystem;
@@ -128,7 +129,7 @@ namespace BannerKings.Managers.Titles.Governments
                 return new TextObject("{=OQ8y4Ros}Succession law will be changed to {NAME}.")
                     .SetTextVariable("NAME", s.Name);
             }
-            return TextObject.Empty;
+            return TextObject.GetEmpty();
         }
 
         public override TextObject GetSupportDescription() =>

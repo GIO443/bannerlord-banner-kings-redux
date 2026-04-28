@@ -12,7 +12,15 @@ using TaleWorlds.Localization;
 
 namespace BannerKings.UI.Extensions
 {
-    [ViewModelMixin("SetSelectedCategory")]
+    // 1.3.x: SPInventoryVM no longer exposes SetSelectedCategory.
+    // Don't hook RefreshValues — wrapping it interacts with vanilla's
+    // mid-transaction list rebuild and breaks the visible roster after
+    // transfers (items move into the roster but don't display until
+    // a category click forces a re-filter). Hook RefreshCallbacks instead;
+    // it fires when hint callbacks are rebound, which is rare and harmless.
+    // Our only data-bound property (ClearGearHint) is set once in the
+    // constructor and never changes, so refresh frequency doesn't matter.
+    [ViewModelMixin("RefreshCallbacks")]
     internal class InventoryMixin : BaseViewModelMixin<SPInventoryVM>
     {
         //private BasicTooltipViewModel pietyHint;
@@ -69,7 +77,7 @@ namespace BannerKings.UI.Extensions
             }
 
             CharacterObject character = (CharacterObject)AccessTools2.Field(inventoryVM.GetType(), "_currentCharacter").GetValue(inventoryVM);
-            inventoryVM.MainCharacter.FillFrom(character.HeroObject, -1, inventoryVM.IsCivilianFilterHighlightEnabled, false);
+            inventoryVM.MainCharacter.FillFrom(character.HeroObject, -1, false, false);
         }
 
         private void Transfer(InventoryLogic logic, Hero hero, EquipmentIndex index)
@@ -78,13 +86,12 @@ namespace BannerKings.UI.Extensions
             if (element.Item != null)
             {
                 TransferCommand command = TransferCommand.Transfer(1,
-                                           InventoryLogic.InventorySide.Equipment,
+                                           InventoryLogic.InventorySide.BattleEquipment,
                                            InventoryLogic.InventorySide.PlayerInventory,
                                            new ItemRosterElement(element, 1),
                                            index,
                                            index,
-                                           hero.CharacterObject,
-                                           false);
+                                           hero.CharacterObject);
 
                 logic.AddTransferCommand(command);
             }

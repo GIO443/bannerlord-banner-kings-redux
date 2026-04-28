@@ -1,4 +1,4 @@
-using System.Linq;
+﻿using System.Linq;
 using BannerKings.CampaignContent.Traits;
 using BannerKings.Managers.Court.Members;
 using BannerKings.Managers.Court.Members.Tasks;
@@ -312,19 +312,7 @@ namespace BannerKings.Models.Vanilla
 
         private void GetSettlementLoyaltyChangeDueToProjects(Town town, ref ExplainedNumber explainedNumber)
         {
-            if (town.BuildingsInProgress.IsEmpty<Building>())
-            {
-                BuildingHelper.AddDefaultDailyBonus(town, BuildingEffectEnum.LoyaltyDaily, ref explainedNumber);
-            }
-
-            foreach (var building in town.Buildings)
-            {
-                var buildingEffectAmount = building.GetBuildingEffectAmount(BuildingEffectEnum.Loyalty);
-                if (!building.BuildingType.IsDefaultProject && buildingEffectAmount > 0f)
-                {
-                    explainedNumber.Add(buildingEffectAmount, building.Name);
-                }
-            }
+            town.AddEffectOfBuildings(BuildingEffectEnum.Loyalty, ref explainedNumber);
         }
 
         private void GetSettlementLoyaltyChangeDueToIssues(Town town, ref ExplainedNumber explainedNumber)

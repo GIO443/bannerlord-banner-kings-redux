@@ -1,3 +1,4 @@
+using Helpers;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
@@ -144,7 +145,7 @@ namespace BannerKings.Models.Vanilla
 
             var kingdom = clan.Kingdom;
             var dictionary = BannerKingsConfig.Instance.TitleManager.CalculateVassals(clan);
-            if (dictionary.Count >= 0)
+            if (dictionary.Count > 0)
             {
                 foreach (var pair in dictionary)
                 {
@@ -158,7 +159,7 @@ namespace BannerKings.Models.Vanilla
                 }
             }
 
-            /*if (!clan.IsUnderMercenaryService && clan.Kingdom != null && FactionManager.GetEnemyKingdoms(clan.Kingdom).Any())
+            /*if (!clan.IsUnderMercenaryService && clan.Kingdom != null && FactionHelper.GetEnemyKingdoms(clan.Kingdom).Any())
             {
                 var title = BannerKingsConfig.Instance.TitleManager.GetSovereignTitle(kingdom);
                 if (title is {Contract: { }} &&

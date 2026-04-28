@@ -394,7 +394,7 @@ namespace BannerKings.Models.BKModels
 
         public override BKExplainedNumber CalculateHeroJoinRadicalGroup(Hero hero, RadicalGroup group, KingdomDiplomacy diplomacy, ref BKExplainedNumber result)
         {
-            if ((CampaignData.CampaignStartTime + CampaignTime.Years(BannerKingsSettings.Instance.RadicalGroupYears)).IsFuture)
+            if ((Campaign.Current.Models.CampaignTimeModel.CampaignStartTime + CampaignTime.Years(BannerKingsSettings.Instance.RadicalGroupYears)).IsFuture)
                 result.Add(-1000f, new TextObject("{=!}Rebels Starting Years Offset MCM Setting"));
 
             Dictionary<Clan, float> clanInfluences = new Dictionary<Clan, float>();

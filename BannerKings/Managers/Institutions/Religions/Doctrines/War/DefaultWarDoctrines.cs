@@ -1,4 +1,4 @@
-﻿using BannerKings.Behaviours.Diplomacy.Wars;
+using BannerKings.Behaviours.Diplomacy.Wars;
 using BannerKings.Managers.Institutions.Religions.Doctrines.War;
 using System.Collections.Generic;
 using TaleWorlds.Localization;
@@ -25,7 +25,7 @@ namespace BannerKings.Managers.Institutions.Religions.Doctrines.Marriage
             OpenWarfare = new WarDoctrine("OpenWarfare",
                 new TextObject("{=!}Open Warfare"),
                 new TextObject("{=!}Open Warfare doctrine endorses both general forms of holy war: expansionist and reclamation holy wars. Expansionist wars are declared against enemies of the faith, while reclamation wars are targeted towards holy sites of the faith. Declaring a holy war requires a faith leader."),
-                new TextObject(),
+                TextObject.GetEmpty(),
                 new List<Doctrine>(),
                 new Dictionary<CasusBelli, int>() 
                 {
@@ -36,7 +36,7 @@ namespace BannerKings.Managers.Institutions.Religions.Doctrines.Marriage
             Reclamation = new WarDoctrine("Reclamation",
                 new TextObject("{=!}Reclamation Warfare"),
                 new TextObject("{=!}Reclamation Warfare endorses reclamation holy wars. Reclamation wars are targeted towards holy sites or the faith seat of your faith, and may be used whenever enemies of the faith hold them. Declaring a holy war requires a faith leader."),
-                new TextObject(),
+                TextObject.GetEmpty(),
                 new List<Doctrine>(),
                 new Dictionary<CasusBelli, int>()
                 {
@@ -46,7 +46,7 @@ namespace BannerKings.Managers.Institutions.Religions.Doctrines.Marriage
             NoWarfare = new WarDoctrine("NoWarfare",
                 new TextObject("{=!}Forbidden Warfare"),
                 new TextObject("{=!}Forbidden Warfare does not allow for any type of holy wars to be declared by the faith."),
-                new TextObject(),
+                TextObject.GetEmpty(),
                 new List<Doctrine>(),
                 new Dictionary<CasusBelli, int>()
                 {

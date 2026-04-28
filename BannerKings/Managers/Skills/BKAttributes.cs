@@ -8,13 +8,25 @@ namespace BannerKings.Managers.Skills
 {
     public class BKAttributes
     {
+        // Cache the PropertyInfo lookup once — Campaign.AllCharacterAttributes
+        // is internal so reflection is required, but doing it per-call from
+        // inside a hot getter prefix is expensive and brittle.
+        private static PropertyInfo _allCharacterAttributesProp;
+
         public static MBReadOnlyList<CharacterAttribute> AllAttributes
         {
             get
             {
-                var allAttrs = TaleWorlds.CampaignSystem.Campaign.Current.GetType()
-                    .GetProperty("AllCharacterAttributes", BindingFlags.Instance | BindingFlags.NonPublic);
-                return (MBReadOnlyList<CharacterAttribute>) allAttrs.GetValue(TaleWorlds.CampaignSystem.Campaign.Current);
+                var campaign = TaleWorlds.CampaignSystem.Campaign.Current;
+                if (campaign == null) return null;
+                if (_allCharacterAttributesProp == null)
+                {
+                    _allCharacterAttributesProp = campaign.GetType()
+                        .GetProperty("AllCharacterAttributes",
+                            BindingFlags.Instance | BindingFlags.NonPublic);
+                }
+                if (_allCharacterAttributesProp == null) return null;
+                return _allCharacterAttributesProp.GetValue(campaign) as MBReadOnlyList<CharacterAttribute>;
             }
         }
 

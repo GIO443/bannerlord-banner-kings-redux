@@ -41,7 +41,7 @@ namespace BannerKings.Managers.Institutions.Religions
             FavoredCultures = rel.FavoredCultures;
             Faith = faith;
 
-            var presets = CharacterObject.All.ToList().FindAll(x => x.Occupation == Occupation.Preacher && x.IsTemplate && x.StringId.Contains("bannerkings") && x.StringId.Contains(faith.GetId()));
+            var presets = CharacterObject.All.Where(x => x.Occupation == Occupation.Preacher && x.IsTemplate && x.StringId.Contains("bannerkings") && x.StringId.Contains(faith.GetId()));
             foreach (var preset in presets)
             {
                 var number = int.Parse(preset.StringId[preset.StringId.Length - 1].ToString());
@@ -177,8 +177,12 @@ namespace BannerKings.Managers.Institutions.Religions
 
         private Hero GenerateClergymanHero(CharacterObject preset, Settlement settlement, int rank)
         {
+            if (preset == null) return null;
             Settlement culturalSettlement = Settlement.All.GetRandomElementWithPredicate(x => x.Culture == preset.Culture);
-            var hero = HeroCreator.CreateSpecialHero(preset, culturalSettlement != null ? culturalSettlement : settlement);
+            var bornAt = culturalSettlement ?? settlement ?? Settlement.All.FirstOrDefault();
+            if (bornAt == null) return null;
+            var hero = HeroCreator.CreateSpecialHero(preset, bornAt);
+            if (hero == null) return null;
             SetClergyName(hero, Faith.GetRankTitle(rank));
             return hero;
         }

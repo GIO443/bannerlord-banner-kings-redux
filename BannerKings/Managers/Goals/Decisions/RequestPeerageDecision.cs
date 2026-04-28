@@ -65,7 +65,7 @@ namespace BannerKings.Managers.Goals.Decisions
             InformationManager.ShowInquiry(new InquiryData(new TextObject("{=sdpM1PD3}Request Full Peerage").ToString(),
                 new TextObject("{=HCMiSysD}Request full rights of Peerage. The any existing Peer with voting power may participate in the decision. Current support for the approval of {CLAN}: {SUPPORT}%.")
                 .SetTextVariable("CLAN", GetFulfiller().Clan.Name)
-                .SetTextVariable("SUPPORT", new KingdomElection(decision).GetLikelihoodForOutcome(0) * 100f)
+                .SetTextVariable("SUPPORT", new KingdomElection(decision).GetLikelihoodForSponsor(decision.ProposerClan) * 100f)
                 .ToString(),
                 true,
                 true,
@@ -82,7 +82,7 @@ namespace BannerKings.Managers.Goals.Decisions
             if (clan != Clan.PlayerClan)
             {
                 var election = new KingdomElection(decision);
-                if (election.GetLikelihoodForOutcome(0) < 0.4f) return;
+                if (election.GetLikelihoodForSponsor(decision.ProposerClan) < 0.4f) return;
             }
 
             clan.Kingdom.AddDecision(decision, false);
@@ -94,7 +94,7 @@ namespace BannerKings.Managers.Goals.Decisions
                 .SetTextVariable("KINGDOM", Clan.PlayerClan.Kingdom.Name),
                 0,
                 null,
-                Utils.Helpers.GetKingdomDecisionSound());
+                null, Utils.Helpers.GetKingdomDecisionSound());
             }
         }
 

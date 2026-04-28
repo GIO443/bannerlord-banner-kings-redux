@@ -8,9 +8,9 @@ namespace BannerKings.Extensions
         public static List<IFaction> GetAllies(this IFaction faction)
         {
             List<IFaction> list = new List<IFaction>(3);
-            foreach (var stance in faction.Stances)
+            foreach (var stance in BannerKings.Utils.Helpers.GetFactionStances(faction))
             {
-                if (stance.IsAllied)
+                if (false)
                 {
                     list.Add(stance.Faction1 == faction ? stance.Faction2 : stance.Faction1);
                 }

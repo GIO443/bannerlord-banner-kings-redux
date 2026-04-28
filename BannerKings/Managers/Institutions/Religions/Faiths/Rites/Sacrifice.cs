@@ -1,9 +1,10 @@
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using BannerKings.Managers.Skills;
 using TaleWorlds.CampaignSystem;
 using TaleWorlds.CampaignSystem.Actions;
 using TaleWorlds.CampaignSystem.ViewModelCollection;
 using TaleWorlds.Core;
+using TaleWorlds.Core.ImageIdentifiers;
 using TaleWorlds.Localization;
 
 namespace BannerKings.Managers.Institutions.Religions.Faiths.Rites
@@ -33,7 +34,7 @@ namespace BannerKings.Managers.Institutions.Religions.Faiths.Rites
                     bool available = CanHeroBeSacrificed(executor, hero);
                     options.Add(new InquiryElement(hero, 
                         hero.Name.ToString(),
-                        new ImageIdentifier(CampaignUIHelper.GetCharacterCode(element.Character)),
+                        new CharacterImageIdentifier(CampaignUIHelper.GetCharacterCode(element.Character)),
                         available,
                         description.ToString()));
                 }
@@ -78,8 +79,9 @@ namespace BannerKings.Managers.Institutions.Religions.Faiths.Rites
             MBInformationManager.AddQuickInformation(new TextObject("{=d8ecHZ0P}{SACRIFICE} was ritually sacrificed by {HERO}.")
                     .SetTextVariable("HERO", actionTaker.Name)
                     .SetTextVariable("SACRIFICE", input.Name),
-                0, 
-                actionTaker.CharacterObject, 
+                0,
+                actionTaker.CharacterObject,
+                null,
                 "event:/ui/notification/relation");
 
             BannerKingsConfig.Instance.ReligionsManager.AddPiety(actionTaker, piety, actionTaker.Clan == Clan.PlayerClan);

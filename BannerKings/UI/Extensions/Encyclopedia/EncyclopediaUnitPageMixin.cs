@@ -56,11 +56,11 @@ namespace BannerKings.UI.Extensions.Encyclopedia
             BKTroopAdvancement adv = era.GetTroopAdvancement(ViewModel.Obj as CharacterObject);
             if (adv != null && adv.UpgradeEquipment != null)
             {
-                SetEquipment(adv.UpgradeEquipment.AllEquipments);
+                SetEquipment(adv.UpgradeEquipment.AllEquipments.Where(e => e.IsBattle).ToList());
             }
             else if (era.Equals(DefaultEras.Instance.FirstEra))
             {
-                SetEquipment((ViewModel.Obj as CharacterObject).AllEquipments);
+                SetEquipment((ViewModel.Obj as CharacterObject).BattleEquipments.ToList());
             }
         }
 

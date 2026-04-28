@@ -1,3 +1,4 @@
+using Helpers;
 using BannerKings.Behaviours.Marriage;
 using BannerKings.Settings;
 using System.Collections.Generic;
@@ -216,7 +217,7 @@ namespace BannerKings.Behaviours.Feasts
                             else
                             {
                                 party.Ai.DisableAi();
-                                party.Ai.SetMoveGoToSettlement(town.Settlement);
+                                party.SetMoveGoToSettlement(town.Settlement, MobileParty.NavigationType.All, false);
                             }
                         }
                     }
@@ -254,12 +255,12 @@ namespace BannerKings.Behaviours.Feasts
             feast.Tick();
             if (feast.EndDate.IsPast)
             {
-                EndFeast(feast, new TextObject());
+                EndFeast(feast, TextObject.GetEmpty());
             }
 
             if (settlement.OwnerClan != null && settlement.MapFaction.IsKingdomFaction)
             {
-                if (FactionManager.GetEnemyKingdoms(settlement.MapFaction as Kingdom).Count() > 0)
+                if (FactionHelper.GetEnemyKingdoms(settlement.MapFaction as Kingdom).Any())
                 {
                     EndFeast(feast, new TextObject("{=4oTFuJYd}The kingdom is at war!"));
                 }

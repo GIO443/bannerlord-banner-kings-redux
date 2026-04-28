@@ -15,8 +15,9 @@ namespace BannerKings.Managers.Institutions.Religions.Faiths.Rites.Battania
             base.Complete(actionTaker);
             MBInformationManager.AddQuickInformation(new TextObject("{=0dLoO9An}The {ITEM} was buried in a hallowed mound for the gods.")
                     .SetTextVariable("ITEM", base.selectedItem.GetModifiedItemName()),
-                0, 
+                0,
                 actionTaker.CharacterObject,
+                null,
                 "event:/ui/notification/relation");
         }
 

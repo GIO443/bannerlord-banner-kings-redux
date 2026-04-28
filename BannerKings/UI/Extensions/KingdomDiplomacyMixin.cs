@@ -46,7 +46,7 @@ namespace BannerKings.UI.Extensions
             war = null;
             WarExists = false;
             PeaceExists = false;
-            base.ViewModel.ProposeActionExplanationText = new TextObject("{=kyB8tkgY}Consider proposing a diplomatic action").ToString();
+            // ProposeActionExplanationText moved to KingdomPoliciesVM in 1.3.x, no longer on KingdomDiplomacyVM
             if (kingdomDiplomacy.CurrentSelectedDiplomacyItem != null)
             {
                 if (kingdomDiplomacy.CurrentSelectedDiplomacyItem is KingdomWarItemVM)
@@ -123,7 +123,7 @@ namespace BannerKings.UI.Extensions
                 }
 
                 StanceLink stance = currentKingdom.GetStanceWith(targetKingdom);
-                if (stance.IsAllied)
+                if (false)
                 {
                     AllianceText = new TextObject("{=GTQCGxvy}In Effect").ToString();
                     TruceText = new TextObject("{=d92ORtRp}Implicit (Alliance)").ToString();
@@ -142,7 +142,7 @@ namespace BannerKings.UI.Extensions
             }
 
             KingdomElection election = new KingdomElection(new BKDeclareWarDecision(null, currentKingdom.RulingClan, targetKingdom));
-            WarSupportText = UIHelper.FormatValue(election.GetLikelihoodForOutcome(0));
+            WarSupportText = UIHelper.FormatValue(election.GetLikelihoodForSponsor(currentKingdom.RulingClan));
             WarSupportHint = new BasicTooltipViewModel(() => UIHelper.GetWarSupportHint(currentKingdom, targetKingdom));
         }
 

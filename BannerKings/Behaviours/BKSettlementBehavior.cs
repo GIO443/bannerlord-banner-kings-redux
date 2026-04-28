@@ -1,3 +1,4 @@
+using Helpers;
 using BannerKings.Managers.Buildings;
 using BannerKings.Managers.Court.Members.Tasks;
 using BannerKings.Managers.Decisions;
@@ -39,6 +40,11 @@ namespace BannerKings.Behaviours
 {
     public class BKSettlementBehavior : BannerKingsBehavior
     {
+        // Cached reflection — these are looked up per daily settlement tick. Caching once saves 3 GetMethod calls per fortified settlement per day.
+        private static readonly MethodInfo Workshops_GetRandomItemAux = AccessTools.Method(typeof(WorkshopsCampaignBehavior), "GetRandomItemAux", new Type[] { typeof(ItemCategory), typeof(Town) });
+        private static readonly MethodInfo Workshops_RunTownWorkshop = AccessTools.Method(typeof(WorkshopsCampaignBehavior), "RunTownWorkshop");
+        private static readonly MethodInfo ItemConsumption_MakeConsumptionInTown = AccessTools.Method(typeof(ItemConsumptionBehavior), "MakeConsumptionInTown");
+
         private Dictionary<ItemCategory, float> rottingRates;
 
         public override void RegisterEvents()
@@ -128,7 +134,7 @@ namespace BannerKings.Behaviours
                     MBRandom.RandomFloatRanged(0.16f, 0.24f);
                 stabilityLoss = aftermathType == SiegeAftermathAction.SiegeAftermath.Pillage ? 0.25f : 0.45f;
                 int killTotal = (int)(data.TotalPop * shareToKill);
-                if (killTotal < 1) if (killTotal <= 1f) return;
+                if (killTotal < 1) return;
 
                 int toKill = killTotal;
                 var weights = GetDesiredPopTypes(settlement).Select(pair => new ValueTuple<PopType, float>(pair.Key, pair.Value[0])).ToList();
@@ -313,14 +319,14 @@ namespace BannerKings.Behaviours
             Kingdom kingdom = target.OwnerClan.Kingdom;
             if (kingdom == null) return;
 
-            bool peace = FactionManager.GetEnemyKingdoms(kingdom).Count() == 0;
+            bool peace = !FactionHelper.GetEnemyKingdoms(kingdom).Any();
             bool construction = town.CurrentBuilding != null;
             WorkforcePolicy workforcePolicy = peace ? (construction ? WorkforcePolicy.Construction : WorkforcePolicy.Land_Expansion)
             : (town.InRebelliousState ? WorkforcePolicy.None : WorkforcePolicy.Martial_Law);
             BannerKingsConfig.Instance.PolicyManager.UpdateSettlementPolicy(target, new BKWorkforcePolicy(workforcePolicy, target));
 
             GarrisonPolicy garrisonPolicy = GarrisonPolicy.Standard;
-            if (!peace && town.GarrisonChange < 2) garrisonPolicy = GarrisonPolicy.Enlistment;
+            if (!peace && (int)TaleWorlds.CampaignSystem.Campaign.Current.Models.SettlementGarrisonModel.CalculateBaseGarrisonChange(target, false).ResultNumber < 2) garrisonPolicy = GarrisonPolicy.Enlistment;
 
             BannerKingsConfig.Instance.PolicyManager.UpdateSettlementPolicy(target, new BKGarrisonPolicy(garrisonPolicy, target)); 
 
@@ -361,7 +367,7 @@ namespace BannerKings.Behaviours
             /*var parties = new Mobile();
             var list = parties.GetPartiesAroundPosition(town.Settlement.GatePosition, 10f);
 
-            MobileParty party = list.FirstOrDefault(x => x.Party.TotalStrength > 25f && (x.IsBandit ||
+            MobileParty party = list.FirstOrDefault(x => x.Party.EstimatedStrength > 25f && (x.IsBandit ||
                (x.MapFaction.IsKingdomFaction && x.IsLordParty) && x.MapFaction != null &&
                town.MapFaction.GetStanceWith(x.MapFaction).IsAtWar));
 
@@ -423,7 +429,7 @@ namespace BannerKings.Behaviours
                 desiredAmounts.Add(DefaultItemCategories.RangedWeapons4, (int)(town.Prosperity / 1000f));
 
                 var behavior = TaleWorlds.CampaignSystem.Campaign.Current.GetCampaignBehavior<WorkshopsCampaignBehavior>();
-                var getItem = AccessTools.Method(behavior.GetType(), "GetRandomItemAux", new Type[] { typeof(ItemCategory), typeof(Town) });
+                var getItem = Workshops_GetRandomItemAux;
 
                 foreach (var pair in desiredAmounts)
                 {
@@ -534,14 +540,12 @@ namespace BannerKings.Behaviours
                 DeleteOverProduction(settlement.Town);
 
                 ItemConsumptionBehavior itemBehavior = TaleWorlds.CampaignSystem.Campaign.Current.GetCampaignBehavior<ItemConsumptionBehavior>();
-                itemBehavior.GetType().GetMethod("MakeConsumptionInTown", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)
-                    .Invoke(itemBehavior, new object[] { settlement.Town, new Dictionary<ItemCategory, int>(10) });
+                ItemConsumption_MakeConsumptionInTown.Invoke(itemBehavior, new object[] { settlement.Town, new Dictionary<ItemCategory, int>(10) });
 
                 WorkshopsCampaignBehavior workshopBehavior = TaleWorlds.CampaignSystem.Campaign.Current.GetCampaignBehavior<WorkshopsCampaignBehavior>();
-                MethodInfo runWk = workshopBehavior.GetType().GetMethod("RunTownWorkshop", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
                 foreach (Workshop wk in settlement.Town.Workshops)
                 {
-                    runWk.Invoke(workshopBehavior, new object[] { settlement.Town, wk });
+                    Workshops_RunTownWorkshop.Invoke(workshopBehavior, new object[] { settlement.Town, wk });
                 }
 
                 if (settlement.Town?.GarrisonParty == null) return;
@@ -602,12 +606,12 @@ namespace BannerKings.Behaviours
             {
                 float militia = settlement.Militia;
                 MobileParty garrisonParty = settlement.Town.GarrisonParty;
-                float num = (garrisonParty != null) ? garrisonParty.Party.TotalStrength : 0f;
+                float num = (garrisonParty != null) ? garrisonParty.Party.EstimatedStrength : 0f;
                 foreach (MobileParty mobileParty in settlement.Parties)
                 {
-                    if (mobileParty.IsLordParty && FactionManager.IsAlliedWithFaction(mobileParty.MapFaction, settlement.MapFaction))
+                    if (mobileParty.IsLordParty && !mobileParty.MapFaction.IsAtWarWith(settlement.MapFaction) && mobileParty.MapFaction != settlement.MapFaction)
                     {
-                        num += mobileParty.Party.TotalStrength;
+                        num += mobileParty.Party.EstimatedStrength;
                     }
                 }
                 return militia >= num * 1.4f;
@@ -686,7 +690,7 @@ namespace BannerKings.Behaviours
             if (settlement.Town != null)
             {
                 Building building = settlement.Town.Buildings.FirstOrDefault(x => x.BuildingType.StringId == DefaultBuildingTypes.CastleGranary.StringId ||
-                                        x.BuildingType.StringId == DefaultBuildingTypes.SettlementGranary.StringId);
+                                        x.BuildingType.StringId == DefaultBuildingTypes.CastleGranary.StringId);
                 if (building != null && building.CurrentLevel > 0)
                 {
                     factor -= building.CurrentLevel * 0.25f;

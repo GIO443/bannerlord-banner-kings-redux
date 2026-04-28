@@ -10,6 +10,7 @@ using BannerKings.Managers.Institutions.Religions.Doctrines;
 using BannerKings.Managers.Institutions.Religions.Faiths.Rites;
 using BannerKings.Managers.Populations;
 using BannerKings.Managers.Skills;
+using System.Reflection;
 using HarmonyLib;
 using TaleWorlds.CampaignSystem;
 using TaleWorlds.CampaignSystem.Actions;
@@ -26,6 +27,8 @@ namespace BannerKings.Behaviours
 {
     public class BKReligionsBehavior : BannerKingsBehavior
     {
+        private static readonly FieldInfo Settlement_NotablesCache = AccessTools.Field(typeof(Settlement), "_notablesCache");
+
         private static ReligionsManager ReligionsManager => BannerKingsConfig.Instance.ReligionsManager;
         private Divinity selectedDivinity;
         private Rite selectedRite;
@@ -72,7 +75,7 @@ namespace BannerKings.Behaviours
 
         public ValueTuple<bool, TextObject> IsInstallingPreacherPossible(Hero hero, Settlement settlement)
         {
-            ValueTuple<bool, TextObject> result = new ValueTuple<bool, TextObject>(true, TextObject.Empty);
+            ValueTuple<bool, TextObject> result = new ValueTuple<bool, TextObject>(true, TextObject.GetEmpty());
             PopulationData data = BannerKingsConfig.Instance.PopulationManager.GetPopData(settlement);
 
             int piety = MBRandom.RoundRandomized(BannerKingsConfig.Instance.ReligionModel.GetAppointCost(hero, data.ReligionData).ResultNumber);
@@ -260,7 +263,7 @@ namespace BannerKings.Behaviours
 
             if (toRemove.Count > 0)
             {
-                List<Hero> notables = (List<Hero>)AccessTools.Field(settlement.GetType(), "_notablesCache").GetValue(settlement);
+                List<Hero> notables = (List<Hero>)Settlement_NotablesCache.GetValue(settlement);
                 foreach (var notable in toRemove)
                 {
                     if (notables.Contains(notable))
@@ -312,7 +315,7 @@ namespace BannerKings.Behaviours
          
         private void InitializeFaith(Hero hero)
         {
-            if (DefaultReligions.Instance.All.Count() == 0) return;
+            if (!DefaultReligions.Instance.All.Any()) return;
 
             Religion startingReligion = null;
             if (hero.Clan != null && hero != hero.Clan.Leader && hero.Clan.Leader != null)
@@ -614,7 +617,7 @@ namespace BannerKings.Behaviours
             var clergyman = ReligionsManager.GetClergymanFromHeroHero(Hero.OneToOneConversationHero);
             var religion = ReligionsManager.GetClergymanReligion(clergyman);
             var playerReligion = ReligionsManager.GetHeroReligion(Hero.MainHero);
-            TextObject faithText = new TextObject();
+            TextObject faithText = TextObject.GetEmpty();
             if (playerReligion != null)
             {
                 if (playerReligion.Faith.GetId() == religion.Faith.GetId())

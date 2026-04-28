@@ -22,7 +22,7 @@ namespace BannerKings.Behaviours.Schemes
         public override void Initialize()
         {
             Assassination.Initialize(new TextObject("{=TcQMC30r}Assassination"),
-                new TextObject(),
+                TextObject.GetEmpty(),
                 null,
                 DefaultSkills.Roguery,
                 Scheme.SchemeType.Criminal,

@@ -17,7 +17,7 @@ namespace BannerKings.UI.Extensions
     {
         private readonly KingdomManagementVM kingdomManagement;
         private bool courtSelected, courtEnabled, demesneSelected, demesneEnabled, groupsEnabled,
-            groupsSelected, showCareer, careerSelected;
+            groupsSelected, showCareer, careerSelected, bannerKingsSelected;
         private CourtVM courtVM;
         private KingdomDemesneVM demesneVM;
         private KingdomGroupsVM groupsVM;
@@ -26,24 +26,73 @@ namespace BannerKings.UI.Extensions
         public KingdomManagementMixin(KingdomManagementVM vm) : base(vm)
         {
             kingdomManagement = vm;
-            courtVM = new CourtVM(true);
-            var title = BannerKingsConfig.Instance.TitleManager.GetSovereignTitle(vm.Kingdom);
-            DemesneEnabled = title != null;
-            demesneVM = new KingdomDemesneVM(title, vm.Kingdom);
-            demesneVM.IsSelected = DemesneEnabled;
-            //var capital = Campaign.Current.GetCampaignBehavior<BKCapitalBehavior>().GetCapital(vm.Kingdom);
+
+            // Set the visibility flags FIRST so that even if any sub-VM
+            // construction below throws, the tab buttons (Court / Demesne /
+            // Groups) still appear (or hide) according to their intended
+            // visibility, instead of all defaulting to false and disappearing
+            // from the tab bar entirely.
             CourtEnabled = true;
-            kingdomManagement.RefreshValues();
-
-            var diplomacy = TaleWorlds.CampaignSystem.Campaign.Current.GetCampaignBehavior<BKDiplomacyBehavior>().GetKingdomDiplomacy(vm.Kingdom);
-            Groups = new KingdomGroupsVM(diplomacy);
-            GroupsEnabled = diplomacy != null;
-
+            DemesneEnabled = false;
+            GroupsEnabled = false;
             ShowCareer = false;
-            Career = new MercenaryCareerVM();
-            if (Clan.PlayerClan.IsUnderMercenaryService)
+
+            try { courtVM = new CourtVM(true); }
+            catch { courtVM = null; }
+
+            try
             {
-                ShowCareer = true;
+                var title = BannerKingsConfig.Instance.TitleManager?.GetSovereignTitle(vm.Kingdom);
+                DemesneEnabled = title != null;
+                demesneVM = new KingdomDemesneVM(title, vm.Kingdom);
+                if (demesneVM != null) demesneVM.IsSelected = DemesneEnabled;
+            }
+            catch
+            {
+                demesneVM = null;
+                DemesneEnabled = false;
+            }
+
+            try { kingdomManagement.RefreshValues(); }
+            catch { }
+
+            try
+            {
+                var diplomacy = TaleWorlds.CampaignSystem.Campaign.Current
+                    .GetCampaignBehavior<BKDiplomacyBehavior>()?.GetKingdomDiplomacy(vm.Kingdom);
+                Groups = new KingdomGroupsVM(diplomacy);
+                GroupsEnabled = diplomacy != null;
+            }
+            catch
+            {
+                Groups = null;
+                GroupsEnabled = false;
+            }
+
+            try
+            {
+                Career = new MercenaryCareerVM();
+                if (Clan.PlayerClan != null && Clan.PlayerClan.IsUnderMercenaryService)
+                    ShowCareer = true;
+            }
+            catch
+            {
+                Career = null;
+                ShowCareer = false;
+            }
+        }
+
+        [DataSourceProperty]
+        public bool BannerKingsSelected
+        {
+            get => bannerKingsSelected;
+            set
+            {
+                if (value != bannerKingsSelected)
+                {
+                    bannerKingsSelected = value;
+                    ViewModel!.OnPropertyChangedWithValue(value);
+                }
             }
         }
 
@@ -242,11 +291,7 @@ namespace BannerKings.UI.Extensions
                         policy.CanProposeOrDisavowPolicy = false;
                     }
                    
-                    if (diplomacy.IsActionEnabled)
-                    {
-                        diplomacy.ActionHint.HintText = text;
-                        diplomacy.IsActionEnabled = false;
-                    }
+                    // IsActionEnabled/ActionHint removed from KingdomDiplomacyVM in 1.3.x
                     
                     if (clans.CanExpelCurrentClan)
                     {
@@ -262,144 +307,106 @@ namespace BannerKings.UI.Extensions
                 }
             }
 
-            Court.RefreshValues();
+            Court?.RefreshValues();
             Demesne?.RefreshValues();
-            Groups.RefreshValues();
+            Groups?.RefreshValues();
             Career?.RefreshValues();
+
+            // If any vanilla tab is showing, the BK panel must hide.
             if (kingdomManagement.Clan.Show || kingdomManagement.Settlement.Show || kingdomManagement.Policy.Show ||
                 kingdomManagement.Army.Show || kingdomManagement.Diplomacy.Show)
             {
-                Court.IsSelected = false;
-                CourtSelected = false;
-                DemesneSelected = false;
-                CareerSelected = false;
-
-                if (Demesne != null)
-                {
-                    Demesne.IsSelected = false;
-                }
-
-                if (Career != null)
-                {
-                    Career.IsSelected = false;
-                }
-
-                Groups.IsSelected = false;
-                GroupsSelected = false;
+                BannerKingsSelected = false;
+                ClearSubSelection();
             }
         }
 
-        [DataSourceMethod]
-        public void SelectCourt()
+        private void ClearSubSelection()
+        {
+            CourtSelected = false;
+            DemesneSelected = false;
+            GroupsSelected = false;
+            CareerSelected = false;
+            if (Court != null) Court.IsSelected = false;
+            if (Demesne != null) Demesne.IsSelected = false;
+            if (Groups != null) Groups.IsSelected = false;
+            if (Career != null) Career.IsSelected = false;
+        }
+
+        private void HideVanillaTabs()
         {
             kingdomManagement.Clan.Show = false;
             kingdomManagement.Settlement.Show = false;
             kingdomManagement.Policy.Show = false;
             kingdomManagement.Army.Show = false;
             kingdomManagement.Diplomacy.Show = false;
+        }
 
-            DemesneSelected = false;
-            if (Demesne != null)
+        [DataSourceMethod]
+        public void SelectBannerKings()
+        {
+            TaleWorlds.Library.InformationManager.DisplayMessage(
+                new TaleWorlds.Library.InformationMessage("[BK] SelectBannerKings invoked"));
+            HideVanillaTabs();
+            BannerKingsSelected = true;
+
+            // Pick the first enabled sub-tab if nothing is currently selected.
+            if (!CourtSelected && !DemesneSelected && !GroupsSelected && !CareerSelected)
             {
-                Demesne.IsSelected = false;
+                if (CourtEnabled) SelectCourt();
+                else if (DemesneEnabled) SelectDemesne();
+                else if (GroupsEnabled) SelectGroups();
+                else if (ShowCareer) SelectCareer();
             }
 
-            if (Career != null)
-            {
-                Career.IsSelected = false;
-                CareerSelected = false;
-            }
+            kingdomManagement.RefreshValues();
+        }
 
-            Court.IsSelected = true;
+        [DataSourceMethod]
+        public void SelectCourt()
+        {
+            HideVanillaTabs();
+            BannerKingsSelected = true;
+            ClearSubSelection();
             CourtSelected = true;
-
-            GroupsSelected = false;
-            Groups.IsSelected = false;
-
+            if (Court != null) Court.IsSelected = true;
             kingdomManagement.RefreshValues();
         }
 
         [DataSourceMethod]
         public void SelectDemesne()
         {
-            if (Demesne != null)
-            {
-                kingdomManagement.Clan.Show = false;
-                kingdomManagement.Settlement.Show = false;
-                kingdomManagement.Policy.Show = false;
-                kingdomManagement.Army.Show = false;
-                kingdomManagement.Diplomacy.Show = false;
-
-                DemesneSelected = true;
-                Demesne.IsSelected = true;
-                Court.IsSelected = false;
-                CourtSelected = false;
-                if (Career != null)
-                {
-                    Career.IsSelected = false;
-                    CareerSelected = false;
-                }
-
-                GroupsSelected = false;
-                Groups.IsSelected = false;
-            }
-
+            if (Demesne == null) return;
+            HideVanillaTabs();
+            BannerKingsSelected = true;
+            ClearSubSelection();
+            DemesneSelected = true;
+            Demesne.IsSelected = true;
             kingdomManagement.RefreshValues();
         }
 
         [DataSourceMethod]
         public void SelectGroups()
         {
-            if (Demesne != null)
-            {
-                kingdomManagement.Clan.Show = false;
-                kingdomManagement.Settlement.Show = false;
-                kingdomManagement.Policy.Show = false;
-                kingdomManagement.Army.Show = false;
-                kingdomManagement.Diplomacy.Show = false;
-
-                DemesneSelected = false;
-                Demesne.IsSelected = false;
-                Court.IsSelected = false;
-                CourtSelected = false;
-
-                GroupsSelected = true;
-                Groups.IsSelected = true;
-
-                if (Career != null)
-                {
-                    Career.IsSelected = false;
-                    CareerSelected = false;
-                }
-            }
-
+            if (Groups == null) return;
+            HideVanillaTabs();
+            BannerKingsSelected = true;
+            ClearSubSelection();
+            GroupsSelected = true;
+            Groups.IsSelected = true;
             kingdomManagement.RefreshValues();
         }
-
-        
 
         [DataSourceMethod]
         public void SelectCareer()
         {
-            kingdomManagement.Clan.Show = false;
-            kingdomManagement.Settlement.Show = false;
-            kingdomManagement.Policy.Show = false;
-            kingdomManagement.Army.Show = false;
-            kingdomManagement.Diplomacy.Show = false;
-
-            DemesneSelected = false;
-            if (Demesne != null)
-            {
-                Demesne.IsSelected = false;
-            }
-
-            Court.IsSelected = false;
-            CourtSelected = false;
-
-            kingdomManagement.RefreshValues();
-
+            if (Career == null) return;
+            HideVanillaTabs();
+            BannerKingsSelected = true;
+            ClearSubSelection();
             CareerSelected = true;
             Career.IsSelected = true;
+            kingdomManagement.RefreshValues();
         }
     }
 }

@@ -123,7 +123,7 @@ namespace BannerKings.Managers.Goals.Decisions
             MBInformationManager.AddQuickInformation(new TextObject("{=zV5itG5E}The {CLAN} has assumed the {CULTURE} culture.")
                 .SetTextVariable("CLAN", fulfiller.Clan.Name)
                 .SetTextVariable("CULTURE", fulfiller.Culture.Name),
-                0, null, "event:/ui/notification/relation");
+                0, null, null, "event:/ui/notification/relation");
 
             fulfiller.Clan.Renown -= 100f;
         }

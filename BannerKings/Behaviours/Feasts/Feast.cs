@@ -102,7 +102,7 @@ namespace BannerKings.Behaviours.Feasts
                 }
 
                 var varietyList = new List<ItemObject>();
-                float desiredVariety = Items.AllTradeGoods.ToList().FindAll(x => x.IsFood).Count * 0.7f;
+                float desiredVariety = Items.AllTradeGoods.Count(x => x.IsFood) * 0.7f;
                 float desiredFood = heroes * FoodConsumptionRatio;
                 float desiredAlcohol = heroes * AlcoholConsumptionRatio;
 

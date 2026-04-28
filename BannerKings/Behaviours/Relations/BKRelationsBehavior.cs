@@ -19,9 +19,14 @@ namespace BannerKings.Behaviours.Relations
         public HeroRelations GetRelations(Hero hero)
         {
             if (hero == null) return null;
+            if (relations == null) relations = new Dictionary<Hero, HeroRelations>(500);
 
-            if (!relations.ContainsKey(hero)) relations.Add(hero, new HeroRelations(hero));
-            return relations[hero];
+            if (!relations.TryGetValue(hero, out var existing))
+            {
+                existing = new HeroRelations(hero);
+                relations.Add(hero, existing);
+            }
+            return existing;
         }
 
         public override void RegisterEvents()

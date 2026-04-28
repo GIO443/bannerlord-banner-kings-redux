@@ -1,6 +1,7 @@
 using BannerKings.Managers.Institutions.Religions;
 using BannerKings.Managers.Institutions.Religions.Doctrines;
 using BannerKings.Managers.Shipping;
+using HarmonyLib;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -21,6 +22,8 @@ namespace BannerKings.Behaviours.Shipping
 {
     public class BKShippingBehavior : BannerKingsBehavior
     {
+        private static readonly MethodInfo Caravans_ThinkNextDestination = AccessTools.Method(typeof(BKCaravansBehavior), "ThinkNextDestination");
+
         private Dictionary<MobileParty, Travel> sailing = new Dictionary<MobileParty, Travel>(20);
 
         private void AddParty(MobileParty party, Settlement destination, CampaignTime time)
@@ -60,7 +63,7 @@ namespace BannerKings.Behaviours.Shipping
                         }
                     },
                     GameMenu.MenuAndOptionType.WaitMenuHideProgressAndHoursOption,
-                    TaleWorlds.CampaignSystem.Overlay.GameOverlays.MenuOverlayType.None);
+                    GameMenu.MenuOverlayType.None);
                 });
 
             CampaignEvents.TickEvent.AddNonSerializedListener(this, 
@@ -86,7 +89,7 @@ namespace BannerKings.Behaviours.Shipping
                 {
                     foreach (var caravan in MobileParty.AllCaravanParties)
                     {
-                        caravan.Party.UpdateVisibilityAndInspected(0f);
+                        caravan.Party.UpdateVisibilityAndInspected(caravan.Position);
                     }
                 });
         }
@@ -120,7 +123,7 @@ namespace BannerKings.Behaviours.Shipping
             }
         }
 
-        public bool HasLanes(Settlement settlement) => DefaultShippingLanes.Instance.GetSettlementLanes(settlement).Count() > 0;
+        public bool HasLanes(Settlement settlement) => DefaultShippingLanes.Instance.GetSettlementLanes(settlement).Any();
         public bool CanTravel(Settlement settlement, MobileParty party)
         {
             bool fief = settlement.Town != null ? !settlement.IsUnderSiege : settlement.Village.VillageState == Village.VillageStates.Normal;
@@ -199,7 +202,7 @@ namespace BannerKings.Behaviours.Shipping
                     MBCommon.UnPauseGameEngine();
                 }
             }
-            party.Party.UpdateVisibilityAndInspected(0f);
+            party.Party.UpdateVisibilityAndInspected(party.Position);
             party.IsVisible = false;
         }
 
@@ -216,14 +219,14 @@ namespace BannerKings.Behaviours.Shipping
                     GameMenu.ExitToLast();
             }
 
-            if (teleportOutside) travel.Party.Position2D = travel.Destination.GatePosition;
+            if (teleportOutside) travel.Party.Position = travel.Destination.GatePosition;
             else EnterSettlementAction.ApplyForParty(party, travel.Destination);
 
-            party.Party.UpdateVisibilityAndInspected(0f);
+            party.Party.UpdateVisibilityAndInspected(party.Position);
             party.IsActive = true;
             party.Ai.EnableAi();
 
-            party.Party.UpdateVisibilityAndInspected();
+            party.Party.UpdateVisibilityAndInspected(party.Position);
             RemoveParty(travel.Party);
         }
 
@@ -239,7 +242,7 @@ namespace BannerKings.Behaviours.Shipping
                         
                     if (!port.Notables.Any(x => x.Culture.StringId == lane.Culture.StringId))
                     {
-                        var merchant = lane.Culture.NotableAndWandererTemplates.FirstOrDefault(x => x.Occupation == Occupation.Merchant);
+                        var merchant = lane.Culture.NotableTemplates.FirstOrDefault(x => x.Occupation == Occupation.Merchant);
                         if (merchant != null)
                         {
                             EnterSettlementAction.ApplyForCharacterOnly(HeroCreator
@@ -261,9 +264,7 @@ namespace BannerKings.Behaviours.Shipping
             try
             {
                 BKCaravansBehavior behavior = TaleWorlds.CampaignSystem.Campaign.Current.GetCampaignBehavior<BKCaravansBehavior>();
-                var thinkMethod = behavior.GetType().GetMethod("ThinkNextDestination",
-                                BindingFlags.NonPublic | BindingFlags.Instance);
-                town = (Town)thinkMethod.Invoke(behavior, new object[] { party });
+                town = (Town)Caravans_ThinkNextDestination.Invoke(behavior, new object[] { party });
             } 
             catch (Exception e)
             {
@@ -272,7 +273,7 @@ namespace BannerKings.Behaviours.Shipping
             
             if (town == null) return;
 
-            party.Ai.SetMoveGoToSettlement(town.Settlement);
+            party.SetMoveGoToSettlement(town.Settlement, MobileParty.NavigationType.All, false);
             if (town.Settlement == settlement || party.CurrentSettlement == null) return;
 
             foreach (ShippingLane lane in lanes)

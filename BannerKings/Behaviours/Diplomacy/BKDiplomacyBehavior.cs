@@ -1,3 +1,4 @@
+using Helpers;
 using BannerKings.Behaviours.Diplomacy.Groups;
 using BannerKings.Behaviours.Diplomacy.Groups.Demands;
 using BannerKings.Behaviours.Diplomacy.Wars;
@@ -165,12 +166,7 @@ namespace BannerKings.Behaviours.Diplomacy
 
         public void MakeAlliance(Kingdom proposer, Kingdom proposed)
         {
-            FactionManager.DeclareAlliance(proposer, proposed);
-            int denars = MBRandom.RoundRandomized(BannerKingsConfig.Instance.DiplomacyModel.GetAllianceDenarCost(proposer,
-                    proposed).ResultNumber);
-
-            proposer.RulingClan.Leader.ChangeHeroGold(-denars);
-            proposed.RulingClan.Leader.ChangeHeroGold(denars);
+            // FactionManager.DeclareAlliance removed in 1.3.x (alliances removed from base game)
         }
 
         public void MakeTruce(Kingdom proposer, Kingdom proposed, float years, bool kingdomBudget = false)
@@ -297,7 +293,7 @@ namespace BannerKings.Behaviours.Diplomacy
                     BKDeclareWarDecision declareWarDecision = new BKDeclareWarDecision(cb,
                                         clan,
                                         target);
-                    float support = new KingdomElection(declareWarDecision).GetLikelihoodForOutcome(0);
+                    float support = new KingdomElection(declareWarDecision).GetLikelihoodForSponsor(declareWarDecision.ProposerClan);
                     if (support > 0.3f)
                     {
                         clan.Kingdom.AddDecision(declareWarDecision);
@@ -424,13 +420,13 @@ namespace BannerKings.Behaviours.Diplomacy
                 }
                 else if (kingdom.Clans.Count == 0) DestroyKingdomAction.Apply(kingdom);
 
-                float strength = kingdom.TotalStrength;
+                float strength = kingdom.CurrentTotalStrength;
                 int fiefs = kingdom.Fiefs.Count;
                 
                 float highestStrength = 0f;
-                foreach (Kingdom k in FactionManager.GetEnemyKingdoms(kingdom))
+                foreach (Kingdom k in FactionHelper.GetEnemyKingdoms(kingdom))
                 {
-                    float enemyStrength = k.TotalStrength;
+                    float enemyStrength = k.CurrentTotalStrength;
                     if (enemyStrength > highestStrength) highestStrength = enemyStrength;
                 }
 
@@ -541,10 +537,10 @@ namespace BannerKings.Behaviours.Diplomacy
 
         private void AvaliateAlliances(Kingdom kingdom, Clan clan)
         {
-            foreach (StanceLink stance in kingdom.Stances)
+            foreach (StanceLink stance in BannerKings.Utils.Helpers.GetFactionStances(kingdom))
             {
                 IFaction other = stance.Faction1 == kingdom ? stance.Faction2 : stance.Faction1;
-                if (other.IsKingdomFaction && stance.IsAllied)
+                if (other.IsKingdomFaction && false)
                 {
                     if (BannerKingsConfig.Instance.MarriageModel.DiscoverAncestors(clan.Leader, 3)
                         .Intersect(BannerKingsConfig.Instance.MarriageModel.DiscoverAncestors(other.Leader, 3)).Any()) 

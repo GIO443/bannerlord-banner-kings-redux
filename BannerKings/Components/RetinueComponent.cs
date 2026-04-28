@@ -16,18 +16,18 @@ namespace BannerKings.Components
 
         [SaveableProperty(1001)] public AiBehavior behavior { get; set; }
 
+        public override Banner GetDefaultComponentBanner() => base.GetDefaultComponentBanner();
+
         public static string GetId(Settlement origin) => $"bk_retinue_{origin.Name}";
 
         private static MobileParty CreateParty(string id, Settlement origin)
         {
-            return MobileParty.CreateParty(id, new RetinueComponent(origin),
-                delegate(MobileParty mobileParty)
-                {
-                    mobileParty.SetPartyUsedByQuest(true);
-                    mobileParty.Party.SetVisualAsDirty();
-                    mobileParty.Ai.DisableAi();
-                    mobileParty.Aggressiveness = 0f;
-                });
+            var party = MobileParty.CreateParty(id, new RetinueComponent(origin));
+            party.SetPartyUsedByQuest(true);
+            party.Party.SetVisualAsDirty();
+            party.Ai.DisableAi();
+            party.Aggressiveness = 0f;
+            return party;
         }
 
         public static MobileParty CreateRetinue(Settlement origin)
@@ -40,7 +40,7 @@ namespace BannerKings.Components
             }
 
             var retinue = CreateParty(id, origin);
-            retinue.InitializeMobilePartyAtPosition(origin.Culture.DefaultPartyTemplate, origin.GatePosition, 4);
+            retinue.InitializeMobilePartyAtPosition(origin.Culture.DefaultPartyTemplate, origin.GatePosition);
             EnterSettlementAction.ApplyForParty(retinue, origin);
             return retinue;
         }
@@ -51,14 +51,21 @@ namespace BannerKings.Components
             var cap = (int) (level * 15f);
             if (party.MemberRoster.TotalManCount < cap)
             {
-                var stacks = HomeSettlement.Culture.DefaultPartyTemplate.Stacks;
-                var character = stacks[MBRandom.RandomInt(0, stacks.Count - 1)].Character;
-                Party.AddMember(character, 1);
+                var stacks = HomeSettlement?.Culture?.DefaultPartyTemplate?.Stacks;
+                if (stacks != null && stacks.Count > 0)
+                {
+                    var character = stacks[MBRandom.RandomInt(0, stacks.Count - 1)].Character;
+                    if (character != null) Party.AddMember(character, 1);
+                }
             }
             else if (party.MemberRoster.TotalManCount > cap)
             {
-                var character = Party.MemberRoster.GetTroopRoster().GetRandomElement().Character;
-                Party.MemberRoster.RemoveTroop(character);
+                var roster = Party.MemberRoster.GetTroopRoster();
+                if (roster != null && roster.Count > 0)
+                {
+                    var character = roster.GetRandomElement().Character;
+                    if (character != null) Party.MemberRoster.RemoveTroop(character);
+                }
             }
         }
 
@@ -69,7 +76,7 @@ namespace BannerKings.Components
                 EnterSettlementAction.ApplyForParty(MobileParty, HomeSettlement);
             }
 
-            MobileParty.Ai.SetMoveModeHold();
+            MobileParty.SetMoveModeHold();
         }
     }
 }

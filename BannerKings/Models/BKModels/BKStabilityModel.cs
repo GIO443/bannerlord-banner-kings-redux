@@ -179,8 +179,7 @@ namespace BannerKings.Models.BKModels
                         .SetTextVariable("LIFESTYLE", DefaultLifestyles.Instance.Mercenary.Name));
                 }
 
-                SkillHelper.AddSkillBonusForTown(DefaultSkills.Steward,
-                      BKSkillEffects.Instance.Stability,
+                SkillHelper.AddSkillBonusForTown(BKSkillEffects.Instance.Stability,
                       settlement.Town,
                       ref result);
 
@@ -382,13 +381,9 @@ namespace BannerKings.Models.BKModels
                 result.AddFactor(-0.2f, DefaultLifestyles.Instance.Jawwal.Name);
             }
 
-            SkillHelper.AddSkillBonusForCharacter(BKSkills.Instance.Lordship,
-                BKSkillEffects.Instance.DemesneLimit,
+            SkillHelper.AddSkillBonusForCharacter(BKSkillEffects.Instance.DemesneLimit,
                 hero.CharacterObject,
-                ref result,
-                hero.GetSkillValue(BKSkills.Instance.Lordship),
-                true,
-                0);
+                ref result);
 
             return result;
         }
@@ -471,13 +466,9 @@ namespace BannerKings.Models.BKModels
                 result.Add(bonus, new TextObject("Highest title level"));
             }
 
-            SkillHelper.AddSkillBonusForCharacter(BKSkills.Instance.Lordship,
-                BKSkillEffects.Instance.VassalLimit,
+            SkillHelper.AddSkillBonusForCharacter(BKSkillEffects.Instance.VassalLimit,
                 hero.CharacterObject,
-                ref result,
-                hero.GetSkillValue(BKSkills.Instance.Lordship),
-                true,
-                0);
+                ref result);
 
             return result;
         }

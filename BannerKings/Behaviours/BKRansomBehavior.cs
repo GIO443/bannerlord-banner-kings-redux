@@ -25,7 +25,7 @@ namespace BannerKings.Behaviours
             dataStore.SyncData("bannerkings-ransom-duty", ref playerRansomDuty);
         }
 
-        private void OnHeroPrisonerReleased(Hero released, PartyBase releasedFrom, IFaction capturer, EndCaptivityDetail detail)
+        private void OnHeroPrisonerReleased(Hero released, PartyBase releasedFrom, IFaction capturer, EndCaptivityDetail detail, bool showNotification = true)
         {
             var playerKingdom = Clan.PlayerClan.Kingdom;
             var releasedKingdom = released.Clan?.Kingdom;

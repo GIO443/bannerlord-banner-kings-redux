@@ -1,4 +1,4 @@
-using System.Text;
+﻿using System.Text;
 using BannerKings.Managers.Populations;
 using BannerKings.Managers.Populations.Villages;
 using BannerKings.UI.Items.UI;
@@ -132,14 +132,14 @@ namespace BannerKings.UI.Management.Villages
                 {
                     foreach (Building building2 in localDevelopmentList)
                     {
-                        if (!building2.BuildingType.IsDefaultProject)
+                        if (!building2.BuildingType.IsDailyProject)
                         {
                             villageData.BuildingsInProgress.Enqueue(building2);
                         }
                     }
                 }
 
-                if (building != null && building.BuildingType.BuildingLocation == BuildingLocation.Daily)
+                if (building != null && building.BuildingType.IsDailyProject)
                 {
                     foreach (var b in villageData.Buildings)
                     {

@@ -1,6 +1,7 @@
-using TaleWorlds.CampaignSystem;
+﻿using TaleWorlds.CampaignSystem;
 using TaleWorlds.CampaignSystem.Party;
 using TaleWorlds.CampaignSystem.Settlements;
+using TaleWorlds.Core;
 using TaleWorlds.Localization;
 using TaleWorlds.SaveSystem;
 
@@ -21,26 +22,26 @@ namespace BannerKings.Components
         public override TextObject Name => new TextObject("{=scETr7Ej}Raised Militia from {ORIGIN}")
             .SetTextVariable("ORIGIN", HomeSettlement.Name);
 
+        public override Banner GetDefaultComponentBanner() => base.GetDefaultComponentBanner();
+
         private static MobileParty CreateParty(string id, Settlement origin, MobileParty escortTarget)
         {
-            return MobileParty.CreateParty(id + origin, new MilitiaComponent(origin, escortTarget),
-                delegate(MobileParty mobileParty)
-                {
-                    mobileParty.SetPartyUsedByQuest(true);
-                    mobileParty.Party.SetVisualAsDirty();
-                    mobileParty.Ai.SetInitiative(0.5f, 1f, float.MaxValue);
-                    mobileParty.ShouldJoinPlayerBattles = true;
-                    mobileParty.Aggressiveness = 0.1f;
-                    mobileParty.Ai.SetMoveEscortParty(escortTarget);
-                    mobileParty.SetWagePaymentLimit(TaleWorlds.CampaignSystem.Campaign.Current.Models.PartyWageModel.MaxWage);
-                });
+            var party = MobileParty.CreateParty(id + origin, new MilitiaComponent(origin, escortTarget));
+            party.SetPartyUsedByQuest(true);
+            party.Party.SetVisualAsDirty();
+            party.Ai.SetInitiative(0.5f, 1f, float.MaxValue);
+            party.ShouldJoinPlayerBattles = true;
+            party.Aggressiveness = 0.1f;
+            party.SetMoveEscortParty(escortTarget, MobileParty.NavigationType.All, false);
+            party.SetWagePaymentLimit(TaleWorlds.CampaignSystem.Campaign.Current.Models.PartyWageModel.MaxWagePaymentLimit);
+            return party;
         }
 
         public static void CreateMilitiaEscort(Settlement origin, MobileParty escortTarget, MobileParty reference)
         {
             var caravan = CreateParty($"bk_raisedmilitia_{origin}", origin, escortTarget);
             caravan.InitializeMobilePartyAtPosition(reference.MemberRoster, reference.PrisonRoster, origin.GatePosition);
-            caravan.Ai.SetMoveEscortParty(escortTarget);
+            caravan.SetMoveEscortParty(escortTarget, MobileParty.NavigationType.All, false);
             reference.MemberRoster.RemoveIf(roster => roster.Number > 0);
             reference.PrisonRoster.RemoveIf(roster => roster.Number > 0);
             GiveMounts(ref caravan);
@@ -52,11 +53,11 @@ namespace BannerKings.Components
             var behavior = Behavior;
             if (behavior == AiBehavior.EscortParty)
             {
-                MobileParty.Ai.SetMoveEscortParty(Escort);
+                MobileParty.SetMoveEscortParty(Escort, MobileParty.NavigationType.All, false);
             }
             else
             {
-                MobileParty.Ai.SetMoveGoToSettlement(HomeSettlement);
+                MobileParty.SetMoveGoToSettlement(HomeSettlement, MobileParty.NavigationType.All, false);
             }
         }
     }

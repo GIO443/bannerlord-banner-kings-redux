@@ -280,8 +280,8 @@ namespace BannerKings.Behaviours
 
             if (town.Governor != null && town.CurrentBuilding != null)
             {
-                Town materialSource = town.IsTown ? town : SettlementHelper
-                    .FindNearestTown(x => !x.MapFaction.IsAtWarWith(town.MapFaction)).Town;
+                Town materialSource = town.IsTown ? town : BannerKings.Utils.Helpers
+                    .FindNearestTown(x => !x.MapFaction.IsAtWarWith(town.MapFaction));
 
                 if (materialSource == null)
                 {
@@ -456,12 +456,12 @@ namespace BannerKings.Behaviours
                     var buildings = settlement.Town.Buildings;
                     foreach (var type in BKBuildings.Instance.All)
                     {
-                        if (settlement.IsTown && type.BuildingLocation == BuildingLocation.Settlement &&
+                        if (settlement.IsTown && !BKBuildings.Instance.IsCastleBuilding(type) && !type.IsDailyProject &&
                             buildings.FirstOrDefault(x => x.BuildingType == type) == null)
                         {
                             buildings.Add(new Building(type, settlement.Town));
                         }
-                        else if (settlement.IsCastle && type.BuildingLocation == BuildingLocation.Castle &&
+                        else if (settlement.IsCastle && BKBuildings.Instance.IsCastleBuilding(type) &&
                             buildings.FirstOrDefault(x => x.BuildingType == type) == null)
                         {
                             buildings.Add(new Building(type, settlement.Town));

@@ -133,11 +133,11 @@ namespace BannerKings.Behaviours
                     return;
                 }
 
-                bool war = FactionManager.GetEnemyKingdoms(kingdom).Count() > 0;
+                bool war = FactionHelper.GetEnemyKingdoms(kingdom).Any();
                 if (!war)
                 {
                     party.Ai.DisableAi();
-                    party.Ai.SetMoveGoToSettlement(gentryTuple.Item2.EstatesData.Settlement);
+                    party.SetMoveGoToSettlement(gentryTuple.Item2.EstatesData.Settlement, MobileParty.NavigationType.All, false);
                 }
                 else
                 {
@@ -152,7 +152,7 @@ namespace BannerKings.Behaviours
                     }
 
                     party.Ai.DisableAi();
-                    party.Ai.SetMoveGoToSettlement(gentryTuple.Item2.EstatesData.Settlement);
+                    party.SetMoveGoToSettlement(gentryTuple.Item2.EstatesData.Settlement, MobileParty.NavigationType.All, false);
                 }
             },
             GetType().Name);
@@ -187,7 +187,7 @@ namespace BannerKings.Behaviours
                         return;
                     }
 
-                    int freeSpaces = party.LimitedPartySize - party.MemberRoster.TotalManCount;
+                    int freeSpaces = party.Party.PartySizeLimit - party.MemberRoster.TotalManCount;
                     if (freeSpaces <= 0)
                     {
                         return;
@@ -240,7 +240,7 @@ namespace BannerKings.Behaviours
                 EnterSettlementAction.ApplyForParty(party, settlement);
                 LeaveSettlementAction.ApplyForParty(party);
                 estate.TakeRetinue(party);
-                SetPartyAiAction.GetActionForEscortingParty(party, army.LeaderParty);
+                SetPartyAiAction.GetActionForEscortingParty(party, army.LeaderParty, MobileParty.NavigationType.All, false, false);
             }
         }
 
@@ -349,15 +349,20 @@ namespace BannerKings.Behaviours
 
         private CharacterObject GetTemplate(CultureObject culture, bool spouse = false)
         {
-            var templates = CharacterObject.All.ToList().FindAll(x =>
+            var templates = CharacterObject.All.Where(x =>
                 x.Occupation == Occupation.Lord && x.StringId.Contains("bannerkings_gentry_") && (spouse ? x.IsFemale : !x.IsFemale)
-                && x.Culture == culture);
+                && x.Culture == culture).ToList();
             return templates.GetRandomElement();
         }
 
         private void CreateGentryClan(Settlement settlement, Estate vacantEstate, TextObject clanName, Equipment equipment,
             bool campaignStart, int cost, CharacterObject template)
         {
+            // Caller (InitializeGentry) may pass null if its lookup found no
+            // suitable Wanderer template for the culture. Skip cleanly rather
+            // than NRE inside vanilla.
+            if (template == null || settlement == null) return;
+
             var hero = HeroCreator.CreateSpecialHero(template,
                 settlement,
                 null,
@@ -381,7 +386,7 @@ namespace BannerKings.Behaviours
                     }
                 }
                 Kingdom kingdom = settlement.MapFaction as Kingdom;
-                ChangeKingdomAction.ApplyByJoinToKingdom(clan, kingdom, false);
+                ChangeKingdomAction.ApplyByJoinToKingdom(clan, kingdom, default(CampaignTime), false);
                 if (campaignStart)
                 {
                     EstateAction action = BannerKingsConfig.Instance.EstatesModel.GetGrant(vacantEstate, settlement.Owner, hero);
@@ -414,11 +419,13 @@ namespace BannerKings.Behaviours
             float ageDifference = MBRandom.RandomFloatRanged(0f, 7f);
 
             var template = GetTemplate(settlement.Culture, true);
+            if (template == null) return list; // no suitable template; bail without spouse
             var spouse = HeroCreator.CreateSpecialHero(template,
                 settlement,
                 null,
                 null,
                 (int)(femaleSpouse ? leader.Age - ageDifference : leader.Age + ageDifference));
+            if (spouse == null) return list;
             EquipmentHelper.AssignHeroEquipmentFromEquipment(spouse, template.Equipment);
             list.Add(spouse);
             leader.Spouse = spouse;
@@ -458,9 +465,8 @@ namespace BannerKings.Behaviours
         public static Hero DeliverOffSpring(Hero mother, Hero father, bool isOffspringFemale, Settlement settlement, int age)
         {
             CultureObject culture = settlement.Culture;
-            var method = typeof(HeroCreator).GetMethod("CreateNewHero", System.Reflection.BindingFlags.Static |
-                BindingFlags.NonPublic);
-            Hero hero = (Hero) method.Invoke(null, new object[] { isOffspringFemale ? mother.CharacterObject : father.CharacterObject, age });
+            CharacterObject template = isOffspringFemale ? mother.CharacterObject : father.CharacterObject;
+            Hero hero = HeroCreator.CreateChild(template, settlement, mother.Clan ?? father.Clan, age);
             hero.SetNewOccupation(Occupation.Lord);
             hero.CharacterObject.IsFemale = isOffspringFemale;
             hero.Mother = mother;
@@ -472,7 +478,7 @@ namespace BannerKings.Behaviours
             {
                 Equipment randomElementInefficiently2 = randomElementInefficiently.GetCivilianEquipments().GetRandomElementInefficiently<Equipment>();
                 EquipmentHelper.AssignHeroEquipmentFromEquipment(hero, randomElementInefficiently2);
-                Equipment equipment = new Equipment(false);
+                Equipment equipment = new Equipment(Equipment.EquipmentType.Battle);
                 equipment.FillFrom(randomElementInefficiently2, false);
                 EquipmentHelper.AssignHeroEquipmentFromEquipment(hero, equipment);
             }
@@ -483,18 +489,21 @@ namespace BannerKings.Behaviours
             TextObject fullName;
             NameGenerator.Current.GenerateHeroNameAndHeroFullName(hero, out firstName, out fullName, false);
             hero.SetName(fullName, firstName);
-            hero.HeroDeveloper.InitializeHeroDeveloper(true, null);
+            hero.HeroDeveloper.InitializeHeroDeveloper();
             BodyProperties bodyProperties = mother.BodyProperties;
             BodyProperties bodyProperties2 = father.BodyProperties;
             int seed = isOffspringFemale ? mother.CharacterObject.GetDefaultFaceSeed(1) : father.CharacterObject.GetDefaultFaceSeed(1);
-            string hairTags = isOffspringFemale ? mother.HairTags : father.HairTags;
-            string tattooTags = isOffspringFemale ? mother.TattooTags : father.TattooTags;
+            string hairTags = isOffspringFemale ? mother.CharacterObject.BodyPropertyRange.HairTags : father.CharacterObject.BodyPropertyRange.HairTags;
+            string tattooTags = isOffspringFemale ? mother.CharacterObject.BodyPropertyRange.TattooTags : father.CharacterObject.BodyPropertyRange.TattooTags;
             AccessTools.Property(hero.GetType(), "StaticBodyProperties")
                 .SetValue(hero, BodyProperties.GetRandomBodyProperties(mother.CharacterObject.Race, isOffspringFemale,
-                bodyProperties, bodyProperties2, 1, seed, hairTags, father.BeardTags, tattooTags).StaticProperties);
+                bodyProperties, bodyProperties2, 1, seed, hairTags, father.CharacterObject.BodyPropertyRange.BeardTags, tattooTags).StaticProperties);
 
-            CampaignEventDispatcher.Instance.OnHeroCreated(hero, true);
-            
+            // HeroCreator.CreateChild already fires OnHeroCreated internally.
+            // Firing it again here re-runs vanilla AgingCampaignBehavior.OnHeroCreated
+            // which Dictionary.Add's the hero — duplicate key → ArgumentException
+            // that propagates up and crashes character-creation completion.
+
             return hero;
         }
 
@@ -659,3 +668,6 @@ namespace BannerKings.Behaviours
         }
     }
 }
+
+
+

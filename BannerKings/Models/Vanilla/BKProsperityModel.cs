@@ -1,4 +1,4 @@
-using System.Linq;
+﻿using System.Linq;
 using BannerKings.Extensions;
 using BannerKings.Managers.Court.Members;
 using BannerKings.Managers.Court.Members.Tasks;
@@ -184,7 +184,7 @@ namespace BannerKings.Models.Vanilla
             {
                 var num4 = 0f;
                 foreach (var building in from x in fortification.Buildings
-                            where !x.BuildingType.IsDefaultProject && x.CurrentLevel > 0
+                            where !x.BuildingType.IsDailyProject && x.CurrentLevel > 0
                             select x)
                 {
                     num4 += DefaultPerks.Engineering.Apprenticeship.SecondaryBonus;
@@ -196,23 +196,12 @@ namespace BannerKings.Models.Vanilla
                 }
             }
 
-            if (fortification.BuildingsInProgress.IsEmpty())
-            {
-                BuildingHelper.AddDefaultDailyBonus(fortification, BuildingEffectEnum.ProsperityDaily,
-                    ref explainedNumber);
-            }
+            fortification.AddEffectOfBuildings(BuildingEffectEnum.Prosperity, ref explainedNumber);
 
             foreach (var building2 in fortification.Buildings)
             {
-                var buildingEffectAmount = building2.GetBuildingEffectAmount(BuildingEffectEnum.Prosperity);
-                if (!building2.BuildingType.IsDefaultProject && buildingEffectAmount > 0f)
-                {
-                    explainedNumber.Add(buildingEffectAmount, building2.Name);
-                }
-
-                if (building2.BuildingType == DefaultBuildingTypes.SettlementAquaducts ||
-                    building2.BuildingType == DefaultBuildingTypes.CastleGranary ||
-                    building2.BuildingType == DefaultBuildingTypes.SettlementGranary)
+                if (building2.BuildingType == DefaultBuildingTypes.SettlementWaterworks ||
+                    building2.BuildingType == DefaultBuildingTypes.CastleGranary)
                 {
                     PerkHelper.AddPerkBonusForTown(DefaultPerks.Medicine.CleanInfrastructure, fortification,
                         ref explainedNumber);

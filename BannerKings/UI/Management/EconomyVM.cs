@@ -1,4 +1,4 @@
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using BannerKings.Managers.Policies;
@@ -11,6 +11,7 @@ using TaleWorlds.CampaignSystem;
 using TaleWorlds.CampaignSystem.Party;
 using TaleWorlds.CampaignSystem.Settlements;
 using TaleWorlds.Core;
+using TaleWorlds.Core.ImageIdentifiers;
 using TaleWorlds.Core.ViewModelCollection.Information;
 using TaleWorlds.Core.ViewModelCollection.Selector;
 using TaleWorlds.Library;
@@ -282,7 +283,7 @@ namespace BannerKings.UI.Management
                     {
                         list.Add(new InquiryElement(item,
                                                 element.EquipmentElement.GetModifiedItemName().ToString(),
-                                                new ImageIdentifier(item),
+                                                new ItemImageIdentifier(item),
                                                 true,
                                                 ""));
                     }

@@ -1,3 +1,4 @@
+using Helpers;
 using BannerKings.Managers.Kingdoms.Contract;
 using BannerKings.Managers.Titles.Governments;
 using BannerKings.Managers.Titles.Laws;
@@ -53,7 +54,7 @@ namespace BannerKings.Managers.Goals.Decisions
                 failedReasons.Add(new TextObject("{=akMdyYw0}Your faction has no contract. Found a kigdom-level title for your faction first."));
             }
 
-            if (FactionManager.GetEnemyKingdoms(Clan.PlayerClan.Kingdom).Count() > 0)
+            if (FactionHelper.GetEnemyKingdoms(Clan.PlayerClan.Kingdom).Any())
             {
                 failedReasons.Add(new TextObject("{=qCfmQGiD}Contract changes can not be proposed during wars."));
             }
@@ -92,7 +93,7 @@ namespace BannerKings.Managers.Goals.Decisions
                 }
 
                 options.Add(new LawChangeOption(GameTexts.FindText("str_bk_demesne_law", law.LawType.ToString()),
-                    new TextObject(),
+                    TextObject.GetEmpty(),
                     law.AvailableForVoting,
                     decision, 
                     list));

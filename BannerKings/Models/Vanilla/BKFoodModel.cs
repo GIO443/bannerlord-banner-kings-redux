@@ -233,8 +233,8 @@ namespace BannerKings.Models.Vanilla
                 Building b = null;
                 foreach (var building in town.Buildings)
                 {
-                    if (building.BuildingType == DefaultBuildingTypes.CastleGardens ||
-                        building.BuildingType == DefaultBuildingTypes.SettlementWorkshop)
+                    if (building.BuildingType == DefaultBuildingTypes.CastleFarmlands ||
+                        building.BuildingType == DefaultBuildingTypes.SettlementWarehouse)
                     {
                         b = building;
                         break;

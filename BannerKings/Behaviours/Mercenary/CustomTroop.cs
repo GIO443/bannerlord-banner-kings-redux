@@ -1,6 +1,7 @@
 ﻿using HarmonyLib;
 using System;
 using System.Collections.Generic;
+using System.Reflection;
 using TaleWorlds.CampaignSystem;
 using TaleWorlds.Core;
 using TaleWorlds.Library;
@@ -12,6 +13,17 @@ namespace BannerKings.Behaviours.Mercenary
 {
     internal class CustomTroop
     {
+        // Cached reflection lookups — invoked per-mercenary creation/setup so worth caching once.
+        private static readonly FieldInfo BasicCharacter_Culture = AccessTools.Field(typeof(BasicCharacterObject), "_culture");
+        private static readonly FieldInfo BasicCharacter_Occupation = AccessTools.Field(typeof(BasicCharacterObject), "_occupation");
+        private static readonly FieldInfo BasicCharacter_EquipmentRoster = AccessTools.Field(typeof(BasicCharacterObject), "_equipmentRoster");
+        private static readonly FieldInfo BasicCharacter_DefaultCharacterSkills = AccessTools.Field(typeof(BasicCharacterObject), "DefaultCharacterSkills");
+        private static readonly PropertyInfo BasicCharacter_UpgradeTargets = AccessTools.Property(typeof(BasicCharacterObject), "UpgradeTargets");
+        private static readonly PropertyInfo BasicCharacter_DefaultFormationClass = AccessTools.Property(typeof(BasicCharacterObject), "DefaultFormationClass");
+        private static readonly MethodInfo BasicCharacter_InitializeHeroBasicCharacterOnAfterLoad = AccessTools.Method(typeof(BasicCharacterObject), "InitializeHeroBasicCharacterOnAfterLoad");
+        private static readonly MethodInfo BasicCharacter_SetName = AccessTools.Method(typeof(BasicCharacterObject), "SetName");
+        private static readonly FieldInfo MBEquipmentRoster_Equipments = AccessTools.Field(typeof(MBEquipmentRoster), "_equipments");
+
         internal CustomTroop(CharacterObject character)
         {
             Character = character;
@@ -26,7 +38,7 @@ namespace BannerKings.Behaviours.Mercenary
             }
 
             FillCharacter(culture.BasicTroop);
-            SetName(new TextObject(Name));       
+            SetName(new TextObject(Name));
             SetEquipment(Character);
             SetSkills(Character, Skills);
         }
@@ -34,31 +46,28 @@ namespace BannerKings.Behaviours.Mercenary
         private void FillCharacter(CharacterObject reference)
         {
             MBObjectManager.Instance.RegisterObject(Character);
-            Character.Culture = reference.Culture;
+            BasicCharacter_Culture.SetValue(Character, reference.Culture);
 
             Character.Age = reference.Age;
-            AccessTools.Method(reference.GetType(), "InitializeHeroBasicCharacterOnAfterLoad")
-                .Invoke(Character, new object[] { (reference as BasicCharacterObject) });
+            BasicCharacter_InitializeHeroBasicCharacterOnAfterLoad.Invoke(Character, new object[] { (reference as BasicCharacterObject) });
 
             BasicCharacterObject basicCharacter = (BasicCharacterObject)Character;
             basicCharacter.Level = reference.Level;
-            AccessTools.Field(reference.GetType(), "_occupation").SetValue(Character, Occupation.Mercenary);
+            BasicCharacter_Occupation.SetValue(Character, Occupation.Mercenary);
 
-            AccessTools.Property(reference.GetType(), "UpgradeTargets").SetValue(Character, new CharacterObject[0]);
+            BasicCharacter_UpgradeTargets.SetValue(Character, new CharacterObject[0]);
         }
 
         public void SetEquipment(CharacterObject characterl)
         {
             var newRoster = new MBEquipmentRoster();
-            AccessTools.Field(newRoster.GetType(), "_equipments").SetValue(newRoster, Equipments);
-            AccessTools.Field((Character as BasicCharacterObject).GetType(), "_equipmentRoster")
-                .SetValue((Character as BasicCharacterObject), newRoster);
+            MBEquipmentRoster_Equipments.SetValue(newRoster, Equipments);
+            BasicCharacter_EquipmentRoster.SetValue((BasicCharacterObject)Character, newRoster);
         }
 
         public void SetName(TextObject text)
         {
-            AccessTools.Method((Character as BasicCharacterObject).GetType(), "SetName")
-                            .Invoke(Character, new object[] { text });
+            BasicCharacter_SetName.Invoke(Character, new object[] { text });
             Name = text.ToString();
         }
 
@@ -80,11 +89,9 @@ namespace BannerKings.Behaviours.Mercenary
                 skills.Skills.SetPropertyValue(DefaultSkills.Crossbow, preset.Crossbow);
                 skills.Skills.SetPropertyValue(DefaultSkills.Throwing, preset.Throwing);
 
-                AccessTools.Field((character as BasicCharacterObject).GetType(), "DefaultCharacterSkills")
-                        .SetValue(character, skills);
+                BasicCharacter_DefaultCharacterSkills.SetValue(character, skills);
                 character.DefaultFormationGroup = FetchDefaultFormationGroup(preset.Formation.ToString());
-                AccessTools.Property((character as BasicCharacterObject).GetType(), "DefaultFormationClass")
-                        .SetValue(character, preset.Formation); 
+                BasicCharacter_DefaultFormationClass.SetValue(character, preset.Formation);
 
                 Skills = preset;
             }
@@ -110,9 +117,8 @@ namespace BannerKings.Behaviours.Mercenary
             list.Add(new Equipment());
 
             var newRoster = new MBEquipmentRoster();
-            AccessTools.Field(newRoster.GetType(), "_equipments").SetValue(newRoster, list);
-            AccessTools.Field((Character as BasicCharacterObject).GetType(), "_equipmentRoster")
-                .SetValue((Character as BasicCharacterObject), newRoster);
+            MBEquipmentRoster_Equipments.SetValue(newRoster, list);
+            BasicCharacter_EquipmentRoster.SetValue((BasicCharacterObject)Character, newRoster);
 
             Equipments = list;
         }

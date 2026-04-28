@@ -138,8 +138,7 @@ namespace BannerKings.Models.Vanilla
 
             if (settlement.Town != null)
             {
-                SkillHelper.AddSkillBonusForTown(DefaultSkills.Crafting,
-                        BKSkillEffects.Instance.ProductionEfficiency,
+                SkillHelper.AddSkillBonusForTown(BKSkillEffects.Instance.ProductionEfficiency,
                         settlement.Town,
                         ref result);
             }
@@ -185,8 +184,7 @@ namespace BannerKings.Models.Vanilla
 
             if (settlement.Town != null)
             {
-                SkillHelper.AddSkillBonusForTown(DefaultSkills.Crafting,
-                       BKSkillEffects.Instance.ProductionQuality,
+                SkillHelper.AddSkillBonusForTown(BKSkillEffects.Instance.ProductionQuality,
                        settlement.Town,
                        ref result);
             }
@@ -283,8 +281,7 @@ namespace BannerKings.Models.Vanilla
                 Hero governor = settlement.Town.Governor;
                 if (governor != null)
                 {
-                    SkillHelper.AddSkillBonusForTown(DefaultSkills.Trade,
-                       BKSkillEffects.Instance.TradePower,
+                    SkillHelper.AddSkillBonusForTown(BKSkillEffects.Instance.TradePower,
                        settlement.Town,
                        ref result);
                 }
@@ -345,9 +342,7 @@ namespace BannerKings.Models.Vanilla
             baseResult += ((town.Prosperity / 3f) + extraProsperity) / category.BaseDemand;
 
             baseResult *= MathF.Sqrt(category.BaseDemand / 2f);
-            MarketGroup market = DefaultMarketGroups.Instance.GetMarket(town.Culture);
-            if (market != null)
-                baseResult *= market.GetDemand(category);
+            // MarketGroup/DefaultMarketGroups removed in 1.3.x
 
             return baseResult / CampaignTime.DaysInYear;
         }

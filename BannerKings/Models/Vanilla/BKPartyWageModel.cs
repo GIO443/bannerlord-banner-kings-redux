@@ -187,7 +187,7 @@ namespace BannerKings.Models.Vanilla
                     }
                     foreach (Building building in mobileParty.CurrentSettlement.Town.Buildings)
                     {
-                        float buildingEffectAmount = building.GetBuildingEffectAmount(BuildingEffectEnum.GarrisonWageReduce);
+                        float buildingEffectAmount = building.BuildingType.GetBaseBuildingEffectAmount(BuildingEffectEnum.GarrisonWageReduction, building.CurrentLevel);
                         if (buildingEffectAmount > 0f)
                         {
                             explainedNumber2.AddFactor(-(buildingEffectAmount / 100f), building.Name);
@@ -255,7 +255,7 @@ namespace BannerKings.Models.Vanilla
             return result;
         }
 
-        public override ExplainedNumber GetTotalWage(MobileParty mobileParty, bool includeDescriptions = false)
+        public override ExplainedNumber GetTotalWage(MobileParty mobileParty, TroopRoster troopRoster = null, bool includeDescriptions = false)
         {
             ExplainedNumber result = GetVanillaWage(mobileParty, includeDescriptions);
 
@@ -350,9 +350,9 @@ namespace BannerKings.Models.Vanilla
             return result;
         }
 
-        public override int GetTroopRecruitmentCost(CharacterObject troop, Hero buyerHero, bool withoutItemCost = false)
+        public override ExplainedNumber GetTroopRecruitmentCost(CharacterObject troop, Hero buyerHero, bool withoutItemCost = false)
         {
-            var result = new ExplainedNumber(base.GetTroopRecruitmentCost(troop, buyerHero, withoutItemCost));
+            var result = base.GetTroopRecruitmentCost(troop, buyerHero, withoutItemCost);
             result.LimitMin(GetCharacterWage(troop) * 10f);
 
             ExceptionUtils.TryCatch(() =>
@@ -425,7 +425,7 @@ namespace BannerKings.Models.Vanilla
             GetType().Name,
             false);
             
-            return (int) result.ResultNumber;
+            return result;
         }
     }
 }

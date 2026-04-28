@@ -62,7 +62,7 @@ namespace BannerKings.Managers.Populations.Estates
             return result;
         }
 
-        public TextObject Name => Owner != null ? new TextObject("{=pKtOLvPi}Estate of {OWNER}").SetTextVariable("OWNER", Owner.Name) : new TextObject();
+        public TextObject Name => Owner != null ? new TextObject("{=pKtOLvPi}Estate of {OWNER}").SetTextVariable("OWNER", Owner.Name) : TextObject.GetEmpty();
 
         public void SetOwner(Hero newOnwer)
         {
@@ -74,7 +74,7 @@ namespace BannerKings.Managers.Populations.Estates
                     .SetTextVariable("SETTLEMENT", EstatesData.Settlement.Name),
                     0,
                     null,
-                    Utils.Helpers.GetRelationDecisionSound());
+                    null, Utils.Helpers.GetRelationDecisionSound());
             }
         }
 

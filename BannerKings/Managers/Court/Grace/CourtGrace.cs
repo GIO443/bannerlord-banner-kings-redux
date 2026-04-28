@@ -1,4 +1,4 @@
-using BannerKings.Actions;
+﻿using BannerKings.Actions;
 using Helpers;
 using System.Collections.Generic;
 using System.Linq;
@@ -95,7 +95,7 @@ namespace BannerKings.Managers.Court.Grace
                 Town market = data.Location;
                 if (!market.IsTown)
                 {
-                    market = SettlementHelper.FindNearestTown(x => x.MapFaction == market.MapFaction)?.Town;
+                    market = BannerKings.Utils.Helpers.FindNearestTown(x => x.MapFaction == market.MapFaction);
                 }
 
                 BuyGoodsAction.BuyBestToWorst(data.Location.Settlement.Stash,

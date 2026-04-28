@@ -10,10 +10,10 @@ namespace BannerKings.Models.Vanilla
 {
     public class BKBattleSimulationModel : DefaultCombatSimulationModel
     {
-        public override int SimulateHit(CharacterObject strikerTroop, CharacterObject struckTroop, PartyBase strikerParty,
-            PartyBase struckParty, float strikerAdvantage, MapEvent battle)
+        public override ExplainedNumber SimulateHit(CharacterObject strikerTroop, CharacterObject struckTroop, PartyBase strikerParty,
+            PartyBase struckParty, float strikerAdvantage, MapEvent battle, float strikerSideMorale, float struckSideMorale)
         {
-            float result = base.SimulateHit(strikerTroop, struckTroop, strikerParty, struckParty, strikerAdvantage, battle);
+            ExplainedNumber result = base.SimulateHit(strikerTroop, struckTroop, strikerParty, struckParty, strikerAdvantage, battle, strikerSideMorale, struckSideMorale);
             var leader = strikerParty.LeaderHero;
             if (leader != null)
             {
@@ -21,7 +21,7 @@ namespace BannerKings.Models.Vanilla
                 if (data.HasPerk(BKPerks.Instance.SiegePlanner) && strikerParty.SiegeEvent != null &&
                     strikerTroop.IsInfantry && strikerTroop.IsRanged)
                 {
-                    result = (int) (result * 1.15f);
+                    result.AddFactor(0.15f, BKPerks.Instance.SiegePlanner.Name);
                 }
 
                 /*if (BannerKingsConfig.Instance.ReligionsManager.HasBlessing(leader, DefaultDivinities.Instance.AmraSecondary1))
@@ -40,11 +40,11 @@ namespace BannerKings.Models.Vanilla
             {
                 if (strikerInnovations.HasFinishedInnovation(DefaultInnovations.Instance.Stirrups))
                 {
-                    result *= 1.2f;
+                    result.AddFactor(0.2f, DefaultInnovations.Instance.Stirrups.Name);
                 }
             }
 
-            return (int)MathF.Max(1f, result);
+            return result;
         }
     }
 }

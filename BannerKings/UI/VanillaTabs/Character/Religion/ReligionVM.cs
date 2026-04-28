@@ -1,4 +1,4 @@
-using BannerKings.Managers.Institutions.Religions;
+﻿using BannerKings.Managers.Institutions.Religions;
 using BannerKings.Managers.Institutions.Religions.Doctrines;
 using BannerKings.Managers.Populations;
 using BannerKings.UI.Items;
@@ -9,6 +9,7 @@ using System.Linq;
 using TaleWorlds.CampaignSystem;
 using TaleWorlds.CampaignSystem.Settlements;
 using TaleWorlds.Core;
+using TaleWorlds.Core.ViewModelCollection.ImageIdentifiers;
 using TaleWorlds.Core.ViewModelCollection.Information;
 using TaleWorlds.Core.ViewModelCollection.Selector;
 using TaleWorlds.Library;
@@ -28,7 +29,7 @@ namespace BannerKings.UI.VanillaTabs.Character.Religion
         private MBBindingList<ReligionElementVM> secondaryDivinities;
         private MBBindingList<BKTraitItemVM> virtues;
         private SelectorVM<ReligionSelectorItemVM> selector;
-        private ImageIdentifierVM banner;
+        private BannerImageIdentifierVM banner;
         private string name, description, groupName, groupDescription, divinities, inductionExplanation;
         private Hero hero;
 
@@ -87,7 +88,7 @@ namespace BannerKings.UI.VanillaTabs.Character.Religion
 
             if (currentReligion == null) return;
 
-            Banner = new ImageIdentifierVM(BannerCode.CreateFrom(currentReligion.Faith.GetBanner()), true);
+            Banner = new BannerImageIdentifierVM(currentReligion.Faith.GetBanner(), true);
             Name = currentReligion.Faith.GetFaithName().ToString();
             Description = currentReligion.Faith.GetFaithDescription().ToString();
             GroupName = currentReligion.Faith.FaithGroup.Name.ToString();
@@ -246,7 +247,7 @@ namespace BannerKings.UI.VanillaTabs.Character.Religion
         }
 
         [DataSourceProperty]
-        public ImageIdentifierVM Banner
+        public BannerImageIdentifierVM Banner
         {
             get => banner;
             set

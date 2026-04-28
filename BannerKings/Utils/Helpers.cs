@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -10,6 +10,7 @@ using BannerKings.Utils.Models;
 using Helpers;
 using TaleWorlds.CampaignSystem;
 using TaleWorlds.CampaignSystem.AgentOrigins;
+using TaleWorlds.CampaignSystem.LogEntries;
 using TaleWorlds.CampaignSystem.CharacterDevelopment;
 using TaleWorlds.CampaignSystem.Party;
 using TaleWorlds.CampaignSystem.Roster;
@@ -26,6 +27,75 @@ namespace BannerKings.Utils
 {
     public static class Helpers
     {
+        public static Settlement FindNearestSettlement(System.Func<Settlement, bool> condition, MobileParty source = null)
+        {
+            if (source != null) return global::Helpers.SettlementHelper.FindNearestSettlementToMobileParty(source, MobileParty.NavigationType.All, condition);
+            var s = Settlement.CurrentSettlement ?? Hero.MainHero?.HomeSettlement;
+            return s != null ? global::Helpers.SettlementHelper.FindNearestSettlementToSettlement(s, MobileParty.NavigationType.All, condition) : null;
+        }
+
+        public static Settlement FindNearestSettlement(System.Func<Settlement, bool> condition, Settlement source)
+        {
+            if (source == null) return FindNearestSettlement(condition);
+            return global::Helpers.SettlementHelper.FindNearestSettlementToSettlement(source, MobileParty.NavigationType.All, condition);
+        }
+
+        public static Town FindNearestTown(System.Func<Settlement, bool> condition = null, MobileParty source = null)
+        {
+            if (source != null) return global::Helpers.SettlementHelper.FindNearestTownToMobileParty(source, MobileParty.NavigationType.All, condition);
+            var s = Settlement.CurrentSettlement ?? Hero.MainHero?.HomeSettlement;
+            return s != null ? global::Helpers.SettlementHelper.FindNearestTownToSettlement(s, MobileParty.NavigationType.All, condition) : null;
+        }
+
+        public static Town FindNearestTown(System.Func<Settlement, bool> condition, Settlement source)
+        {
+            if (source == null) return FindNearestTown(condition);
+            return global::Helpers.SettlementHelper.FindNearestTownToSettlement(source, MobileParty.NavigationType.All, condition);
+        }
+
+        public static Settlement FindNearestFortification(System.Func<Settlement, bool> condition, MobileParty source = null)
+        {
+            if (source != null) return global::Helpers.SettlementHelper.FindNearestFortificationToMobileParty(source, MobileParty.NavigationType.All, condition);
+            var s = Settlement.CurrentSettlement ?? Hero.MainHero?.HomeSettlement;
+            return s != null ? global::Helpers.SettlementHelper.FindNearestFortificationToSettlement(s, MobileParty.NavigationType.All, condition) : null;
+        }
+
+        public static Settlement FindNearestFortification(System.Func<Settlement, bool> condition, Settlement source)
+        {
+            if (source == null) return FindNearestFortification(condition);
+            return global::Helpers.SettlementHelper.FindNearestFortificationToSettlement(source, MobileParty.NavigationType.All, condition);
+        }
+
+        public static Settlement FindNearestVillage(System.Func<Settlement, bool> condition, MobileParty source = null)
+        {
+            return FindNearestSettlement(s => s.IsVillage && (condition == null || condition(s)), source);
+        }
+
+        public static Settlement FindNearestVillage(System.Func<Settlement, bool> condition, Settlement source)
+        {
+            return FindNearestSettlement(s => s.IsVillage && (condition == null || condition(s)), source);
+        }
+
+        public static Hideout FindNearestHideout(System.Func<Settlement, bool> condition, MobileParty source = null)
+        {
+            if (source != null) return global::Helpers.SettlementHelper.FindNearestHideoutToMobileParty(source, MobileParty.NavigationType.All, condition);
+            var s = Settlement.CurrentSettlement ?? Hero.MainHero?.HomeSettlement;
+            return s != null ? global::Helpers.SettlementHelper.FindNearestHideoutToSettlement(s, MobileParty.NavigationType.All, condition) : null;
+        }
+
+        public static List<Settlement> GetSuccessfulSiegesInWarForFaction(IFaction faction, StanceLink stance, System.Predicate<Settlement> filter = null)
+        {
+            var result = new List<Settlement>();
+            foreach (var (logEntry, effector, _) in DiplomacyHelper.GetLogsForWar(stance))
+            {
+                if (effector == faction && logEntry is ChangeSettlementOwnerLogEntry siegeLog && siegeLog.Settlement != null)
+                {
+                    if (filter == null || filter(siegeLog.Settlement)) result.Add(siegeLog.Settlement);
+                }
+            }
+            return result;
+        }
+
         internal static XmlDocument CreateDocumentFromXmlFile(string xmlPath)
         {
             var xmlDocument = new XmlDocument();
@@ -42,13 +112,13 @@ namespace BannerKings.Utils
             {
                 if (primary)
                 {
-                    if (perk.PrimaryIncrementType == SkillEffect.EffectIncrementType.Add)
+                    if (perk.PrimaryIncrementType == EffectIncrementType.Add)
                         result.Add(perk.PrimaryBonus, perk.Name);
                     else result.AddFactor(perk.PrimaryBonus, perk.Name);
                 }
                 else
                 {
-                    if (perk.SecondaryIncrementType == SkillEffect.EffectIncrementType.Add)
+                    if (perk.SecondaryIncrementType == EffectIncrementType.Add)
                         result.Add(perk.SecondaryBonus, perk.Name);
                     else result.AddFactor(perk.SecondaryBonus, perk.Name);
                 }
@@ -169,13 +239,14 @@ namespace BannerKings.Utils
             var stance = Clan.PlayerClan.GetStanceWith(Hero.OneToOneConversationHero.Clan);
             if (stance.IsNeutral)
             {
-                stance.IsAllied = true;
+                // IsAllied removed in 1.3.x
                 if (faction1 == Hero.MainHero.MapFaction || faction2 == Hero.MainHero.MapFaction)
                 {
                     MBInformationManager.AddQuickInformation(new TextObject("{=gc8D4iH4}The {FACTION1} and {FACTION2} are now allies.")
                         .SetTextVariable("FACTION1", faction1.Name)
                         .SetTextVariable("FACTION2", faction2.Name),
                         100,
+                        null,
                         null,
                         GetKingdomDecisionSound());
                 }
@@ -409,6 +480,26 @@ namespace BannerKings.Utils
             }
 
             return ConsumptionType.None;
+        }
+
+        public static IEnumerable<StanceLink> GetFactionStances(IFaction faction)
+        {
+            foreach (var other in Kingdom.All)
+            {
+                if (other != faction)
+                {
+                    var s = faction.GetStanceWith(other);
+                    if (s != null) yield return s;
+                }
+            }
+            foreach (var clan in Clan.All)
+            {
+                if (clan != faction && clan.IsMinorFaction)
+                {
+                    var s = faction.GetStanceWith(clan);
+                    if (s != null) yield return s;
+                }
+            }
         }
     }
 }

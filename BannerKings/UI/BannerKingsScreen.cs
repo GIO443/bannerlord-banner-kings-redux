@@ -1,7 +1,6 @@
 ﻿using SandBox.View.Map;
 using TaleWorlds.Engine;
 using TaleWorlds.Engine.GauntletUI;
-using TaleWorlds.GauntletUI.Data;
 using TaleWorlds.ScreenSystem;
 using TaleWorlds.TwoDimension;
 
@@ -12,14 +11,14 @@ namespace BannerKings.UI
         public string Id { get; set; }
         private BannerKingsViewModel datasource;
         private GauntletLayer gauntletLayer;
-        private IGauntletMovie gauntletMovie;
+        private GauntletMovieIdentifier gauntletMovie;
         private SpriteCategory categoryDeveloper, categoryEncyclopedia;
 
         public BannerKingsScreen()
         {
             var spriteData = UIResourceManager.SpriteData;
             var resourceContext = UIResourceManager.ResourceContext;
-            var resourceDepot = UIResourceManager.UIResourceDepot;
+            var resourceDepot = UIResourceManager.ResourceDepot;
 
             categoryDeveloper = spriteData.SpriteCategories["ui_characterdeveloper"];
             categoryDeveloper.Load(resourceContext, resourceDepot);
@@ -27,7 +26,7 @@ namespace BannerKings.UI
             categoryEncyclopedia = spriteData.SpriteCategories["ui_encyclopedia"];
             categoryEncyclopedia.Load(resourceContext, resourceDepot);
 
-            gauntletLayer = new GauntletLayer(550);
+            gauntletLayer = new GauntletLayer("BannerKingsScreen", 550);
             Layer = (ScreenLayer)gauntletLayer;
             ScreenManager.AddGlobalLayer(this, true);
         }
@@ -35,7 +34,7 @@ namespace BannerKings.UI
         private void Load()
         {
             var resourceContext = UIResourceManager.ResourceContext;
-            var resourceDepot = UIResourceManager.UIResourceDepot;
+            var resourceDepot = UIResourceManager.ResourceDepot;
             categoryDeveloper.Load(resourceContext, resourceDepot);
             categoryEncyclopedia.Load(resourceContext, resourceDepot);
         }

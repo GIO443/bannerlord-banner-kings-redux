@@ -176,7 +176,7 @@ namespace BannerKings.Behaviours.Diplomacy.Groups
                         .SetTextVariable("GROUP", this.Name),
                         0,
                         hero.CharacterObject,
-                        Utils.Helpers.GetKingdomDecisionSound());
+                        null, Utils.Helpers.GetKingdomDecisionSound());
                 }
             }
         }
@@ -195,7 +195,7 @@ namespace BannerKings.Behaviours.Diplomacy.Groups
                         .SetTextVariable("GROUP", this.Name),
                         0,
                         hero.CharacterObject,
-                        Utils.Helpers.GetRelationDecisionSound());
+                        null, Utils.Helpers.GetRelationDecisionSound());
                 }
               
                 if (!forced)

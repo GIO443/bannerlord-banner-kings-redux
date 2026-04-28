@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Text;
 using BannerKings.Behaviours;
@@ -11,6 +11,7 @@ using TaleWorlds.CampaignSystem;
 using TaleWorlds.CampaignSystem.ViewModelCollection;
 using TaleWorlds.CampaignSystem.ViewModelCollection.CharacterDeveloper;
 using TaleWorlds.Core;
+using TaleWorlds.Core.ImageIdentifiers;
 using TaleWorlds.Library;
 using TaleWorlds.Localization;
 
@@ -417,7 +418,7 @@ namespace BannerKings.UI.VanillaTabs.Character.Education
                         new TextObject("{=ZJzjhHNd}{HERO} is not available for teaching: either they are not part of your family or do not like you enough.");
                     elements.Add(new InquiryElement(tuple,
                         tuple.Item1.Name + " - " + hero.Name,
-                        new ImageIdentifier(CampaignUIHelper.GetCharacterCode(hero.CharacterObject)),
+                        new CharacterImageIdentifier(CampaignUIHelper.GetCharacterCode(hero.CharacterObject)),
                         available,
                         hint.SetTextVariable("HERO", hero.Name)
                         .ToString()));
@@ -485,9 +486,9 @@ namespace BannerKings.UI.VanillaTabs.Character.Education
                         .SetTextVariable("DESCRIPTION", book.Description)
                         .SetTextVariable("LANGUAGE", book.Language.Name)
                         .SetTextVariable("SKILL", book.Skill != null ? new TextObject("{=NrQdJeJU}Skill: {SKILL}").SetTextVariable("SKILL", book.Skill.Name)
-                        : TextObject.Empty)
+                        : TextObject.GetEmpty())
                         .SetTextVariable("TRAIT", book.Trait != null ? new TextObject("{=1P5txvhk}Trait: {TRAIT}").SetTextVariable("TRAIT", book.Trait.Name)
-                        : TextObject.Empty)
+                        : TextObject.GetEmpty())
                         .ToString()));
                 }
             }
@@ -539,14 +540,41 @@ namespace BannerKings.UI.VanillaTabs.Character.Education
             {
                 if (lf != data.Lifestyle)
                 {
-                    elements.Add(new InquiryElement(lf,
-                        new TextObject("{LIFESTYLE} ({SKILL1} / {SKILL2})")
-                            .SetTextVariable("LIFESTYLE", lf.Name)
-                            .SetTextVariable("SKILL1", lf.FirstSkill.Name)
-                            .SetTextVariable("SKILL2", lf.SecondSkill.Name).ToString(),
-                        null,
-                        lf.CanLearn(hero),
-                        lf.Description.ToString()));
+                    int s1 = hero.GetSkillValue(lf.FirstSkill);
+                    int s2 = hero.GetSkillValue(lf.SecondSkill);
+                    bool canLearn = lf.CanLearn(hero);
+
+                    // Title shows current skill values so the requirement is obvious at a glance.
+                    string title = new TextObject("{LIFESTYLE} ({SKILL1} {S1}/15, {SKILL2} {S2}/15)")
+                        .SetTextVariable("LIFESTYLE", lf.Name)
+                        .SetTextVariable("SKILL1", lf.FirstSkill.Name)
+                        .SetTextVariable("SKILL2", lf.SecondSkill.Name)
+                        .SetTextVariable("S1", s1)
+                        .SetTextVariable("S2", s2).ToString();
+
+                    // Hover hint: lore description PLUS the specific reason it's locked.
+                    string hint = lf.Description.ToString();
+                    if (!canLearn)
+                    {
+                        var reasons = new System.Collections.Generic.List<string>();
+                        if (lf.Culture != null && hero.Culture != lf.Culture)
+                            reasons.Add(new TextObject("{=!}Requires {CULTURE} culture.")
+                                .SetTextVariable("CULTURE", lf.Culture.Name).ToString());
+                        if (s1 < 15)
+                            reasons.Add(new TextObject("{=!}Requires {SKILL} {NEEDED} (you have {HAVE}).")
+                                .SetTextVariable("SKILL", lf.FirstSkill.Name)
+                                .SetTextVariable("NEEDED", 15)
+                                .SetTextVariable("HAVE", s1).ToString());
+                        if (s2 < 15)
+                            reasons.Add(new TextObject("{=!}Requires {SKILL} {NEEDED} (you have {HAVE}).")
+                                .SetTextVariable("SKILL", lf.SecondSkill.Name)
+                                .SetTextVariable("NEEDED", 15)
+                                .SetTextVariable("HAVE", s2).ToString());
+                        if (reasons.Count > 0)
+                            hint = string.Join("\n", reasons) + "\n\n" + hint;
+                    }
+
+                    elements.Add(new InquiryElement(lf, title, null, canLearn, hint));
                 }
             }
 

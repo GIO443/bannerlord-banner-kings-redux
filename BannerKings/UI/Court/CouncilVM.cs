@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using BannerKings.Managers.Court;
 using Helpers;
@@ -6,6 +6,7 @@ using TaleWorlds.CampaignSystem;
 using TaleWorlds.CampaignSystem.ViewModelCollection;
 using TaleWorlds.CampaignSystem.ViewModelCollection.GameMenu.TownManagement;
 using TaleWorlds.Core;
+using TaleWorlds.Core.ImageIdentifiers;
 using TaleWorlds.Library;
 using TaleWorlds.Localization;
 
@@ -61,7 +62,7 @@ namespace BannerKings.UI.Court
                     bool enabled = true;
                     if (vm.Governor != null)
                     {
-                        image = new ImageIdentifier(CampaignUIHelper.GetCharacterCode(vm.Governor.CharacterObject));
+                        image = new CharacterImageIdentifier(CampaignUIHelper.GetCharacterCode(vm.Governor.CharacterObject));
                         name = vm.Governor.Name;
                         TextObject textObject = new TextObject("{=rKiPYUu3}{HERO} is a {TYPE} with {COMPETENCE}% competence for this position.")
                             .SetTextVariable("COMPETENCE", (Position.CalculateCandidateCompetence(vm.Governor).ResultNumber * 100f).ToString("0.00"))
@@ -87,7 +88,7 @@ namespace BannerKings.UI.Court
                         enabled, 
                         hint));
                 }
-                TextObject current = new TextObject();
+                TextObject current = TextObject.GetEmpty();
                 if (Position.Member != null)
                 {
                     current = new TextObject("{=Qa6YdGEF}{HERO} current holds this position with a competence of {COMPETENCE}%.")

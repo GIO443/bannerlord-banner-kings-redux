@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using System.Linq;
 using BannerKings.Behaviours.Diplomacy;
 using BannerKings.Behaviours.Diplomacy.Groups;
+using BannerKings.Utils;
 using BannerKings.Managers.Skills;
 using BannerKings.Managers.Titles;
 using BannerKings.Managers.Titles.Laws;
@@ -17,15 +18,9 @@ using TaleWorlds.CampaignSystem.Settlements;
 using TaleWorlds.CampaignSystem.ViewModelCollection;
 using TaleWorlds.CampaignSystem.ViewModelCollection.KingdomManagement.Policies;
 using TaleWorlds.Core;
-using TaleWorlds.GauntletUI.BaseTypes;
-using TaleWorlds.GauntletUI.GamepadNavigation;
 using TaleWorlds.Library;
 using TaleWorlds.Localization;
 using static TaleWorlds.CampaignSystem.Election.KingSelectionKingdomDecision;
-using static TaleWorlds.CampaignSystem.Issues.CaravanAmbushIssueBehavior;
-using static TaleWorlds.CampaignSystem.Issues.EscortMerchantCaravanIssueBehavior;
-using static TaleWorlds.CampaignSystem.Issues.LandLordNeedsManualLaborersIssueBehavior;
-using static TaleWorlds.CampaignSystem.Issues.VillageNeedsToolsIssueBehavior;
 
 namespace BannerKings.Patches
 {
@@ -140,12 +135,16 @@ namespace BannerKings.Patches
             [HarmonyPatch("RecruitVolunteersFromNotable", MethodType.Normal)]
             private static bool RecruitVolunteersFromNotablePrefix(RecruitmentCampaignBehavior __instance, MobileParty mobileParty, Settlement settlement)
             {
+                // RecruitEverywhere replaces this whole flow — let vanilla run so its
+                // postfix sees normal state.
+                if (ModCompat.RecruitEverywhere) return true;
+
                 if (mobileParty.ActualClan != null && mobileParty.ActualClan.IsClanTypeMercenary)
                 {
                     Console.Write("");
                 }
 
-                if (((float)mobileParty.Party.NumberOfAllMembers + 0.5f) / (float)mobileParty.LimitedPartySize <= 1f)
+                if (((float)mobileParty.Party.NumberOfAllMembers + 0.5f) / (float)mobileParty.Party.PartySizeLimit <= 1f)
                 {
                     foreach (Hero hero in settlement.Notables)
                     {
@@ -179,7 +178,7 @@ namespace BannerKings.Patches
                                     float y = (mobileParty.Army.LeaderParty == mobileParty) ? 0.5f : 0.67f;
                                     num5 = MathF.Pow(num5, y);
                                 }
-                                float num6 = (float)mobileParty.Party.NumberOfAllMembers / (float)mobileParty.LimitedPartySize;
+                                float num6 = (float)mobileParty.Party.NumberOfAllMembers / (float)mobileParty.Party.PartySizeLimit;
                                 if (num5 > num6 - 0.1f)
                                 {
                                     CharacterObject characterObject = hero.VolunteerTypes[num3];
@@ -274,7 +273,7 @@ namespace BannerKings.Patches
                     }
                 }
 
-                 disabledReason = TextObject.Empty;
+                 disabledReason = TextObject.GetEmpty();
                 __result = true;
                 return false;
             }
@@ -291,7 +290,7 @@ namespace BannerKings.Patches
                 FeudalTitle title = BannerKingsConfig.Instance.TitleManager.GetSovereignTitle(__instance.Kingdom);
                 TextObject leaderName = __instance.ArmyOwner != null ? 
                     __instance.ArmyOwner.Name : ((__instance.LeaderParty.PartyComponent.PartyOwner != null) ?
-                    __instance.LeaderParty.PartyComponent.PartyOwner.Name : TextObject.Empty);
+                    __instance.LeaderParty.PartyComponent.PartyOwner.Name : TextObject.GetEmpty());
                 TextObject result = new TextObject("{=nbmctMLk}{LEADER_NAME}{.o} Army");
                 if (title != null)
                 {
@@ -334,163 +333,6 @@ namespace BannerKings.Patches
             }
         }
     }
-
-    namespace Fixes
-    {
-        // Fix crash on wanderer same gender child born
-       
-
-        [HarmonyPatch(typeof(GauntletGamepadNavigationManager), "OnWidgetNavigationStatusChanged")]
-        internal class NavigationPatch
-        {
-            private static bool Prefix(Widget widget)
-            {
-                return false;
-            }
-        }
-
-        [HarmonyPatch(typeof(Hero), nameof(Hero.CanHaveQuestsOrIssues))]
-        internal class CanHaveQuestsOrIssuesPatch
-        {
-            private static bool Prefix(Hero __instance, ref bool __result)
-            {
-                if (__instance.Issue != null)
-                {
-                    return false;
-                }
-
-                __result = __instance.IsActive && __instance.IsAlive;
-                CampaignEventDispatcher.Instance.CanHaveQuestsOrIssues(__instance, ref __result);
-
-                return false;
-            }
-        }
-
-        [HarmonyPatch(typeof(VillageNeedsToolsIssue), "IssueStayAliveConditions")]
-        internal class VillageIssueStayAliveConditionsPatch
-        {
-            private static bool Prefix(CaravanAmbushIssue __instance, ref bool __result)
-            {
-                if (__instance.IssueOwner != null)
-                {
-                    if (__instance.IssueOwner.CurrentSettlement == null ||
-                        !__instance.IssueOwner.CurrentSettlement.IsVillage)
-                    {
-                        __result = false;
-                        return false;
-                    }
-                }
-                else
-                {
-                    __result = false;
-                    return false;
-                }
-
-                return true;
-            }
-        }
-
-        [HarmonyPatch(typeof(CaravanAmbushIssue), "IssueStayAliveConditions")]
-        internal class CaravanIssueStayAliveConditionsPatch
-        {
-            private static bool Prefix(CaravanAmbushIssue __instance, ref bool __result)
-            {
-                if (__instance.IssueOwner != null)
-                {
-                    if (__instance.IssueOwner.OwnedCaravans == null || __instance.IssueOwner.MapFaction == null)
-                    {
-                        __result = false;
-                        return false;
-                    }
-                }
-
-                return true;
-            }
-        }
-
-        [HarmonyPatch(typeof(LandLordNeedsManualLaborersIssue), "IssueStayAliveConditions")]
-        internal class LaborersIssueStayAliveConditionsPatch
-        {
-            private static bool Prefix(LandLordNeedsManualLaborersIssue __instance, ref bool __result)
-            {
-                if (__instance.IssueOwner != null)
-                {
-                    if (__instance.IssueOwner.CurrentSettlement == null ||
-                        !__instance.IssueOwner.CurrentSettlement.IsVillage)
-                    {
-                        __result = false;
-                        return false;
-                    }
-                }
-                else
-                {
-                    __result = false;
-                    return false;
-                }
-
-                return true;
-            }
-        }
-
-        [HarmonyPatch(typeof(EscortMerchantCaravanIssue), "IssueStayAliveConditions")]
-        internal class EscortCaravanIssueStayAliveConditionsPatch
-        {
-            private static bool Prefix(EscortMerchantCaravanIssue __instance, ref bool __result)
-            {
-                if (__instance.IssueOwner.CurrentSettlement == null ||
-                    __instance.IssueOwner.CurrentSettlement.IsVillage)
-                {
-                    __result = false;
-                    return false;
-                }
-
-                return true;
-            }
-        }
-
-
-        [HarmonyPatch(typeof(DefaultPartyMoraleModel), "CalculateFoodVarietyMoraleBonus")]
-        internal class CalculateFoodVarietyMoraleBonusPatch
-        {
-            private static bool Prefix(MobileParty party, ref ExplainedNumber result)
-            {
-                var num = MBMath.ClampFloat(party.ItemRoster.FoodVariety - 5f, -5f, 5f);
-                if (num != 0f && (num >= 0f || party.LeaderHero == null ||
-                                    !party.LeaderHero.GetPerkValue(DefaultPerks.Steward.WarriorsDiet)))
-                {
-                    if (num > 0f && party.HasPerk(DefaultPerks.Steward.Gourmet))
-                    {
-                        result.Add(num * DefaultPerks.Steward.Gourmet.PrimaryBonus,
-                            DefaultPerks.Steward.Gourmet.Name);
-                        return false;
-                    }
-
-                    result.Add(num, GameTexts.FindText("str_food_bonus_morale"));
-                }
-
-                var totalModifiers = 0f;
-                var modifierRate = 0f;
-                foreach (var element in party.ItemRoster.ToList().FindAll(x => x.EquipmentElement.Item.IsFood))
-                {
-                    var modifier = element.EquipmentElement.ItemModifier;
-                    if (modifier != null)
-                    {
-                        totalModifiers++;
-                        modifierRate += modifier.PriceMultiplier;
-                    }
-                }
-
-                if (modifierRate != 0f)
-                {
-                    result.Add(MBMath.ClampFloat(modifierRate / totalModifiers, -5f, 5f),
-                        new TextObject("{=oy3mdLFG}Food quality"));
-                }
-
-                return false;
-            }
-        }
-    }
-
 
     namespace Government
     {

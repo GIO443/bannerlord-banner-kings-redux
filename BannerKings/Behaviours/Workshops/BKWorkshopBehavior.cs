@@ -1,4 +1,4 @@
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Linq;
 using TaleWorlds.CampaignSystem;
 using TaleWorlds.CampaignSystem.Actions;
@@ -7,6 +7,7 @@ using TaleWorlds.CampaignSystem.Conversation;
 using TaleWorlds.CampaignSystem.Settlements;
 using TaleWorlds.CampaignSystem.Settlements.Workshops;
 using TaleWorlds.Core;
+using TaleWorlds.Core.ImageIdentifiers;
 using TaleWorlds.Library;
 using TaleWorlds.Localization;
 
@@ -146,7 +147,7 @@ namespace BannerKings.Behaviours.Workshops
 
                                     options.Add(new InquiryElement(clan,
                                         clan.Name.ToString(),
-                                        new ImageIdentifier(clan.Banner),
+                                        new BannerImageIdentifier(clan.Banner),
                                         enabled,
                                         string.Empty));
                                 }
@@ -315,7 +316,7 @@ namespace BannerKings.Behaviours.Workshops
                     }
                     else
                     {
-                        explanation = TextObject.Empty;
+                        explanation = TextObject.GetEmpty();
                         result = true;
                     }
                     return result;

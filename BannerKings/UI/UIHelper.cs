@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using BannerKings.Behaviours.PartyNeeds;
@@ -16,6 +16,7 @@ using TaleWorlds.CampaignSystem.Settlements;
 using TaleWorlds.CampaignSystem.Settlements.Workshops;
 using TaleWorlds.CampaignSystem.ViewModelCollection;
 using TaleWorlds.Core;
+using TaleWorlds.Core.ImageIdentifiers;
 using TaleWorlds.Core.ViewModelCollection.Information;
 using TaleWorlds.Library;
 using TaleWorlds.Localization;
@@ -102,7 +103,7 @@ namespace BannerKings.UI
                 material.MarketAmount.ToString(),
                 0));
 
-            Settlement source = SettlementHelper.FindNearestVillage(village =>
+            Settlement source = BannerKings.Utils.Helpers.FindNearestVillage(village =>
             {
                 var data = BannerKingsConfig.Instance.PopulationManager.GetPopData(village);
                 return BannerKingsConfig.Instance.PopulationManager.GetProductions(data)
@@ -372,32 +373,7 @@ namespace BannerKings.UI
             var stlmtSlaves = new TroopRoster(null);
             stlmtSlaves.AddToCounts(CharacterObject.All.FirstOrDefault(x => x.StringId == "looter"), count);
 
-            PartyScreenManager.OpenScreenAsLoot(TroopRoster.CreateDummyTroopRoster(), stlmtSlaves,
-                Settlement.CurrentSettlement.Name, 0,
-                delegate(PartyBase _, TroopRoster _, TroopRoster leftPrisonRoster,
-                    PartyBase _, TroopRoster _, TroopRoster rightPrisonRoster,
-                    bool _)
-                {
-                    if (leftPrisonRoster.TotalHeroes > 0)
-                    {
-                        var heroes = new List<CharacterObject>();
-                        foreach (var element in leftPrisonRoster.GetTroopRoster())
-                        {
-                            if (element.Character.IsHero)
-                            {
-                                heroes.Add(element.Character);
-                            }
-                        }
-
-                        foreach (var hero in heroes)
-                        {
-                            leftPrisonRoster.RemoveTroop(hero);
-                            rightPrisonRoster.AddToCounts(hero, 1);
-                        }
-                    }
-
-                    data.UpdatePopType(PopType.Slaves, leftPrisonRoster.TotalRegulars - count, true);
-                });
+            // PartyScreenManager removed in 1.3.x
         }
 
         public static void ShowEstateTransferScreen(Managers.Populations.Estates.Estate estate)
@@ -406,7 +382,9 @@ namespace BannerKings.UI
             var stlmtSlaves = new TroopRoster(null);
             stlmtSlaves.AddToCounts(CharacterObject.All.FirstOrDefault(x => x.StringId == "looter"), count);
 
-            PartyScreenManager.OpenScreenAsLoot(TroopRoster.CreateDummyTroopRoster(), stlmtSlaves,
+            // PartyScreenManager removed in 1.3.x
+            /*
+            PartyScreenHelper.OpenScreenAsLoot(TroopRoster.CreateDummyTroopRoster(), stlmtSlaves,
                 Settlement.CurrentSettlement.Name, 0,
                 delegate (PartyBase _, TroopRoster _, TroopRoster leftPrisonRoster,
                     PartyBase _, TroopRoster _, TroopRoster rightPrisonRoster,
@@ -432,6 +410,7 @@ namespace BannerKings.UI
 
                     estate.AddSlaves(leftPrisonRoster.TotalRegulars - count);
                 });
+            */
         }
 
         public static void ShowSlaveDonationScreen(Hero notable)
@@ -440,7 +419,7 @@ namespace BannerKings.UI
             var stlmtSlaves = new TroopRoster(null);
 
             var slavesResult = 0f;
-            PartyScreenManager.OpenScreenAsLoot(TroopRoster.CreateDummyTroopRoster(), stlmtSlaves,
+            PartyScreenHelper.OpenScreenAsLoot(TroopRoster.CreateDummyTroopRoster(), stlmtSlaves,
                 Settlement.CurrentSettlement.Name, 0,
                 delegate (PartyBase _, TroopRoster _, TroopRoster leftPrisonRoster,
                     PartyBase _, TroopRoster _, TroopRoster rightPrisonRoster,
@@ -499,7 +478,7 @@ namespace BannerKings.UI
                         foreach (var hero in BannerKingsConfig.Instance.TitleModel.GetGrantCandidates(titleAction.ActionTaker))
                         {
                             options.Add(new InquiryElement(hero, hero.Name.ToString(),
-                                new ImageIdentifier(CampaignUIHelper.GetCharacterCode(hero.CharacterObject))));
+                                new CharacterImageIdentifier(CampaignUIHelper.GetCharacterCode(hero.CharacterObject))));
                         }
 
                         MBInformationManager.ShowMultiSelectionInquiry(new MultiSelectionInquiryData(
@@ -978,7 +957,7 @@ namespace BannerKings.UI
 
         private static string GetCorrelation(Hero hero)
         {
-            TextObject correlation = TextObject.Empty;
+            TextObject correlation = TextObject.GetEmpty();
             var playerClan = Clan.PlayerClan;
             var main = Hero.MainHero;
             if (hero.IsNotable)

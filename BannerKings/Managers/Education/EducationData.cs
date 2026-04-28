@@ -1,4 +1,4 @@
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using BannerKings.CampaignContent.Skills;
 using BannerKings.Managers.Education.Books;
 using BannerKings.Managers.Education.Languages;
@@ -19,8 +19,8 @@ namespace BannerKings.Managers.Education
 {
     public class EducationData : BannerKingsData
     {
-        private const float LANGUAGE_RATE = 1f / (CampaignTime.DaysInYear * 3f);
-        private const float BOOK_RATE = 1f / (CampaignTime.DaysInYear * 1.5f);
+        private static readonly float LANGUAGE_RATE = 1f / (CampaignTime.DaysInYear * 3f);
+        private static readonly float BOOK_RATE = 1f / (CampaignTime.DaysInYear * 1.5f);
 
         [SaveableField(2)] private readonly Dictionary<BookType, float> books;
 
@@ -283,7 +283,7 @@ namespace BannerKings.Managers.Education
             get
             {
                 float progress = 0f;
-                progress += BKSkillEffects.Instance.ResearchSpeed.GetPrimaryValue(hero.GetSkillValue(BKSkills.Instance.Scholarship));
+                progress += BKSkillEffects.Instance.ResearchSpeed.GetSkillEffectValue(hero.GetSkillValue(BKSkills.Instance.Scholarship));
                 progress += hero.GetAttributeValue(DefaultCharacterAttributes.Intelligence) * 0.10f;
                 return progress;
             }

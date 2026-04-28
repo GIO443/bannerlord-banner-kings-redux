@@ -246,7 +246,7 @@ namespace BannerKings.Managers
                     new TextObject("{=f2V1XRaf}{OWNER} has appointed you as their {POSITION}.")
                         .SetTextVariable("OWNER", action.Council.Owner.Name)
                         .SetTextVariable("POSITION", action.TargetPosition.Name),
-                    0, action.Council.Owner.CharacterObject, "event:/ui/notification/relation");
+                    0, action.Council.Owner.CharacterObject, null, "event:/ui/notification/relation");
             }
 
             action.TargetPosition.SetMember(action.ActionTaker);

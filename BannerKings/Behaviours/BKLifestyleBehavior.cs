@@ -134,23 +134,16 @@ namespace BannerKings.Behaviours
                                   hero.GetTraitLevel(DefaultTraits.Smuggler);
 
                 var politicianWeight =
-                    hero.GetTraitLevel(DefaultTraits.Politician) + hero.GetTraitLevel(DefaultTraits.Commander);
+                    hero.GetTraitLevel(DefaultTraits.Commander); // DefaultTraits.Politician removed in 1.3.x
 
-                var merchantWeight = hero.GetTraitLevel(DefaultTraits.Blacksmith) + hero.GetTraitLevel(DefaultTraits.Manager);
+                var merchantWeight = hero.GetTraitLevel(DefaultTraits.Blacksmith); // DefaultTraits.Manager removed in 1.3.x
                 var artisanWeight = hero.GetTraitLevel(DefaultTraits.Blacksmith) * 3f;
 
                 var siegeWeight = hero.GetTraitLevel(DefaultTraits.Siegecraft);
 
                 var healerWeight = hero.GetTraitLevel(DefaultTraits.Surgery);
 
-                var warriorWeight = hero.GetTraitLevel(DefaultTraits.ArcherFIghtingSkills) +
-                                    hero.GetTraitLevel(DefaultTraits.CavalryFightingSkills) +
-                                    hero.GetTraitLevel(DefaultTraits.HuscarlFightingSkills) +
-                                    hero.GetTraitLevel(DefaultTraits.HopliteFightingSkills) +
-                                    hero.GetTraitLevel(DefaultTraits.HorseArcherFightingSkills) +
-                                    hero.GetTraitLevel(DefaultTraits.KnightFightingSkills) +
-                                    hero.GetTraitLevel(DefaultTraits.PeltastFightingSkills) +
-                                    hero.GetTraitLevel(DefaultTraits.Fighter);
+                var warriorWeight = hero.GetTraitLevel(DefaultTraits.Valor); // Fighting skill traits removed in 1.3.x
 
                 var mercenaryWeight = hero.GetTraitLevel(DefaultTraits.RogueSkills) - hero.GetTraitLevel(DefaultTraits.Honor);
 

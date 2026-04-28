@@ -63,117 +63,117 @@ namespace BannerKings.CampaignContent.Traits
             }
         }
 
-        public List<TraitEffect> GetTraitEffects(TraitObject trait) => All.ToList().FindAll(x => x.Trait == trait);
+        public List<TraitEffect> GetTraitEffects(TraitObject trait) => All.Where(x => x.Trait == trait).ToList();
 
         public override void Initialize()
         {
             Seductiveness.Initialize(new TextObject("{=!}Sexual attractiveness: {EFFECT}%"),
                 BKTraits.Instance.Seductive,
-                SkillEffect.PerkRole.Personal,
+                PartyRole.Personal,
                 0.15f,
                 true);
 
             JustRuler.Initialize(new TextObject("{=!}Relation target with nobles: {EFFECT}"),
                 BKTraits.Instance.Just,
-                SkillEffect.PerkRole.Ruler,
+                PartyRole.Ruler,
                 8f);
 
             JustLord.Initialize(new TextObject("{=!}Relation target with notables: {EFFECT}"),
                 BKTraits.Instance.Just,
-                SkillEffect.PerkRole.ClanLeader,
+                PartyRole.ClanLeader,
                 10f);
 
             ValorMorale.Initialize(new TextObject("{=!}Party morale: {EFFECT}"),
                 DefaultTraits.Valor,
-                SkillEffect.PerkRole.PartyLeader,
+                PartyRole.PartyLeader,
                 5f);
 
             ValorLegitimacy.Initialize(new TextObject("{=!}Legitimacy: {EFFECT}"),
                 DefaultTraits.Valor,
-                SkillEffect.PerkRole.Ruler,
+                PartyRole.Ruler,
                 0.03f);
 
             ValorCommander.Initialize(new TextObject("{=!}Likelihood to besiege fiefs: {EFFECT}%"),
                 DefaultTraits.Valor,
-                SkillEffect.PerkRole.ArmyCommander,
+                PartyRole.ArmyCommander,
                 0.1f,
                 true);
 
             ValorGovernor.Initialize(new TextObject("{=!}Fief militia: {EFFECT}"),
                 DefaultTraits.Valor,
-                SkillEffect.PerkRole.Governor,
+                PartyRole.Governor,
                 0.3f);
 
             HonorDiplomacy.Initialize(new TextObject("{=!}Desirability of amicable diplomatic pacts: {EFFECT}%"),
                 DefaultTraits.Honor,
-                SkillEffect.PerkRole.Ruler,
+                PartyRole.Ruler,
                 0.15f,
                 true);
 
             HonorInfluence.Initialize(new TextObject("{=!}Clan influence limit: {EFFECT}%"),
                 DefaultTraits.Honor,
-                SkillEffect.PerkRole.ClanLeader,
+                PartyRole.ClanLeader,
                 0.1f,
                 true);
 
             HonorRelation.Initialize(new TextObject("{=!}Overall opinion towards you: {EFFECT}"),
                 DefaultTraits.Honor,
-                SkillEffect.PerkRole.Personal,
+                PartyRole.Personal,
                 0.1f);
 
             GenerosityRelation.Initialize(new TextObject("{=!}Relation increase with NPCs: {EFFECT}%"),
                 DefaultTraits.Generosity,
-                SkillEffect.PerkRole.Personal,
+                PartyRole.Personal,
                 0.08f,
                 true); 
 
             GenerosityIncome.Initialize(new TextObject("{=!}Fief revenues: {EFFECT}%"),
                 DefaultTraits.Generosity,
-                SkillEffect.PerkRole.Governor,
+                PartyRole.Governor,
                 -0.1f,
                 true);
 
             GenerosityPartyCost.Initialize(new TextObject("{=!}Party wage: {EFFECT}%"),
                 DefaultTraits.Generosity,
-                SkillEffect.PerkRole.PartyLeader,
+                PartyRole.PartyLeader,
                 -0.12f,
                 true);
 
             MercyRaid.Initialize(new TextObject("{=!}Likelihood to raid fiefs: {EFFECT}%"),
                 DefaultTraits.Mercy,
-                SkillEffect.PerkRole.ArmyCommander,
+                PartyRole.ArmyCommander,
                 -0.15f,
                 true);
 
             MercyLoyalty.Initialize(new TextObject("{=!}Fief loyalty: {EFFECT}"),
                 DefaultTraits.Mercy,
-                SkillEffect.PerkRole.Governor,
+                PartyRole.Governor,
                 0.2f);
 
             CalculatingProposals.Initialize(new TextObject("{=!}Influence to propose votes: {EFFECT}%"),
                 DefaultTraits.Calculating,
-                SkillEffect.PerkRole.ClanLeader,
+                PartyRole.ClanLeader,
                 -0.1f,
                 true);
 
             CalculatingSupplies.Initialize(new TextObject("{=!}Party Supplies necessity: {EFFECT}%"),
                 DefaultTraits.Calculating,
-                SkillEffect.PerkRole.Quartermaster,
+                PartyRole.Quartermaster,
                 -0.12f);
 
             CalculatingCouncil.Initialize(new TextObject("{=!}Competency as council member: {EFFECT}%"),
                 DefaultTraits.Calculating,
-                SkillEffect.PerkRole.Personal,
+                PartyRole.Personal,
                 0.12f);
 
             CalculatingSecurity.Initialize(new TextObject("{=!}Fief security: {EFFECT}"),
                 DefaultTraits.Calculating,
-                SkillEffect.PerkRole.Governor,
+                PartyRole.Governor,
                 0.2f);
 
             CalculatingCohesion.Initialize(new TextObject("{=!}Army cohesion: {EFFECT}"),
                 DefaultTraits.Calculating,
-                SkillEffect.PerkRole.ArmyCommander,
+                PartyRole.ArmyCommander,
                 0.1f);
         }
     }

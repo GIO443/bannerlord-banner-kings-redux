@@ -87,7 +87,7 @@ namespace BannerKings.Managers.Populations
             if (inProgress.IsEmpty())
             {
                 inProgress.Enqueue(buildings.GetRandomElementWithPredicate(x =>
-                    x.BuildingType.BuildingLocation != BuildingLocation.Daily));
+                    !x.BuildingType.IsDailyProject));
             }
         }
 
@@ -97,8 +97,16 @@ namespace BannerKings.Managers.Populations
             {
                 int buildingsToGive = (int)(Village.Hearth / 200f);
                 for (int i = 0; i < buildingsToGive; i++)
-                    buildings.GetRandomElementWithPredicate(x => x.BuildingType.BuildingLocation != BuildingLocation.Daily)
-                        .LevelUp();           
+                {
+                    var b = buildings.GetRandomElementWithPredicate(x => !x.BuildingType.IsDailyProject);
+                    if (b == null) continue;
+                    // LevelUp() fires OnBuildingLevelChanged, which during early
+                    // OnNewGameCreated triggers vanilla AchievementsCampaignBehavior
+                    // -> DefaultClanFinanceModel static cctor -> NRE because the
+                    // workshop graph isn't initialized yet. Set the level directly
+                    // and respect vanilla's max-level cap of 3.
+                    if (b.CurrentLevel < 3) b.CurrentLevel = b.CurrentLevel + 1;
+                }
 
                 BuildingsSet = true;
             }
@@ -130,16 +138,24 @@ namespace BannerKings.Managers.Populations
             foreach (var building in buildings)
             {
                 var type = DefaultVillageBuildings.Instance.GetById(building.BuildingType);
-                building.BuildingType.Initialize(type.Name,
-                    type.Explanation,
-                    new int[3]
-                    {
-                        type.GetProductionCost(0),
-                        type.GetProductionCost(1),
-                        type.GetProductionCost(2)
-                    },
-                    type.BuildingLocation,
-                    new System.Tuple<BuildingEffectEnum, float, float, float>[] {});
+                if (!type.IsDailyProject)
+                {
+                    building.BuildingType.Initialize(type.Name,
+                        type.Explanation,
+                        new int[3]
+                        {
+                            type.GetProductionCost(0),
+                            type.GetProductionCost(1),
+                            type.GetProductionCost(2)
+                        },
+                        System.Array.Empty<System.Tuple<BuildingEffectEnum, BuildingEffectIncrementType, float, float, float>>(),
+                        false, 0f);
+                }
+                else
+                {
+                    building.BuildingType.InitializeDailyProject(type.Name, type.Explanation,
+                        System.Array.Empty<System.Tuple<BuildingEffectEnum, BuildingEffectIncrementType, float, float, float>>());
+                }
             }
 
             if (village.Owner != null)

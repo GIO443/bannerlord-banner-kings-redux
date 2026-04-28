@@ -5,7 +5,19 @@ using Bannerlord.UIExtenderEx.Prefabs2;
 
 namespace BannerKings.UI.Extensions
 {
-    [PrefabExtension("MapBar", "descendant::ListPanel[@Id='TopInfoBar']/Children", "MapBar")]
+    // 1.3.x: ListPanel Id="TopInfoBar" is now a data-bound templated list
+    // (DataSource="{PrimaryInfoItems}" with ItemTemplate, no <Children>).
+    // The outer ListPanel uses VerticalBottomToTop layout — injecting our
+    // HintWidget there pushes the existing info bars down visually. AND the
+    // widget binds to {Piety}/{PietyHint} which require a hero religion —
+    // and religions aren't loaded in this build, so the widget would just
+    // show 0 forever. Disabled until religion content ships.
+    //
+    // To re-enable: restore the [PrefabExtension(...)] attribute on the line
+    // below and find an injection point that doesn't shift TopInfoBar/
+    // BottomInfoBar (likely inside MapInfoBarWidget's left or right margin
+    // rather than the same vertical stack).
+    //[PrefabExtension("MapBar", "descendant::MapInfoBarWidget[@Id='InfoBarWidget']/Children/ListPanel[1]/Children", "MapBar")]
     internal class MapBarExtension : PrefabExtensionInsertPatch
     {
         private readonly List<XmlNode> nodes;

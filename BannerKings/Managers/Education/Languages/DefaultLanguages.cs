@@ -15,6 +15,7 @@ namespace BannerKings.Managers.Education.Languages
         public Language Aseran { get; } = new Language("language_aseran");
         public Language Khuzait { get; } = new Language("language_khuzait");
         public Language Vakken { get; } = new Language("language_vakken");
+        public Language NordLanguage { get; } = new Language("language_nord");
 
         public override IEnumerable<Language> All
         {
@@ -27,6 +28,7 @@ namespace BannerKings.Managers.Education.Languages
                 yield return Aseran;
                 yield return Khuzait;
                 yield return Vakken;
+                yield return NordLanguage;
                 foreach (Language item in ModAdditions)
                 {
                     yield return item;
@@ -86,13 +88,22 @@ namespace BannerKings.Managers.Education.Languages
                 },
                 GetIntelligibles(Aseran));
 
-            Vakken.Initialize(new TextObject("{=brxz2SmN}Vakken"), 
+            Vakken.Initialize(new TextObject("{=brxz2SmN}Vakken"),
                 new TextObject("{=bXUwFrCF}The Vakken, sometimes called 'children of the forest', are a group native to northern Calradia. Vakken and Sturgian cultures have ancient connections, as both have lived and traded for centuries before the Imperials arrived in the continent. However, with the prevailment of the Sturgia kingdom and culture, the Vakken tongue and tradition is being increasingly forgotten about in the north."),
                 new List<CultureObject>(1)
                 {
                     cultures.First(x => x.StringId == "vakken")
-                }, 
+                },
                 GetIntelligibles(Vakken));
+
+            var nordCulture = cultures.FirstOrDefault(x => x.StringId == "nord");
+            var nordCultures = nordCulture != null
+                ? new List<CultureObject>(1) { nordCulture }
+                : new List<CultureObject>(0);
+            NordLanguage.Initialize(new TextObject("{=!}Nordic"),
+                new TextObject("{=!}The tongue of the Nords, seafarers who sailed south from beyond Calradia's northern horizon. Though Nordic shares distant roots with Sturgian — both peoples traded and raided the same coasts for generations — the two languages have grown apart. A Sturgian may catch the gist of Nordic speech, especially in matters of ships, war, and trade, but the finer points of Nordic law, saga, and religion remain opaque without study."),
+                nordCultures,
+                GetIntelligibles(NordLanguage));
         }
 
         public Dictionary<Language, float> GetIntelligibles(Language language)
@@ -101,9 +112,10 @@ namespace BannerKings.Managers.Education.Languages
             {
                 "language_battanian" => new Dictionary<Language, float> {{Vakken, 0.15f}, {Calradian, 0.1f}},
                 "language_vlandic" => new Dictionary<Language, float> {{Calradian, 0.15f}},
-                "language_sturgian" => new Dictionary<Language, float> {{Vakken, 0.1f}},
+                "language_sturgian" => new Dictionary<Language, float> {{Vakken, 0.1f}, {NordLanguage, 0.1f}},
                 "language_calradian" => new Dictionary<Language, float> {{Vlandic, 0.1f}, {Battanian, 0.1f}},
                 "language_vakken" => new Dictionary<Language, float> {{Battanian, 0.15f}, {Sturgian, 0.1f}},
+                "language_nord" => new Dictionary<Language, float> {{Sturgian, 0.15f}},
                 _ => new Dictionary<Language, float>()
             };
         }

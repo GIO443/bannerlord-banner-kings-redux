@@ -1,4 +1,4 @@
-using BannerKings.Behaviours.Diplomacy;
+﻿using BannerKings.Behaviours.Diplomacy;
 using BannerKings.CampaignContent.Skills;
 using BannerKings.CampaignContent.Traits;
 using BannerKings.Managers.Court;
@@ -155,7 +155,7 @@ namespace BannerKings.Models.BKModels
                 result.Add(factor, new TextObject("{=bbOk856z}Clan tier"));
             }
 
-            result.Add(MathF.Abs(result.BaseNumber) * (BKSkillEffects.Instance.Legitimacy.GetPrimaryValue(
+            result.Add(MathF.Abs(result.BaseNumber) * (BKSkillEffects.Instance.Legitimacy.GetSkillEffectValue(
                 hero.GetSkillValue(BKSkills.Instance.Lordship)) * 0.01f),
             new TextObject("{=UxAl9iyi}Personal"));
 

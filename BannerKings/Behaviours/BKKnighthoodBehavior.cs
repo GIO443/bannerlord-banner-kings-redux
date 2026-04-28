@@ -1,4 +1,4 @@
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 using BannerKings.Actions;
@@ -15,6 +15,7 @@ using TaleWorlds.CampaignSystem.Party;
 using TaleWorlds.CampaignSystem.ViewModelCollection;
 using TaleWorlds.CampaignSystem.ViewModelCollection.ClanManagement.Categories;
 using TaleWorlds.Core;
+using TaleWorlds.Core.ImageIdentifiers;
 using TaleWorlds.Library;
 using TaleWorlds.Localization;
 using ActionType = BannerKings.Managers.Titles.ActionType;
@@ -823,6 +824,10 @@ namespace BannerKings.Behaviours
             }
         }
 
+        // ClanCreatePartyPatch removed: ClanPartiesVM was rewritten in 1.3.x to use ClanCardSelectionItemPropertyInfo
+        // instead of InquiryElement, and GetPartyLeaderAssignmentSkillsHint/OnNewPartySelectionOver no longer exist.
+        // Knighthood gating for new-party leader selection needs a fresh port against the new VM if reintroduced.
+        /*
         [HarmonyPatch(typeof(ClanPartiesVM), "ExecuteCreateNewParty")]
         internal class ClanCreatePartyPatch
         {
@@ -893,7 +898,7 @@ namespace BannerKings.Behaviours
 
                         list.Add(new InquiryElement(hero, 
                             hero.Name.ToString(), 
-                            new ImageIdentifier(CampaignUIHelper.GetCharacterCode(hero.CharacterObject, false)), isEnabled, hint));
+                            new CharacterImageIdentifier(CampaignUIHelper.GetCharacterCode(hero.CharacterObject, false)), isEnabled, hint));
                     }
                 }
                 if (list.Count > 0)
@@ -914,5 +919,6 @@ namespace BannerKings.Behaviours
                 return false;
             }
         }
+        */
     }
 }

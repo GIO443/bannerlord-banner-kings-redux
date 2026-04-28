@@ -1,4 +1,4 @@
-﻿using BannerKings.Behaviours.Diplomacy;
+using BannerKings.Behaviours.Diplomacy;
 using BannerKings.Behaviours.Diplomacy.Wars;
 using BannerKings.CampaignContent.Traits;
 using BannerKings.Extensions;
@@ -14,12 +14,12 @@ namespace BannerKings.Models.Vanilla
     public class BKTargetScoreModel : DefaultTargetScoreCalculatingModel
     {
         public override float RaidingFactor => base.RaidingFactor * (1f + BannerKingsSettings.Instance.RaidIncentive);
-        public override float CalculatePatrollingScoreForSettlement(Settlement settlement, MobileParty mobileParty)
+        public override float CalculatePatrollingScoreForSettlement(Settlement settlement, bool isFromPort, MobileParty mobileParty)
         {
-            float result = base.CalculatePatrollingScoreForSettlement(settlement, mobileParty);
+            float result = base.CalculatePatrollingScoreForSettlement(settlement, isFromPort, mobileParty);
             if (result > 0f && BannerKingsSettings.Instance.PatrolIncentive > 0f && settlement.MapFaction == mobileParty.MapFaction)
             {
-                bool war = settlement.MapFaction.Stances.Any(x => x.IsAtWar);
+                bool war = settlement.MapFaction.FactionsAtWarWith.Count > 0;
                 if (settlement.OwnerClan != null && mobileParty.ActualClan != null && settlement.OwnerClan == mobileParty.ActualClan)
                 {
                     result *= 1f + (settlement.MapFaction.IsKingdomAtWar() ? BannerKingsSettings.Instance.PatrolIncentive / 2f : BannerKingsSettings.Instance.PatrolIncentive);
@@ -75,9 +75,9 @@ namespace BannerKings.Models.Vanilla
             return result;
         }
 
-        public override float GetTargetScoreForFaction(Settlement targetSettlement, Army.ArmyTypes missionType, MobileParty mobileParty, float ourStrength, int numberOfEnemyFactionSettlements = -1, float totalEnemyMobilePartyStrength = -1)
+        public override float GetTargetScoreForFaction(Settlement targetSettlement, Army.ArmyTypes missionType, MobileParty mobileParty, float ourStrength)
         {
-            float result =  base.GetTargetScoreForFaction(targetSettlement, missionType, mobileParty, ourStrength, numberOfEnemyFactionSettlements, totalEnemyMobilePartyStrength);
+            float result = base.GetTargetScoreForFaction(targetSettlement, missionType, mobileParty, ourStrength);
             if (result == 0) return result;
 
             IFaction targetFaction = targetSettlement.MapFaction;
@@ -114,6 +114,6 @@ namespace BannerKings.Models.Vanilla
         }
 
         private bool AreSettlementsClose(Settlement reference, Settlement target) =>
-            Campaign.Current.Models.MapDistanceModel.GetDistance(reference, target) < Campaign.AverageDistanceBetweenTwoFortifications * 1.1f;
+            Campaign.Current.Models.MapDistanceModel.GetDistance(reference, target, false, false, MobileParty.NavigationType.All) < Campaign.Current.GetAverageDistanceBetweenClosestTwoTownsWithNavigationType(MobileParty.NavigationType.All) * 1.1f;
     }
 }

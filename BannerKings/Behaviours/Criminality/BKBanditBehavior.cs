@@ -1,4 +1,4 @@
-using BannerKings.Components;
+﻿using BannerKings.Components;
 using BannerKings.Settings;
 using HarmonyLib;
 using Helpers;
@@ -150,7 +150,7 @@ namespace BannerKings.Behaviours
             {
                 if (heroParty != null && heroParty.IsActive)
                 {
-                    if (TaleWorlds.CampaignSystem.Campaign.Current.Models.MapDistanceModel.GetDistance(party, heroParty) <= 10f)
+                    if (TaleWorlds.CampaignSystem.Campaign.Current.Models.MapDistanceModel.GetDistance(party, heroParty, MobileParty.NavigationType.All, out _) <= 10f)
                     {
                         SetFollow(heroParty, party);
                     }
@@ -161,8 +161,8 @@ namespace BannerKings.Behaviours
         public void SetFollow(MobileParty heroParty, MobileParty follower)
         {
             follower.Ai.DisableForHours(2);
-            follower.Ai.SetMoveEscortParty(heroParty);
-            follower.Ai.RecalculateShortTermAi();
+            follower.SetMoveEscortParty(heroParty, MobileParty.NavigationType.All, false);
+            // RecalculateShortTermAi removed in 1.3.x
         }
 
         public void CreateBanditHero(Clan clan)
@@ -180,10 +180,11 @@ namespace BannerKings.Behaviours
                 settlement = hideout.Settlement;
             }
 
-            Settlement closest = SettlementHelper.FindNearestTown(x => x.IsTown, settlement);
+            Town closest = BannerKings.Utils.Helpers.FindNearestTown(x => x.IsTown, settlement);
+            if (closest == null) return;
 
-            var templates = CharacterObject.All.ToList().FindAll(x =>
-              x.StringId.Contains("bannerkings_bandithero") && x.Culture == closest.Culture);
+            var templates = CharacterObject.All.Where(x =>
+              x.StringId.Contains("bannerkings_bandithero") && x.Culture == closest.Culture).ToList();
             CharacterObject template = templates.GetRandomElement();
             if (template == null)
             {
@@ -258,7 +259,7 @@ namespace BannerKings.Behaviours
             int num = 0;
             while ((float)num < TaleWorlds.CampaignSystem.Campaign.Current.Models.BanditDensityModel.NumberOfMinimumBanditPartiesInAHideoutToInfestIt * 6)
             {
-                TaleWorlds.CampaignSystem.Campaign.Current.GetCampaignBehavior<BanditsCampaignBehavior>()
+                TaleWorlds.CampaignSystem.Campaign.Current.GetCampaignBehavior<BanditSpawnCampaignBehavior>()
                     .AddBanditToHideout(hideout, clan.DefaultPartyTemplate, false);
                 num++;
             }
@@ -316,3 +317,5 @@ namespace BannerKings.Behaviours
         }
     }
 }
+
+

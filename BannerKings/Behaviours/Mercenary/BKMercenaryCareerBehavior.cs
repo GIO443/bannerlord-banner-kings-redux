@@ -1,4 +1,4 @@
-using BannerKings.Utils;
+﻿using BannerKings.Utils;
 using System.Collections.Generic;
 using TaleWorlds.CampaignSystem;
 using TaleWorlds.CampaignSystem.Actions;
@@ -78,7 +78,7 @@ namespace BannerKings.Behaviours.Mercenary
                     var career = careers[Clan.PlayerClan];
                     var troop = career.GetTroop(Settlement.CurrentSettlement.Culture, true);
                     var cost = TaleWorlds.CampaignSystem.Campaign.Current.Models.PartyWageModel.GetTroopRecruitmentCost(troop.Character, Hero.MainHero);
-                    Hero.MainHero.ChangeHeroGold(-cost);
+                    Hero.MainHero.ChangeHeroGold(-(int)cost.ResultNumber);
                     MobileParty.MainParty.AddElementToMemberRoster(troop.Character, 1);
                 });
 
@@ -112,7 +112,7 @@ namespace BannerKings.Behaviours.Mercenary
                     var career = careers[Clan.PlayerClan];
                     var troop = career.GetTroop(Settlement.CurrentSettlement.Culture, false);
                     var cost = TaleWorlds.CampaignSystem.Campaign.Current.Models.PartyWageModel.GetTroopRecruitmentCost(troop.Character, Hero.MainHero);
-                    Hero.MainHero.ChangeHeroGold(-cost);
+                    Hero.MainHero.ChangeHeroGold(-(int)cost.ResultNumber);
                     MobileParty.MainParty.AddElementToMemberRoster(troop.Character, 1);
                 });
         }

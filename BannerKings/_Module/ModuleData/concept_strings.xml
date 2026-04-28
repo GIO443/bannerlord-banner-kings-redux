@@ -1,253 +1,249 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8"?>
 
 <Concepts>
 	<Concept title="{=!}Education"
 	        id="str_bk_education"
 	        group="Characters"
 	        link_id="BK_EDUCATION_LINK"
-	        text="{=!}All {CHARACTERS_LINK} have the ability to educate themselves. Educations are composed of {BK_BOOKS_LINK}, {BK_LANGUAGES_LINK} and {BK_LIFESTYLES_LINK}s. Progressing in any of these will increase your Scholarship skill and allow you access to it's unique perks." />
+	        text="{=!}All {CHARACTERS_LINK} have the ability to educate themselves. Educations are composed of {BK_BOOKS_LINK}, {BK_LANGUAGES_LINK} and {BK_LIFESTYLES_LINK}s. Progressing in any of these will increase your Scholarship skill and allow access to its unique perks." />
 
 	<Concept title="{=NvnA9WyM}Books"
 	        id="str_bk_book"
 	        group="Items"
 	        link_id="BK_BOOKS_LINK"
-	        text="{=!}Books can be found through specialized sellers that can be found in town keeps throughout the continent. They do not stay in the same place for long. Books are written in a specific {BK_LANGUAGES_LINK} and are associated with a skill. Your ability to understand the language will determine how quickly you can read the book. You can acquire a copy of Dictionarium Calradium to be able to read any book, although in very slow manner. Books can be either Skill books or Focus books, mostly the latter. Skill books provide a big amount of experience in their associated skill. Focus books provide less skill, but provide a focus point in that skill. If the skill's focus is already maxed out, the point is instead transformed into more skill experience." />
+	        text="{=!}Books can be acquired from specialized booksellers found in town keeps and taverns. They do not stay in one place for long. Each book is written in a specific {BK_LANGUAGES_LINK} and is associated with a skill. Your competence in the language determines how quickly you can read it; a copy of Dictionarium Calradium lets you read any book, slowly. Books come in two kinds: Skill books grant a large amount of skill XP. Focus books grant a focus point in their skill (or extra XP if focus is already maxed)." />
 
 	<Concept title="{=KBsVXEtH}Languages"
 	        id="str_bk_language"
 	        group="Characters"
 	        link_id="BK_LANGUAGES_LINK"
-	        text="{=!}All {CULTURES_LINK} have a language associated with them. Languages allow you to better engage with lords and populations of that culture, through relations and cultural acceptance gains. Languages also allow you to read more {BK_BOOKS_LINK} as well as read faster. Languages may be learned from notables, family members or companions, whenever they have a good competence at it." />
-	
+	        text="{=!}Every {CULTURES_LINK} has an associated language. Knowing a language improves your interactions with lords and populations of that culture, both in relations and cultural acceptance. Languages also let you read more {BK_BOOKS_LINK}, faster. You can learn from notables, family members, or companions whenever they are competent enough to teach. Note: Nordic is included for War Sails / Naval DLC characters." />
+
 	<Concept title="{=!}Lifestyles"
 	        id="str_bk_lifestyle"
 	        group="Characters"
 	        link_id="BK_LIFESTYLES_LINK"
-	        text="{=!}Lifestyles describe a character's specialization. Each lifestyle provides a unique set of perks, 3 to 4, that cannot be otherwise obtained. These perks are permanent, and not lost once switching lifestyles. Perks are unlocked through spending a Focus point as well as progressing in the lifestyle. Progress is made by time and leveling up in the lifestyle's primary and secondary skills. Therefore, lifestyles are a long-term investment that provides unique benefits that benefit a given role, such as being a mercenary, or a trading caravaneer. All lifestyles also have 2 passive effects: a positive and negative one. Unlike achieved perks, these are not permanent, and only take effect while the lifestyle is active." />
-	
+	        text="{=!}A lifestyle is a paired-skill specialization (e.g., Cataphract pairs Riding + Polearm) that unlocks 3–4 unique perks not obtainable elsewhere. Perks unlock by spending a Focus point and progressing in the lifestyle, which advances when you exercise BOTH linked skills — only the lower of the two contributes per tick. Each lifestyle also has a passive positive and negative effect that apply only while it is active; the unlocked perks are permanent. Active lifestyles include Fian, Cataphract, August, SiegeEngineer, CivilAdministrator, Caravaneer, Artisan, Outlaw, Mercenary, Kheshig, Varyag, Gladiator, Ritter, Jawwal, and Commander." />
+
 	<Concept title="{=!}Decisions"
 	        id="str_bk_decisions"
 	        group="Characters"
 	        link_id="BK_DECISIONS_LINK"
-	        text="{=!}Decisions are important actions a character can take. Decisions range from actions that affect only the character themselves, such as buying a book, to affecting their family, such as assuming a culture, to ultimately affecting the continent, such as founding an empire. Decisions can be found inside the Character tab. Each decision has a set of requirements to be completed, which are listed on hovering over each decision. Decisions may not be shown at all, meaning they are not relevant for your situation (ie, decisions related to being a ruler, when you are not a ruler)." />
+	        text="{=!}Decisions are major actions a character can take, found in the Character tab. They range from personal (buying a book) through family-scale (assuming a culture) up to continent-scale (founding an empire). Each decision has requirements visible on hover. Irrelevant decisions (e.g., ruler-only actions when you are not a ruler) are simply hidden." />
 
 	<Concept title="{=!}Religions"
 	        id="str_bk_religions"
 	        group="Characters"
-	        link_id="BK_DECISIONS_LINK"
-	        text="{=!}Religions represent a crucial part of cultures within the game's world. Along with cultural flavor, faiths represent how a group of people differs to others in shared values, traditions and ideologies.{newline}{newline}All Banner Kings religions are lore-based. They are directly extracted from Mount and Blade lore (not just Bannerlord) when possible. If that is not possible (no information is present, ie, Sturgian lore), they are made up (though still linking to lore points whenever possible), informed on historical information that a culture/faction aims to represent. Yet, they are made up, fantasy ideas, and not made to represent real ideologies (not those official to Banner Kings).{newline}{newline}Ingame, most religion actions are mediated through {BK_PREACHERS_LINK}, who allow you to perform {BK_RITES_LINK}, take {BK_BLESSINGS_LINK} in exchange for {BK_PIETY_LINK} and learn about {BK_DIVINITIES_LINK} as well as other topics. Moreover, preachers are notables like any other, and provide troops. If you wish to assume a new faith, read {BK_JOIN_RELIGION_LINK}." />
-	
-	<Concept title="{=!}Joinning a Religion"
+	        link_id="BK_RELIGIONS_LINK"
+	        text="{=!}Religions are a core part of cultural identity. Each Banner Kings faith is lore-grounded where Mount and Blade lore exists, and otherwise informed by historical analogues for the represented culture. They are fantasy ideas, not statements about real-world religions.{newline}{newline}In play, most religious actions go through {BK_PREACHERS_LINK}: they perform {BK_RITES_LINK}, grant {BK_BLESSINGS_LINK} in exchange for {BK_PIETY_LINK}, and teach you about {BK_DIVINITIES_LINK}. Preachers are also notables, providing recruits like any other. To convert, see {BK_JOIN_RELIGION_LINK}." />
+
+	<Concept title="{=!}Joining a Religion"
 	        id="str_bk_join_religion"
 	        group="Characters"
 	        link_id="BK_JOIN_RELIGION_LINK"
-	        text="{=!}There are 2 ways to join a religion: firstly, when loading the mod for the first time within a campaign. Lastly, by being inducted into one through {BK_PREACHERS_LINK}.{newline}{newline}Every faith has different criteria to accept a new follower. These criteria can be found in Character -> Religion -> reading the specific religion you want to learn about. All of them have a text line listing how to be inducted. When joinning a new faith, your {BK_PIETY_LINK} will be zeroed, and some renown is lost." />
-			
+	        text="{=!}You can join a religion in two ways: at first campaign load (a popup offers a choice), or in-game by being inducted by a {BK_PREACHERS_LINK}.{newline}{newline}Each faith has its own joining criteria, listed in Character → Religion → that religion's page. Joining a new faith zeroes your {BK_PIETY_LINK} and costs some renown." />
+
 	<Concept title="{=!}Preachers"
 	        id="str_bk_preachers"
 	        group="Characters"
 	        link_id="BK_PREACHERS_LINK"
-	        text="{=!}" />
-			
+	        text="{=!}Preachers are religious notables found in towns and villages. They act as the player-facing interface to a faith: they perform {BK_RITES_LINK}, grant {BK_BLESSINGS_LINK}, induct converts, and explain {BK_DIVINITIES_LINK} and doctrine. They also recruit and train troops like other notables. The available preacher type depends on the settlement and the realm's contract — some faiths cannot field a preacher in hostile-stance territory. To install one in a fief you own, use Demesne Management → Religion → Appoint Preacher." />
+
 	<Concept title="{=!}Divinities"
 	        id="str_bk_divinities"
 	        group="Characters"
 	        link_id="BK_DIVINITIES_LINK"
-	        text="{=!}" />
-			
+	        text="{=!}Divinities are the gods, saints, or sacred figures of a faith. Each faith may be Monotheistic, Polytheistic, Henotheistic, or Dualistic, with a corresponding set of divinities, taboos, holy days, and forbidden marriages. Praying to or honoring a divinity through {BK_RITES_LINK} grants {BK_PIETY_LINK} and may unlock unique blessings tied to that figure." />
+
 	<Concept title="{=!}Rites"
 	        id="str_bk_rites"
 	        group="Characters"
 	        link_id="BK_RITES_LINK"
-	        text="{=!}" />
-	
+	        text="{=!}Rites are ritual actions tied to a faith — funerals, sacrifices, holy-day observances, war oaths, marriage rites. Each rite has a piety cost, a cooldown, and a triggering condition (battle won, hero married, holy day reached, etc.). Outcomes range from troop morale boosts to permanent traits. Rites are accessed via the relevant preacher or directly through Character → Religion." />
+
 	<Concept title="{=!}Blessings"
 	        id="str_bk_blessings"
 	        group="Characters"
 	        link_id="BK_BLESSINGS_LINK"
-	        text="{=!}" />
+	        text="{=!}Blessings are temporary buffs granted by a preacher in exchange for {BK_PIETY_LINK}. Effects vary by faith and divinity — combat morale, party speed, settlement loyalty, healing rate. Blessings stack with normal modifiers and expire after a set time. A faith with active doctrines may unlock additional or stronger blessings." />
 
 	<Concept title="{=!}Piety"
 	        id="str_bk_piety"
 	        group="Characters"
 	        link_id="BK_PIETY_LINK"
-	        text="{=!}" />
-			
+	        text="{=!}Piety is the religious counterpart to Influence. It is gained by prayer, observing holy days, performing {BK_RITES_LINK}, sacrificing wealth, and successful religious-justified war. It is spent on {BK_BLESSINGS_LINK}, conversions, and rite triggers. Piety is per-hero. Joining a new faith resets it to zero." />
+
 	<Concept title="{=!}War Support"
 	        id="str_bk_war_support"
 	        group="Kingdoms"
 	        link_id="BK_WAR_LINK"
-	        text="{=!}Whether the members of a realm support waging war against another realm depends on a series of factors. Firstly, at least one adequate {BK_CASUS_LINK} is required to justify a war.{newline}Secondly, every voting noble has a different opinion on said justification, based on their personalities, as well as their current income. A merciless justification, such as mass raiding, does not bode well with those prone to mercy.{newline}Lastly, a series of other factors also apply, independent of lords or their opinions: distance to the enemy, current wars of the realm, how much of a threat said enemy poses, et cetera. Factors can be seen in detail within the tooltips in the Diplomacy tab." />
-			
+	        text="{=!}Whether a realm's nobles support a war depends on multiple factors. First, at least one valid {BK_CASUS_LINK} is required. Second, every voting noble has an opinion shaped by personality and current income — a merciless justification (e.g., mass raid) loses support among merciful lords. Third, situational factors apply regardless of opinion: distance, current wars, threat assessment. The full breakdown is in the Diplomacy tab tooltip." />
+
 	<Concept title="{=!}Casus Belli"
 	        id="str_bk_casus"
 	        group="Kingdoms"
 	        link_id="BK_CASUS_LINK"
-	        text="{=!}A Casus Belli is a justification for war. Calling one's vassals to serve and risk their lives is not an uncomplicated task. For aggressive wars (not self defense) it is expected a valid reason to risk one's life. Such justifications come in different natures: some may be culturally based, for example, an Imperial Reconquest justification may be used between the successors of the Calradoi Empire. Others, contextual, such as curbing a potential neighbouring threat.{newline}{newline}Every justification is seen differently by each of the voting Peers: a zealous lord is like a religious justification more than those who do not particularly care for faith. These stances are more easily expressed through the {BK_IGROUPS_LINK} a Peer participates in, for each group supports a list of justifications." />
-	
+	        text="{=!}A Casus Belli is a justification for war. Lords expect a real reason to risk their lives in offensive wars. Justifications include cultural (Imperial Reconquest among Calradoi successors), threat-curbing, religious (faith-driven), or claim-pressing. Each Peer values these differently — a zealous lord supports religious justifications strongly. Group affiliation often signals these preferences; see {BK_IGROUPS_LINK}." />
+
 	<Concept title="{=!}Interest Groups"
 	        id="str_bk_groups"
 	        group="Kingdoms"
 	        link_id="BK_IGROUPS_LINK"
-	        text="{=!}An Interest Group is a political force composed by a series of Peers and/or fief dignataries (notables) that have a certain political agenda. This agenda is expressed by a collection of policies, laws, {BK_CASUS_LINK}, among other things, that the members of the group collectively support.{newline}{newline}Every group represents a % of influence within the realm, as well as supports the ruler to a degree. Group influence is dictated by the relevance of the nobles and dignataries within: their militarily power and the share of population they represent, respectively. Group support relies on multiple factors, depending on the group, but is mostly influenced by: 1) good relations between the ruler and the group leader; 2) {BK_LEGITIMACY_LINK} of the ruler." />
+	        text="{=!}An Interest Group is a political faction inside a kingdom — Peers and notables sharing a policy agenda (laws, casus belli, factions to oppose). Each group represents a share of the realm's influence (driven by member military power and population share) and offers the ruler a level of support (driven by relations, {BK_LEGITIMACY_LINK}, and group-specific factors). Ignored or hostile groups can defect, secede, or back rival claimants." />
 
 	<Concept title="{=!}Legitimacy"
 	        id="str_bk_legitimacy"
 	        group="Kingdoms"
 	        link_id="BK_LEGITIMACY_LINK"
-	        text="{=!}Legitimacy represents how the ruler is generally seen by their vassals and populace. A legitimate rule is crucial to keep a realm bound together. A ruler is seen as legitimate through a series of criteria. For example: being legally put into rulership through the {BK_KINGDOM_SUCCESSION_LINK} is a major factor. Other factors include a shared cultural and religious heritage with the realm, adequate {BK_GRACE_LINK}, as well as extra factors depending on the specific group. Legitimacy is of great importance for the support of {BK_IGROUPS_LINK}, who may otherwise become domestic enemies, for the powerful nobles will not tolerate a weak or illegitimate ruler for long." />
+	        text="{=!}Legitimacy is how lawfully a ruler is seen by vassals and populace. A legitimate rule binds a realm together. Sources of legitimacy: legal accession via {BK_KINGDOM_SUCCESSION_LINK}, shared culture and religion with the realm, sufficient {BK_GRACE_LINK}, and group-specific factors. Low legitimacy turns powerful Peers into domestic enemies." />
 
 	<Concept title="{=!}Grace"
 	        id="str_bk_grace"
 	        group="Kingdoms"
 	        link_id="BK_GRACE_LINK"
-	        text="{=!}Every one of the {BK_COURT_LINK} contains a level of Grace associated with it. Grace is the measure of importance attributed to your court by others. It is dictated by the location of your court, as well as the various expenses associated with said court. The higher a Peer is within the hierarchy of the high nobility, the more grace is expected from their court. Naturally, the court of a king is expected to be more luxurious than that of his vassals. Such expenses, useful or otherwise, will dictate a court's Grace. A more gracious court allows more political leverage within the realm, as well as more {BK_LEGITIMACY_LINK} for rulers." />
-			
+	        text="{=!}Each {BK_COURT_LINK} carries a Grace level — a measure of how impressive the court is to outsiders. Grace is set by the court's location and its expenses. The higher you sit in the noble hierarchy, the more Grace is expected: a king's court must outshine his vassals'. Higher Grace gives political leverage and adds to ruler {BK_LEGITIMACY_LINK}." />
+
 	<Concept title="{=!}Courts"
 	        id="str_bk_courts"
 	        group="Kingdoms"
 	        link_id="BK_COURT_LINK"
-	        text="{=!}" />
+	        text="{=!}A Court is the personnel and physical seat of governance for a clan or kingdom. Each clan has a council with positions like Marshal, Steward, Chancellor, Spymaster, and Court Physician — filling them costs influence and grants stat effects to clan parties or the realm. Kingdom-tier courts are exclusive to the ruling clan and use kingdom influence. Court location, staff, and expenses determine the court's {BK_GRACE_LINK}." />
 
 	<Concept title="{=!}Innovations"
 	        id="str_bk_innovations"
 	        group="Kingdoms"
 	        link_id="BK_INNOVATIONS_LINK"
-	        text="{=!}" />
+	        text="{=!}Innovations are gradual cultural advancements (e.g., Crossbows, Stirrups). Each culture researches innovations independently based on the era it sits in (see {BK_ERAS_LINK}) and the buildings, books, and notables in its settlements. Some innovations gate item availability (e.g., crossbows in town markets) or unlock new troop options. Progress is per-culture and visible in the Cultures tab." />
 
 	<Concept title="{=!}Eras"
 	        id="str_bk_eras"
 	        group="Kingdoms"
 	        link_id="BK_ERAS_LINK"
-	        text="{=!}" />
+	        text="{=!}Eras are broad historical periods that gate which {BK_INNOVATIONS_LINK} a culture can research. Eras advance over campaign time — usually decades — and each era opens a new tranche of innovations. Cultures advance through eras at different rates depending on their education, settlements, and trade exposure." />
 
 	<Concept title="{=!}Alliances"
 	        id="str_bk_alliances"
 	        group="Kingdoms"
 	        link_id="BK_ALLIANCES_LINK"
-	        text="{=!}An alliance between two realms institutes an expectation of mutual defensive military help. When one of the constituents is attacked by another realm, the other constituent is expected to come to their aid. Refusing this terminates the alliance.{newline}Alliances may beging either by mutual agreement between rulers, or by marriage arrangements. Alliances are unmade upon the death or change of rulership of either constituent, with the expection of alliances through marriage. For example, if the ruler of a kingdom dies, but their clan is still the ruling clan, and they have blood ties with their allied realm, the alliance will persevere." />
+	        text="{=!}An alliance binds two realms to mutual defense: when one is attacked, the other is expected to join. Refusing terminates it. Alliances are formed by ruler agreement or by marriage. Ruler-pact alliances dissolve on death or change of either ruler; marriage-blood alliances persist as long as the blood tie does (e.g., a deceased ally's heir of the same clan still maintains the alliance)." />
 
 	<Concept title="{=!}Governments"
-	        id="str_bk_decisions"
+	        id="str_bk_governments"
 	        group="Kingdoms"
 	        link_id="BK_GOVERNMENT_LINK"
-	        text="{=!}Government laws describe how different realms are organized. Different governments accept different types of policies and laws. Ie, republics do not accept policies such as Royal Guard, which highly favor a ruling dynasty. Moreover, government types define what kind of {BK_SUCCESSIONS_LINK} a realm can practice.{newline}{newline}Governments can be changed through a Decision. The lords and ladies of the realm must agree to such a fundamental change, and such changes are often hard to be achieved - most are resistant, either due to tradition or to maintain their own status." />
+	        text="{=!}A Government law defines how a realm is organized: Imperial, Feudal, Tribal, Republic, or Theocratic. Different governments accept different policies and laws — republics reject ruling-dynasty policies like Royal Guard. Governments also constrain available {BK_SUCCESSIONS_LINK}. Changing a realm's government is a Decision; vassals frequently resist due to tradition or status, so it is hard to push through." />
 
 	<Concept title="{=!}Successions"
 	        id="str_bk_successions"
 	        group="Kingdoms"
 	        link_id="BK_SUCCESSIONS_LINK"
-	        text="{=!}Succession laws determine how the {BK_KINGDOM_SUCCESSION_LINK} will be handled, as opposed to {BK_INHERITANCES_LINK}, which determine the inheritance of clans and titles." />
-	
+	        text="{=!}Succession laws determine how the {BK_KINGDOM_SUCCESSION_LINK} resolves on a ruler's death. They are distinct from {BK_INHERITANCES_LINK}, which govern clans and individual titles." />
+
 	<Concept title="{=!}Kingdom Succession"
 	        id="str_bk_ksuccessions"
 	        group="Kingdoms"
 	        link_id="BK_KINGDOM_SUCCESSION_LINK"
-	        text="{=!}Kingdom successions may take 2 forms: Elective or Hereditary. How this happens is entirely dictated by the law of {BK_SUCCESSIONS_LINK} taking effect in the kingdom's de jure title (see top of Demesne Hierarchy).{newline}{newline}Hereditary successions are simple: no election takes place. This means that the succession line (shown in Kingdom -> Demesne tab) is definitive. Once the ruler dies, the Heir in the succession line takes their place.{newline}{newline}Elective successions are more complex. The succession line (shown in Kingdom -> Demesne tab) is NOT definitive. Instead, it is a prediction, based on the competence of each candidate as heir. However, once the election takes place, other factors play their part. While the succession scores defines the base competence of a succession candidate, each voting lord will differ in opinion, based on universal criteria: religion, culture, relationship and political agreement. Naturally, a lord won't vote for a candidate whose religion they find evil, who differs in culture and who they hate, no matter how good of a candidate they are.{newline}{newline}Once the succession process is finished, the de jure title of the realm is inherited by the new ruler. If the ruler is chosen from the family of the previous ruler, and they were not expected to become clan leader, they will assume that position. For example, say the second son of the previous ruler was chosen, but the clan was to be inherited by the firstborn son. The second son will now lead both the clan and the realm." />
-	
+	        text="{=!}Kingdom successions are Hereditary or Elective, set by the {BK_SUCCESSIONS_LINK} law on the kingdom's de jure title (top of Demesne Hierarchy).{newline}{newline}Hereditary: no election. The succession line shown in Kingdom → Demesne is final; on ruler death, the listed Heir takes the throne.{newline}{newline}Elective: the listed line is a competence prediction. At election time, every voting Peer also weighs religion, culture, relationship, and political agreement against each candidate. The winner inherits the realm's de jure title — and if they were not previously their clan's heir, they now lead both the clan and the realm." />
+
 	<Concept title="{=!}Inheritances"
 	        id="str_bk_inheritances"
 	        group="Kingdoms"
 	        link_id="BK_INHERITANCES_LINK"
-	        text="{=!}Inheritance laws determine how clans and titles are passed on clan leader death. The only exception to this are sovereign titles, that is, titles directly associated with the rulership of a faction, which are instead passed on by {BK_SUCCESSIONS_LINK}. The inheritance law determines who inside the clan stands to become its next leader and have authority over its properties. Very important to the inheritance are also the {BK_GENDERS_LINK}. While Inheritance determines what makes a candidate better to become leader (ie, Age), {BK_GENDERS_LINK} determine which gender is most adequate to inherit. Most kingdoms adopt Agnatic gender law combined with Primogeniture inheritance, both together meaning 'The firstborn male'." />
-			
+	        text="{=!}Inheritance laws decide which clan member becomes leader on the current leader's death (sovereign titles use {BK_SUCCESSIONS_LINK} instead). Inheritance defines the ranking criterion (age, seniority, etc.); {BK_GENDERS_LINK} narrows by gender. The most common pairing is Primogeniture + Agnatic — 'eldest male first'." />
+
 	<Concept title="{=!}Gender Laws"
 	        id="str_bk_genders"
 	        group="Kingdoms"
 	        link_id="BK_GENDERS_LINK"
-	        text="{=!}Gender laws determine which gender is adequate to inherit a clan's properties ({BK_INHERITANCES_LINK}), become {BK_KNIGHTS_LINK} and rulers. While gender laws may heavily favor one gender over the other, they do not exclude either. For example, Agnatic law sets males for precedence. However, if a clan's only remaining member is female, she will inherit the clan regardless." />
-			
+	        text="{=!}Gender laws set which gender is preferred for inheritance, knighthood, and rulership. They are preferences, not exclusions — Agnatic favors males, but a clan's last surviving member inherits regardless of gender. Variants are Agnatic (male-only), Cognatic (eldest regardless), Agnatic-Cognatic (male-preferred), and Enatic (female-only)." />
+
 	<Concept title="{=!}Knights"
 	        id="str_bk_knights"
 	        group="Kingdoms"
 	        link_id="BK_KNIGHTS_LINK"
-	        text="{=!}Knights are property-owning nobles that fight for their house/clan in military retinues. Although a knight usually does not have any blood ties to their overlord, they are considered part of their Household, and therefore stand as valid candidates to inherit the clan and its properties. The premise of Knighthood is the Knight-Service: knights will submit to you as vassals and obey faithfully, in exchange of a fee. Knighthood is required to raise new military parties, with the exception of your close relatives. The knight's fee is a property, either {BK_ESTATES_LINK} or {BK_LORDSHIPS_LINK}, the {BK_TITLES_LINK} associated with {VILLAGES_LINK}.{newline}{newline}Estate-owning knights will often still need financial aid. Therefore, they will be part of your payroll. However, their estate will pay for part of their expenses.{newline}{newline}Lordship holders instead fully pay for their expenses, and therefore will never be in your payroll. These knights will also administer their village, building constructions. Therefore, you are advised to give them your best, most productive properties, as their income will determine the size and quality of their parties.{newline}{newline}To grant someone knighthood, you need at least the minimum level of {BK_PEERAGE_LINK}, granted to you on joinning a kingdom. Knighthood will require a Fee, estate or lordship, as well as an initial payment and influence. Therefore, choose well who to invest knighthood. It can be granted through dialogue, directly speaking to the knighthood candidate." />
-	
+	        text="{=!}Knights are property-owning nobles fighting for their house in retinues. Though usually unrelated by blood to their lord, they are part of the household — valid heirs of last resort. Knighthood is the Knight-Service: oath of loyalty in exchange for a fee. Apart from close relatives, knighthood is required to raise a new military party.{newline}{newline}The fee is property — either {BK_ESTATES_LINK} or {BK_LORDSHIPS_LINK} (the {BK_TITLES_LINK} attached to {VILLAGES_LINK}).{newline}{newline}Estate-knights remain partly on your payroll; their estate offsets some expenses.{newline}{newline}Lordship-knights are off-payroll entirely and administer the village themselves, building constructions. Grant your most productive properties — their party size scales with their income.{newline}{newline}Granting knighthood needs at least Lesser {BK_PEERAGE_LINK} (granted on joining a kingdom), the fee property, an upfront payment, and influence. Choose wisely. Initiate via dialogue with the candidate." />
+
 	<Concept title="{=!}Trade Pacts"
-	        id="str_bk_knights"
+	        id="str_bk_trade_pact"
 	        group="Kingdoms"
 	        link_id="BK_TRADE_PACT_LINK"
-	        text="{=!}Knights are property-owning nobles that fight for their house/clan in military retinues. Although a knight usually does not have any blood ties to their overlord, they are considered part of their Household, and therefore stand as valid candidates to inherit the clan and its properties. The premise of Knighthood is the Knight-Service: knights will submit to you as vassals and obey faithfully, in exchange of a fee. Knighthood is required to raise new military parties, with the exception of your close relatives. The knight's fee is a property, either {BK_ESTATES_LINK} or {BK_LORDSHIPS_LINK}, the {BK_TITLES_LINK} associated with {VILLAGES_LINK}.{newline}{newline}Estate-owning knights will often still need financial aid. Therefore, they will be part of your payroll. However, their estate will pay for part of their expenses.{newline}{newline}Lordship holders instead fully pay for their expenses, and therefore will never be in your payroll. These knights will also administer their village, building constructions. Therefore, you are advised to give them your best, most productive properties, as their income will determine the size and quality of their parties.{newline}{newline}To grant someone knighthood, you need at least the minimum level of {BK_PEERAGE_LINK}, granted to you on joinning a kingdom. Knighthood will require a Fee, estate or lordship, as well as an initial payment and influence. Therefore, choose well who to invest knighthood. It can be granted through dialogue, directly speaking to the knighthood candidate." />
-			
-	
+	        text="{=!}A Trade Pact is a bilateral diplomatic agreement: caravans of either signatory pay no tariffs in the other's fiefs. This diverts caravan traffic between the two realms, increasing prosperity, demand satisfaction, and goods variety on both sides — at the cost of tariff revenue for individual lords. Pacts cost influence to propose (Peers dislike the loss), reduce your family influence cap while sustained, and help truces hold. They last as long as peace does." />
+
 	<Concept title="{=!}Peerage"
 	        id="str_bk_peerage"
 	        group="Kingdoms"
 	        link_id="BK_PEERAGE_LINK"
-	        text="{=!}Peerage is the concept of one being a Peer of the realm, or in other words, high nobility. Peerage itself can come in different levels, often in the forms of Lesser and Full Peerages, the first awarded on joinning a kingdom, the second won through majority vote or on becoming a ruler. The level of Peerage restricts lords from doing certain things. For example, lesser Peers are not adequate candidates for settlement awards (from conquests). Peerage and its restrictions may be checked in any clan Enclycopedia page. In Banner Kings, the original game clans are Full Peerage clans, while many new, randomly generated clans, {BK_GENTRY_LINK}, only have Lesser Peerage." />
+	        text="{=!}Peerage marks high nobility within a realm. It comes in tiers — typically Lesser (granted on joining a kingdom) and Full (granted by majority vote or on becoming a ruler). Tier gates rights: Lesser Peers cannot receive settlement awards from conquests, for example. Each clan's Peerage status is shown on its Encyclopedia page. Vanilla clans start at Full Peerage; many randomly generated {BK_GENTRY_LINK} clans hold only Lesser Peerage." />
 
 	<Concept title="{=!}Gentry Clans"
 	        id="str_bk_gentry"
 	        group="Clans"
 	        link_id="BK_GENTRY_LINK"
-	        text="{=!}Gentry clans are the lowest level of clans among the high nobility. These AI clans spawn with Lesser {BK_PEERAGE_LINK}, meaning they do not play big part in the realm's politics and do not receive fiefs from conquests (unless given them directly, which is possible). These clans spawn with {BK_ESTATES_LINK} properties, and live in the villages of their property. Since their income is low, moving around on military retinues would be a major waste (and unrealistic for all lords, anyway). However, they can be summoned to service through the Call Banners decision. Gentry clans also offer many marriage possibilities to low or mid status players, who are often restricted from accession spouses from the major clans, due to {BK_SPOUSE_LINK} differences." />
+	        text="{=!}Gentry clans are the lowest tier of high nobility — AI clans spawned with Lesser {BK_PEERAGE_LINK} that own {BK_ESTATES_LINK} in villages and live there. Their income is too low to maintain a roving party day-to-day, but you can summon them via the Call Banners decision. Gentry also widen marriage options for low- and mid-status players, who would otherwise be locked out of major-clan unions by {BK_SPOUSE_LINK} differences." />
 
 	<Concept title="{=!}Spouse Score"
 	        id="str_bk_spouse"
 	        group="Characters"
 	        link_id="BK_SPOUSE_LINK"
-	        text="{=!}Spouse Score is a concept added by Banner Kings that dramatically alters how marriages function. Marriages among the high nobility are often made out of gain, not love, and are highly hierarchical, as are the societies behind them. As such, clan leaders do not accept marriage offers between spouses that differ too much in social standing, which is represented by the Spouse Score. The score is composed mostly by the clan's social standing - their {BK_TITLES_LINK} and properties -, but also by the spouse's personal merits, by the clan leader's opinion of you, and the relationship between both proposed spouses." />
+	        text="{=!}Spouse Score governs marriage acceptance among the high nobility. Real-world political marriages were not love matches; they were status alignments. A clan leader rejects matches where the Spouse Score gap is too wide. The score is mostly the clan's social standing — its {BK_TITLES_LINK} and properties — modified by personal merits, the leader's opinion of you, and the proposed spouses' relationship." />
 
 	<Concept title="{=!}Party Supplies"
 	        id="str_bk_party_supplies"
 	        group="Characters"
 	        link_id="BK_SUPPLIES_LINK"
-	        text="{=!}Party supplies represent the realistic needs of a war party to regularly consume a variety of different supplies in order to maintain fighting shape. Supplies such as firewood and textiles for building tents and campfires would have a large impact over the morale of soldiers. A soldier that eats well, sleeps dry and warm is much more motivated than otherwise. Weapons, shields and ammunition would also be a major concern for military retinues.{newline}{newline}As such, different categories of supplies are required by noble parties in the mod. Military equipment is used to maintain party size limit, firewood and tools are used to maintain siege camp and engines building speed, and various different supplies are used for morale, such as alcohol. The rate of daily consumption of each item can be checked in the party wage tooltip, in the bottom right. Alternatively, you can also talk you your quartermaster for a detailed rundown. Quartermasters can also be used to buy these supplies automatically. Simply stay over in a town and they'll buy whatever is needed (and you can pay for) at the time of wage payment, about midday. You can activate or deactivate this behavior through dialogue.{newline}{newline}AI parties will always have auto buying enabled. They are susceptible to supplies in the exact same manner as the player." />
-	
+	        text="{=!}War parties need realistic resupply to stay effective. A soldier with firewood for warmth, textiles for tents, decent food, and ample alcohol is more motivated than one without. Weapons, shields, and ammunition matter too.{newline}{newline}In Banner Kings, parties consume several supply categories. Military equipment maintains party size limit. Firewood and tools accelerate siege-camp and engine construction. Other items affect morale. Per-day consumption is shown in the wage tooltip (bottom-right) or via dialogue with your quartermaster.{newline}{newline}Quartermasters can buy supplies automatically while parked in a town — they purchase what is needed (and you can pay for) at midday wage payment. Toggle via dialogue. AI parties always auto-buy and are subject to the same supply rules." />
+
 	<Concept title="{=!}Lordships"
 	        id="str_bk_lordships"
 	        group="Settlements"
 	        link_id="BK_LORDSHIPS_LINK"
-	        text="{=!}Lordships are {VILLAGES_LINK} and their associated {BK_TITLES_LINK}. Lordships work differently from other fiefs in one important manner: their de facto ownership and control is context-based. Without Banner Kings, villages are always controlled by the lord of the castle or town the villages are bound to. Through lordships, a village is controlled by the lordship de jure ruler, the legal owner of the title associated with that village. However, this only applies when both the village and the de jure owner share the same realm. Villages still change factions depending on who controls the castle/town. If the de jure owner is not present within the same realm as the village, then the castle/town holder controls the lordship. The de facto controller of the lordship enjoys its full income. Therefore we have that lordships are controlled by:{newline}1. The de jure title holder, if they are present in the same kingdom as the village itself;{newline}2. The castle/town holder, in the absence of a jure owner.{newline}{newline}Because of their nature, lordships allow the existance of {BK_KNIGHTS_LINK}. Knights can hold a lordship on their own, despite not being clan leaders." />
-	
+	        text="{=!}Lordships are {VILLAGES_LINK} bundled with their {BK_TITLES_LINK}. Their de facto control is context-based:{newline}1. The de jure title holder controls the lordship if they are in the same kingdom as the village.{newline}2. Otherwise, the bound castle/town's owner controls it.{newline}{newline}A village's faction still tracks the controlling castle/town. The de facto controller takes the lordship's full income. Because a knight can hold a lordship without being a clan leader, lordships are the cleanest path to landed knighthood — see {BK_KNIGHTS_LINK}." />
+
 	<Concept title="{=!}Trade Power"
 	        id="str_bk_trade_power"
 	        group="Settlements"
 	        link_id="BK_TRADE_LINK"
-	        text="{=!}Trade Power represents how attractive a fief is for caravans. Such evaluations are based primarily on profit margins, impacted by caravan entry fees (nullified by {BK_TRADE_PACT_LINK}) and other factors, but mostly by Trade Power. Cities naturally exerce more power than towns/buhrs, and the bigger and richer a city is, the more power it has. Certain buildings, such as Harbors, can also influence this. In sum, Trade Power is concentrated in the places you would expect: kingdom capitals, port cities and highly populous and rich cities." />
-	
+	        text="{=!}Trade Power is how attractive a fief is to caravans. The score is dominated by realistic profit — caravan entry fees (waived by {BK_TRADE_PACT_LINK}), buy/sell margins — and by raw economic mass. Cities outweigh towns; bigger and richer outweighs smaller. Buildings like Harbors add bonus power. Net result: kingdom capitals, port cities, and prosperous metropolises concentrate trade traffic." />
+
 	<Concept title="{=!}Faith Presence"
 	        id="str_bk_faith_presence"
 	        group="Settlements"
 	        link_id="BK_FAITH_PRESENCE_LINK"
-	        text="{=!}Faith presence describes how strong a given faith is in the settlement. For example, a presence of 10% indicates this faith can represent up to 10% of the population. It does not mean it currently is followed by 10% of the population, as conversion is gradual, but that it has the potential to.{newline}Presence is significantly bolstered by the presence of notables that follow the given faith, specially preachers. If a fief has no preacher of your faith, you may be able to add one with the Appoint Preacher option under Demesne Management -> Religion. This option depends on whether your faith admits a preacher on the settlement type." />
-	
+	        text="{=!}Faith Presence measures how strongly a faith is established in a settlement — e.g., 10% means the faith can occupy up to 10% of the population (it does not mean it currently does; conversion is gradual). Notable presence boosts it heavily, especially {BK_PREACHERS_LINK}. If your faith has no preacher in a fief you own, use Demesne Management → Religion → Appoint Preacher (subject to settlement-type restrictions in the faith's rules)." />
+
 	<Concept title="{=5yiE49du}Estates"
-	        id="str_bk_title"
+	        id="str_bk_estate"
 	        group="Settlements"
 	        link_id="BK_ESTATES_LINK"
-	        text="{=!}" />
-	
+	        text="{=!}An Estate is clan-owned land inside a village. It hosts tenants (serfs and slaves), produces food and gold, and has its own inheritance line. A clan can hold multiple estates across different villages. Estates are acquired by purchase (village screen → Manage Estates), grant from a liege, inheritance, or seizure when a holder dies heirless. Income posts weekly. Estate output combines with the village's general production and is affected by climate, demesne laws, and the holder's religion." />
+
 	<Concept title="{=2qXtnwSn}Titles"
 	        id="str_bk_titles"
 	        group="Kingdoms"
 	        link_id="BK_TITLES_LINK"
-	        text="{=!}Titles describe the legal ownership of a piece of land or region. Titles can be landed - directly correlated to a fief, such as village or castle - or unlanded - dukedoms, kingdoms and empires -, that is, titles that rule over others but are not directly related to an individual fief. Such titles are immutable in everything other than their holders, {BK_DEJURE_LINK} and {BK_DEFACTO_LINK}, which may or may not be the same person. Titles are organized in a hierarchy, and with few exceptions, this hierarchy never changes, and a title certainly never changes in its nature (ie, a village title is always a village title). This hierarchy ranges from {BK_LORDSHIPS_LINK}, attached to villages, going through Baronies (castles), Counties (towns), Dukedoms (presides over multiple counties), Kingdom (presides over multiple dukedoms, represents a faction), all the way to Empires (presides over multiple Kingdoms).{newline}{newline}Title ownership is a major source of social status and relevant across multiple fields in Banner Kings.{newline}{newline}The main way to acquire a title is to Claim it, which takes 1 year, and then Usurp it. This and other title information and actions are all available in the Demesne Hierarchy menu, inside settlements." />
-	
+	        text="{=!}A Title is the legal ownership of land or a region. Titles are landed (tied to a fief — village, castle, town) or unlanded (Duchy, Kingdom, Empire — they preside over other titles without owning a fief directly). Each carries a {BK_DEJURE_LINK} (legal owner) and a {BK_DEFACTO_LINK} (current controller); the two may differ. The hierarchy is fixed: {BK_LORDSHIPS_LINK} → Baronies (castles) → Counties (towns) → Duchies → Kingdoms → Empires.{newline}{newline}Titles are a primary source of social status and feed into many BK systems. The standard path to acquiring one is to Claim it (1 in-game year) then Usurp it. Title actions live in the Demesne Hierarchy menu inside settlements." />
+
 	<Concept title="{=!}De Jure"
 	        id="str_bk_dejure"
 	        group="Kingdoms"
 	        link_id="BK_DEJURE_LINK"
-	        text="{=!}Titl" />
+	        text="{=!}The De Jure holder is the legal owner of a {BK_TITLES_LINK} — the hero whose clan tree holds the deed, regardless of whether their kingdom currently controls the underlying fief. De jure ownership is inherited per the title's contract ({BK_INHERITANCES_LINK} + {BK_GENDERS_LINK}). When a different hero physically controls the fief ({BK_DEFACTO_LINK}), the de jure owner has standing to press a claim — this is a built-in casus belli." />
 
 	<Concept title="{=!}De Facto"
 	        id="str_bk_defacto"
 	        group="Kingdoms"
 	        link_id="BK_DEFACTO_LINK"
-	        text="{=!}Ti" />
-
-
+	        text="{=!}The De Facto holder is the current physical controller of a {BK_TITLES_LINK} — derived from who actually owns the underlying fief on the campaign map. A title can have a different de facto holder from its {BK_DEJURE_LINK}; that mismatch is the standard trigger for claim-based wars." />
 
 	<Concept title="{=1wRI8yd9}Demesne Laws"
 	        id="str_bk_demesne_law"
-	        group="BannerKings"
+	        group="Kingdoms"
 	        link_id="BK_DEMESNE_LAWS_LINK"
-	        text="{=!}{BK_DEMESNE_LINK} laws describe various aspect of the demesne contract, such as duties of lower classes and the tenure of {BK_ESTATES_LINK}. These laws apply to the entire hierarchy of a demesne. They can be changed each year, either by voting with all the Peers of the realm or directly changed by the demesne sovereign." />
-			
-	<Concept title="{=6QMDGRSt}Demesne"
-	        id="str_bk_demesne_law"
-	        group="BannerKings"
-	        link_id="BK_DEMESNE_LINK"
-	        text="{=!}Demesne or domain describes a piece of land or administration legally bound to a contract. This binding is expressed by {BK_TITLES_LINK}. All demesnes culminate into a Kingdom or Empire level title, which are always associated with {KINGDOMS_LINK}. The entire demesne of a faction may be described as Crown or Royal Demesne. A faction that is not associated with a title may have it's demesne created through the Found Kingdom decision. Landed demesne is any property directly associated with {SETTLEMENTS_LINK}, such as {TOWNS_LINK}. Unlanded demesne is the suzerainship over other, lesser demesnes, such as the legal ownership of a dukedom or kingdom." />
+	        text="{=!}{BK_DEMESNE_LINK} laws define aspects of the demesne contract — duties of lower classes, terms of {BK_ESTATES_LINK}, slave trade legality, religious tolerance, militia draft policy. Laws apply to the entire title hierarchy under the contract. They can change once per in-game year, by Peer vote or by direct decree of the demesne sovereign." />
 
+	<Concept title="{=6QMDGRSt}Demesne"
+	        id="str_bk_demesne"
+	        group="Kingdoms"
+	        link_id="BK_DEMESNE_LINK"
+	        text="{=!}Demesne (or domain) is land or governance bound by a contract — represented by {BK_TITLES_LINK}. Every demesne ladders up to a Kingdom- or Empire-tier title tied to a {KINGDOMS_LINK} (the realm's Crown or Royal Demesne). Factions without a sovereign title can create one via the Found Kingdom decision. Landed demesne is property tied to {SETTLEMENTS_LINK} like {TOWNS_LINK}; unlanded demesne is suzerainty over lesser demesnes (e.g., owning the duchy that presides over several counties)." />
 </Concepts>

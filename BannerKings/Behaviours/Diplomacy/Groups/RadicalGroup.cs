@@ -58,7 +58,7 @@ namespace BannerKings.Behaviours.Diplomacy.Groups
             {
                 float power = 0f;
                 foreach (Hero member in Members)
-                    power += member.Clan.TotalStrength;
+                    power += member.Clan.CurrentTotalStrength;
 
                 return power;
             }
@@ -72,7 +72,7 @@ namespace BannerKings.Behaviours.Diplomacy.Groups
                 float kingdomPower = 0f;
                 foreach (Clan clan in KingdomDiplomacy.Kingdom.Clans)
                 {
-                    if (!Members.Contains(clan.Leader)) kingdomPower += clan.TotalStrength;
+                    if (!Members.Contains(clan.Leader)) kingdomPower += clan.CurrentTotalStrength;
                 }
 
                 return revoltPower / kingdomPower;
@@ -97,7 +97,7 @@ namespace BannerKings.Behaviours.Diplomacy.Groups
                         .SetTextVariable("GROUP", this.Name),
                         0,
                         hero.CharacterObject,
-                        Utils.Helpers.GetKingdomDecisionSound());
+                        null, Utils.Helpers.GetKingdomDecisionSound());
                 }
                 else if (hero.MapFaction.Leader == Hero.MainHero) 
                 {
@@ -106,7 +106,7 @@ namespace BannerKings.Behaviours.Diplomacy.Groups
                         .SetTextVariable("GROUP", this.Name),
                         0,
                         hero.CharacterObject,
-                        Utils.Helpers.GetKingdomDecisionSound());
+                        null, Utils.Helpers.GetKingdomDecisionSound());
                 }
             }
         }
@@ -138,7 +138,7 @@ namespace BannerKings.Behaviours.Diplomacy.Groups
                         .SetTextVariable("GROUP", this.Name),
                         0,
                         hero.CharacterObject,
-                        Utils.Helpers.GetRelationDecisionSound());
+                        null, Utils.Helpers.GetRelationDecisionSound());
                 }
 
                 if (!forced)

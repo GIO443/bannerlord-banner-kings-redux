@@ -9,8 +9,9 @@ namespace BannerKings.Utils
         internal static void AddQuickNotificationWithSound(TextObject content, BasicCharacterObject announcer = null)
         {
             MBInformationManager.AddQuickInformation(content,
-                0, 
-                announcer, 
+                0,
+                announcer,
+                null,
                 "event:/ui/notification/relation");
         }
     }

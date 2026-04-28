@@ -106,9 +106,5 @@ namespace BannerKings.Models.Vanilla
             return base.GetPartyPrisonerSizeLimit(party, includeDescriptions);
         }
 
-        public override int GetTierPartySizeEffect(int tier)
-        {
-            return base.GetTierPartySizeEffect(tier);
-        }
     }
 }

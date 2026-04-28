@@ -43,13 +43,9 @@ namespace BannerKings.Models.BKModels
 
                     result.Add(hero.GetTraitLevel(BKTraits.Instance.Zealous) * 0.2f, BKTraits.Instance.Zealous.Name);
 
-                    SkillHelper.AddSkillBonusForCharacter(BKSkills.Instance.Theology, 
-                        BKSkillEffects.Instance.PietyGain,
-                        hero.CharacterObject, 
-                        ref result,
-                        hero.GetSkillValue(BKSkills.Instance.Theology), 
-                        true, 
-                        0);
+                    SkillHelper.AddSkillBonusForCharacter(BKSkillEffects.Instance.PietyGain,
+                        hero.CharacterObject,
+                        ref result);
 
                     if (rel.FavoredCultures.Contains(hero.Culture))
                     {
@@ -559,8 +555,7 @@ namespace BannerKings.Models.BKModels
   
                 if (settlement.Town != null)
                 {
-                    SkillHelper.AddSkillBonusForTown(BKSkills.Instance.Theology,
-                        BKSkillEffects.Instance.FaithPresence,
+                    SkillHelper.AddSkillBonusForTown(BKSkillEffects.Instance.FaithPresence,
                         settlement.Town,
                         ref result);
                 }

@@ -165,13 +165,13 @@ namespace BannerKings.Models.Vanilla
             return result;
         }
 
-        public override float CalculateEliteMilitiaSpawnChance(Settlement settlement) => 
-            MilitiaSpawnChanceExplained(settlement).ResultNumber;
+        public override ExplainedNumber CalculateVeteranMilitiaSpawnChance(Settlement settlement) =>
+            MilitiaSpawnChanceExplained(settlement);
         
         public ExplainedNumber MilitiaSpawnChanceExplained(Settlement settlement)
         {
             var result =
-                new ExplainedNumber(base.CalculateEliteMilitiaSpawnChance(settlement) + (settlement.IsTown ? 0.12f : 0.20f),
+                new ExplainedNumber(base.CalculateVeteranMilitiaSpawnChance(settlement).ResultNumber + (settlement.IsTown ? 0.12f : 0.20f),
                     true);
 
             var data = BannerKingsConfig.Instance.PopulationManager.GetPopData(settlement);

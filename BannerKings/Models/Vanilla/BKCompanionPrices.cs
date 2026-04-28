@@ -23,7 +23,7 @@ namespace BannerKings.Models.Vanilla
                 var town = currentSettlement?.Town;
                 if (town == null)
                 {
-                    town = SettlementHelper.FindNearestTown().Town;
+                    town = BannerKings.Utils.Helpers.FindNearestTown();
                 }
 
                 var num = 0f;

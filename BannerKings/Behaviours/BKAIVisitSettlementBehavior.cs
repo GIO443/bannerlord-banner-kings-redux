@@ -67,8 +67,8 @@ namespace BannerKings.Behaviours
                 if (MBRandom.RandomFloat < 0.9f)
                 {
                     mobileParty.Ai.DisableForHours(2);
-                    mobileParty.Ai.SetMoveGoToSettlement(mobileParty.CurrentSettlement);
-                    mobileParty.Ai.RecalculateShortTermAi();
+                    mobileParty.SetMoveGoToSettlement(mobileParty.CurrentSettlement, MobileParty.NavigationType.All, false);
+                    // RecalculateShortTermAi removed in 1.3.x
                     return;
                 }
             }
@@ -134,9 +134,9 @@ namespace BannerKings.Behaviours
                 num11 = HeroHelper.StartRecruitingMoneyLimitForClanLeader(leaderHero);
                 num12 = HeroHelper.StartRecruitingMoneyLimit(leaderHero);
             }
-            float num13 = Campaign.AverageDistanceBetweenTwoFortifications * 0.4f;
-            float num14 = (84f + Campaign.AverageDistanceBetweenTwoFortifications * 1.5f) * 0.5f;
-            float num15 = (424f + 7.57f * Campaign.AverageDistanceBetweenTwoFortifications) * 0.5f;
+            float num13 = Campaign.Current.GetAverageDistanceBetweenClosestTwoTownsWithNavigationType(MobileParty.NavigationType.All) * 0.4f;
+            float num14 = (84f + Campaign.Current.GetAverageDistanceBetweenClosestTwoTownsWithNavigationType(MobileParty.NavigationType.All) * 1.5f) * 0.5f;
+            float num15 = (424f + 7.57f * Campaign.Current.GetAverageDistanceBetweenClosestTwoTownsWithNavigationType(MobileParty.NavigationType.All)) * 0.5f;
             foreach (KeyValuePair<ValueTuple<float, int>, Settlement> keyValuePair2 in sortedList)
             {
                 Settlement value2 = keyValuePair2.Value;
@@ -202,7 +202,7 @@ namespace BannerKings.Behaviours
                     float num31 = 0f;
                     int num32 = 0;
                     int num33 = 0;
-                    if (item < 1f && mobileParty.CanPayMoreWage())
+                    if (item < 1f && true) // CanPayMoreWage removed in 1.3.x
                     {
                         num32 = value2.NumberOfLordPartiesAt;
                         num33 = value2.NumberOfLordPartiesTargeting;
@@ -294,13 +294,7 @@ namespace BannerKings.Behaviours
                     }
                     float num44 = value2.IsFortification ? (1f + 2f * (float)(num41 / num8)) : 1f;
                     float num45 = 1f;
-                    if (mobileParty.Ai.NumberOfRecentFleeingFromAParty > 0)
-                    {
-                        Vec2 v = value2.Position2D - mobileParty.Position2D;
-                        v.Normalize();
-                        float num46 = mobileParty.AverageFleeTargetDirection.Distance(v);
-                        num45 = 1f - Math.Max(2f - num46, 0f) * 0.25f * (Math.Min((float)mobileParty.Ai.NumberOfRecentFleeingFromAParty, 10f) * 0.2f);
-                    }
+                    // NumberOfRecentFleeingFromAParty removed in 1.3.x
                     float num47 = 1f;
                     float num48 = 1f;
                     float num49 = 1f;
@@ -449,13 +443,13 @@ namespace BannerKings.Behaviours
             int numberOfMinimumBanditPartiesInAHideoutToInfestIt = Campaign.Current.Models.BanditDensityModel.NumberOfMinimumBanditPartiesInAHideoutToInfestIt;
             int numberOfMaximumBanditPartiesInEachHideout = Campaign.Current.Models.BanditDensityModel.NumberOfMaximumBanditPartiesInEachHideout;
             int numberOfMaximumHideoutsAtEachBanditFaction = Campaign.Current.Models.BanditDensityModel.NumberOfMaximumHideoutsAtEachBanditFaction;
-            float num5 = (424f + 7.57f * Campaign.AverageDistanceBetweenTwoFortifications) / 2f;
+            float num5 = (424f + 7.57f * Campaign.Current.GetAverageDistanceBetweenClosestTwoTownsWithNavigationType(MobileParty.NavigationType.All)) / 2f;
             foreach (Hideout hideout2 in allHideouts)
             {
                 Settlement settlement = hideout2.Settlement;
                 if (settlement.Party.MapEvent == null && settlement.Culture == mobileParty.Party.Culture)
                 {
-                    float num6 = Campaign.Current.Models.MapDistanceModel.GetDistance(mobileParty, settlement);
+                    float num6 = Campaign.Current.Models.MapDistanceModel.GetDistance(mobileParty, settlement, false, MobileParty.NavigationType.All, out _);
                     num6 = Math.Max(10f, num6);
                     float num7 = num5 / (num5 + num6);
                     int num8 = 0;
@@ -539,7 +533,7 @@ namespace BannerKings.Behaviours
                 }
                 if (settlement.IsFortification && settlement.MapFaction == mapFaction && settlement.OwnerClan != Clan.PlayerClan)
                 {
-                    float num8 = (settlement.Town.GarrisonParty != null) ? settlement.Town.GarrisonParty.Party.TotalStrength : 0f;
+                    float num8 = (settlement.Town.GarrisonParty != null) ? settlement.Town.GarrisonParty.Party.EstimatedStrength : 0f;
                     float num9 = FactionHelper.OwnerClanEconomyEffectOnGarrisonSizeConstant(settlement.OwnerClan);
                     float num10 = FactionHelper.SettlementProsperityEffectOnGarrisonSizeConstant(settlement.Town);
                     float num11 = FactionHelper.SettlementFoodPotentialEffectOnGarrisonSizeConstant(settlement);
@@ -635,12 +629,12 @@ namespace BannerKings.Behaviours
             {
                 if (mobileParty.Army == null || mobileParty.Army.LeaderParty == mobileParty)
                 {
-                    LocatableSearchData<Settlement> locatableSearchData = Settlement.StartFindingLocatablesAroundPosition(mobileParty.Position2D, 30f);
+                    LocatableSearchData<Settlement> locatableSearchData = Settlement.StartFindingLocatablesAroundPosition(mobileParty.GetPosition2D, 30f);
                     for (Settlement settlement = Settlement.FindNextLocatable(ref locatableSearchData); settlement != null; settlement = Settlement.FindNextLocatable(ref locatableSearchData))
                     {
                         if (!settlement.IsCastle && settlement.MapFaction != mobileParty.MapFaction && this.IsSettlementSuitableForVisitingCondition(mobileParty, settlement))
                         {
-                            float distance = mapDistanceModel.GetDistance(mobileParty, settlement);
+                            float distance = mapDistanceModel.GetDistance(mobileParty, settlement, false, MobileParty.NavigationType.All, out _);
                             if (distance < 350f)
                             {
                                 sortedList.Add(new ValueTuple<float, int>(distance, settlement.GetHashCode()), settlement);
@@ -655,7 +649,7 @@ namespace BannerKings.Behaviours
                         Settlement settlement2 = enumerator.Current;
                         if (this.IsSettlementSuitableForVisitingCondition(mobileParty, settlement2))
                         {
-                            float distance2 = mapDistanceModel.GetDistance(mobileParty, settlement2);
+                            float distance2 = mapDistanceModel.GetDistance(mobileParty, settlement2, false, MobileParty.NavigationType.All, out _);
                             if (distance2 < 350f)
                             {
                                 sortedList.Add(new ValueTuple<float, int>(distance2, settlement2.GetHashCode()), settlement2);
@@ -665,12 +659,12 @@ namespace BannerKings.Behaviours
                     return sortedList;
                 }
             }
-            LocatableSearchData<Settlement> locatableSearchData2 = Settlement.StartFindingLocatablesAroundPosition(mobileParty.Position2D, 50f);
+            LocatableSearchData<Settlement> locatableSearchData2 = Settlement.StartFindingLocatablesAroundPosition(mobileParty.GetPosition2D, 50f);
             for (Settlement settlement3 = Settlement.FindNextLocatable(ref locatableSearchData2); settlement3 != null; settlement3 = Settlement.FindNextLocatable(ref locatableSearchData2))
             {
                 if (this.IsSettlementSuitableForVisitingCondition(mobileParty, settlement3))
                 {
-                    float distance3 = mapDistanceModel.GetDistance(mobileParty, settlement3);
+                    float distance3 = mapDistanceModel.GetDistance(mobileParty, settlement3, false, MobileParty.NavigationType.All, out _);
                     if (distance3 < 350f)
                     {
                         sortedList.Add(new ValueTuple<float, int>(distance3, settlement3.GetHashCode()), settlement3);
@@ -683,15 +677,13 @@ namespace BannerKings.Behaviours
         // Token: 0x06003F14 RID: 16148 RVA: 0x00138E10 File Offset: 0x00137010
         private void AddBehaviorTupleWithScore(PartyThinkParams p, Settlement settlement, float visitingNearbySettlementScore)
         {
-            AIBehaviorTuple item = new AIBehaviorTuple(settlement, AiBehavior.GoToSettlement, false);
-            float num;
-            if (p.TryGetBehaviorScore(item, out num))
+            AIBehaviorData item = new AIBehaviorData(settlement, AiBehavior.GoToSettlement, MobileParty.NavigationType.All, false, false, false);
+            if (p.TryGetBehaviorScore(in item, out float num))
             {
-                p.SetBehaviorScore(item, num + visitingNearbySettlementScore);
+                p.SetBehaviorScore(in item, num + visitingNearbySettlementScore);
                 return;
             }
-            ValueTuple<AIBehaviorTuple, float> valueTuple = new ValueTuple<AIBehaviorTuple, float>(item, visitingNearbySettlementScore);
-            p.AddBehaviorScore(valueTuple);
+            p.AddBehaviorScore((item, visitingNearbySettlementScore));
         }
 
         // Token: 0x06003F15 RID: 16149 RVA: 0x00138E50 File Offset: 0x00137050

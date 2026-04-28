@@ -53,7 +53,7 @@ namespace BannerKings.Behaviours
             {
                 float skillXp = (float)profit * 0.5f;
                 var party = MobileParty.MainParty;
-                Hero effectiveRoleHolder = party.GetEffectiveRoleHolder(PerkRole.PartyLeader);
+                Hero effectiveRoleHolder = party.GetEffectiveRoleHolder(PartyRole.PartyLeader);
                 if (effectiveRoleHolder == null)
                 {
                     return;
@@ -99,7 +99,7 @@ namespace BannerKings.Behaviours
                         number += result;
                     }
 
-                    var list = __instance.ToList().FindAll(x => x.EquipmentElement.Item == item);
+                    var list = __instance.Where(x => x.EquipmentElement.Item == item).ToList();
                     list.Sort((x, y) =>
                     {
                         float xValue = 1f;

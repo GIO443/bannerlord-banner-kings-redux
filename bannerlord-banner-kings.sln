@@ -1,0 +1,24 @@
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.5.2.0
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "BannerKings", "BannerKings\BannerKings.csproj", "{73889F53-906C-A179-A9E6-2C6182F92DC0}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{73889F53-906C-A179-A9E6-2C6182F92DC0}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{73889F53-906C-A179-A9E6-2C6182F92DC0}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{73889F53-906C-A179-A9E6-2C6182F92DC0}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{73889F53-906C-A179-A9E6-2C6182F92DC0}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {C12C2D7E-565D-4BE5-AA06-E59E8BBA10DD}
+	EndGlobalSection
+EndGlobal

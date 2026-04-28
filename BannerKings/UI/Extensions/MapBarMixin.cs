@@ -96,18 +96,8 @@ namespace BannerKings.UI.Extensions
             IsPietyTooltipWarning = Piety < 0f;
             //if (rel == null) return;
 
-            PartySupplies supplies = TaleWorlds.CampaignSystem.Campaign.Current.GetCampaignBehavior<BKPartyNeedsBehavior>().GetPartySupplies(MobileParty.MainParty);
-            if (supplies != null)
-            {
-                var moraleHint = CampaignUIHelper.GetPartyMoraleTooltip(MobileParty.MainParty);
-                UIHelper.AddMoraleSuppliesHint(ref moraleHint, supplies);
-                vm.MoraleHint = new BasicTooltipViewModel(() => moraleHint);
-
-                var wageHint = CampaignUIHelper.GetPartyWageTooltip();
-                UIHelper.AddWageSuppliesHint(ref wageHint, supplies);
-                vm.TroopWageHint = new BasicTooltipViewModel(() => wageHint);
-
-            }
+            // MapInfoVM no longer has MoraleHint/TotalWageHint as direct properties in 1.3.x
+            // These are now managed inside MapInfoItemVM items; supplies tooltip injection disabled
         }
     }
 }

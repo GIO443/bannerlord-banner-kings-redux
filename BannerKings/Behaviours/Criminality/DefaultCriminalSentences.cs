@@ -31,7 +31,7 @@ namespace BannerKings.Behaviours.Criminality
         public override void Initialize()
         {
             Fine.Initialize(new TextObject("{=ma7sx96C}Monetary Fine"),
-                new TextObject(),
+                TextObject.GetEmpty(),
                 (Crime crime) =>
                 {
                     Hero hero = crime.Hero;
@@ -69,7 +69,7 @@ namespace BannerKings.Behaviours.Criminality
                 });
 
             Beheading.Initialize(new TextObject("{=VsAvikWv}Beheading"),
-               new TextObject(),
+               TextObject.GetEmpty(),
                (Crime crime) =>
                {
                    Hero hero = crime.Hero;
@@ -134,7 +134,7 @@ namespace BannerKings.Behaviours.Criminality
                });
 
             RevokeTitle.Initialize(new TextObject("{=wbOepT0V}Revoke Title"),
-               new TextObject(),
+               TextObject.GetEmpty(),
                (Crime crime) =>
                {
                    Hero hero = crime.Hero;

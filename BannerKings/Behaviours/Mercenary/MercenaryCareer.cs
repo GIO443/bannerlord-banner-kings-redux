@@ -1,3 +1,4 @@
+﻿using Helpers;
 using BannerKings.Managers.Populations.Estates;
 using BannerKings.Models.Vanilla.Abstract;
 using BannerKings.Utils;
@@ -11,6 +12,7 @@ using TaleWorlds.CampaignSystem.CharacterDevelopment;
 using TaleWorlds.CampaignSystem.Settlements;
 using TaleWorlds.CampaignSystem.Settlements.Workshops;
 using TaleWorlds.Core;
+using TaleWorlds.Core.ImageIdentifiers;
 using TaleWorlds.Library;
 using TaleWorlds.Localization;
 using TaleWorlds.SaveSystem;
@@ -237,7 +239,7 @@ namespace BannerKings.Behaviours.Mercenary
             {
                 if (model.WillMercenaryDeclareWar(kingdom, Clan).ResultNumber > 0f)
                 {
-                    foreach (Kingdom enemy in FactionManager.GetEnemyKingdoms(kingdom))
+                    foreach (Kingdom enemy in FactionHelper.GetEnemyKingdoms(kingdom))
                     {
                         if (model.GetScoreOfKingdomToHireMercenary(enemy, Clan) > 0f &&
                             model.GetScoreOfMercenaryToJoinKingdom(Clan, enemy) > 0f)
@@ -286,7 +288,7 @@ namespace BannerKings.Behaviours.Mercenary
                     int influence = MBRandom.RoundRandomized(MathF.Min(Clan.Influence,
                         BannerKingsConfig.Instance.InfluenceModel.CalculateInfluenceCap(Clan).ResultNumber * 0.15f));
 
-                    var enemies = FactionManager.GetEnemyKingdoms(kingdom);
+                    var enemies = FactionHelper.GetEnemyKingdoms(kingdom);
                     InformationManager.ShowInquiry(new InquiryData(new TextObject("{=!}Resisting Dismissal").ToString(),
                         new TextObject("{=!}You may resist the dismissal by relenting to give on your contract, or by joining the enemies of the {KINGDOM} - if they have any. By denying your dismissal, you will lose {INFLUENCE}{INFLUENCE_ICON} and opinion with {RULER}.{newline}{newline}By joining their enemies, you shall be branded a criminal, hated by the ruler and your whole company be less regarded by all the royal households of {KINGDOM}.")
                         .SetTextVariable("KINGDOM", kingdom.Name)
@@ -311,13 +313,13 @@ namespace BannerKings.Behaviours.Mercenary
                                 TextObject hint = enabled ?
                                     new TextObject("{=!}The {KINGDOM} is willing to accept you. They have a strength of {STRENGTH} relative to your current employers.")
                                     .SetTextVariable("KINGDOM", enemy.Name)
-                                    .SetTextVariable("STRENGTH", ((enemy.TotalStrength / kingdom.TotalStrength) * 100f).ToString("0"))
+                                    .SetTextVariable("STRENGTH", ((enemy.CurrentTotalStrength / kingdom.CurrentTotalStrength) * 100f).ToString("0"))
                                     :
                                     new TextObject("{=!}The {KINGDOM} is not willing to accept you.")
                                     .SetTextVariable("KINGDOM", enemy.Name);
                                 options.Add(new InquiryElement(enemy,
                                     enemy.Name.ToString(),
-                                    new ImageIdentifier(enemy.Banner),
+                                    new BannerImageIdentifier(enemy.Banner),
                                     enabled,
                                     hint.ToString()
                                     ));
@@ -405,7 +407,7 @@ namespace BannerKings.Behaviours.Mercenary
                     AddReputation(relation * 0.005f, new TextObject("{=!}Left service with {DAYS} days remaining.")
                         .SetTextVariable("DAYS", (int)daysLeft));
 
-                    foreach (Hero member in Clan.Lords)
+                    foreach (Hero member in Clan.AliveLords)
                     {
                         if (member == Clan.Leader) continue;
                         ChangeRelationAction.ApplyRelationChangeBetweenHeroes(member, ruler, (int)(relation / 2f));
@@ -419,7 +421,7 @@ namespace BannerKings.Behaviours.Mercenary
                     if (Clan != Clan.PlayerClan)
                     {
                         ChangeRelationAction.ApplyRelationChangeBetweenHeroes(ruler, Clan.Leader, (int)relation);
-                        foreach (Hero member in Clan.Lords)
+                        foreach (Hero member in Clan.AliveLords)
                         {
                             if (member == Clan.Leader) continue;
                             ChangeRelationAction.ApplyRelationChangeBetweenHeroes(ruler, member, (int)(relation / 2f));
@@ -511,7 +513,7 @@ namespace BannerKings.Behaviours.Mercenary
                         .SetTextVariable("PRIVILEGE", privilege.Name),
                         0,
                         null,
-                        Utils.Helpers.GetKingdomDecisionSound());
+                        null, Utils.Helpers.GetKingdomDecisionSound());
                 }
             }
         }

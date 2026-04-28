@@ -1,7 +1,8 @@
-using BannerKings.Managers.Skills;
+﻿using BannerKings.Managers.Skills;
 using System.Collections.Generic;
 using TaleWorlds.CampaignSystem;
 using TaleWorlds.Core;
+using TaleWorlds.Core.ImageIdentifiers;
 using TaleWorlds.Localization;
 using TaleWorlds.TwoDimension;
 
@@ -45,7 +46,7 @@ namespace BannerKings.Managers.Institutions.Religions.Faiths.Rites
                 {
                     list.Add(new InquiryElement(element.EquipmentElement,
                         element.EquipmentElement.GetModifiedItemName().ToString(),
-                        new ImageIdentifier(item)));
+                        new ItemImageIdentifier(item)));
                 }
             }
 

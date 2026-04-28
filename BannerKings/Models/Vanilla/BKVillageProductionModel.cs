@@ -12,6 +12,7 @@ using TaleWorlds.CampaignSystem.CharacterDevelopment;
 using TaleWorlds.CampaignSystem.GameComponents;
 using TaleWorlds.CampaignSystem.Settlements;
 using TaleWorlds.Core;
+using TaleWorlds.Library;
 
 namespace BannerKings.Models.Vanilla
 {
@@ -27,13 +28,13 @@ namespace BannerKings.Models.Vanilla
                 .GetProductions(BannerKingsConfig.Instance.PopulationManager.GetPopData(village.Settlement));
             foreach (var production in productions)
             {
-                explainedNumber.Add(CalculateDailyProductionAmount(village, production.Item1), production.Item1.Name);
+                explainedNumber.Add(CalculateDailyProductionAmount(village, production.Item1).ResultNumber, production.Item1.Name);
             }
 
             return explainedNumber;
         }
 
-        public override float CalculateDailyProductionAmount(Village village, ItemObject item)
+        public override ExplainedNumber CalculateDailyProductionAmount(Village village, ItemObject item)
         {
             if (village.Settlement != null && village.VillageState == Village.VillageStates.Normal &&
                 BannerKingsConfig.Instance.PopulationManager != null)
@@ -149,7 +150,7 @@ namespace BannerKings.Models.Vanilla
                     }
                 }
 
-                return explainedNumber.ResultNumber;
+                return explainedNumber;
             }
 
             return base.CalculateDailyProductionAmount(village, item);

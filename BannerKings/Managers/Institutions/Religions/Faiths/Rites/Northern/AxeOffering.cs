@@ -17,6 +17,7 @@ namespace BannerKings.Managers.Institutions.Religions.Faiths.Rites.Northern
                     .SetTextVariable("ITEM", base.selectedItem.GetModifiedItemName()),
                 0,
                 actionTaker.CharacterObject,
+                null,
                 "event:/ui/notification/relation");
         }
 

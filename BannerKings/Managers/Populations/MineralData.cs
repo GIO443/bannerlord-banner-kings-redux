@@ -1,4 +1,4 @@
-﻿using BannerKings.Managers.Items;
+using BannerKings.Managers.Items;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -28,7 +28,7 @@ namespace BannerKings.Managers.Populations
         public MBReadOnlyDictionary<MineralType, float> Compositions => Composition.GetReadOnlyDictionary();
 
         public TerrainType Terrain => TaleWorlds.CampaignSystem.Campaign.Current.MapSceneWrapper != null ? 
-            TaleWorlds.CampaignSystem.Campaign.Current.MapSceneWrapper.GetTerrainTypeAtPosition(Settlement.Position2D) : TerrainType.Plain;
+            TaleWorlds.CampaignSystem.Campaign.Current.MapSceneWrapper.GetTerrainTypeAtPosition(Settlement.GatePosition) : TerrainType.Plain;
 
         public List<ValueTuple<ItemObject, float>> GetLocalMinerals()
         {

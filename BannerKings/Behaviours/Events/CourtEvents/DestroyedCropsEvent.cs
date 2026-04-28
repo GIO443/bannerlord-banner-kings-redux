@@ -74,11 +74,12 @@ namespace BannerKings.Behaviours.Events.CourtEvents
 
         protected override void SetTexts()
         {
+            var headman = village.Settlement.Notables.FirstOrDefault(x => x.IsHeadman);
             Description = new TextObject("{=qqxppUOY}Peasants at {VILLAGE} report that their crops were trampled on by cattle from {ESTATE}, owned by {OWNER}. They refuse any responsability, yet {HEADSMAN} swears the estate is at fault.")
-                .SetTextVariable("HEADSMAN", village.Settlement.Notables.FirstOrDefault(x => x.IsHeadman).Name)
+                .SetTextVariable("HEADSMAN", headman != null ? headman.Name : village.Name)
                 .SetTextVariable("ESTATE", estate.Name)
                 .SetTextVariable("VILLAGE", village.Name)
-                .SetTextVariable("OWNER", estate.Owner.Name);
+                .SetTextVariable("OWNER", estate.Owner != null ? estate.Owner.Name : new TextObject("{=!}an unknown lord"));
         }
 
         public override void ShowPlayerPrompt()
@@ -90,8 +91,8 @@ namespace BannerKings.Behaviours.Events.CourtEvents
         {
             get
             {
-                yield return new EventResolution(new TextObject(),
-                    new TextObject(),
+                yield return new EventResolution(TextObject.GetEmpty(),
+                    TextObject.GetEmpty(),
                     null,
                     1,
                     0.1f,

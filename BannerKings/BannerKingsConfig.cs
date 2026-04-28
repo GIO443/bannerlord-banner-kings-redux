@@ -59,14 +59,58 @@ namespace BannerKings
         public string RecruitsXmlPath { get; set; }
 
         public bool wipeData = false;
-        public PopulationManager PopulationManager { get; private set; }
-        public PolicyManager PolicyManager { get; private set; }
-        public TitleManager TitleManager { get; private set; }
-        public CourtManager CourtManager { get; private set; }
-        public ReligionsManager ReligionsManager { get; private set; }
-        public EducationManager EducationManager { get; private set; }
-        public InnovationsManager InnovationsManager { get; private set; }
-        public GoalManager GoalManager { get; private set; }
+
+        // Managers lazy-init with empty state on first access so they're never null.
+        // InitManagers / save deserialization replace them with real state.
+        private PopulationManager _populationManager;
+        private PolicyManager _policyManager;
+        private TitleManager _titleManager;
+        private CourtManager _courtManager;
+        private ReligionsManager _religionsManager;
+        private EducationManager _educationManager;
+        private InnovationsManager _innovationsManager;
+        private GoalManager _goalManager;
+
+        public PopulationManager PopulationManager
+        {
+            get => _populationManager ??= new PopulationManager(new Dictionary<Settlement, PopulationData>());
+            private set => _populationManager = value;
+        }
+        public PolicyManager PolicyManager
+        {
+            get => _policyManager ??= new PolicyManager(new Dictionary<Settlement, List<BannerKingsDecision>>(), new Dictionary<Settlement, List<BannerKingsPolicy>>());
+            private set => _policyManager = value;
+        }
+        public TitleManager TitleManager
+        {
+            get => _titleManager ??= new TitleManager();
+            private set => _titleManager = value;
+        }
+        public CourtManager CourtManager
+        {
+            get => _courtManager ??= new CourtManager(new Dictionary<Clan, CouncilData>());
+            private set => _courtManager = value;
+        }
+        public ReligionsManager ReligionsManager
+        {
+            get => _religionsManager ??= new ReligionsManager();
+            private set => _religionsManager = value;
+        }
+        public EducationManager EducationManager
+        {
+            get => _educationManager ??= new EducationManager();
+            private set => _educationManager = value;
+        }
+        public InnovationsManager InnovationsManager
+        {
+            get => _innovationsManager ??= new InnovationsManager();
+            private set => _innovationsManager = value;
+        }
+        public GoalManager GoalManager
+        {
+            get => _goalManager ??= new GoalManager();
+            private set => _goalManager = value;
+        }
 
         public BKInterestGroupsModel InterestGroupsModel { get; set; } = new();
         public BKConstructionModel ConstructionModel { get; set; } = new();

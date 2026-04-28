@@ -1,4 +1,4 @@
-using System.Linq;
+﻿using System.Linq;
 using BannerKings.Managers.Policies;
 using BannerKings.Utils;
 using Helpers;
@@ -15,9 +15,9 @@ namespace BannerKings.Models.Vanilla
 {
     public class BKGarrisonModel : DefaultSettlementGarrisonModel
     {
-        public override ExplainedNumber CalculateGarrisonChange(Settlement settlement, bool includeDescriptions = false)
+        public override ExplainedNumber CalculateBaseGarrisonChange(Settlement settlement, bool includeDescriptions = false)
         {
-            var baseResult = base.CalculateGarrisonChange(settlement, includeDescriptions);
+            var baseResult = base.CalculateBaseGarrisonChange(settlement, includeDescriptions);
             if (BannerKingsConfig.Instance.PopulationManager != null &&
                 BannerKingsConfig.Instance.PopulationManager.IsSettlementPopulated(settlement))
             {
@@ -45,7 +45,7 @@ namespace BannerKings.Models.Vanilla
                 var kingdom = settlement.OwnerClan.Kingdom;
                 if (kingdom != null)
                 {
-                    float enemies = FactionManager.GetEnemyKingdoms(kingdom).Count();
+                    float enemies = FactionHelper.GetEnemyKingdoms(kingdom).Count();
                     var strength = 0f;
                     if (settlement.Town is {GarrisonParty: { }})
                     {
@@ -84,7 +84,7 @@ namespace BannerKings.Models.Vanilla
                 float num = 0f;
                 if (garrisonParty != null)
                 {
-                    num = garrisonParty.Party.TotalStrength;
+                    num = garrisonParty.Party.EstimatedStrength;
                 }
 
                 float num2 = 100f;
@@ -107,14 +107,14 @@ namespace BannerKings.Models.Vanilla
                 {
                     int numberOfRegularMembers = mobileParty.Party.NumberOfRegularMembers;
                     float num6 = 1f + (float)mobileParty.Party.MemberRoster.TotalWoundedRegulars / (float)mobileParty.Party.NumberOfRegularMembers;
-                    int limitedPartySize = mobileParty.LimitedPartySize;
+                    int limitedPartySize = mobileParty.Party.PartySizeLimit;
                     float num7 = MathF.Pow(MathF.Min(2f, (float)numberOfRegularMembers / (float)limitedPartySize), 1.2f) * 0.75f;
                     float num8 = (1f - num / num2) * (1f - num / num2);
                     float num9 = 1f;
                     if (mobileParty.Army != null)
                     {
                         num8 = MathF.Min(num8, 0.7f);
-                        num9 = 0.3f + mobileParty.Army.TotalStrength / mobileParty.Party.TotalStrength * 0.025f;
+                        num9 = 0.3f + mobileParty.Army.EstimatedStrength / mobileParty.Party.EstimatedStrength * 0.025f;
                     }
 
                     float num10 = (settlement.Town.IsOwnerUnassigned ? 0.75f : 0.5f);

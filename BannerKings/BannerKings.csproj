@@ -62,4 +62,17 @@
 	  <Folder Include="Patches\" />
 	</ItemGroup>
 
+	<PropertyGroup>
+		<ModuleRoot>$([System.IO.Path]::GetDirectoryName($([System.IO.Path]::GetDirectoryName($(OutputPath)))))</ModuleRoot>
+	</PropertyGroup>
+
+	<Target Name="DeployModuleAssets" AfterTargets="Build">
+		<ItemGroup>
+			<ModuleAssets Include="$(MSBuildProjectDirectory)\_Module\**\*.*" />
+		</ItemGroup>
+		<Copy SourceFiles="@(ModuleAssets)"
+		      DestinationFiles="@(ModuleAssets->'$(ModuleRoot)\%(RecursiveDir)%(Filename)%(Extension)')"
+		      SkipUnchangedFiles="true" />
+	</Target>
+
 </Project>

@@ -77,6 +77,7 @@ namespace BannerKings.Managers.Titles.Governments
             KingdomIdealSuccessions["empire_s"] = Imperial;
             KingdomIdealSuccessions["khuzait"] = TribalElective;
             KingdomIdealSuccessions["sturgia"] = TribalElective;
+            KingdomIdealSuccessions["nord"] = WilundingElective;
 
             AseraiElective.Initialize(new TextObject("{=!}Nahasawi Elective"),
                new TextObject("{=!}The Nahasawi succession is most interested in the economic prosperity of the realm, for trade is the blood that keeps the Nahasa clans alive. A strong leader, the Aserai say, is one both brave, so they may defeat their enemies, and generous, so they may be loved by those under their protection. Moreover, in keeping with the traditions of Banu Asera, the Nahasawi place value in the religious integrity and scholarly tendencies of their leader, or in other words, that they understand and seek Truth. A fool leader is no worse than a craven one."),
@@ -399,7 +400,7 @@ namespace BannerKings.Managers.Titles.Governments
                });
 
             TheocraticElective.Initialize(new TextObject("{=DO0DJddX}Theocratic Elective"),
-                new TextObject(),
+                TextObject.GetEmpty(),
                 true,
                 -0.2f,
                 -0.5f,

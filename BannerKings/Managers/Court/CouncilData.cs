@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using BannerKings.Extensions;
@@ -188,14 +188,23 @@ namespace BannerKings.Managers.Court
 
             if (Location != null && MBRandom.RandomFloat < 0.02f)
             {
-                var template = Clan.Culture.NotableAndWandererTemplates.GetRandomElementWithPredicate(x => x.Occupation == Occupation.Wanderer);
-                Hero guest = HeroCreator.CreateSpecialHero(template, 
-                    Location.Settlement, 
-                    null, 
-                    null, 
-                    TaleWorlds.CampaignSystem.Campaign.Current.Models.AgeModel.HeroComesOfAge + 5 + MBRandom.RandomInt(27));
-                EnterSettlementAction.ApplyForCharacterOnly(guest, Location.Settlement);
-                AddGuest(guest);
+                // Cultures without Wanderer templates (custom cultures, some BK
+                // gentry-spawned cultures) yield null here, which then NREs
+                // inside vanilla HeroCreator.CreateSpecialHero -> GetBirthAndDeathDay.
+                var template = Clan.Culture?.NotableTemplates?.GetRandomElementWithPredicate(x => x.Occupation == Occupation.Wanderer);
+                if (template != null)
+                {
+                    Hero guest = HeroCreator.CreateSpecialHero(template,
+                        Location.Settlement,
+                        null,
+                        null,
+                        TaleWorlds.CampaignSystem.Campaign.Current.Models.AgeModel.HeroComesOfAge + 5 + MBRandom.RandomInt(27));
+                    if (guest != null)
+                    {
+                        EnterSettlementAction.ApplyForCharacterOnly(guest, Location.Settlement);
+                        AddGuest(guest);
+                    }
+                }
             }
 
             List<Hero> toRemove = new List<Hero>();

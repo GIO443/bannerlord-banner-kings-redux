@@ -72,9 +72,9 @@ namespace BannerKings.Managers.Goals.Decisions
                         .SetTextVariable("GOLD_AMOUNT", price)
                         .SetTextVariable("LANGUAGE", book.Language.Name)
                         .SetTextVariable("SKILL", book.Skill != null ? new TextObject("{=NrQdJeJU}Skill: {SKILL}").SetTextVariable("SKILL", book.Skill.Name)
-                        : TextObject.Empty)
+                        : TextObject.GetEmpty())
                         .SetTextVariable("TRAIT", book.Trait != null ? new TextObject("{=1P5txvhk}Trait: {TRAIT}").SetTextVariable("TRAIT", book.Trait.Name)
-                        : TextObject.Empty);
+                        : TextObject.GetEmpty());
 
                 elements.Add(new InquiryElement(book, new TextObject("{=e8KTkKtX}{BOOK} ({LANGUAGE})")
                     .SetTextVariable("BOOK", item.Name)

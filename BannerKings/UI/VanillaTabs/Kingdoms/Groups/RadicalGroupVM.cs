@@ -1,4 +1,4 @@
-using BannerKings.Behaviours.Diplomacy;
+﻿using BannerKings.Behaviours.Diplomacy;
 using BannerKings.Behaviours.Diplomacy.Groups;
 using BannerKings.Utils.Models;
 using Bannerlord.UIExtenderEx.Attributes;
@@ -8,6 +8,8 @@ using TaleWorlds.CampaignSystem;
 using TaleWorlds.CampaignSystem.Actions;
 using TaleWorlds.CampaignSystem.ViewModelCollection;
 using TaleWorlds.Core;
+using TaleWorlds.Core.ImageIdentifiers;
+using TaleWorlds.Core.ViewModelCollection.ImageIdentifiers;
 using TaleWorlds.Core.ViewModelCollection.Generic;
 using TaleWorlds.Core.ViewModelCollection.Information;
 using TaleWorlds.Library;
@@ -49,7 +51,7 @@ namespace BannerKings.UI.VanillaTabs.Kingdoms.Groups
                 Leader = new GroupMemberVM(Group.Leader, true);
                 if (Group.Leader.Clan != null)
                 {
-                    ClanBanner = new ImageIdentifierVM(BannerCode.CreateFrom(Group.Leader.Clan.Banner), true);
+                    ClanBanner = new BannerImageIdentifierVM(Group.Leader.Clan.Banner, true);
                 }
             }
 
@@ -171,7 +173,7 @@ namespace BannerKings.UI.VanillaTabs.Kingdoms.Groups
                                 .SetTextVariable("INFLUENCE", influence.ToString("0.0"))
                                 .SetTextVariable("INFLUENCE_ICON", Utils.TextHelper.INFLUENCE_ICON)
                                 .ToString(),
-                                new ImageIdentifier(CampaignUIHelper.GetCharacterCode(hero.CharacterObject, true)),
+                                new CharacterImageIdentifier(CampaignUIHelper.GetCharacterCode(hero.CharacterObject, true)),
                                 possible,
                                 hint.ToString()));
                         }
@@ -274,7 +276,7 @@ namespace BannerKings.UI.VanillaTabs.Kingdoms.Groups
             InformationManager.ShowInquiry(new InquiryData(
                     new TextObject("{=30S3yEVo}Make Ultimatum").ToString(),
                     new TextObject("{=8CtOagZE}Make an ultimatum to your ruler demanding they accept your terms. If rejected, you and your group peers will be denounced as enemies of the realm, and a civil war will begin.{newline}{newline}{RULER} is {CHANCE} likely to conceive to this demand.{newline}{newline}Loyalist strength: {LOYALIST_STRENGTH}{newline}Rebel strength: {REBEL_STRENGTH}")
-                    .SetTextVariable("LOYALIST_STRENGTH", Group.KingdomDiplomacy.Kingdom.TotalStrength - rebelStrength)
+                    .SetTextVariable("LOYALIST_STRENGTH", Group.KingdomDiplomacy.Kingdom.CurrentTotalStrength - rebelStrength)
                     .SetTextVariable("REBEL_STRENGTH", rebelStrength)
                     .SetTextVariable("RULER", ruler.Name)
                     .SetTextVariable("CHANCE", FormatValue(chance))

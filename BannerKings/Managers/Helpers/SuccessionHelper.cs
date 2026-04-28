@@ -64,7 +64,7 @@ namespace BannerKings.Managers.Helpers
                                 .SetTextVariable("TITLE", title.FullName),
                             0,
                             heir.CharacterObject,
-                            Utils.Helpers.GetKingdomDecisionSound());
+                            null, Utils.Helpers.GetKingdomDecisionSound());
                     }
                 }
             }

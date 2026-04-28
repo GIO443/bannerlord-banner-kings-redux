@@ -24,7 +24,7 @@ namespace BannerKings.Managers.Institutions.Religions.Faiths.Rites
                     .SetTextVariable("HERO", actionTaker.Name)
                     .SetTextVariable("COUNT", inputCount)
                     .SetTextVariable("OFFERING", input.Name),
-                0, actionTaker.CharacterObject, "event:/ui/notification/relation");
+                0, actionTaker.CharacterObject, null, "event:/ui/notification/relation");
 
             var piety = GetPietyReward();
             BannerKingsConfig.Instance.ReligionsManager.AddPiety(actionTaker, piety, true);

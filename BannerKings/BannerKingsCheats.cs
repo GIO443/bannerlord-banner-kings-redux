@@ -197,8 +197,8 @@ namespace BannerKings
                 return "Player not in a kingdom";
             }
 
-            FactionManager.DeclareAlliance(Hero.MainHero.MapFaction, kingdom);
-            return "Alliance set.";
+            // FactionManager.DeclareAlliance removed in 1.3.x
+            return "Alliance system removed in 1.3.x";
         }
     }
 }

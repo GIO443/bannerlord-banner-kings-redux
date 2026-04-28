@@ -33,6 +33,8 @@ namespace BannerKings.Components
 
         [SaveableProperty(6)] public bool Trading { get; private set; }
 
+        public override Banner GetDefaultComponentBanner() => base.GetDefaultComponentBanner();
+
         private static IEnumerable<CraftingMaterials> Materials
         {
             get
@@ -52,18 +54,16 @@ namespace BannerKings.Components
         private static MobileParty CreateParty(string id, Settlement origin, bool slaveCaravan, Settlement target,
             string name, PopType popType, bool trading = false)
         {
-            return MobileParty.CreateParty(id + origin + target.Name,
-                new PopulationPartyComponent(target, origin, name, slaveCaravan, popType, trading),
-                delegate(MobileParty mobileParty)
-                {
-                    mobileParty.SetPartyUsedByQuest(true);
-                    mobileParty.Party.SetVisualAsDirty();
-                    mobileParty.Ai.SetInitiative(0f, 1f, float.MaxValue);
-                    mobileParty.ShouldJoinPlayerBattles = false;
-                    mobileParty.Aggressiveness = 0f;
-                    mobileParty.Ai.DisableAi();
-                    mobileParty.Ai.SetMoveGoToSettlement(target);
-                });
+            var party = MobileParty.CreateParty(id + origin + target.Name,
+                new PopulationPartyComponent(target, origin, name, slaveCaravan, popType, trading));
+            party.SetPartyUsedByQuest(true);
+            party.Party.SetVisualAsDirty();
+            party.Ai.SetInitiative(0f, 1f, float.MaxValue);
+            party.ShouldJoinPlayerBattles = false;
+            party.Aggressiveness = 0f;
+            party.Ai.DisableAi();
+            party.SetMoveGoToSettlement(target, MobileParty.NavigationType.All, false);
+            return party;
         }
 
         public static void CreateSlaveCaravan(Settlement origin, Settlement target, int slaves)
@@ -74,7 +74,7 @@ namespace BannerKings.Components
                 "{=cCzJ9Nk6}Slave Caravan from {ORIGIN}", 
                 PopType.None);
             caravan.AddPrisoner(CharacterObject.All.FirstOrDefault(x => x.StringId == "looter"), slaves);
-            caravan.InitializeMobilePartyAtPosition(origin.Culture.EliteCaravanPartyTemplate, origin.GatePosition);
+            caravan.InitializeMobilePartyAtPosition(origin.Culture.EliteCaravanPartyTemplates.GetRandomElement(), origin.GatePosition);
             GiveMounts(ref caravan);
             GiveFood(ref caravan);
         }
@@ -108,7 +108,7 @@ namespace BannerKings.Components
                 }
                 case PopType.Craftsmen:
                 {
-                    if (origin.Culture.CaravanPartyTemplate != null)
+                    if (origin.Culture.CaravanPartyTemplates != null && origin.Culture.CaravanPartyTemplates.Count > 0)
                     {
                         foreach (var stack in origin.Culture.MilitiaPartyTemplate.Stacks)
                         {
@@ -183,7 +183,7 @@ namespace BannerKings.Components
             var totalValue = 0;
             var valueMax = partySize * (type == PopType.Serfs ? 30 : type == PopType.Craftsmen ? 100 : 300);
 
-            while (party.ItemRoster.TotalWeight < party.InventoryCapacity && totalValue < valueMax)
+            while (party.TotalWeightCarried < party.InventoryCapacity && totalValue < valueMax)
             {
                 if (type == PopType.Craftsmen)
                 {
@@ -243,7 +243,7 @@ namespace BannerKings.Components
             var target = TargetSettlement;
             if (target != null)
             {
-                var distance = TaleWorlds.CampaignSystem.Campaign.Current.Models.MapDistanceModel.GetDistance(MobileParty, target);
+                var distance = TaleWorlds.CampaignSystem.Campaign.Current.Models.MapDistanceModel.GetDistance(MobileParty, target, false, MobileParty.NavigationType.All, out _);
                 if (distance <= 1f)
                 {
                     EnterSettlementAction.ApplyForParty(MobileParty, target);
@@ -253,16 +253,16 @@ namespace BannerKings.Components
                     if (target.IsVillage)
                     {
                         if (target.Village.VillageState is Village.VillageStates.Looted or Village.VillageStates.BeingRaided)
-                            MobileParty.Ai.SetMoveGoToSettlement(target);
-                        else MobileParty.Ai.SetMoveGoToSettlement(HomeSettlement);
+                            MobileParty.SetMoveGoToSettlement(target, MobileParty.NavigationType.All, false);
+                        else MobileParty.SetMoveGoToSettlement(HomeSettlement, MobileParty.NavigationType.All, false);
                     }
-                    else MobileParty.Ai.SetMoveGoToSettlement(!target.IsUnderSiege ? target : HomeSettlement);
+                    else MobileParty.SetMoveGoToSettlement(!target.IsUnderSiege ? target : HomeSettlement, MobileParty.NavigationType.All, false);
                 }
             }
             else
             {
                 if (Home != null && Home.MapFaction == MobileParty.MapFaction && !Home.IsUnderSiege)
-                    MobileParty.Ai.SetMoveGoToSettlement(Home);
+                    MobileParty.SetMoveGoToSettlement(Home, MobileParty.NavigationType.All, false);
                 else DestroyPartyAction.Apply(null, MobileParty);
             }
         }

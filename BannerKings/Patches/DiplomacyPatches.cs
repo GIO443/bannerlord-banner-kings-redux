@@ -28,21 +28,7 @@ namespace BannerKings.Patches
         [HarmonyPatch(typeof(FactionManager))]
         internal class LordDialoguePatches
         {
-            [HarmonyPostfix]
-            [HarmonyPatch("DeclareAlliance")]
-            private static void DeclareAlliance(IFaction faction1, IFaction faction2)
-            {
-                if (faction1 != faction2 && !faction1.IsBanditFaction && !faction2.IsBanditFaction)
-                {
-                    StanceLink link1 = faction1.GetStanceWith(faction2);
-                    link1.IsAllied = true;
-
-                    StanceLink link2 = faction2.GetStanceWith(faction1);
-                    link2.IsAllied = true;
-                }
-
-                UpdateVisuals(faction1, faction2);
-            }
+            // DeclareAlliance removed from FactionManager in 1.3.x (alliances removed)
 
             [HarmonyPostfix]
             [HarmonyPatch("SetNeutral")]
@@ -51,7 +37,7 @@ namespace BannerKings.Patches
                 if (faction1 != faction2 && !faction1.IsBanditFaction && !faction2.IsBanditFaction)
                 {
                     StanceLink link = faction1.GetStanceWith(faction2);
-                    link.IsAllied = false;
+                    // IsAllied removed in 1.3.x
                 }
 
                 UpdateVisuals(faction1, faction2);
@@ -64,7 +50,7 @@ namespace BannerKings.Patches
                 if (faction1 != faction2 && !faction1.IsBanditFaction && !faction2.IsBanditFaction)
                 {
                     StanceLink link = faction1.GetStanceWith(faction2);
-                    link.IsAllied = false;
+                    // IsAllied removed in 1.3.x
                 }
 
                 return true;
@@ -120,6 +106,8 @@ namespace BannerKings.Patches
         {
             private static bool Prefix(Clan clan, Kingdom kingdom, IFaction otherFaction, ref bool __result)
             {
+                // Defer to Diplomacy mod's war-consideration overrides when present.
+                if (ModCompat.DiplomacyMod) return true;
                 __result = false;
                 return false;
             }
@@ -148,32 +136,29 @@ namespace BannerKings.Patches
             [HarmonyPatch("CalculateWarSupport")]
             private static bool CalculateWarSupportText(KingdomDiplomacyVM __instance, IFaction faction, ref int __result)
             {
+                if (ModCompat.DiplomacyMod) return true;
                 __result = MathF.Round(new KingdomElection(
                     new BKDeclareWarDecision(null, Clan.PlayerClan, faction)).GetLikelihoodForSponsor(Clan.PlayerClan) * 100f);
                 return false;
             }
 
             [HarmonyPrefix]
-            [HarmonyPatch("GetActionStatusForDiplomacyItemWithReason")]
-            private static bool ButtonCLickable(KingdomDiplomacyVM __instance, KingdomDiplomacyItemVM item, bool isResolve,
-                 out TextObject disabledReason, ref bool __result)
+            [HarmonyPatch("GetIsProposingWarEnabledWithReason")]
+            private static bool ButtonCLickable(KingdomDiplomacyVM __instance, KingdomTruceItemVM item, float actionInfluenceCost,
+                 ref TextObject disabledReason, ref bool __result)
             {
-                KingdomTruceItemVM kingdomTruceItemVM;
-                if (__result == false && (kingdomTruceItemVM = (item as KingdomTruceItemVM)) != null)
-                {
-                    disabledReason = TextObject.Empty;
-                    __result = true;
-                    return false;
-                }
-
-                disabledReason = TextObject.Empty;
-                return true;
+                if (ModCompat.DiplomacyMod) return true;
+                disabledReason = TextObject.GetEmpty();
+                __result = true;
+                return false;
             }
 
             [HarmonyPrefix]
             [HarmonyPatch("OnDeclareWar")]
             private static bool ButtonPopup(KingdomDiplomacyVM __instance, KingdomTruceItemVM item)
             {
+                // Diplomacy mod owns this VM's war/alliance/pact UI flow.
+                if (ModCompat.DiplomacyMod) return true;
                 IFaction enemy = item.Faction2;
                 if (!enemy.IsKingdomFaction) return true;
 
@@ -385,14 +370,14 @@ namespace BannerKings.Patches
                 {
                     float support = new KingdomElection(new BKDeclareWarDecision(casusBelli,
                         Clan.PlayerClan,
-                        enemyKingdom)).GetLikelihoodForOutcome(0);
+                        enemyKingdom)).GetLikelihoodForSponsor(Clan.PlayerClan);
 
                     bool isReligious = religion != null && religion.Faith.WarDoctrine.AcceptsJustification(casusBelli);
                     TextObject piety = isReligious ? new TextObject("{=!}{PIETY}{PIETY_ICON}")
                         .SetTextVariable("PIETY", religion.Faith.WarDoctrine.GetPietyCost(casusBelli))
                         .SetTextVariable("PIETY_ICON", TextHelper.PIETY_ICON)
                         :
-                        TextObject.Empty;
+                        TextObject.GetEmpty();
 
                     if (enabled && isReligious)
                         enabled = religion.Faith.WarDoctrine.HeroHasPiety(Hero.MainHero, casusBelli);

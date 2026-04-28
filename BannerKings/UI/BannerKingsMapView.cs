@@ -35,7 +35,7 @@ namespace BannerKings.UI
             base.CreateLayout();
             var spriteData = UIResourceManager.SpriteData;
             var resourceContext = UIResourceManager.ResourceContext;
-            var resourceDepot = UIResourceManager.UIResourceDepot;
+            var resourceDepot = UIResourceManager.ResourceDepot;
 
             categoryDeveloper = spriteData.SpriteCategories["ui_characterdeveloper"];
             categoryDeveloper.Load(resourceContext, resourceDepot);
@@ -44,7 +44,7 @@ namespace BannerKings.UI
             categoryEncyclopedia.Load(resourceContext, resourceDepot);
             //UIManager.Instance.BKScreen.OnFinalize();
             var tuple = GetVM(id);
-            Layer = new GauntletLayer(500);
+            Layer = new GauntletLayer("BannerKingsMapView", 500);
             if (tuple.Item1 != null)
             {
                 VM = tuple.Item1;

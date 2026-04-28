@@ -1,4 +1,5 @@
 ﻿using SandBox.View.Map;
+using SandBox.View.Map.Managers;
 using System.Collections.Generic;
 using System.Linq;
 using TaleWorlds.CampaignSystem;
@@ -37,17 +38,17 @@ namespace BannerKings.Extensions
 
         public static void ChangeVisual(this MobileParty mobileParty, string prefab)
         {
-            List<GameEntity> children = PartyVisualManager.Current.GetVisualOfParty(mobileParty.Party).StrategicEntity.GetChildren().ToList();
+            List<GameEntity> children = MobilePartyVisualManager.Current.GetPartyVisual(mobileParty.Party).StrategicEntity.GetChildren().ToList();
             if (children.Count > 0)
-                PartyVisualManager.Current.GetVisualOfParty(mobileParty.Party).StrategicEntity.RemoveAllChildren();
+                MobilePartyVisualManager.Current.GetPartyVisual(mobileParty.Party).StrategicEntity.RemoveAllChildren();
             
-            Scene scene = PartyVisualManager.Current.GetVisualOfParty(mobileParty.Party).StrategicEntity.Scene;
+            Scene scene = MobilePartyVisualManager.Current.GetPartyVisual(mobileParty.Party).StrategicEntity.Scene;
             GameEntity gameEntity = GameEntity.Instantiate(scene, prefab, true);
             MatrixFrame frame = MatrixFrame.Identity;
             frame.rotation.ApplyScaleLocal(1f);
             frame.Rotate(1.5707964f, Vec3.Up);
             gameEntity.SetFrame(ref frame);
-            PartyVisualManager.Current.GetVisualOfParty(mobileParty.Party).StrategicEntity.AddChild(gameEntity, false);
+            MobilePartyVisualManager.Current.GetPartyVisual(mobileParty.Party).StrategicEntity.AddChild(gameEntity, false);
         }
     }
 }

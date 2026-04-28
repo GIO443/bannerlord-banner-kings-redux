@@ -25,11 +25,11 @@ namespace BannerKings.Behaviours
 {
     public class BKCaravansBehavior : CampaignBehaviorBase
     {
-        private float DistanceScoreDivider => (636f + 11.36f * Campaign.AverageDistanceBetweenTwoFortifications) / 2f;
-        private float DistanceLimitVeryFar => (508f + 9f * Campaign.AverageDistanceBetweenTwoFortifications) / 2f;
-        private float DistanceLimitFar => (381f + 6.75f * Campaign.AverageDistanceBetweenTwoFortifications) / 2f;
-        private float DistanceLimitMedium => (254f + 4.5f * Campaign.AverageDistanceBetweenTwoFortifications) / 2f;
-        private float DistanceLimitClose => (127f + 2.25f * Campaign.AverageDistanceBetweenTwoFortifications) / 2f;
+        private float DistanceScoreDivider => (636f + 11.36f * Campaign.Current.GetAverageDistanceBetweenClosestTwoTownsWithNavigationType(MobileParty.NavigationType.All)) / 2f;
+        private float DistanceLimitVeryFar => (508f + 9f * Campaign.Current.GetAverageDistanceBetweenClosestTwoTownsWithNavigationType(MobileParty.NavigationType.All)) / 2f;
+        private float DistanceLimitFar => (381f + 6.75f * Campaign.Current.GetAverageDistanceBetweenClosestTwoTownsWithNavigationType(MobileParty.NavigationType.All)) / 2f;
+        private float DistanceLimitMedium => (254f + 4.5f * Campaign.Current.GetAverageDistanceBetweenClosestTwoTownsWithNavigationType(MobileParty.NavigationType.All)) / 2f;
+        private float DistanceLimitClose => (127f + 2.25f * Campaign.Current.GetAverageDistanceBetweenClosestTwoTownsWithNavigationType(MobileParty.NavigationType.All)) / 2f;
 
         public BKCaravansBehavior()
         {
@@ -44,7 +44,19 @@ namespace BannerKings.Behaviours
             CampaignEvents.DailyTickHeroEvent.AddNonSerializedListener(this, new Action<Hero>(DailyTickHero));
             CampaignEvents.HourlyTickPartyEvent.AddNonSerializedListener(this, new Action<MobileParty>(HourlyTickParty));
             CampaignEvents.OnSessionLaunchedEvent.AddNonSerializedListener(this, new Action<CampaignGameStarter>(OnSessionLaunched));
-            CampaignEvents.OnAfterSessionLaunchedEvent.AddNonSerializedListener(this, (CampaignGameStarter campaignGameStarter) =>
+
+            // Kill vanilla CaravansCampaignBehavior BEFORE its partial-follow-up
+            // listeners fire. Otherwise vanilla's DoInitialTradeRuns runs after BK
+            // has spawned caravans, calls NavalDLCMapDistanceModel.GetDistance for
+            // a non-port spawn, and the engine pathfinder throws AccessViolation.
+            // OnNewGameCreatedEvent fires before OnNewGameCreatedPartialFollowUpEvent
+            // and OnNewGameCreatedPartialFollowUpEndEvent.
+            CampaignEvents.OnNewGameCreatedEvent.AddNonSerializedListener(this, (CampaignGameStarter starter) =>
+            {
+                Campaign.Current.CampaignBehaviorManager.RemoveBehavior<CaravansCampaignBehavior>();
+            });
+            // Belt-and-braces: also remove on game-loaded for existing saves.
+            CampaignEvents.OnGameLoadedEvent.AddNonSerializedListener(this, (CampaignGameStarter starter) =>
             {
                 Campaign.Current.CampaignBehaviorManager.RemoveBehavior<CaravansCampaignBehavior>();
             });
@@ -54,7 +66,7 @@ namespace BannerKings.Behaviours
             CampaignEvents.MobilePartyDestroyed.AddNonSerializedListener(this, new Action<MobileParty, PartyBase>(OnMobilePartyDestroyed));
             CampaignEvents.MobilePartyCreated.AddNonSerializedListener(this, new Action<MobileParty>(OnMobilePartyCreated));
             CampaignEvents.MapEventEnded.AddNonSerializedListener(this, new Action<MapEvent>(OnMapEventEnded));
-            CampaignEvents.DistributeLootToPartyEvent.AddNonSerializedListener(this, new Action<MapEvent, PartyBase, Dictionary<PartyBase, ItemRoster>>(OnLootCaravanParties));
+            CampaignEvents.OnLootDistributedToPartyEvent.AddNonSerializedListener(this, new Action<PartyBase, PartyBase, ItemRoster>(OnLootCaravanParties));
             CampaignEvents.OnSiegeEventStartedEvent.AddNonSerializedListener(this, new Action<SiegeEvent>(OnSiegeEventStarted));
         }
 
@@ -64,19 +76,16 @@ namespace BannerKings.Behaviours
             {
                 if (siegeEvent.BesiegedSettlement.Parties[i].IsCaravan)
                 {
-                    siegeEvent.BesiegedSettlement.Parties[i].Ai.SetMoveModeHold();
+                    siegeEvent.BesiegedSettlement.Parties[i].SetMoveModeHold();
                 }
             }
         }
 
-        private void OnLootCaravanParties(MapEvent mapEvent, PartyBase party, Dictionary<PartyBase, ItemRoster> loot)
+        private void OnLootCaravanParties(PartyBase winnerParty, PartyBase defeatedParty, ItemRoster lootedItems)
         {
-            foreach (PartyBase partyBase in loot.Keys)
+            if (defeatedParty.IsMobile && defeatedParty.MobileParty.IsCaravan && winnerParty.IsMobile)
             {
-                if (partyBase.IsMobile && partyBase.MobileParty.IsCaravan && party.IsMobile)
-                {
-                    SkillLevelingManager.OnLoot(party.MobileParty, partyBase.MobileParty, loot[partyBase], true);
-                }
+                SkillLevelingManager.OnLoot(winnerParty.MobileParty, defeatedParty.MobileParty, lootedItems, true);
             }
         }
 
@@ -130,7 +139,7 @@ namespace BannerKings.Behaviours
                 float num = 0f;
                 foreach (Town town3 in Town.AllTowns)
                 {
-                    float num2 = mobileParty.Position2D.Distance(town3.Settlement.GatePosition);
+                    float num2 = mobileParty.GetPosition2D.Distance(town3.Settlement.GatePosition.ToVec2());
                     if (num2 > 1f)
                     {
                         num += 1f / MathF.Pow(num2, 1.5f);
@@ -143,7 +152,7 @@ namespace BannerKings.Behaviours
                 float num3 = MBRandom.RandomFloat * num;
                 foreach (Town town4 in Town.AllTowns)
                 {
-                    float num4 = mobileParty.Position2D.Distance(town4.Settlement.GatePosition);
+                    float num4 = mobileParty.GetPosition2D.Distance(town4.Settlement.GatePosition.ToVec2());
                     if (num4 > 1f)
                     {
                         num3 -= 1f / MathF.Pow(num4, 1.5f);
@@ -223,7 +232,7 @@ namespace BannerKings.Behaviours
                         }
                     }
                     int inventoryCapacity = mobileParty.InventoryCapacity;
-                    float totalWeight = mobileParty.ItemRoster.TotalWeight;
+                    float totalWeight = mobileParty.TotalWeightCarried;
                     float num3 = 0f;
                     if (totalWeight - num3 > (float)inventoryCapacity)
                     {
@@ -293,7 +302,28 @@ namespace BannerKings.Behaviours
                     float num = hero.Power * 0.0045f - 0.5f;
                     isElite = (hero.RandomFloat() < num);
                 }
-                CaravanPartyComponent.CreateCaravanParty(hero, spawnSettlement, initialSpawn, null, null, 0, isElite);
+
+                // 1.3.x: CreateCaravanParty's templateObject parameter is no longer
+                // nullable — it dereferences template.ShipHulls immediately. Pick
+                // a culture-appropriate template the way vanilla SpawnCaravan does,
+                // with fallbacks so we never pass null.
+                var culture = hero.Culture;
+                var templates = isElite ? culture?.EliteCaravanPartyTemplates : culture?.CaravanPartyTemplates;
+                PartyTemplateObject template = null;
+                if (templates != null && templates.Count > 0)
+                    template = templates.GetRandomElement();
+                if (template == null && culture?.CaravanPartyTemplates != null && culture.CaravanPartyTemplates.Count > 0)
+                    template = culture.CaravanPartyTemplates.GetRandomElement();
+                if (template == null)
+                {
+                    // No template available for this culture (e.g., minor faction
+                    // hero in a War Sails Nord context with no caravan templates
+                    // defined). Skip silently — caravans aren't critical for
+                    // game-creation correctness.
+                    return;
+                }
+
+                CaravanPartyComponent.CreateCaravanParty(hero, spawnSettlement, template, initialSpawn, null, null, isElite);
                 if (!initialSpawn && hero.Power >= 50f)
                 {
                     hero.AddPower(-30f);
@@ -469,7 +499,7 @@ namespace BannerKings.Behaviours
                     else
                     {
                         Town destinationForMobileParty = GetDestinationForMobileParty(caravanParty);
-                        flag = (destinationForMobileParty == null || destinationForMobileParty.IsUnderSiege || caravanParty.MapFaction.IsAtWarWith(destinationForMobileParty.MapFaction) || caravanParty.Ai.NeedTargetReset || (!caravanParty.IsCurrentlyUsedByAQuest && randomFloat < 0.01f));
+                        flag = (destinationForMobileParty == null || destinationForMobileParty.IsUnderSiege || caravanParty.MapFaction.IsAtWarWith(destinationForMobileParty.MapFaction) || (!caravanParty.IsCurrentlyUsedByAQuest && randomFloat < 0.01f));
                     }
                     if (flag)
                     {
@@ -482,20 +512,20 @@ namespace BannerKings.Behaviours
                         {
                             _previouslyChangedCaravanTargetsDueToEnemyOnWay.Add(caravanParty, new List<Settlement>());
                         }
-                        if (caravanParty.Ai.NeedTargetReset && caravanParty.TargetSettlement != null)
+                        if (caravanParty.TargetSettlement != null)
                         {
                             _previouslyChangedCaravanTargetsDueToEnemyOnWay[caravanParty].Add(caravanParty.TargetSettlement);
                         }
                         Town town2 = ThinkNextDestination(caravanParty);
                         if (town2 != null)
                         {
-                            caravanParty.Ai.SetMoveGoToSettlement(town2.Settlement);
+                            caravanParty.SetMoveGoToSettlement(town2.Settlement, MobileParty.NavigationType.All, false);
                         }
                     }
                     Town destinationForMobileParty2 = GetDestinationForMobileParty(caravanParty);
                     if (caravanParty.CurrentSettlement == null && destinationForMobileParty2 != null && caravanParty.TargetSettlement != destinationForMobileParty2.Settlement)
                     {
-                        caravanParty.Ai.SetMoveGoToSettlement(destinationForMobileParty2.Settlement);
+                        caravanParty.SetMoveGoToSettlement(destinationForMobileParty2.Settlement, MobileParty.NavigationType.All, false);
                     }
                 }
             }
@@ -547,7 +577,7 @@ namespace BannerKings.Behaviours
             if (mobileParty != null && mobileParty != MobileParty.MainParty && (mobileParty.IsCaravan || mobileParty.IsLordParty))
             {
                 int inventoryCapacity = mobileParty.InventoryCapacity;
-                float totalWeight = mobileParty.ItemRoster.TotalWeight;
+                float totalWeight = mobileParty.TotalWeightCarried;
                 Town town = settlement.IsTown ? settlement.Town : (settlement.IsVillage ? settlement.Village.Bound.Town : null);
                 if (town != null)
                 {
@@ -561,7 +591,7 @@ namespace BannerKings.Behaviours
                             break;
                         }
                         inventoryCapacity = mobileParty.InventoryCapacity;
-                        totalWeight = mobileParty.ItemRoster.TotalWeight;
+                        totalWeight = mobileParty.TotalWeightCarried;
                     }
                 }
             }
@@ -607,7 +637,7 @@ namespace BannerKings.Behaviours
         {
             float num = 0f;
             Town result = null;
-            float caravanFullness = caravanParty.ItemRoster.TotalWeight / (float)caravanParty.InventoryCapacity;
+            float caravanFullness = caravanParty.TotalWeightCarried / (float)caravanParty.InventoryCapacity;
             CampaignTime lastHomeVisitTimeOfCaravan;
             _caravanLastHomeTownVisitTime.TryGetValue(caravanParty, out lastHomeVisitTimeOfCaravan);
             foreach (Town town in Town.AllFiefs)
@@ -652,14 +682,14 @@ namespace BannerKings.Behaviours
         // Token: 0x060034A2 RID: 13474 RVA: 0x000DE394 File Offset: 0x000DC594
         private float GetTradeScoreForTown(MobileParty caravanParty, Town town, CampaignTime lastHomeVisitTimeOfCaravan, float caravanFullness, bool distanceCut)
         {
-            float distance = Campaign.Current.Models.MapDistanceModel.GetDistance(caravanParty, town.Owner.Settlement);
+            float distance = Campaign.Current.Models.MapDistanceModel.GetDistance(caravanParty, town.Owner.Settlement, false, MobileParty.NavigationType.All, out _);
             float num = 0f;
             AdjustVeryFarAddition(distance, 0.15f, ref num);
             float elapsedDaysUntilNow = lastHomeVisitTimeOfCaravan.ElapsedDaysUntilNow;
             bool flag = elapsedDaysUntilNow > 2f;
             if (flag)
             {
-                float distance2 = Campaign.Current.Models.MapDistanceModel.GetDistance(town.Owner.Settlement, caravanParty.HomeSettlement);
+                float distance2 = Campaign.Current.Models.MapDistanceModel.GetDistance(town.Owner.Settlement, caravanParty.HomeSettlement, false, false, MobileParty.NavigationType.All);
                 AdjustVeryFarAddition(distance2, ((elapsedDaysUntilNow - 1f) * MathF.Sqrt(elapsedDaysUntilNow - 1f) - 1f) * 0.008f, ref num);
             }
             float num2 = 1f / (distance + num + 8f);
@@ -692,8 +722,8 @@ namespace BannerKings.Behaviours
             }
             num5 *= MathF.Max(0.1f, 1f - (caravanFullness - 0.2f * MathF.Min(num4, 1000f) / 1000f));
             num5 = MathF.Min(num5, (float)((int)(0.5f * (float)caravanParty.PartyTradeGold)));
-            float num6 = (caravanParty.Ai.NeedTargetReset && caravanParty.TargetSettlement == town.Settlement) ? 0.1f : 1f;
-            float num7 = (caravanParty.IsCurrentlyUsedByAQuest && town.Settlement == caravanParty.HomeSettlement && caravanParty.Position2D.Distance(caravanParty.HomeSettlement.GatePosition) < 3f) ? 0.1f : 1f;
+            float num6 = 1f; // NeedTargetReset removed in 1.3.x
+            float num7 = (caravanParty.IsCurrentlyUsedByAQuest && town.Settlement == caravanParty.HomeSettlement && caravanParty.GetPosition2D.Distance(caravanParty.HomeSettlement.GatePosition.ToVec2()) < 3f) ? 0.1f : 1f;
             return (num4 + num5) * num6 * num2 * num3 * num7;
         }
 
@@ -745,7 +775,11 @@ namespace BannerKings.Behaviours
             float num2 = num * num - 1.1f;
             if (num2 > 0f)
             {
-                return MathF.Min(MathF.Sqrt(_averageValuesCached[itemCategory]) * 3f * num2, 0.3f * (float)marketData.GetCategoryData(itemCategory).InStoreValue);
+                // _averageValuesCached may not yet be populated when caravans tick
+                // before OnNewGameCreatedPartialFollowUpEndEvent has run. Fall back
+                // to the same 1f default UpdateAverageValues uses for empty categories.
+                if (!_averageValuesCached.TryGetValue(itemCategory, out var avgValue)) avgValue = 1f;
+                return MathF.Min(MathF.Sqrt(avgValue) * 3f * num2, 0.3f * (float)marketData.GetCategoryData(itemCategory).InStoreValue);
             }
             return 0f;
         }
@@ -838,9 +872,9 @@ namespace BannerKings.Behaviours
                                         {
                                             num14 = gold / itemPrice;
                                         }
-                                        if (toLoseWeight && caravanParty.ItemRoster.TotalWeight - (float)(num14 * itemAverageWeight) < (float)caravanParty.InventoryCapacity)
+                                        if (toLoseWeight && caravanParty.TotalWeightCarried - (float)(num14 * itemAverageWeight) < (float)caravanParty.InventoryCapacity)
                                         {
-                                            num14 = (int)((caravanParty.ItemRoster.TotalWeight - (float)caravanParty.InventoryCapacity) / (float)itemAverageWeight + 0.99f);
+                                            num14 = (int)((caravanParty.TotalWeightCarried - (float)caravanParty.InventoryCapacity) / (float)itemAverageWeight + 0.99f);
                                         }
                                         if (num14 > elementCopyAtIndex.Amount)
                                         {
@@ -857,7 +891,14 @@ namespace BannerKings.Behaviours
                                             {
                                                 OnSellItems(caravanParty, elementCopyAtIndex, town);
                                             }
-                                            SellItemsAction.Apply(caravanParty.Party, town.Owner, elementCopyAtIndex, num14, town.Owner.Settlement);
+                                            try { SellItemsAction.Apply(caravanParty.Party, town.Owner, elementCopyAtIndex, num14, town.Owner.Settlement); }
+                                            catch
+                                            {
+                                                // Vanilla SellItemsAction.ApplyInternal NREs in
+                                                // DefaultSettlementTaxModel.GetVillageTaxRatio for non-village
+                                                // sellers in 1.3.x. Skip the trade — caravan loses one transaction,
+                                                // not the whole campaign.
+                                            }
                                             num = (int)((float)caravanParty.ItemRoster.NumberOfPackAnimals - (float)caravanParty.Party.NumberOfAllMembers * 0.6f);
                                             num2 = (int)((float)caravanParty.ItemRoster.NumberOfLivestockAnimals - (float)caravanParty.Party.NumberOfAllMembers * 0.6f);
                                         }
@@ -947,7 +988,7 @@ namespace BannerKings.Behaviours
         // Token: 0x060034AD RID: 13485 RVA: 0x000DF020 File Offset: 0x000DD220
         private float CalculateCapacityFactor(MobileParty caravanParty)
         {
-            float value = caravanParty.Party.ItemRoster.TotalWeight / ((float)caravanParty.InventoryCapacity + 1f);
+            float value = caravanParty.TotalWeightCarried / ((float)caravanParty.InventoryCapacity + 1f);
             return 1.1f - MathF.Clamp(value, 0f, 1f);
         }
 
@@ -1016,7 +1057,13 @@ namespace BannerKings.Behaviours
                 }
                 if (num6 > 0)
                 {
-                    SellItemsAction.Apply(town.Owner, caravanParty.Party, elementCopyAtIndex, num6, town.Owner.Settlement);
+                    try { SellItemsAction.Apply(town.Owner, caravanParty.Party, elementCopyAtIndex, num6, town.Owner.Settlement); }
+                    catch
+                    {
+                        // Same vanilla 1.3.x NRE in GetVillageTaxRatio for non-village sellers.
+                        // Skip this category's purchase — caravan continues fine.
+                        continue;
+                    }
                     boughtItems.Add(new ValueTuple<EquipmentElement, int>(elementCopyAtIndex.EquipmentElement, -num6));
                     num4 = num6;
                     num3 -= (float)((num6 + 1) * itemPrice);
@@ -1082,7 +1129,8 @@ namespace BannerKings.Behaviours
             {
                 return 0f;
             }
-            float num4 = num2 * _averageValuesCached[category];
+            if (!_averageValuesCached.TryGetValue(category, out var avgValueForCategory)) avgValueForCategory = 1f;
+            float num4 = num2 * avgValueForCategory;
             float num5 = num2 * 200f;
             float num6 = averageBuySellPriceIndex / itemCategoryPriceIndex;
             float num7 = (category.Properties == ItemCategory.Property.BonusToFoodStores) ? 1.1f : 1f;
@@ -1181,7 +1229,7 @@ namespace BannerKings.Behaviours
                 explanation = new TextObject("{=il2khBNl}You just looted this party.", null);
                 return false;
             }
-            explanation = TextObject.Empty;
+            explanation = TextObject.GetEmpty();
             int num;
             ItemRoster itemRoster;
             BribeAmount(MobileParty.ConversationParty.Party, out num, out itemRoster);
@@ -1205,7 +1253,7 @@ namespace BannerKings.Behaviours
                         textObject.SetTextVariable("LEFT", textObject3);
                         if (itemRoster.Count == 1)
                         {
-                            textObject.SetTextVariable("RIGHT", TextObject.Empty);
+                            textObject.SetTextVariable("RIGHT", TextObject.GetEmpty());
                         }
                         else if (itemRoster.Count - 2 > i)
                         {
@@ -1244,7 +1292,7 @@ namespace BannerKings.Behaviours
                     textObject7.SetTextVariable("LEFT", textObject9);
                     if (itemRoster.Count == 1)
                     {
-                        textObject7.SetTextVariable("RIGHT", TextObject.Empty);
+                        textObject7.SetTextVariable("RIGHT", TextObject.GetEmpty());
                     }
                     else if (itemRoster.Count - 2 > j)
                     {
@@ -1364,7 +1412,7 @@ namespace BannerKings.Behaviours
         {
             if (MobileParty.ConversationParty != null && MobileParty.ConversationParty.IsCaravan)
             {
-                InventoryManager.OpenTradeWithCaravanOrAlleyParty(MobileParty.ConversationParty, InventoryManager.InventoryCategoryType.None);
+                // removed in 1.3.x: InventoryManager.OpenTradeWithCaravanOrAlleyParty(MobileParty.ConversationParty, InventoryManager.InventoryCategoryType.None);
             }
             return true;
         }
@@ -1385,7 +1433,7 @@ namespace BannerKings.Behaviours
         private void conversation_caravan_fight_on_consequence()
         {
             SetPlayerInteraction(MobileParty.ConversationParty, BKCaravansBehavior.PlayerInteraction.Hostile);
-            PlayerEncounter.Current.IsEnemy = true;
+            PlayerEncounter.StartAttackMission();
         }
 
         // Token: 0x060034C2 RID: 13506 RVA: 0x000E06E3 File Offset: 0x000DE8E3
@@ -1439,13 +1487,7 @@ namespace BannerKings.Behaviours
             }
             if (flag)
             {
-                InventoryManager.OpenScreenAsLoot(new Dictionary<PartyBase, ItemRoster>
-                {
-                    {
-                        PartyBase.MainParty,
-                        itemRoster
-                    }
-                });
+                // InventoryManager removed in 1.3.x
                 MobileParty.ConversationParty.ItemRoster.Clear();
             }
             int num = MathF.Max(MobileParty.ConversationParty.PartyTradeGold, 0);
@@ -1475,13 +1517,7 @@ namespace BannerKings.Behaviours
             }
             if (flag)
             {
-                InventoryManager.OpenScreenAsLoot(new Dictionary<PartyBase, ItemRoster>
-                {
-                    {
-                        PartyBase.MainParty,
-                        itemRoster
-                    }
-                });
+                // InventoryManager removed in 1.3.x
                 encounteredMobileParty.ItemRoster.Clear();
             }
             int num = MathF.Max(encounteredMobileParty.PartyTradeGold, 0);
@@ -1495,7 +1531,7 @@ namespace BannerKings.Behaviours
             {
                 troopRoster.AddToCounts(troopRosterElement.Character, troopRosterElement.Number, false, 0, 0, true, -1);
             }
-            PartyScreenManager.OpenScreenAsLoot(TroopRoster.CreateDummyTroopRoster(), troopRoster, encounteredMobileParty.Name, troopRoster.TotalManCount, null);
+            // removed in 1.3.x: PartyScreenManager.OpenScreenAsLoot(TroopRoster.CreateDummyTroopRoster(), troopRoster, encounteredMobileParty.Name, troopRoster.TotalManCount, null);
             SkillLevelingManager.OnLoot(MobileParty.MainParty, encounteredMobileParty, itemRoster, false);
             DestroyPartyAction.Apply(MobileParty.MainParty.Party, encounteredMobileParty);
             PlayerEncounter.LeaveEncounter = true;
@@ -1504,23 +1540,23 @@ namespace BannerKings.Behaviours
         // Token: 0x060034C7 RID: 13511 RVA: 0x000E09F0 File Offset: 0x000DEBF0
         private bool IsBribeFeasible()
         {
-            int num = PartyBaseHelper.DoesSurrenderIsLogicalForParty(MobileParty.ConversationParty, MobileParty.MainParty, 0.1f) ? 33 : 67;
+            int num = (MobileParty.ConversationParty.Party.EstimatedStrength * 0.1f < MobileParty.MainParty.Party.EstimatedStrength) ? 33 : 67;
             if (Hero.MainHero.GetPerkValue(DefaultPerks.Roguery.Scarface))
             {
                 num = MathF.Round((float)num * (1f - DefaultPerks.Roguery.Scarface.PrimaryBonus));
             }
-            return MobileParty.ConversationParty.Party.RandomIntWithSeed(5U, 100) <= 100 - num && PartyBaseHelper.DoesSurrenderIsLogicalForParty(MobileParty.ConversationParty, MobileParty.MainParty, 0.6f);
+            return MobileParty.ConversationParty.Party.RandomIntWithSeed(5U, 100) <= 100 - num && (MobileParty.ConversationParty.Party.EstimatedStrength * 0.6f < MobileParty.MainParty.Party.EstimatedStrength);
         }
 
         // Token: 0x060034C8 RID: 13512 RVA: 0x000E0A74 File Offset: 0x000DEC74
         private bool IsSurrenderFeasible(MobileParty conversationParty, MobileParty mainParty)
         {
-            int num = PartyBaseHelper.DoesSurrenderIsLogicalForParty(MobileParty.ConversationParty, MobileParty.MainParty, 0.1f) ? 33 : 67;
+            int num = (MobileParty.ConversationParty.Party.EstimatedStrength * 0.1f < MobileParty.MainParty.Party.EstimatedStrength) ? 33 : 67;
             if (Hero.MainHero.GetPerkValue(DefaultPerks.Roguery.Scarface))
             {
                 num = MathF.Round((float)num * (1f - DefaultPerks.Roguery.Scarface.PrimaryBonus));
             }
-            return conversationParty.Party.RandomIntWithSeed(7U, 100) <= 100 - num && PartyBaseHelper.DoesSurrenderIsLogicalForParty(MobileParty.ConversationParty, MobileParty.MainParty, 0.1f);
+            return conversationParty.Party.RandomIntWithSeed(7U, 100) <= 100 - num && (MobileParty.ConversationParty.Party.EstimatedStrength * 0.1f < MobileParty.MainParty.Party.EstimatedStrength);
         }
 
         // Token: 0x060034C9 RID: 13513 RVA: 0x000E0AF4 File Offset: 0x000DECF4
@@ -1822,3 +1858,5 @@ namespace BannerKings.Behaviours
         }
     }
 }
+
+

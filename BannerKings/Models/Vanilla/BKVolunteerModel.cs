@@ -1,3 +1,4 @@
+using Helpers;
 using BannerKings.Managers.Policies;
 using BannerKings.Managers.Skills;
 using TaleWorlds.CampaignSystem;
@@ -132,7 +133,7 @@ namespace BannerKings.Models.Vanilla
                     factor = 0.4f;
                 }
 
-                if (buyerHero.MapFaction.IsKingdomFaction && FactionManager.GetEnemyKingdoms(buyerHero.MapFaction as Kingdom).Count() > 0)
+                if (buyerHero.MapFaction.IsKingdomFaction && FactionHelper.GetEnemyKingdoms(buyerHero.MapFaction as Kingdom).Any())
                 {
                     factor += 0.15f;
                 }

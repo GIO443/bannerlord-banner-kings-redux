@@ -1,4 +1,4 @@
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Linq;
 using TaleWorlds.CampaignSystem;
 using TaleWorlds.CampaignSystem.Actions;
@@ -140,7 +140,7 @@ namespace BannerKings.Managers.Goals.Decisions
             var cultureOptions = new List<InquiryElement>();
             foreach (var culture in TaleWorlds.CampaignSystem.Campaign.Current.ObjectManager.GetObjectTypeList<CultureObject>())
             {
-                if (culture.NotableAndWandererTemplates != null && culture.NotableAndWandererTemplates.Count > 0 ||
+                if (culture.NotableTemplates != null && culture.NotableTemplates.Count > 0 ||
                     culture.CanHaveSettlement && !culture.IsBandit && culture.IsMainCulture)
                 {
                     cultureOptions.Add(new InquiryElement(culture,
@@ -215,7 +215,7 @@ namespace BannerKings.Managers.Goals.Decisions
         private List<CharacterObject> GetAdequateCharacter(CompanionType type)
         {
             var possibleTemplates = new List<CharacterObject>();
-            foreach (var template in selectedCulture.NotableAndWandererTemplates.Where(t => t.Occupation == Occupation.Wanderer))
+            foreach (var template in selectedCulture.NotableTemplates.Where(t => t.Occupation == Occupation.Wanderer))
             {
                 foreach (var skill in type.Skills)
                     if (template.GetSkillValue(skill) >= 50) possibleTemplates.Add(template);
@@ -228,13 +228,18 @@ namespace BannerKings.Managers.Goals.Decisions
         {
             var hero = GetFulfiller();
             var characterTemplate = GetAdequateCharacter(selectedCompanionType).GetRandomElement();
+            if (characterTemplate == null) return;
 
-            var bornSettlement = Settlement.All.GetRandomElementWithPredicate(s => s.Culture == selectedCulture);
-            var companion = HeroCreator.CreateSpecialHero(characterTemplate, 
-                bornSettlement, 
+            var bornSettlement = Settlement.All.GetRandomElementWithPredicate(s => s.Culture == selectedCulture)
+                ?? Settlement.All.FirstOrDefault();
+            if (bornSettlement == null) return;
+
+            var companion = HeroCreator.CreateSpecialHero(characterTemplate,
+                bornSettlement,
                 null,
-                null, 
+                null,
                 TaleWorlds.CampaignSystem.Campaign.Current.Models.AgeModel.HeroComesOfAge + MBRandom.RandomInt(32));
+            if (companion == null) return;
 
             var council = BannerKingsConfig.Instance.CourtManager.GetCouncil(hero.Clan);
             TeleportHeroAction.ApplyImmediateTeleportToSettlement(companion, council.Location.Settlement);

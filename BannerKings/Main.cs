@@ -14,6 +14,7 @@ using BannerKings.Managers.Skills;
 using BannerKings.Models.Vanilla;
 using BannerKings.Settings;
 using BannerKings.UI;
+using BannerKings.Utils;
 using Bannerlord.UIExtenderEx;
 using HarmonyLib;
 using TaleWorlds.CampaignSystem;
@@ -37,7 +38,24 @@ namespace BannerKings
             {
                 return;
             }
-            
+
+            // PatchAll defers to here. By OnGameStart, Game.Current is set and
+            // GameTexts is fully initialized, so vanilla cctors triggered as a
+            // side effect of patching (DefaultClanFinanceModel, CampaignUIHelper,
+            // etc. — they call Game.Current.GameTextManager.FindText) complete
+            // cleanly. Patching at OnSubModuleLoad or OnBeforeInitialModuleScreenSetAsRoot
+            // hits null Game.Current and permanently breaks those types via
+            // TypeInitializationException. The _patchesInstalled flag ensures we
+            // only do this once per AppDomain even if OnGameStart fires multiple
+            // times (player exits to main menu and starts another campaign).
+            if (!_patchesInstalled)
+            {
+                _patchesInstalled = true;
+                new Harmony("BannerKings").PatchAll();
+                Xtender.Register(typeof(Main).Assembly);
+                Xtender.Enable();
+            }
+
             campaignStarter.AddBehavior(new BKManagerBehavior());
             campaignStarter.AddBehavior(new BKEducationBehavior());
             campaignStarter.AddBehavior(new BKSettlementActions());
@@ -104,7 +122,9 @@ namespace BannerKings
             campaignStarter.AddModel(new BKRaidModel());
             campaignStarter.AddModel(BannerKingsConfig.Instance.VolunteerModel);
             campaignStarter.AddModel(new BKNotableSpawnModel());
-            campaignStarter.AddModel(new BKGarrisonModel());
+            // Defer garrison sizing to ImprovedGarrisons when present.
+            if (!ModCompat.ImprovedGarrisons)
+                campaignStarter.AddModel(new BKGarrisonModel());
             campaignStarter.AddModel(new BKRansomModel());
             campaignStarter.AddModel(new BKClanTierModel());
             campaignStarter.AddModel(new BKPartyWageModel());
@@ -132,13 +152,20 @@ namespace BannerKings
             campaignStarter.AddModel(new BKPartyHealingModel());
             campaignStarter.AddModel(new BKBanditModel());
             campaignStarter.AddModel(new BKPartyTrainningModel());
-            campaignStarter.AddModel(new BKDiplomacyModel());
+            // Defer to Diplomacy mod when present — it owns kingdom-decision tuning.
+            // BK's internal pacts/casus belli still calculate via the BK config-level
+            // model (BKDiplomacyModel instance held by BannerKingsConfig).
+            if (!ModCompat.DiplomacyMod)
+                campaignStarter.AddModel(new BKDiplomacyModel());
             //campaignStarter.AddModel(new BKTargetScoreModel());
             campaignStarter.AddModel(new BKPartyBuyingFoodModel());
             campaignStarter.AddModel(new BKCategorySelector());
             campaignStarter.AddModel(new BKSettlementAccessModel());
-            campaignStarter.AddModel(BannerKingsConfig.Instance.MarriageModel);
-            campaignStarter.AddModel(new BKItemValueModel());
+            // Defer to MarryAnyone when present — it removes vanilla restrictions.
+            // BK still consults the config-level model for title/dowry logic.
+            if (!ModCompat.MarryAnyone)
+                campaignStarter.AddModel(BannerKingsConfig.Instance.MarriageModel);
+            //campaignStarter.AddModel(new BKItemValueModel()); // BKItemValueModel removed
             campaignStarter.AddModel(new BKTargetScoreModel());
 
             BKAttributes.Instance.Initialize();
@@ -156,13 +183,41 @@ namespace BannerKings
             //TaleWorlds.CampaignSystem.Campaign.Current.TournamentManager = new BKTournamentManager();
         }
 
+        private bool _patchesInstalled;
+
         protected override void OnSubModuleLoad()
         {
             base.OnSubModuleLoad();
-            new Harmony("BannerKings").PatchAll();
-            Xtender.Register(typeof(Main).Assembly);
-            Xtender.Enable();
+            BKDiagnostics.Install();
+
+            // GameTexts null-guard installs here so it's the first thing in place.
+            // Cheap and self-contained; doesn't trigger vanilla cctors.
+            try
+            {
+                var harmony = new Harmony("BannerKings");
+                var target = BannerKings.Patches.GameTextsNullGuardPatch.TargetMethod();
+                var prefix = AccessTools.Method(
+                    typeof(BannerKings.Patches.GameTextsNullGuardPatch),
+                    nameof(BannerKings.Patches.GameTextsNullGuardPatch.Prefix));
+                if (target != null && prefix != null)
+                {
+                    harmony.Patch(target, prefix: new HarmonyMethod(prefix));
+                }
+            }
+            catch
+            {
+            }
+
+            // PatchAll is DEFERRED to OnBeforeInitialModuleScreenSetAsRoot.
+            // Reason: PatchAll triggers static cctor of every patched vanilla type.
+            // In 1.3.x several of those cctors (DefaultClanFinanceModel, CampaignUIHelper,
+            // etc.) call Game.Current.GameTextManager.FindText(...) — but Game.Current
+            // is still null at OnSubModuleLoad time, so the callvirt NREs. Once a
+            // cctor throws, the type is permanently broken (TypeInitializationException
+            // forever). Deferring until OnBeforeInitialModuleScreenSetAsRoot ensures
+            // Game.Current and GameTexts are both initialized before any cctor fires.
         }
+
 
         public override void OnGameEnd(Game game)
         {

@@ -439,3 +439,26 @@ fabric.properties
 
 # Android studio 3.1+ serialized cache file
 .idea/caches/build_file_checksums.ser
+# Local DLL references (game binaries, not committed)
+ref/
+
+# Crash logs and local game data
+Crash Logs/
+Crashes/
+
+# Claude Code session and memory artifacts (local only)
+.claude/
+
+# OS / editor noise
+Thumbs.db
+.DS_Store
+*.swp
+*.swo
+
+# Discord RAG bot — local artifacts
+bot/.env
+bot/.venv/
+bot/chroma_db/
+bot/bk_bot.sqlite
+bot/cluster.log
+bot/__pycache__/

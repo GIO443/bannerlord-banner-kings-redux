@@ -1,4 +1,4 @@
-using BannerKings.Behaviours;
+﻿using BannerKings.Behaviours;
 using BannerKings.Managers.Populations;
 using BannerKings.UI.Items.UI;
 using Bannerlord.UIExtenderEx.Attributes;
@@ -10,6 +10,7 @@ using TaleWorlds.CampaignSystem.Actions;
 using TaleWorlds.CampaignSystem.Settlements;
 using TaleWorlds.CampaignSystem.ViewModelCollection;
 using TaleWorlds.Core;
+using TaleWorlds.Core.ImageIdentifiers;
 using TaleWorlds.Library;
 using TaleWorlds.Localization;
 
@@ -266,7 +267,7 @@ namespace BannerKings.UI.Management
 
                     elements.Add(new InquiryElement(notable,
                         notable.Name.ToString(),
-                        new ImageIdentifier(CampaignUIHelper.GetCharacterCode(notable.CharacterObject, true)),
+                        new CharacterImageIdentifier(CampaignUIHelper.GetCharacterCode(notable.CharacterObject, true)),
                         possible,
                         hint.ToString()));
                 }

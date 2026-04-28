@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using BannerKings.Components;
@@ -40,7 +40,7 @@ namespace BannerKings.Behaviours
         {
             get
             {
-                if (cow == null) chicken = Campaign.Current.ObjectManager.GetObject<ItemObject>("cow");
+                if (cow == null) cow = Campaign.Current.ObjectManager.GetObject<ItemObject>("cow");
                 return cow;
             }
         }
@@ -223,27 +223,32 @@ namespace BannerKings.Behaviours
 
             if (lordParty.Army != null || lordParty.MapEvent != null) return;
 
-            if (lordParty.Ai.DefaultBehavior != AiBehavior.PatrolAroundPoint) return;
+            if (lordParty.DefaultBehavior != AiBehavior.PatrolAroundPoint) return;
 
             if (TaleWorlds.CampaignSystem.Campaign.Current.Models.MobilePartyFoodConsumptionModel.DoesPartyConsumeFood(lordParty) &&
                 lordParty.TotalFoodAtInventory < (int)(MathF.Abs(lordParty.FoodChange * 5f)))
             {
-                Settlement settlement = SettlementHelper.FindNearestSettlement((Settlement settlement) =>
+                Settlement settlement = BannerKings.Utils.Helpers.FindNearestSettlement((Settlement settlement) =>
                 {
                     return (settlement.Town != null || settlement.IsVillage) && settlement.MapFaction != null &&
                     !settlement.MapFaction.IsAtWarWith(lordParty.MapFaction) && settlement.ItemRoster.TotalFood > 0;
                 },
                 lordParty);
-                if (settlement != null) lordParty.Ai.SetMoveGoToSettlement(settlement);
+                if (settlement != null) lordParty.SetMoveGoToSettlement(settlement, MobileParty.NavigationType.All, false);
             }
         }
 
         private void TryBuyingFood(MobileParty mobileParty, Settlement settlement)
         {
-            if (TaleWorlds.CampaignSystem.Campaign.Current.GameStarted && mobileParty.LeaderHero != null && settlement.IsCastle && 
-                TaleWorlds.CampaignSystem.Campaign.Current.Models.MobilePartyFoodConsumptionModel.DoesPartyConsumeFood(mobileParty) && 
-                (mobileParty.Army == null || mobileParty.Army.LeaderParty == mobileParty) && 
-                (settlement.IsVillage || (mobileParty.MapFaction != null && !mobileParty.MapFaction.IsAtWarWith(settlement.MapFaction))) && 
+            // Was IsCastle — but castles have no Village/no item roster path
+            // through vanilla SellItemsAction, so buying from one drives
+            // DefaultSettlementTaxModel.GetVillageTaxRatio(null) → NRE.
+            // Real intent: AI parties buy food from towns and villages.
+            if (TaleWorlds.CampaignSystem.Campaign.Current.GameStarted && mobileParty.LeaderHero != null &&
+                (settlement.IsTown || settlement.IsVillage) &&
+                TaleWorlds.CampaignSystem.Campaign.Current.Models.MobilePartyFoodConsumptionModel.DoesPartyConsumeFood(mobileParty) &&
+                (mobileParty.Army == null || mobileParty.Army.LeaderParty == mobileParty) &&
+                (settlement.IsVillage || (mobileParty.MapFaction != null && !mobileParty.MapFaction.IsAtWarWith(settlement.MapFaction))) &&
                 settlement.ItemRoster.TotalFood > 0)
             {
                 PartyFoodBuyingModel partyFoodBuyingModel = TaleWorlds.CampaignSystem.Campaign.Current.Models.PartyFoodBuyingModel;
@@ -258,6 +263,10 @@ namespace BannerKings.Behaviours
 
         private void BuyFoodInternal(MobileParty mobileParty, Settlement settlement, int numberOfFoodItemsNeededToBuy)
         {
+            // Defensive: SellItemsAction needs a town- or village-typed settlement.
+            // Vanilla's tax-ratio lookup NREs on a castle (no .Village).
+            if (settlement == null || (!settlement.IsTown && !settlement.IsVillage)) return;
+
             if (!mobileParty.IsMainParty)
             {
                 for (int i = 0; i < numberOfFoodItemsNeededToBuy; i++)
@@ -271,7 +280,13 @@ namespace BannerKings.Behaviours
                     }
                     if (num <= (float)mobileParty.LeaderHero.Gold)
                     {
-                        SellItemsAction.Apply(settlement.Party, mobileParty.Party, subject, 1, null);
+                        try { SellItemsAction.Apply(settlement.Party, mobileParty.Party, subject, 1, null); }
+                        catch
+                        {
+                            // Vanilla SellItemsAction NREs in GetVillageTaxRatio for some
+                            // town-seller transactions in 1.3.x. Skip this food purchase.
+                            break;
+                        }
                     }
                     if (subject.EquipmentElement.Item.HasHorseComponent && subject.EquipmentElement.Item.HorseComponent.IsLiveStock)
                     {
@@ -301,7 +316,7 @@ namespace BannerKings.Behaviours
            
             if (villagerParty.CurrentSettlement != null && villagerParty.CurrentSettlement.IsCastle)
             {
-                villagerParty.Ai.SetMoveGoToSettlement(villagerParty.HomeSettlement);
+                villagerParty.SetMoveGoToSettlement(villagerParty.HomeSettlement, MobileParty.NavigationType.All, false);
             }
         }
 
@@ -620,7 +635,7 @@ namespace BannerKings.Behaviours
 
                     if (!origin.MapFaction.IsAtWarWith(fortification.MapFaction))
                     {
-                        if (TaleWorlds.CampaignSystem.Campaign.Current.Models.MapDistanceModel.GetDistance(fortification.Settlement, origin) < 100f)
+                        if (TaleWorlds.CampaignSystem.Campaign.Current.Models.MapDistanceModel.GetDistance(fortification.Settlement, origin, false, false, MobileParty.NavigationType.All) < 100f)
                             list.Add(fortification.Settlement);
                     }
                 }
@@ -728,7 +743,7 @@ namespace BannerKings.Behaviours
             starter.AddPlayerLine("traveller_party_loot", "traveller_party_greeting", "close_window",
                 new TextObject("{=dOcj05n6}Whatever you have, I'm taking it. Surrender or die!").ToString(),
                 traveller_aggression_on_condition,
-                delegate { PlayerEncounter.Current.IsEnemy = true; });
+                delegate { PlayerEncounter.StartAttackMission(); });
 
             starter.AddPlayerLine("traveller_party_leave", "traveller_party_greeting", "close_window",
                 new TextObject("{=zhRJeYOY}Carry on, then. Farewell.").ToString(), null,
@@ -753,7 +768,7 @@ namespace BannerKings.Behaviours
 
             starter.AddDialogLine("slavecaravan_party_threat_response", "slavecaravan_threat", "close_window",
                 "{=18j2nO70}One more for the mines! Lads, get the whip![rf:idle_angry][ib:aggressive]",
-                null, delegate { PlayerEncounter.Current.IsEnemy = true; });
+                null, delegate { PlayerEncounter.StartAttackMission(); });
 
             starter.AddDialogLine("raised_militia_party_start", "start", "raised_militia_greeting",
                 "{=SRg8cwUN}{?PLAYER.GENDER}M'lady!{?}M'lord!{\\?} We are ready to serve you.",
@@ -812,7 +827,7 @@ namespace BannerKings.Behaviours
                 () => true,
                 () =>
                 {
-                    PartyScreenManager.OpenScreenAsManageTroopsAndPrisoners(PlayerEncounter.EncounteredParty.MobileParty);
+                    // removed in 1.3.x: PartyScreenManager.OpenScreenAsManageTroopsAndPrisoners(PlayerEncounter.EncounteredParty.MobileParty);
                 });
 
             starter.AddPlayerLine("retinue_party_leave", "raised_retinue_greeting", "close_window",

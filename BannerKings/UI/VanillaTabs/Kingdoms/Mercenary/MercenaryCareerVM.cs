@@ -1,10 +1,11 @@
-using BannerKings.Behaviours.Mercenary;
+﻿using BannerKings.Behaviours.Mercenary;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using TaleWorlds.CampaignSystem;
 using TaleWorlds.CampaignSystem.ViewModelCollection;
 using TaleWorlds.Core;
+using TaleWorlds.Core.ImageIdentifiers;
 using TaleWorlds.Core.ViewModelCollection;
 using TaleWorlds.Core.ViewModelCollection.Information;
 using TaleWorlds.Library;
@@ -296,7 +297,7 @@ namespace BannerKings.UI.VanillaTabs.Kingdoms.Mercenary
             {
                 list.Add(new InquiryElement(preset,
                     preset.Name.ToString(),
-                    new ImageIdentifier(items.First(x => x.StringId == preset.ItemId)),
+                    new ItemImageIdentifier(items.First(x => x.StringId == preset.ItemId)),
                     true,
                     preset.GetExplanation().ToString()));
             }
@@ -516,7 +517,7 @@ namespace BannerKings.UI.VanillaTabs.Kingdoms.Mercenary
                 {
                     list.Add(new InquiryElement(item,
                         item.Name.ToString(),
-                        new ImageIdentifier(item),
+                        new ItemImageIdentifier(item),
                         true,
                         new TextObject("{=TFbOS7F6}Tier: {TIER}\nValue: {VALUE}\nType: {TYPE}")
                         .SetTextVariable("TIER", item.Tierf)

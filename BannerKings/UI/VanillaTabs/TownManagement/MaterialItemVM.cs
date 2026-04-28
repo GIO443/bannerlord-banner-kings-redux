@@ -1,5 +1,6 @@
 using TaleWorlds.CampaignSystem.Settlements;
 using TaleWorlds.Core;
+using TaleWorlds.Core.ViewModelCollection.ImageIdentifiers;
 using TaleWorlds.Core.ViewModelCollection.Information;
 using TaleWorlds.Library;
 
@@ -9,12 +10,12 @@ namespace BannerKings.UI.VanillaTabs.TownManagement
     {
         private BasicTooltipViewModel hint;
         private int resourceChange, resourceAmount;
-        private ImageIdentifierVM visual;
+        private ItemImageIdentifierVM visual;
 
         public MaterialItemVM(ItemObject material, Settlement settlement, int demand)
         {
             Material = material;
-            Visual = new ImageIdentifierVM(material);
+            Visual = new ItemImageIdentifierVM(material);
             int stash = 0;
             int market = 0;
             foreach (ItemRosterElement element in settlement.Stash)
@@ -88,7 +89,7 @@ namespace BannerKings.UI.VanillaTabs.TownManagement
         }
 
         [DataSourceProperty]
-        public ImageIdentifierVM Visual
+        public ItemImageIdentifierVM Visual
         {
             get => visual;
             set

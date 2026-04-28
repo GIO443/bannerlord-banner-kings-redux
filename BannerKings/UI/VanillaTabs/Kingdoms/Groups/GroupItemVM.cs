@@ -2,6 +2,7 @@
 using BannerKings.Behaviours.Diplomacy;
 using TaleWorlds.Core;
 using TaleWorlds.Library;
+using TaleWorlds.Core.ViewModelCollection.ImageIdentifiers;
 using TaleWorlds.Core.ViewModelCollection.Information;
 using TaleWorlds.Core.ViewModelCollection.Generic;
 
@@ -13,7 +14,7 @@ namespace BannerKings.UI.VanillaTabs.Kingdoms.Groups
         private MBBindingList<StringPairItemVM> headers;
         protected KingdomGroupsVM groupsVM;
         protected GroupMemberVM leader;
-        protected ImageIdentifierVM clanBanner;
+        protected BannerImageIdentifierVM clanBanner;
         protected string emptyGroupText, actionName;
         protected HintViewModel actionHint;
         protected bool isEmpty, isActionEnabled;
@@ -44,7 +45,7 @@ namespace BannerKings.UI.VanillaTabs.Kingdoms.Groups
                 Leader = new GroupMemberVM(Group.Leader, true);
                 if (Group.Leader.Clan != null)
                 {
-                    ClanBanner = new ImageIdentifierVM(BannerCode.CreateFrom(Group.Leader.Clan.Banner), true);
+                    ClanBanner = new BannerImageIdentifierVM(Group.Leader.Clan.Banner, true);
                 }
             }
         }
@@ -134,7 +135,7 @@ namespace BannerKings.UI.VanillaTabs.Kingdoms.Groups
         }
 
         [DataSourceProperty]
-        public ImageIdentifierVM ClanBanner
+        public BannerImageIdentifierVM ClanBanner
         {
             get => clanBanner;
             set

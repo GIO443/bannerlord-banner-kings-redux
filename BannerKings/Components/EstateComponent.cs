@@ -1,4 +1,4 @@
-using BannerKings.Managers.Populations.Estates;
+﻿using BannerKings.Managers.Populations.Estates;
 using TaleWorlds.CampaignSystem.Actions;
 using TaleWorlds.CampaignSystem.Party;
 using TaleWorlds.CampaignSystem.Settlements;
@@ -24,18 +24,18 @@ namespace BannerKings.Components
         public override TextObject Name => new TextObject("{=NzSOneTv}Estate Retinue from {ORIGIN}")
             .SetTextVariable("ORIGIN", HomeSettlement.Name);
 
+        public override Banner GetDefaultComponentBanner() => base.GetDefaultComponentBanner();
+
         private static MobileParty CreateParty(string id, Estate estate, Settlement origin)
         {
-            return MobileParty.CreateParty(id, new EstateComponent(origin, estate),
-                delegate(MobileParty mobileParty)
-                {
-                    mobileParty.SetPartyUsedByQuest(true);
-                    mobileParty.Party.SetVisualAsDirty();
-                    mobileParty.Ai.SetInitiative(0.5f, 1f, float.MaxValue);
-                    mobileParty.ShouldJoinPlayerBattles = true;
-                    mobileParty.Aggressiveness = 0.1f;
-                    mobileParty.SetWagePaymentLimit(TaleWorlds.CampaignSystem.Campaign.Current.Models.PartyWageModel.MaxWage);
-                });
+            var party = MobileParty.CreateParty(id, new EstateComponent(origin, estate));
+            party.SetPartyUsedByQuest(true);
+            party.Party.SetVisualAsDirty();
+            party.Ai.SetInitiative(0.5f, 1f, float.MaxValue);
+            party.ShouldJoinPlayerBattles = true;
+            party.Aggressiveness = 0.1f;
+            party.SetWagePaymentLimit(TaleWorlds.CampaignSystem.Campaign.Current.Models.PartyWageModel.MaxWagePaymentLimit);
+            return party;
         }
 
         public static void CreateRetinue(Estate estate)
@@ -44,9 +44,7 @@ namespace BannerKings.Components
             if (origin.MilitiaPartyComponent != null)
             {  
                 MobileParty retinue = CreateParty($"bk_retinue_{origin}_{estate}_{MBRandom.RandomInt()}", estate, origin);
-                retinue.InitializeMobilePartyAtPosition(origin.Culture.MilitiaPartyTemplate,
-                origin.GatePosition,
-                (int)(estate.MaxManpower.ResultNumber * 0.5f));
+                retinue.InitializeMobilePartyAtPosition(origin.Culture.MilitiaPartyTemplate, origin.GatePosition);
                 GiveMounts(ref retinue);
                 GiveFood(ref retinue);
                 EnterSettlementAction.ApplyForParty(retinue, origin);
@@ -59,19 +57,19 @@ namespace BannerKings.Components
             var behavior = Behavior;
             if (behavior == AiBehavior.EscortParty)
             {
-                MobileParty.Ai.SetMoveEscortParty(Escort);
+                MobileParty.SetMoveEscortParty(Escort, MobileParty.NavigationType.All, false);
                 if (MobileParty.CurrentSettlement != null) LeaveSettlementAction.ApplyForParty(MobileParty);
             }
             else if (behavior == AiBehavior.GoToSettlement || behavior == AiBehavior.Hold)
             {
-                MobileParty.Ai.SetMoveGoToSettlement(HomeSettlement);
-                if (TaleWorlds.CampaignSystem.Campaign.Current.Models.MapDistanceModel.GetDistance(Party.MobileParty, HomeSettlement) <= 2f)
+                MobileParty.SetMoveGoToSettlement(HomeSettlement, MobileParty.NavigationType.All, false);
+                if (TaleWorlds.CampaignSystem.Campaign.Current.Models.MapDistanceModel.GetDistance(Party.MobileParty, HomeSettlement, false, MobileParty.NavigationType.All, out _) <= 2f)
                     EnterSettlementAction.ApplyForParty(Party.MobileParty, HomeSettlement);
             }
 
             if (MobileParty.CurrentSettlement == null && Behavior != AiBehavior.EscortParty) 
             {
-                MobileParty.Ai.SetMoveGoToSettlement(HomeSettlement);
+                MobileParty.SetMoveGoToSettlement(HomeSettlement, MobileParty.NavigationType.All, false);
             }
         }
     }

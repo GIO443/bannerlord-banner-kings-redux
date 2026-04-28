@@ -1,6 +1,7 @@
-using BannerKings.Behaviours.Marriage;
+﻿using BannerKings.Behaviours.Marriage;
 using System.Collections.Generic;
 using TaleWorlds.CampaignSystem;
+using TaleWorlds.CampaignSystem.CharacterDevelopment;
 using TaleWorlds.Core;
 using TaleWorlds.Library;
 using TaleWorlds.Localization;
@@ -16,10 +17,10 @@ namespace BannerKings.Dialogue
             {
                 float score = 0f;
                 score += MathF.Clamp(conversationHero.GetRelationWithPlayer() / 100 * option.RelationWeight, -1f, 1f);
-                score += MathF.Clamp(conversationHero.GetHeroTraits().Calculating * option.CalculatingWeight, -1f, 1f);
-                score += MathF.Clamp(conversationHero.GetHeroTraits().Mercy * option.MercyWeight, -1f, 1f);
-                score += MathF.Clamp(conversationHero.GetHeroTraits().Honor * option.HonorWeight, -1f, 1f);
-                score += MathF.Clamp(conversationHero.GetHeroTraits().Generosity * option.GenerousWeight, -1f, 1f);
+                score += MathF.Clamp(conversationHero.GetTraitLevel(DefaultTraits.Calculating) * option.CalculatingWeight, -1f, 1f);
+                score += MathF.Clamp(conversationHero.GetTraitLevel(DefaultTraits.Mercy) * option.MercyWeight, -1f, 1f);
+                score += MathF.Clamp(conversationHero.GetTraitLevel(DefaultTraits.Honor) * option.HonorWeight, -1f, 1f);
+                score += MathF.Clamp(conversationHero.GetTraitLevel(DefaultTraits.Generosity) * option.GenerousWeight, -1f, 1f);
 
                 if (score > 0f && !option.IsDefault)
                 {

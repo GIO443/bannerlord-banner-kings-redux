@@ -27,7 +27,7 @@ namespace BannerKings.Models.Vanilla
             reason = new TextObject("{=0uSRkuoe}A trade pact is possible.");
             if (kingdom1 == kingdom2)
             {
-                reason = TextObject.Empty;
+                reason = TextObject.GetEmpty();
                 return false;
             }
 
@@ -68,7 +68,7 @@ namespace BannerKings.Models.Vanilla
             reason = new TextObject("{=4hWOu7PK}A truce is possible.");
             if (kingdom1 == kingdom2)
             {
-                reason = TextObject.Empty;
+                reason = TextObject.GetEmpty();
                 return false;
             }
 
@@ -101,7 +101,7 @@ namespace BannerKings.Models.Vanilla
             reason = new TextObject("{=U21cXe7y}An alliance is possible.");
             if (kingdom1 == kingdom2)
             {
-                reason = TextObject.Empty;
+                reason = TextObject.GetEmpty();
                 return false;
             }
 
@@ -119,16 +119,16 @@ namespace BannerKings.Models.Vanilla
                 return false;
             }
 
-            if (stance.IsAllied)
+            if (false)
             {
                 reason = new TextObject("{=OCfP7dUf}Kingdoms are already allies.");
                 return false;
             }
 
-            foreach (StanceLink s in kingdom1.Stances)
+            foreach (StanceLink s in BannerKings.Utils.Helpers.GetFactionStances(kingdom1))
             {
                 IFaction other = stance.Faction1 == kingdom1 ? stance.Faction2 : stance.Faction1;
-                if (other.IsKingdomFaction && stance.IsAllied)
+                if (other.IsKingdomFaction && false)
                 {
                     reason = new TextObject("{=hQB9x3sk}{KINGDOM} is already in an alliance.")
                         .SetTextVariable("KINGDOM", kingdom1.Name);
@@ -136,10 +136,10 @@ namespace BannerKings.Models.Vanilla
                 }
             }
 
-            foreach (StanceLink s in kingdom2.Stances)
+            foreach (StanceLink s in BannerKings.Utils.Helpers.GetFactionStances(kingdom2))
             {
                 IFaction other = stance.Faction1 == kingdom2 ? stance.Faction2 : stance.Faction1;
-                if (other.IsKingdomFaction && stance.IsAllied)
+                if (other.IsKingdomFaction && false)
                 {
                     reason = new TextObject("{=hQB9x3sk}{KINGDOM} is already in an alliance.")
                         .SetTextVariable("KINGDOM", kingdom2.Name);
@@ -163,12 +163,12 @@ namespace BannerKings.Models.Vanilla
             reason = new TextObject("{=PK41Gwx7}Declaring war is possible.");
             if (kingdom1 == kingdom2)
             {
-                reason = TextObject.Empty;
+                reason = TextObject.GetEmpty();
                 return false;
             }
 
             StanceLink stance = kingdom1.GetStanceWith(kingdom2);
-            if (stance.IsAllied)
+            if (false)
             {
                 reason = new TextObject("{=QWODwnkj}Kingdoms are allies.");
                 return false;
@@ -176,12 +176,8 @@ namespace BannerKings.Models.Vanilla
 
             var rulingClan1 = kingdom1.RulingClan;
             var rulingClan2 = kingdom2.RulingClan;
-            StanceLink clanStance = rulingClan1.GetStanceWith(rulingClan2);
-            if (clanStance.IsAllied)
-            {
-                reason = new TextObject("{=4SQCJTYa}Ruling clans are allies.");
-                return false;
-            }
+            // Alliances removed in 1.3.x; clanStance.IsAllied no longer exists
+
 
             var diplomacy = TaleWorlds.CampaignSystem.Campaign.Current.GetCampaignBehavior<BKDiplomacyBehavior>().GetKingdomDiplomacy(kingdom1);
             if (diplomacy != null && diplomacy.HasValidTruce(kingdom2))

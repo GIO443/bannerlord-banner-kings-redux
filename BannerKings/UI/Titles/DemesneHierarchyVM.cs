@@ -1,8 +1,9 @@
-using BannerKings.Managers.Titles;
+﻿using BannerKings.Managers.Titles;
 using BannerKings.UI.Items;
 using BannerKings.UI.Items.UI;
 using TaleWorlds.CampaignSystem;
 using TaleWorlds.Core;
+using TaleWorlds.Core.ViewModelCollection.ImageIdentifiers;
 using TaleWorlds.Core.ViewModelCollection.Selector;
 using TaleWorlds.Library;
 using TaleWorlds.Localization;
@@ -11,7 +12,7 @@ namespace BannerKings.UI.Titles
 {
     public class DemesneHierarchyVM : BannerKingsViewModel
     {
-        private ImageIdentifierVM banner;
+        private BannerImageIdentifierVM banner;
         private DecisionElement contract;
         private DecisionElement foundKingdom;
         private MBBindingList<DecisionElement> decisions;
@@ -81,11 +82,11 @@ namespace BannerKings.UI.Titles
                 Tree = new TitleElementVM(title, this);
                 if (kingdom != null)
                 {
-                    Banner = new ImageIdentifierVM(BannerCode.CreateFrom(kingdom.Banner), true);
+                    Banner = new BannerImageIdentifierVM(kingdom.Banner, true);
                 }
                 else if (title.deJure != null)
                 {
-                    Banner = new ImageIdentifierVM(BannerCode.CreateFrom(title.deJure.Clan.Banner), true);
+                    Banner = new BannerImageIdentifierVM(title.deJure.Clan.Banner, true);
                 }
                 Name = title.FullName.ToString();
             }
@@ -215,7 +216,7 @@ namespace BannerKings.UI.Titles
         }
 
         [DataSourceProperty]
-        public ImageIdentifierVM Banner
+        public BannerImageIdentifierVM Banner
         {
             get => banner;
             set

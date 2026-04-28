@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using BannerKings.Managers.Titles;
@@ -6,6 +6,7 @@ using BannerKings.Managers.Titles.Governments;
 using TaleWorlds.CampaignSystem;
 using TaleWorlds.CampaignSystem.ViewModelCollection;
 using TaleWorlds.Core;
+using TaleWorlds.Core.ImageIdentifiers;
 using TaleWorlds.Library;
 using TaleWorlds.Localization;
 
@@ -72,7 +73,7 @@ namespace BannerKings.Managers.Goals.Decisions
                 vassals.Add(new InquiryElement(
                     vassal,
                     vassal.Name.ToString(),
-                    new ImageIdentifier(CampaignUIHelper.GetCharacterCode(vassal.CharacterObject)),
+                    new CharacterImageIdentifier(CampaignUIHelper.GetCharacterCode(vassal.CharacterObject)),
                     true,
                     string.Empty));
             }

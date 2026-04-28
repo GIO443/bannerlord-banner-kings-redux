@@ -1,4 +1,4 @@
-using BannerKings.Behaviours.Diplomacy.Wars;
+﻿using BannerKings.Behaviours.Diplomacy.Wars;
 using BannerKings.Managers.Goals;
 using BannerKings.Utils.Extensions;
 using BannerKings.Utils.Models;
@@ -109,7 +109,7 @@ namespace BannerKings.Models.BKModels
                 .SetTextVariable("FACTION", attacker.Name)
                 .SetTextVariable("CASUALTIES", attackerCasualties));
 
-            List<Settlement> attackerConquests = DiplomacyHelper.GetSuccessfullSiegesInWarForFaction(attacker,
+            List<Settlement> attackerConquests = BannerKings.Utils.Helpers.GetSuccessfulSiegesInWarForFaction(attacker,
                attackerLink, (Settlement x) => x.Town != null);
             foreach (var settlement in attackerConquests)
             {
@@ -172,7 +172,7 @@ namespace BannerKings.Models.BKModels
 
             // --- DEFENDER ----
 
-            List<Settlement> defenderConquests = DiplomacyHelper.GetSuccessfullSiegesInWarForFaction(defender,
+            List<Settlement> defenderConquests = BannerKings.Utils.Helpers.GetSuccessfulSiegesInWarForFaction(defender,
                 attackerLink, (Settlement x) => x.Town != null);
             foreach (var settlement in defenderConquests)
             {
