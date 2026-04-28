@@ -1,9 +1,10 @@
-# BannerKings Wiki (1.3.x Fork)
+# BannerKings — Redux Wiki (1.3.x Fork)
 
-A pseudo-wiki of the BannerKings mod for Mount & Blade II: Bannerlord, scoped to the
-1.3.x fork with War Sails / Nord integration. Audience: players asking "what does X
-do", modders asking "where does X live in the code", and the RAG bot that will read
-this file.
+A pseudo-wiki of the **Banner Kings — Redux** mod for Mount & Blade II: Bannerlord,
+scoped to the 1.3.x fork with native War Sails (NavalDLC) / Nord integration.
+Module id is `BannerKings.Redux`; the deployed module folder is
+`Modules/BannerKings.Redux/`. Audience: players asking "what does X do", modders
+asking "where does X live in the code", and the RAG bot that will read this file.
 
 ---
 
@@ -27,7 +28,9 @@ The fork's two purposes:
 
 1. **Port to Bannerlord 1.3.x (build 110062+)** — original project stalled before 1.3.x.
 2. **Native War Sails / Nord faction support** — Nord settlements/clans/titles/culture
-   integrated directly so Nord interactions don't null-ref crash.
+   integrated directly so Nord interactions don't null-ref crash, plus three
+   Nord seafaring lifestyles (Jomsviking, Drakkar Captain, Sjofarandi) with
+   real naval-side perk effects via Harmony hooks into NavalDLC's own models.
 
 ---
 
@@ -217,7 +220,23 @@ After the 1.3.x audit only essential patches remain. They live in `Patches/`:
   generator, inventory logic, item registration, food consumption). All other
   legacy fixes were deleted as obsolete in 1.3.x.
 - **NordCompatPatches** — null guards around Nord settlements when War Sails is
-  installed without explicit BK Nord data.
+  installed without explicit BK Nord data, plus a clamp on
+  `ItemRosterElement.set_Amount` so vanilla's `WorkshopsCampaignBehavior`
+  doesn't throw on a fresh game when BK's economy seeding leaves market
+  stocks thinner than vanilla expects.
+- **NavalPerkPatches** — reflection-bound Harmony postfixes on War Sails'
+  own `NavalDLC.GameComponents.*` models so the seafaring lifestyle perks
+  (Drakkar Helmsman, Drakkar Raid Master, Sjofarandi Pathfinder/Sea-Eyes,
+  Jomsviking Boarding Fury) take effect on naval scenes and at sea.
+  Targets resolve via `AccessTools.TypeByName` so BK doesn't take a
+  compile-time reference on `NavalDLC.dll`. Each `Prepare()` returns
+  false when the type or method isn't present, so the patches no-op
+  cleanly when War Sails isn't installed.
+- **UIExtenderMixinHierarchyPatch** — walks the VM type hierarchy when
+  UIExtenderEx attaches mixins, so vanilla mixins still attach when
+  NavalDLC subclasses the target VM (`NavalKingdomManagementVM` etc.).
+  Without this, BK's kingdom-screen and map-bar mixins silently fail
+  to attach on a War Sails install.
 - **`Patches.cs`** — top-level misc patches (Hero render, etc.).
 
 Reflection-heavy hot paths cache `FieldInfo` / `MethodInfo` / `PropertyInfo`
@@ -272,7 +291,21 @@ Native, not a separate sub-mod. Touch points:
 - `Managers/Education/Languages/DefaultLanguages.cs` — `Nordic` language entry.
 - `Patches/NordCompatPatches.cs` — null guards: if Nord settlement has no BK data
   yet, return safe defaults instead of crashing.
-- Works with **and without** the War Sails DLC installed.
+- `Patches/NavalPerkPatches.cs` — Harmony hooks into `NavalDLC.GameComponents.*`
+  so the seafaring lifestyle perks have real naval effects (party speed at sea,
+  spotting range at sea, naval raid hit damage, melee damage on naval missions).
+- `Patches/UIExtenderMixinHierarchyPatch.cs` — fixes UIExtenderEx mixin
+  attachment when NavalDLC subclasses the target VM.
+- `Managers/Education/Lifestyles/DefaultLifestyles.cs` — three Nord-restricted
+  seafaring lifestyles (`Jomsviking`, `Drakkar Captain`, `Sjofarandi`) registered
+  via `AddObject(...)` only when `ModCompat.WarSails` is true and the Nord
+  culture object exists. Their nine perks live under the **Seafaring** region of
+  `Managers/Skills/BKPerks.cs`.
+- `Utils/ModCompat.cs` — `ModCompat.WarSails` (module id `NavalDLC`, assembly
+  name `NavalDLC`) is the single source of truth for "is War Sails loaded?"
+  used everywhere the Naval-specific code paths gate on the DLC.
+- Works with **and without** the War Sails DLC installed. All Nord/seafaring
+  content is gated so it adds nothing when the DLC is absent.
 
 ---
 
@@ -291,8 +324,22 @@ BANNERLORD_GAME_DIR="C:/Program Files (x86)/Steam/steamapps/common/Mount & Blade
   dotnet build BannerKings/BannerKings.csproj -c Release
 ```
 
-The csproj resolves all game refs from `$(BANNERLORD_GAME_DIR)`. Output goes
-straight into `Modules/BannerKings/bin/Win64_Shipping_Client/`.
+The csproj resolves all game refs from `$(BANNERLORD_GAME_DIR)`. The module
+ships under the **`BannerKings.Redux`** id/folder; an explicit `DeployReduxBin`
+MSBuild target force-copies the build output to
+`Modules/BannerKings.Redux/bin/Win64_Shipping_Client/` because the
+`Bannerlord.BuildResources` NuGet auto-deploys to a path derived from the
+project file name (`Modules/BannerKings/`) and ignores `<OutputPath>` /
+`<ModuleId>` overrides.
+
+Release packaging:
+
+```bash
+BANNERLORD_GAME_DIR="..." scripts/package-release.sh
+```
+
+produces `dist/BannerKings.Redux-<version>.zip` whose top-level folder is
+`BannerKings.Redux/`, ready to drop into NexusMods.
 
 Build is currently clean (0 errors). The remaining ~149 BHA0001 warnings are
 analyzer false positives — verified against the actual 1.3.x DLLs with Mono.Cecil.
@@ -424,6 +471,26 @@ Active ones (have full perk trees and skill-progression hooks):
 | Ritter | Polearm + Athletics | Vlandian heavy knight |
 | Jawwal | Throwing + Riding | Aserai light cavalry |
 | Commander | Leadership + Tactics | Battlefield commander |
+
+War Sails-gated (only registered when the NavalDLC module is loaded *and* the
+Nord culture exists; perks defined under the **Seafaring** region of
+`Managers/Skills/BKPerks.cs`):
+
+| Lifestyle | Skills | Theme | Naval-specific patches |
+|---|---|---|---|
+| Jomsviking | Two-Handed + Athletics | Nord shieldwall warrior | Boarding Fury → +6% melee damage on naval missions |
+| Drakkar Captain | Leadership + Tactics | Sea-going war-band leader | Helmsman → +4% party speed at sea; Raid Master → +12% raid hit damage on naval raids |
+| Sjofarandi | Bow + Scouting | Coastal pathfinder/scout | Pathfinder + Sea-Eyes → +12%/+8% spotting range at sea |
+
+Each seafaring lifestyle ships with three real `PerkObject` perks; the perks
+not listed in the "Naval-specific patches" column rely on vanilla effect slots
+(party speed, scouting range, melee/bow damage, morale ceiling, party size)
+that already apply on naval scenes without bespoke patching.
+
+The lifestyle picker (`UI/VanillaTabs/Character/Education/EducationVM.cs::SelectLifestyle`)
+shows each lifestyle's bonuses, perk list, and lore description in the hover
+tooltip, with bonuses always at the top so they remain visible on locked
+entries even when vanilla truncates long disabled-entry tooltips.
 
 Orphaned (declared but no perk wiring): `Courtier`, `Scholar`, `Diplomat`.
 
@@ -640,6 +707,23 @@ because Polearm doesn't tick when you don't melee.
 Tavern book seller (spawned by `BKEducationBehavior`) or as quest reward.
 A book seller exists in every cultural capital tavern as long as
 `bookSellers.Count >= DesiredSellerCount()`.
+
+**Q: I see "Jomsviking" / "Drakkar Captain" / "Sjofarandi" in the lifestyle
+list — what are those?**
+Three Nord-restricted seafaring lifestyles that only appear when both the
+**War Sails (NavalDLC)** module is loaded *and* the Nord culture object exists.
+They have full perk trees like every other BK lifestyle, with the perks
+themed around shieldwall combat (Jomsviking), longship command (Drakkar
+Captain), and coastal scouting (Sjofarandi). Naval-specific bonuses are wired
+through `Patches/NavalPerkPatches.cs` so they actually trigger on War Sails
+scenes; the rest use vanilla effect slots that apply both on land and at sea.
+
+**Q: Why don't I see the bonuses listed when I hover a lifestyle I can't take
+yet?**
+You should — the picker tooltip shows bonuses first, then perks, then lore,
+then any unmet-requirement reasons last. If the bonuses appear cut off, that
+is the vanilla disabled-entry tooltip truncating; the bonus block is always
+the first thing in the string so it survives the truncation.
 
 ### Diplomacy & demands
 
