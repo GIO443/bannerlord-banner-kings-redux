@@ -1,30 +1,44 @@
-BSD 3-Clause License
+Banner Kings — Redux: Licensing Notice
+=======================================
 
-Copyright (c) 2021, Rodrigo Vaccari Melo (original Banner Kings author)
-Copyright (c) 2026, Giorgio Riccardi (Banner Kings — Redux fork)
-All rights reserved.
+Banner Kings is the work of R-Vaccari and the original Banner Kings
+contributors. The upstream repository
+(https://github.com/R-Vaccari/bannerlord-banner-kings) does not declare a
+license. By default this means the upstream code is "all rights reserved"
+under copyright law, and the original author retains exclusive rights over
+its distribution and modification.
 
-Redistribution and use in source and binary forms, with or without
-modification, are permitted provided that the following conditions are met:
+This fork (Banner Kings — Redux) is published in good faith to keep the mod
+working on current Bannerlord builds and to add native War Sails / Nord
+integration, while the upstream project has been inactive for an extended
+period. We have NOT received explicit permission from R-Vaccari to fork
+or redistribute Banner Kings, and we make no claim that the upstream code
+is BSD-licensed, MIT-licensed, or otherwise open-source.
 
-1. Redistributions of source code must retain the above copyright notice, this
-   list of conditions and the following disclaimer.
+Conditions of this fork
+-----------------------
 
-2. Redistributions in binary form must reproduce the above copyright notice,
-   this list of conditions and the following disclaimer in the documentation
-   and/or other materials provided with the distribution.
+1. All credit for the original Banner Kings, including all of its design,
+   code, content, XML data, art, and structure, belongs to R-Vaccari and
+   the original Banner Kings contributors.
 
-3. Neither the name of the copyright holder nor the names of its
-   contributors may be used to endorse or promote products derived from
-   this software without specific prior written permission.
+2. If R-Vaccari (or any of the original authors) requests that this fork
+   be taken down, for any reason and at any time, it will be removed
+   immediately, without question, without delay, and without argument.
 
-THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
-AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
-IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
-DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE
-FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
-DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
-SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
-CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
-OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
-OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+3. Modifications introduced specifically by this fork (the Bannerlord
+   1.3.x compatibility port, the War Sails / Nord integration, the
+   seafaring lifestyles, the Nordic Thrall Law, the build/deploy
+   tooling, and other Redux-only additions) are made available under
+   the same conditions as the upstream code: pending the original
+   author's permission, with no separate license claim.
+
+4. Redistribution of this fork is permitted only insofar as the upstream
+   project's implicit terms permit it. Anyone redistributing this fork
+   does so at their own risk, and remains bound by the original author's
+   rights over the upstream code.
+
+This file replaces an earlier version that incorrectly attributed the
+upstream Banner Kings to the BSD 3-Clause License. The earlier file was
+inaccurate; the upstream project has no such license declared, and the
+correction is documented here for the record.
