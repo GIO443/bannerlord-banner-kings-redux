@@ -342,7 +342,16 @@ namespace BannerKings.Behaviours
         {
             if (settlement == null || settlement.Town == null) return;    
 
-            if (BannerKingsConfig.Instance.PolicyManager.IsDecisionEnacted(settlement, "decision_slaves_export") &&
+            // Nord-culture towns always run slave caravans regardless of the
+            // decision_slaves_export policy — the Nordic Thrall Law (and the
+            // surrounding raid-economy) treats slave export as a baseline activity,
+            // not an opt-in policy. Other cultures still gate on the policy as
+            // before.
+            bool nordSlaveExport = settlement.Culture != null
+                                   && settlement.Culture.StringId == "nord";
+            bool decisionEnacted = BannerKingsConfig.Instance.PolicyManager.IsDecisionEnacted(settlement, "decision_slaves_export");
+
+            if ((nordSlaveExport || decisionEnacted) &&
                 DecideSendSlaveCaravan(settlement) && !settlement.IsUnderSiege)
             {
                 var villages = settlement.BoundVillages;

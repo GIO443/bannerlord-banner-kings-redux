@@ -30,6 +30,7 @@ namespace BannerKings.Managers.Titles.Laws
 
         public DemesneLaw SlaveryVlandia { get; } = new DemesneLaw("slavery_vlandia");
         public DemesneLaw SlaveryAserai { get; } = new DemesneLaw("slavery_aserai");
+        public DemesneLaw SlaveryNord { get; } = new DemesneLaw("slavery_nord");
         public DemesneLaw SlaveryStandard { get; } = new DemesneLaw("slavery_standard");
         public DemesneLaw SlaveryManumission { get; } = new DemesneLaw("slavery_manumission");
 
@@ -70,6 +71,7 @@ namespace BannerKings.Managers.Titles.Laws
                 yield return SlaveryStandard;
                 yield return SlaveryVlandia;
                 yield return SlaveryAserai;
+                yield return SlaveryNord;
                 yield return SlaveryManumission;
                 yield return DraftingHidage;
                 yield return DraftingFreeContracts;
@@ -130,17 +132,32 @@ namespace BannerKings.Managers.Titles.Laws
                         list.Remove(slavery);
                         list.Add(SlaveryAserai.GetCopy());
                     }
+
+                    if (culture.StringId == "nord")
+                    {
+                        list.Remove(slavery);
+                        list.Add(SlaveryNord.GetCopy());
+                    }
                 }
 
                 list.Add(TenancyNone.GetCopy());
                 list.Add(ArmyPrivate.GetCopy());
-            } 
+            }
             else if (government == DefaultGovernments.Instance.Tribal)
             {
                 list.Add(DraftingHidage.GetCopy());
                 list.Add(EstateTenureAllodial.GetCopy());
                 list.Add(TenancyFull.GetCopy());
                 list.Add(ArmyHorde.GetCopy());
+
+                // Tribal Nord realms also default to the Nord slavery doctrine —
+                // raiding for slaves is the mainline economic activity, not a
+                // feudal-only privilege.
+                if (culture != null && culture.StringId == "nord")
+                {
+                    list.Remove(slavery);
+                    list.Add(SlaveryNord.GetCopy());
+                }
             }
             else
             {
@@ -404,6 +421,39 @@ namespace BannerKings.Managers.Titles.Laws
                0.6f,
                300,
                cultures.First(x => x.StringId == "aserai"));
+
+            // SlaveryNord — strongest pro-slavery law in the realm. The Nord economy
+            // is built around longship raids: prisoners taken on coastal sweeps are
+            // brought home as thralls, and slave caravans run unimpeded between Nord
+            // ports. Demand is amplified well above the Aserai equivalent because the
+            // Nord throughput depends on a constant flow of new captives.
+            var nordCulture = cultures.FirstOrDefault(x => x.StringId == "nord");
+            if (nordCulture != null)
+            {
+                SlaveryNord.Initialize(new TextObject("Nordic Thrall Law"),
+                    new TextObject("Among the Nords, thralldom is not stigma but supply. Coastal raids are organised expressly to capture able-bodied prisoners; slave caravans run between Nord ports under royal protection. Every longship that returns with thralls strengthens the realm's standing army and its export trade — and Nordic thralls are bonded for life unless freed by their owner's hand."),
+                    new TextObject("Slave demand increased by 80%\nSlaves count as military manpower\nNord ports run slave caravans regardless of policy\nSlaves do not freely manumit when over the desired cap"),
+                    DemesneLawTypes.Slavery,
+                    0.4f,
+                    -0.7f,
+                    0.5f,
+                    300,
+                    nordCulture);
+            }
+            else
+            {
+                // War Sails not loaded — register the law without a culture binding so
+                // the All enumerable doesn't crash on a null Initialize(). It will
+                // simply never be auto-assigned to any realm.
+                SlaveryNord.Initialize(new TextObject("Nordic Thrall Law"),
+                    new TextObject("Among the Nords, thralldom is not stigma but supply."),
+                    new TextObject("Slave demand increased by 80%\nSlaves count as military manpower"),
+                    DemesneLawTypes.Slavery,
+                    0.4f,
+                    -0.7f,
+                    0.5f,
+                    300);
+            }
 
             SlaveryManumission.Initialize(new TextObject("{=T4doWFdj}Manumission"),
                 new TextObject("{=4vBS06Ds}The Vlandic tradition on slavery stipulates that Vlandians shall not enslave each other. Slaves are present in small quantities in rural estates. Though Vlandian individuals may become or be born slaves, Vlandian lords are prohibited from purposefuly enslaving them."),

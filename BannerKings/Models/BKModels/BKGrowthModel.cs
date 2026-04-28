@@ -184,6 +184,10 @@ namespace BannerKings.Models.BKModels
                         {
                             result.AddFactor(0.5f, DefaultDemesneLaws.Instance.SlaveryAserai.Name);
                         }
+                        else if (title.Contract.IsLawEnacted(DefaultDemesneLaws.Instance.SlaveryNord))
+                        {
+                            result.AddFactor(0.8f, DefaultDemesneLaws.Instance.SlaveryNord.Name);
+                        }
 
                         if (title.Contract.IsLawEnacted(DefaultDemesneLaws.Instance.SlavesAgricultureDuties))
                         {
