@@ -1,8 +1,0 @@
-discord.py==2.4.0
-sentence-transformers==3.2.1
-chromadb==0.5.20
-groq==0.13.0
-google-generativeai==0.8.3
-scikit-learn==1.5.2
-python-dotenv==1.0.1
-numpy==1.26.4

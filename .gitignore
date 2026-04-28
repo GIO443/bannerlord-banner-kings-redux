@@ -455,10 +455,5 @@ Thumbs.db
 *.swp
 *.swo
 
-# Discord RAG bot — local artifacts
-bot/.env
-bot/.venv/
-bot/chroma_db/
-bot/bk_bot.sqlite
-bot/cluster.log
-bot/__pycache__/
+# Discord RAG bot — out of repo; ignored if a local copy is restored.
+bot/

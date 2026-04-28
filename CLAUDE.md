@@ -163,57 +163,8 @@ Recipe to add a new shim:
 4. Add `<DependedModuleMetadata id="MyMod" order="LoadAfterThis" optional="true" />`.
 5. Document in `docs/WIKI.md` §21.
 
-## Discord RAG bot (`bot/`)
+## Documentation
 
-Free-tier Discord bot that answers BannerKings questions from `docs/WIKI.md`.
-
-**Stack** (all free):
-- Host: Oracle Cloud Free Tier ARM (Ampere A1, 2 OCPU / 12 GB)
-- Embeddings: `sentence-transformers/all-MiniLM-L6-v2` local (CPU)
-- Vector store: ChromaDB (SQLite-backed)
-- FAQ + query log: SQLite
-- LLM primary: Groq, Llama 3.3 70B (~30 req/min)
-- LLM fallback: Google Gemini 2.0 Flash (1500/day)
-- Bot lib: `discord.py` 2.4
-
-**Files**:
-```
-bot/
-├── requirements.txt      pinned deps (ARM-compatible wheels)
-├── .env.example          DISCORD_TOKEN, GROQ_API_KEY, GEMINI_API_KEY, paths, tunables
-├── ingest.py             markdown-aware chunker → ChromaDB
-├── bot.py                /ask /faq_add /faq_remove /faq_prune /faq_list
-├── cluster.py            nightly: DBSCAN miss clusters → FAQ candidates,
-│                         FAQ prune candidates, query_log trim
-└── README.md             Oracle ARM step-by-step, systemd unit, cron
-```
-
-**Flow per `/ask`**:
-1. Embed query.
-2. FAQ cosine lookup (≥ `FAQ_HIT_THRESHOLD`, default 0.85) → return cached, bump hit count.
-3. Else top-K chunks from Chroma → Groq → Gemini fallback → reply.
-4. Log query+answer with embedding to `query_log`.
-
-**Nightly `cluster.py`** (cron 04:00):
-- DBSCAN over recent miss embeddings (cosine eps 0.25, min 3).
-- For each cluster ≥ MIN_SIZE, draft canonical answer via the same RAG path.
-- Post FAQ candidates to `DISCORD_FAQ_REVIEW_CHANNEL_ID` for admin approval (admin runs `/faq_add` if accurate).
-- Post FAQ prune candidates (entries unused > `FAQ_PRUNE_DAYS`, default 90) — admin removes via `/faq_remove`.
-- Trim `query_log` rows older than `LOG_RETENTION_DAYS` (default 180).
-
-**Overhead**: ~1.5 KB per logged query, ~28 MB/year SQLite at 50 q/day.
-DBSCAN <1 s at N=1k, ~5 s at N=10k. ~600 MB resident bot RAM.
-
-**Wiki regen workflow**:
-```bash
-git pull
-.venv/bin/python ingest.py     # rebuild chroma_db/
-sudo systemctl restart bk-bot
-```
-
-**Corpus**: `docs/WIKI.md` is the sole corpus. Sections 1–12 are code architecture, 13–20 player-facing, 21 mod compatibility — 21 is the primary RAG retrieval surface for player `/ask` queries. Update it when major systems change, then re-run `ingest.py`.
-
-**Future extensions** (not yet built, listed in `bot/README.md`):
-- Source-code-as-second-corpus (chunk `BannerKings/**/*.cs` by class/method).
-- Reaction-driven FAQ approval (✅ on candidate embed → auto-INSERT).
-- Per-version answer tagging.
+`docs/WIKI.md` is the project reference. Sections 1–12 are code architecture,
+13–20 player-facing, 21 mod compatibility. Update it when major systems
+change.
