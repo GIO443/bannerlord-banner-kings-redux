@@ -284,7 +284,7 @@ namespace BannerKings.Behaviours
         private void SpawnInitialSellers()
         {
             var templates = CharacterObject.All.Where(x =>
-                x.Occupation == Occupation.Special && x.StringId.Contains("bannerkings_bookseller_"));
+                x.Occupation == Occupation.Special && x.StringId.Contains("bannerkings_bookseller_")).ToList();
             foreach (var character in templates)
             {
                 if (bookSellers.Keys.Any(x => x.Culture == character.Culture))
