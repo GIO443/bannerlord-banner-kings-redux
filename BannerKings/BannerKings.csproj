@@ -6,8 +6,8 @@
 		<Platforms>x64</Platforms>
 		<LangVersion>9.0</LangVersion>
 		<Nullable>disable</Nullable>
-		<ModuleId>$(MSBuildProjectName)</ModuleId>
-		<ModuleName>$(MSBuildProjectName)</ModuleName>
+		<ModuleId>BannerKings.Redux</ModuleId>
+		<ModuleName>BannerKings.Redux</ModuleName>
 		<GameFolder>$(BANNERLORD_GAME_DIR)</GameFolder>
 		<OutputPath>C:\Program Files (x86)\Steam\steamapps\common\Mount &amp; Blade II Bannerlord\Modules\BannerKings.Redux\bin\Win64_Shipping_Client</OutputPath>
 		<AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
@@ -74,6 +74,21 @@
 		<Copy SourceFiles="@(ModuleAssets)"
 		      DestinationFiles="@(ModuleAssets->'$(ModuleRoot)\%(RecursiveDir)%(Filename)%(Extension)')"
 		      SkipUnchangedFiles="true" />
+	</Target>
+
+	<!-- Bannerlord.BuildResources auto-deploys to Modules/$(MSBuildProjectName)/...
+	     which is "Modules/BannerKings/" (the legacy folder), not our renamed
+	     "BannerKings.Redux" module. Force-copy the build output to the Redux
+	     module folder so the renamed module actually receives a DLL. -->
+	<Target Name="DeployReduxBin" AfterTargets="Build">
+		<ItemGroup>
+			<ReduxBin Include="$(MSBuildProjectDirectory)\obj\$(Configuration)\BannerKings.dll" />
+			<ReduxBin Include="$(MSBuildProjectDirectory)\obj\$(Configuration)\BannerKings.pdb" />
+		</ItemGroup>
+		<Copy SourceFiles="@(ReduxBin)"
+		      DestinationFolder="$(ModuleRoot)\bin\Win64_Shipping_Client"
+		      SkipUnchangedFiles="true"
+		      Condition="Exists('%(Identity)')" />
 	</Target>
 
 </Project>

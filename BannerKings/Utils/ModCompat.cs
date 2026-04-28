@@ -35,6 +35,9 @@ namespace BannerKings.Utils
         public const string RealisticBattleModId = "RBMCombat";
         public const string RealisticBattleModAsm = "RealisticBattleCombatModule";
 
+        public const string WarSailsId = "NavalDLC";
+        public const string WarSailsAsm = "NavalDLC";
+
         private static readonly ConcurrentDictionary<string, bool> _cache = new();
 
         private static MethodInfo _getModulesMethod;
@@ -71,6 +74,10 @@ namespace BannerKings.Utils
 
         public static bool RealisticBattleMod
             => IsLoaded(RealisticBattleModId, RealisticBattleModAsm);
+
+        /// <summary>True if the War Sails (NavalDLC) module is loaded.</summary>
+        public static bool WarSails
+            => IsLoaded(WarSailsId, WarSailsAsm);
 
         // ----- internals -----
 

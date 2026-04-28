@@ -552,29 +552,55 @@ namespace BannerKings.UI.VanillaTabs.Character.Education
                         .SetTextVariable("S1", s1)
                         .SetTextVariable("S2", s2).ToString();
 
-                    // Hover hint: lore description PLUS the specific reason it's locked.
-                    string hint = lf.Description.ToString();
+                    // Hover hint: lock reasons (if any) + lore + bonuses block.
+                    var hintBuilder = new StringBuilder();
                     if (!canLearn)
                     {
-                        var reasons = new System.Collections.Generic.List<string>();
                         if (lf.Culture != null && hero.Culture != lf.Culture)
-                            reasons.Add(new TextObject("{=!}Requires {CULTURE} culture.")
+                            hintBuilder.AppendLine(new TextObject("{=!}Requires {CULTURE} culture.")
                                 .SetTextVariable("CULTURE", lf.Culture.Name).ToString());
                         if (s1 < 15)
-                            reasons.Add(new TextObject("{=!}Requires {SKILL} {NEEDED} (you have {HAVE}).")
+                            hintBuilder.AppendLine(new TextObject("{=!}Requires {SKILL} {NEEDED} (you have {HAVE}).")
                                 .SetTextVariable("SKILL", lf.FirstSkill.Name)
                                 .SetTextVariable("NEEDED", 15)
                                 .SetTextVariable("HAVE", s1).ToString());
                         if (s2 < 15)
-                            reasons.Add(new TextObject("{=!}Requires {SKILL} {NEEDED} (you have {HAVE}).")
+                            hintBuilder.AppendLine(new TextObject("{=!}Requires {SKILL} {NEEDED} (you have {HAVE}).")
                                 .SetTextVariable("SKILL", lf.SecondSkill.Name)
                                 .SetTextVariable("NEEDED", 15)
                                 .SetTextVariable("HAVE", s2).ToString());
-                        if (reasons.Count > 0)
-                            hint = string.Join("\n", reasons) + "\n\n" + hint;
+                        if (hintBuilder.Length > 0)
+                            hintBuilder.AppendLine();
                     }
 
-                    elements.Add(new InquiryElement(lf, title, null, canLearn, hint));
+                    hintBuilder.AppendLine(lf.Description.ToString());
+                    hintBuilder.AppendLine();
+
+                    hintBuilder.AppendLine(new TextObject("{=!}Boosts: {SKILL1}, {SKILL2}")
+                        .SetTextVariable("SKILL1", lf.FirstSkill.Name)
+                        .SetTextVariable("SKILL2", lf.SecondSkill.Name).ToString());
+
+                    var passive = lf.PassiveEffects?.ToString();
+                    if (!string.IsNullOrWhiteSpace(passive))
+                    {
+                        hintBuilder.AppendLine();
+                        hintBuilder.AppendLine(new TextObject("{=!}Bonuses:").ToString());
+                        hintBuilder.AppendLine(passive);
+                    }
+
+                    if (lf.Perks != null && lf.Perks.Count > 0)
+                    {
+                        hintBuilder.AppendLine();
+                        hintBuilder.AppendLine(new TextObject("{=!}Perks:").ToString());
+                        for (int p = 0; p < lf.Perks.Count; p++)
+                        {
+                            var perk = lf.Perks[p];
+                            if (perk == null) continue;
+                            hintBuilder.AppendLine(" - " + perk.Name + ": " + perk.Description);
+                        }
+                    }
+
+                    elements.Add(new InquiryElement(lf, title, null, canLearn, hintBuilder.ToString()));
                 }
             }
 

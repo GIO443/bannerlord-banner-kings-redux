@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using System.ComponentModel.Design;
 using System.Linq;
 using BannerKings.Managers.Skills;
+using BannerKings.Utils;
 using TaleWorlds.CampaignSystem;
 using TaleWorlds.CampaignSystem.CharacterDevelopment;
 using TaleWorlds.Core;
@@ -302,6 +303,57 @@ namespace BannerKings.Managers.Education.Lifestyles
                 15f,
                 null,
                 cultures.First(x => x.StringId == "aserai"));
+
+            // Seafaring lifestyles — only registered when War Sails (NavalDLC) is loaded
+            // and the Nord culture exists, since they are Nord-flavoured and lean on
+            // naval gameplay added by the DLC. These reuse vanilla skills and ship with
+            // empty perk lists for now (no custom seafaring perks yet); they exist so
+            // the player has thematic options when running Banner Kings + War Sails.
+            var nordCulture = cultures.FirstOrDefault(x => x.StringId == "nord");
+            if (ModCompat.WarSails && nordCulture != null)
+            {
+                var jomsviking = new Lifestyle("lifestyle_jomsviking");
+                jomsviking.Initialize(
+                    new TextObject("Jomsviking"),
+                    new TextObject("Sworn brothers of the longhouse, the Jomsvikings are sea-borne warriors trained from boyhood for boarding actions and shieldwall combat. Their reputation is built on disciplined ferocity in close quarters and indifference to wounds — qualities prized on a wind-tossed deck."),
+                    DefaultSkills.TwoHanded,
+                    DefaultSkills.Athletics,
+                    new List<PerkObject>(),
+                    new TextObject("Increased melee damage on naval boardings by {EFFECT1}%\nReduced morale loss while at sea by {EFFECT2}%"),
+                    10f,
+                    15f,
+                    null,
+                    nordCulture);
+                AddObject(jomsviking);
+
+                var drakkar = new Lifestyle("lifestyle_drakkar_captain");
+                drakkar.Initialize(
+                    new TextObject("Drakkar Captain"),
+                    new TextObject("Captain of a longship and a sworn band, the drakkar captain reads weather, current and shoreline as easily as he reads his crew. His command keeps his men rowing through storm and surf, and his name on the prow is enough to scatter coastal villagers before the keel touches sand."),
+                    DefaultSkills.Leadership,
+                    DefaultSkills.Tactics,
+                    new List<PerkObject>(),
+                    new TextObject("Crew morale on the longship increased by {EFFECT1}%\nNaval raid loot increased by {EFFECT2}%"),
+                    15f,
+                    20f,
+                    null,
+                    nordCulture);
+                AddObject(drakkar);
+
+                var sjofarandi = new Lifestyle("lifestyle_sjofarandi");
+                sjofarandi.Initialize(
+                    new TextObject("Sjofarandi"),
+                    new TextObject("The sjofarandi — \"sea-farer\" — is the navigator and pathfinder of a Nord war-band. Equally at home reading the stars or pulling a bowstring on a moving deck, his role is to guide a longship safely between shorelines, and to scout enemies before the prow makes landfall."),
+                    DefaultSkills.Bow,
+                    DefaultSkills.Scouting,
+                    new List<PerkObject>(),
+                    new TextObject("Naval travel speed increased by {EFFECT1}%\nSpotting range at sea increased by {EFFECT2}%"),
+                    15f,
+                    25f,
+                    null,
+                    nordCulture);
+                AddObject(sjofarandi);
+            }
         }
     }
 }
