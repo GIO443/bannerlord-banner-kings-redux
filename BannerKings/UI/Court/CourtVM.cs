@@ -420,7 +420,7 @@ namespace BannerKings.UI.Court
 
         private void RefreshCharacter()
         {
-            if (currentCharacter != null)
+            if (currentCharacter != null && selectedHero != null)
             {
                 CourtierInfo.Clear();
                 CourtierInfo.Add(new InformationElement(GameTexts.FindText("str_enc_sf_occupation").ToString(),
@@ -450,7 +450,8 @@ namespace BannerKings.UI.Court
                 }
 
                 CourtierInfo.Add(new InformationElement(new TextObject("{=yCaxpVGh}Languages:").ToString(),
-                    languagesString.Remove(languagesString.Length - 1), string.Empty));
+                    languagesString.Length > 0 ? languagesString.Remove(languagesString.Length - 1) : string.Empty,
+                    string.Empty));
             }
         }
 

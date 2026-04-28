@@ -121,34 +121,53 @@
 											</Children>
 										</ListPanel>
 										
-										<ListPanel DataSource="{Aspects}" WidthSizePolicy="CoverChildren" HeightSizePolicy="Fixed" HorizontalAlignment="Center" SuggestedHeight="200"
+										<ListPanel WidthSizePolicy="CoverChildren" HeightSizePolicy="Fixed" HorizontalAlignment="Center" SuggestedHeight="200"
 												   VerticalAlignment="Center" StackLayout.LayoutMethod="HorizontalLeftToRight" MarginTop="30" MarginBottom="30" DoNotAcceptEvents="false">
-											<ItemTemplate>
-												
+											<Children>
+
 												<ListPanel WidthSizePolicy="CoverChildren" HeightSizePolicy="CoverChildren" HorizontalAlignment="Center" SuggestedHeight="150"
-														   VerticalAlignment="Bottom" StackLayout.LayoutMethod="VerticalBottomToTop"  MarginRight="15" MarginLeft="15" DoNotAcceptEvents="false">
+														   VerticalAlignment="Bottom" StackLayout.LayoutMethod="VerticalBottomToTop" MarginRight="15" MarginLeft="15" DoNotAcceptEvents="false">
 													<Children>
 														<RichTextWidget WidthSizePolicy="CoverChildren" HeightSizePolicy="CoverChildren"
-																HorizontalAlignment="Center" Brush="Clan.Leader.Text" Brush.FontSize="22" Text="@Definition"
+																HorizontalAlignment="Center" Brush="Clan.Leader.Text" Brush.FontSize="22" Text="@TaxText"
 																MarginBottom="5" VerticalAlignment="Top"/>
-												
-														<ToggleButtonWidget DoNotPassEventsToChildren="true" WidthSizePolicy="Fixed" HeightSizePolicy="StretchToParent" 
+														<ToggleButtonWidget DoNotPassEventsToChildren="true" WidthSizePolicy="Fixed" HeightSizePolicy="StretchToParent"
 																VerticalAlignment="Bottom" SuggestedWidth="300" SuggestedHeight="100" MarginRight="2" MarginLeft="2"
 																HorizontalAlignment="Center" Brush="TownManagement.Governor" UpdateChildrenStates="true"
-																GamepadNavigationIndex="0" IsEnabled="true" Command.Click="ChangeGender">
+																GamepadNavigationIndex="0" IsEnabled="true" Command.Click="ChangeTax">
 															<Children>
 																<RichTextWidget WidthSizePolicy="CoverChildren" HeightSizePolicy="CoverChildren"
-																		HorizontalAlignment="Center" Brush="Clan.Leader.Text" Brush.FontSize="32" Text="@Value"
+																		HorizontalAlignment="Center" Brush="Clan.Leader.Text" Brush.FontSize="32" Text="@TaxName"
 																		VerticalAlignment="Center" MarginRight="15" MarginLeft="15"/>
-																<HintWidget DataSource="{Hint}" WidthSizePolicy="StretchToParent" HeightSizePolicy="StretchToParent"
+																<HintWidget DataSource="{TaxHint}" WidthSizePolicy="StretchToParent" HeightSizePolicy="StretchToParent"
 																			Command.HoverBegin="ExecuteBeginHint" Command.HoverEnd="ExecuteEndHint" />
-
 															</Children>
 														</ToggleButtonWidget>
 													</Children>
 												</ListPanel>
-												
-											</ItemTemplate>
+
+												<ListPanel WidthSizePolicy="CoverChildren" HeightSizePolicy="CoverChildren" HorizontalAlignment="Center" SuggestedHeight="150"
+														   VerticalAlignment="Bottom" StackLayout.LayoutMethod="VerticalBottomToTop" MarginRight="15" MarginLeft="15" DoNotAcceptEvents="false">
+													<Children>
+														<RichTextWidget WidthSizePolicy="CoverChildren" HeightSizePolicy="CoverChildren"
+																HorizontalAlignment="Center" Brush="Clan.Leader.Text" Brush.FontSize="22" Text="@ConquestText"
+																MarginBottom="5" VerticalAlignment="Top"/>
+														<ToggleButtonWidget DoNotPassEventsToChildren="true" WidthSizePolicy="Fixed" HeightSizePolicy="StretchToParent"
+																VerticalAlignment="Bottom" SuggestedWidth="300" SuggestedHeight="100" MarginRight="2" MarginLeft="2"
+																HorizontalAlignment="Center" Brush="TownManagement.Governor" UpdateChildrenStates="true"
+																GamepadNavigationIndex="0" IsEnabled="true" Command.Click="ChangeConquest">
+															<Children>
+																<RichTextWidget WidthSizePolicy="CoverChildren" HeightSizePolicy="CoverChildren"
+																		HorizontalAlignment="Center" Brush="Clan.Leader.Text" Brush.FontSize="32" Text="@ConquestName"
+																		VerticalAlignment="Center" MarginRight="15" MarginLeft="15"/>
+																<HintWidget DataSource="{ConquestHint}" WidthSizePolicy="StretchToParent" HeightSizePolicy="StretchToParent"
+																			Command.HoverBegin="ExecuteBeginHint" Command.HoverEnd="ExecuteEndHint" />
+															</Children>
+														</ToggleButtonWidget>
+													</Children>
+												</ListPanel>
+
+											</Children>
 										</ListPanel>
 										
 									

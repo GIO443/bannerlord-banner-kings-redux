@@ -81,7 +81,15 @@ namespace BannerKings.Behaviours
 
     namespace Patches
     {
-        [HarmonyPatch(typeof(ItemRoster), "AddToCounts", new Type[] { typeof(ItemObject), typeof(int) })]
+        // Disabled: this Prefix returned false to skip vanilla
+        // ItemRoster.AddToCounts(ItemObject, int), replacing it with a
+        // sort-by-modifier "sell cheapest first" strategy. That bypassed
+        // vanilla's change-notification chain and stalled the inventory
+        // UI's transfer-display refresh until the screen was reset. The
+        // smart-sell behavior is nice-to-have; the inventory UI isn't.
+        // Re-enable only as a Postfix that *adds* sorting after vanilla
+        // runs, never as a skipping Prefix.
+        // [HarmonyPatch(typeof(ItemRoster), "AddToCounts", new Type[] { typeof(ItemObject), typeof(int) })]
         internal class MarketPatch
         {
             private static bool Prefix(ItemRoster __instance, ItemObject item, int number, ref int __result)

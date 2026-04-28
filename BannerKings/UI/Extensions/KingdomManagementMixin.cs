@@ -345,8 +345,6 @@ namespace BannerKings.UI.Extensions
         [DataSourceMethod]
         public void SelectBannerKings()
         {
-            TaleWorlds.Library.InformationManager.DisplayMessage(
-                new TaleWorlds.Library.InformationMessage("[BK] SelectBannerKings invoked"));
             HideVanillaTabs();
             BannerKingsSelected = true;
 

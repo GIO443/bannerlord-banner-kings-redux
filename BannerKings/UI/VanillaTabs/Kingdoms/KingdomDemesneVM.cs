@@ -278,6 +278,63 @@ namespace BannerKings.UI.VanillaTabs.Kingdoms
                 aspects);
         }
 
+        [DataSourceMethod]
+        private void ChangeTax()
+        {
+            ChangeAspectByType(ContractAspect.AspectTypes.Taxes,
+                new TextObject("{=!}Tax Aspects"),
+                new TextObject("{=!}Tax aspects determine how taxation is conducted across the realm. You may propose a change that will be voted on by the peers."));
+        }
+
+        [DataSourceMethod]
+        private void ChangeConquest()
+        {
+            ChangeAspectByType(ContractAspect.AspectTypes.Conquest,
+                new TextObject("{=!}Conquest Aspects"),
+                new TextObject("{=!}Conquest aspects determine how conquered settlements are distributed. You may propose a change that will be voted on by the peers."));
+        }
+
+        private void ChangeAspectByType(ContractAspect.AspectTypes type, TextObject title, TextObject description)
+        {
+            if (Title?.Contract == null) return;
+
+            var current = Title.Contract.ContractAspects?.FirstOrDefault(x => x.AspectType == type);
+            var candidates = DefaultContractAspects.Instance.All.Where(x => x.AspectType == type).ToList();
+            var aspects = new List<InquiryElement>(candidates.Count);
+            foreach (var candidate in candidates)
+            {
+                try
+                {
+                    var decision = GetDecision(candidate);
+                    string supportText;
+                    try { supportText = new KingdomElection(decision).GetLikelihoodForSponsor(decision.ProposerClan).ToString("0.00"); }
+                    catch { supportText = "?"; }
+
+                    var nameObj = candidate.Name ?? new TextObject(candidate.StringId);
+                    var descObj = candidate.Description ?? TextObject.GetEmpty();
+
+                    aspects.Add(new InquiryElement(
+                        candidate,
+                        new TextObject("{=fgwLSDRL}{NAME} - {SUPPORT}% Support, {INFLUENCE}{INFLUENCE_ICON}")
+                            .SetTextVariable("NAME", nameObj)
+                            .SetTextVariable("SUPPORT", supportText)
+                            .SetTextVariable("INFLUENCE", decision.GetProposalInfluenceCost())
+                            .SetTextVariable("INFLUENCE_ICON", Utils.TextHelper.INFLUENCE_ICON)
+                            .ToString(),
+                        null,
+                        !candidate.Equals(current) &&
+                            Clan.PlayerClan.Influence >= decision.GetProposalInfluenceCost(),
+                        descObj.ToString()));
+                }
+                catch
+                {
+                    // Skip a malformed candidate rather than aborting the whole dialog.
+                }
+            }
+
+            ShowOptions(title, description, aspects);
+        }
+
         private void ShowOptions(TextObject title, TextObject description, List<InquiryElement> aspects)
         {
             MBInformationManager.ShowMultiSelectionInquiry(new MultiSelectionInquiryData(
@@ -317,11 +374,29 @@ namespace BannerKings.UI.VanillaTabs.Kingdoms
                 Title.Contract.Succession,
                 aspect as Inheritance,
                 Title.Contract.GenderLaw);
-            else contract = new FeudalContract(
+            else if (aspect is GenderLaw) contract = new FeudalContract(
                 Title.Contract.Government,
                 Title.Contract.Succession,
                 Title.Contract.Inheritance,
                 aspect as GenderLaw);
+            else
+            {
+                // Tax / Conquest / other ContractAspect: keep the four core
+                // pillars, copy existing aspects, then upsert the proposed
+                // one (AddAspect replaces any existing aspect of the same
+                // type).
+                contract = new FeudalContract(
+                    Title.Contract.Government,
+                    Title.Contract.Succession,
+                    Title.Contract.Inheritance,
+                    Title.Contract.GenderLaw);
+                if (Title.Contract.ContractAspects != null)
+                {
+                    foreach (var existing in Title.Contract.ContractAspects)
+                        contract.AddAspect(existing);
+                }
+                contract.AddAspect(aspect);
+            }
 
             return new BKContractChangeDecision(Title, contract, Clan.PlayerClan);
         }
@@ -361,6 +436,27 @@ namespace BannerKings.UI.VanillaTabs.Kingdoms
 
         [DataSourceProperty]
         public HintViewModel GenderLawHint => new HintViewModel(Title?.Contract.GenderLaw.Description);
+
+        [DataSourceProperty]
+        public string TaxText => new TextObject("{=!}Taxes").ToString();
+
+        [DataSourceProperty]
+        public string ConquestText => new TextObject("{=!}Conquest").ToString();
+
+        private ContractAspect CurrentAspect(ContractAspect.AspectTypes type) =>
+            Title?.Contract?.ContractAspects?.FirstOrDefault(x => x.AspectType == type);
+
+        [DataSourceProperty]
+        public string TaxName => CurrentAspect(ContractAspect.AspectTypes.Taxes)?.Name?.ToString() ?? string.Empty;
+
+        [DataSourceProperty]
+        public string ConquestName => CurrentAspect(ContractAspect.AspectTypes.Conquest)?.Name?.ToString() ?? string.Empty;
+
+        [DataSourceProperty]
+        public HintViewModel TaxHint => new HintViewModel(CurrentAspect(ContractAspect.AspectTypes.Taxes)?.Description);
+
+        [DataSourceProperty]
+        public HintViewModel ConquestHint => new HintViewModel(CurrentAspect(ContractAspect.AspectTypes.Conquest)?.Description);
 
         [DataSourceProperty]
         public string HeirText => new TextObject("{=vArnerHC}Heir").ToString();
