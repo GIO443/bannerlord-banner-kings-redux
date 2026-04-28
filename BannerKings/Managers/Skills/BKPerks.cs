@@ -249,6 +249,25 @@ namespace BannerKings.Managers.Skills
 
         #endregion  Theology
 
+        #region Seafaring (Jomsviking / Drakkar / Sjofarandi)
+
+        // Jomsviking — Nord shieldwall warrior on a longship deck
+        public PerkObject JomsvikingShieldwall { get; private set; }
+        public PerkObject JomsvikingSeaToughness { get; private set; }
+        public PerkObject JomsvikingBoardingFury { get; private set; }
+
+        // Drakkar Captain — leader of a sea-going war-band
+        public PerkObject DrakkarHelmsman { get; private set; }
+        public PerkObject DrakkarRaidMaster { get; private set; }
+        public PerkObject DrakkarSeaCommander { get; private set; }
+
+        // Sjofarandi — coastal pathfinder, archer scout
+        public PerkObject SjofarandiPathfinder { get; private set; }
+        public PerkObject SjofarandiCoastalHunter { get; private set; }
+        public PerkObject SjofarandiSeaEyes { get; private set; }
+
+        #endregion Seafaring
+
         public override IEnumerable<PerkObject> All
         {
             get
@@ -911,6 +930,109 @@ namespace BannerKings.Managers.Skills
                 EffectIncrementType.AddFactor);
 
             #endregion Gladiator
+
+            #region Seafaring
+
+            JomsvikingShieldwall = Game.Current.ObjectManager.RegisterPresumedObject(new PerkObject("LifestyleJomsvikingShieldwall"));
+            JomsvikingShieldwall.Initialize("{=!}Shieldwall", null,
+                80,
+                null,
+                "{=!}You and infantry in your formation deal 8% more melee damage.",
+                PartyRole.Personal, 0.08f,
+                EffectIncrementType.AddFactor,
+                "{=!}You and infantry in your formation take 5% less melee damage.",
+                PartyRole.Personal, 0.05f,
+                EffectIncrementType.AddFactor);
+
+            JomsvikingSeaToughness = Game.Current.ObjectManager.RegisterPresumedObject(new PerkObject("LifestyleJomsvikingSeaToughness"));
+            JomsvikingSeaToughness.Initialize("{=!}Sea-Toughness", null,
+                160,
+                null,
+                "{=!}Party morale ceiling increased by 5%.",
+                PartyRole.PartyLeader, 0.05f,
+                EffectIncrementType.AddFactor,
+                "{=!}Party food consumption reduced by 5%.",
+                PartyRole.PartyLeader, 0.05f,
+                EffectIncrementType.AddFactor);
+
+            JomsvikingBoardingFury = Game.Current.ObjectManager.RegisterPresumedObject(new PerkObject("LifestyleJomsvikingBoardingFury"));
+            JomsvikingBoardingFury.Initialize("{=!}Boarding Fury", null,
+                240,
+                null,
+                "{=!}You deal 12% more melee damage when below half health.",
+                PartyRole.Personal, 0.12f,
+                EffectIncrementType.AddFactor,
+                "{=!}You and infantry in your formation deal 6% more two-handed damage.",
+                PartyRole.Personal, 0.06f,
+                EffectIncrementType.AddFactor);
+
+            DrakkarHelmsman = Game.Current.ObjectManager.RegisterPresumedObject(new PerkObject("LifestyleDrakkarHelmsman"));
+            DrakkarHelmsman.Initialize("{=!}Helmsman", null,
+                80,
+                null,
+                "{=!}Party speed increased by 4%.",
+                PartyRole.PartyLeader, 0.04f,
+                EffectIncrementType.AddFactor,
+                "{=!}Party morale recovery increased by 10%.",
+                PartyRole.PartyLeader, 0.1f,
+                EffectIncrementType.AddFactor);
+
+            DrakkarRaidMaster = Game.Current.ObjectManager.RegisterPresumedObject(new PerkObject("LifestyleDrakkarRaidMaster"));
+            DrakkarRaidMaster.Initialize("{=!}Raid Master", null,
+                160,
+                null,
+                "{=!}Raiding villages is 12% faster.",
+                PartyRole.PartyLeader, 0.12f,
+                EffectIncrementType.AddFactor,
+                "{=!}Loot from raids increased by 15%.",
+                PartyRole.PartyLeader, 0.15f,
+                EffectIncrementType.AddFactor);
+
+            DrakkarSeaCommander = Game.Current.ObjectManager.RegisterPresumedObject(new PerkObject("LifestyleDrakkarSeaCommander"));
+            DrakkarSeaCommander.Initialize("{=!}Sea Commander", null,
+                240,
+                null,
+                "{=!}Party size limit increased by 8.",
+                PartyRole.PartyLeader, 8f,
+                EffectIncrementType.Add,
+                "{=!}Renown gain from victories increased by 10%.",
+                PartyRole.PartyLeader, 0.1f,
+                EffectIncrementType.AddFactor);
+
+            SjofarandiPathfinder = Game.Current.ObjectManager.RegisterPresumedObject(new PerkObject("LifestyleSjofarandiPathfinder"));
+            SjofarandiPathfinder.Initialize("{=!}Pathfinder", null,
+                80,
+                null,
+                "{=!}Party scouting range increased by 12%.",
+                PartyRole.Scout, 0.12f,
+                EffectIncrementType.AddFactor,
+                "{=!}Party speed increased by 3% in forests and coastlines.",
+                PartyRole.PartyLeader, 0.03f,
+                EffectIncrementType.AddFactor);
+
+            SjofarandiCoastalHunter = Game.Current.ObjectManager.RegisterPresumedObject(new PerkObject("LifestyleSjofarandiCoastalHunter"));
+            SjofarandiCoastalHunter.Initialize("{=!}Coastal Hunter", null,
+                160,
+                null,
+                "{=!}You and archers in your formation deal 6% more bow damage.",
+                PartyRole.Personal, 0.06f,
+                EffectIncrementType.AddFactor,
+                "{=!}You and archers in your formation have 4% more accuracy.",
+                PartyRole.Personal, 0.04f,
+                EffectIncrementType.AddFactor);
+
+            SjofarandiSeaEyes = Game.Current.ObjectManager.RegisterPresumedObject(new PerkObject("LifestyleSjofarandiSeaEyes"));
+            SjofarandiSeaEyes.Initialize("{=!}Sea-Eyes", null,
+                240,
+                null,
+                "{=!}Party is 5% less likely to be ambushed.",
+                PartyRole.Scout, 0.05f,
+                EffectIncrementType.AddFactor,
+                "{=!}Party scouting range increased by 8% at night.",
+                PartyRole.Scout, 0.08f,
+                EffectIncrementType.AddFactor);
+
+            #endregion Seafaring
         }
 
         public override void Initialize()

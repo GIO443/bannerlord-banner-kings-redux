@@ -305,10 +305,9 @@ namespace BannerKings.Managers.Education.Lifestyles
                 cultures.First(x => x.StringId == "aserai"));
 
             // Seafaring lifestyles — only registered when War Sails (NavalDLC) is loaded
-            // and the Nord culture exists, since they are Nord-flavoured and lean on
-            // naval gameplay added by the DLC. These reuse vanilla skills and ship with
-            // empty perk lists for now (no custom seafaring perks yet); they exist so
-            // the player has thematic options when running Banner Kings + War Sails.
+            // and the Nord culture exists. Each ships with three real BK perks (defined
+            // in BKPerks.cs under the Seafaring region) using vanilla effect slots that
+            // also apply on War Sails naval scenes.
             var nordCulture = cultures.FirstOrDefault(x => x.StringId == "nord");
             if (ModCompat.WarSails && nordCulture != null)
             {
@@ -318,10 +317,15 @@ namespace BannerKings.Managers.Education.Lifestyles
                     new TextObject("Sworn brothers of the longhouse, the Jomsvikings are sea-borne warriors trained from boyhood for boarding actions and shieldwall combat. Their reputation is built on disciplined ferocity in close quarters and indifference to wounds — qualities prized on a wind-tossed deck."),
                     DefaultSkills.TwoHanded,
                     DefaultSkills.Athletics,
-                    new List<PerkObject>(),
-                    new TextObject("Increased melee damage on naval boardings by {EFFECT1}%\nReduced morale loss while at sea by {EFFECT2}%"),
-                    10f,
-                    15f,
+                    new List<PerkObject>
+                    {
+                        BKPerks.Instance.JomsvikingShieldwall,
+                        BKPerks.Instance.JomsvikingSeaToughness,
+                        BKPerks.Instance.JomsvikingBoardingFury
+                    },
+                    new TextObject("You and infantry in your formation deal {EFFECT1}% more melee damage\nParty morale ceiling increased by {EFFECT2}%"),
+                    8f,
+                    5f,
                     null,
                     nordCulture);
                 AddObject(jomsviking);
@@ -332,10 +336,15 @@ namespace BannerKings.Managers.Education.Lifestyles
                     new TextObject("Captain of a longship and a sworn band, the drakkar captain reads weather, current and shoreline as easily as he reads his crew. His command keeps his men rowing through storm and surf, and his name on the prow is enough to scatter coastal villagers before the keel touches sand."),
                     DefaultSkills.Leadership,
                     DefaultSkills.Tactics,
-                    new List<PerkObject>(),
-                    new TextObject("Crew morale on the longship increased by {EFFECT1}%\nNaval raid loot increased by {EFFECT2}%"),
+                    new List<PerkObject>
+                    {
+                        BKPerks.Instance.DrakkarHelmsman,
+                        BKPerks.Instance.DrakkarRaidMaster,
+                        BKPerks.Instance.DrakkarSeaCommander
+                    },
+                    new TextObject("Party speed increased by {EFFECT1}%\nLoot from raids increased by {EFFECT2}%"),
+                    4f,
                     15f,
-                    20f,
                     null,
                     nordCulture);
                 AddObject(drakkar);
@@ -346,10 +355,15 @@ namespace BannerKings.Managers.Education.Lifestyles
                     new TextObject("The sjofarandi — \"sea-farer\" — is the navigator and pathfinder of a Nord war-band. Equally at home reading the stars or pulling a bowstring on a moving deck, his role is to guide a longship safely between shorelines, and to scout enemies before the prow makes landfall."),
                     DefaultSkills.Bow,
                     DefaultSkills.Scouting,
-                    new List<PerkObject>(),
-                    new TextObject("Naval travel speed increased by {EFFECT1}%\nSpotting range at sea increased by {EFFECT2}%"),
-                    15f,
-                    25f,
+                    new List<PerkObject>
+                    {
+                        BKPerks.Instance.SjofarandiPathfinder,
+                        BKPerks.Instance.SjofarandiCoastalHunter,
+                        BKPerks.Instance.SjofarandiSeaEyes
+                    },
+                    new TextObject("Party scouting range increased by {EFFECT1}%\nYou and archers in your formation deal {EFFECT2}% more bow damage"),
+                    12f,
+                    6f,
                     null,
                     nordCulture);
                 AddObject(sjofarandi);

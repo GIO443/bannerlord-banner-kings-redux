@@ -552,29 +552,11 @@ namespace BannerKings.UI.VanillaTabs.Character.Education
                         .SetTextVariable("S1", s1)
                         .SetTextVariable("S2", s2).ToString();
 
-                    // Hover hint: lock reasons (if any) + lore + bonuses block.
+                    // Hover hint: bonuses FIRST so they're always visible (locked or not),
+                    // then lore description, then any unmet-requirement reasons at the
+                    // bottom. Vanilla truncates long disabled-entry tooltips, so the
+                    // bonus block has to be the first thing in the string.
                     var hintBuilder = new StringBuilder();
-                    if (!canLearn)
-                    {
-                        if (lf.Culture != null && hero.Culture != lf.Culture)
-                            hintBuilder.AppendLine(new TextObject("{=!}Requires {CULTURE} culture.")
-                                .SetTextVariable("CULTURE", lf.Culture.Name).ToString());
-                        if (s1 < 15)
-                            hintBuilder.AppendLine(new TextObject("{=!}Requires {SKILL} {NEEDED} (you have {HAVE}).")
-                                .SetTextVariable("SKILL", lf.FirstSkill.Name)
-                                .SetTextVariable("NEEDED", 15)
-                                .SetTextVariable("HAVE", s1).ToString());
-                        if (s2 < 15)
-                            hintBuilder.AppendLine(new TextObject("{=!}Requires {SKILL} {NEEDED} (you have {HAVE}).")
-                                .SetTextVariable("SKILL", lf.SecondSkill.Name)
-                                .SetTextVariable("NEEDED", 15)
-                                .SetTextVariable("HAVE", s2).ToString());
-                        if (hintBuilder.Length > 0)
-                            hintBuilder.AppendLine();
-                    }
-
-                    hintBuilder.AppendLine(lf.Description.ToString());
-                    hintBuilder.AppendLine();
 
                     hintBuilder.AppendLine(new TextObject("{=!}Boosts: {SKILL1}, {SKILL2}")
                         .SetTextVariable("SKILL1", lf.FirstSkill.Name)
@@ -598,6 +580,27 @@ namespace BannerKings.UI.VanillaTabs.Character.Education
                             if (perk == null) continue;
                             hintBuilder.AppendLine(" - " + perk.Name + ": " + perk.Description);
                         }
+                    }
+
+                    hintBuilder.AppendLine();
+                    hintBuilder.AppendLine(lf.Description.ToString());
+
+                    if (!canLearn)
+                    {
+                        hintBuilder.AppendLine();
+                        if (lf.Culture != null && hero.Culture != lf.Culture)
+                            hintBuilder.AppendLine(new TextObject("{=!}Requires {CULTURE} culture.")
+                                .SetTextVariable("CULTURE", lf.Culture.Name).ToString());
+                        if (s1 < 15)
+                            hintBuilder.AppendLine(new TextObject("{=!}Requires {SKILL} {NEEDED} (you have {HAVE}).")
+                                .SetTextVariable("SKILL", lf.FirstSkill.Name)
+                                .SetTextVariable("NEEDED", 15)
+                                .SetTextVariable("HAVE", s1).ToString());
+                        if (s2 < 15)
+                            hintBuilder.AppendLine(new TextObject("{=!}Requires {SKILL} {NEEDED} (you have {HAVE}).")
+                                .SetTextVariable("SKILL", lf.SecondSkill.Name)
+                                .SetTextVariable("NEEDED", 15)
+                                .SetTextVariable("HAVE", s2).ToString());
                     }
 
                     elements.Add(new InquiryElement(lf, title, null, canLearn, hintBuilder.ToString()));
