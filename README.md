@@ -1,9 +1,20 @@
-# Banner Kings — 1.3.x Fork with War Sails Integration
+# Banner Kings — Redux
 
-> **This is an unofficial fork** of [Banner Kings by R-Vaccari](https://github.com/R-Vaccari/bannerlord-banner-kings).
-> The original author has been inactive for a while. This fork is maintained for personal use
-> and will be taken down immediately upon request by the original author.
-> All credit for the Banner Kings mod goes to R-Vaccari and the original contributors.
+> **Module Id:** `BannerKings.Redux` &nbsp;·&nbsp; **Folder:** `Modules/BannerKings.Redux/` &nbsp;·&nbsp; **Version:** see `_Module/SubModule.xml`
+
+> **This is an unofficial fork** of [Banner Kings by R-Vaccari](https://github.com/R-Vaccari/bannerlord-banner-kings),
+> updated for Bannerlord v1.3.x with native War Sails (NavalDLC) Nord support. The original author has been
+> inactive for a while; this fork is maintained as a separate mod and will be taken down immediately upon
+> request by the original author. All credit for the original Banner Kings goes to R-Vaccari and contributors.
+
+## Installing
+
+1. Make sure the listed dependencies (Harmony, ButterLib, UIExtenderEx, MCM) are installed.
+2. **Uninstall any existing `Modules/BannerKings/` folder** — Redux is a separate module under
+   `Modules/BannerKings.Redux/` and saves do not transfer between the two. Pick one.
+3. Drop the contents of the release zip into your Bannerlord install. You should end up with
+   `…/Mount & Blade II Bannerlord/Modules/BannerKings.Redux/_Module/SubModule.xml`.
+4. Enable **Banner Kings — Redux** in the launcher and start a fresh save.
 
 [![CodeFactor](https://www.codefactor.io/repository/github/r-vaccari/bannerlord-banner-kings/badge)](https://www.codefactor.io/repository/github/r-vaccari/bannerlord-banner-kings)
 

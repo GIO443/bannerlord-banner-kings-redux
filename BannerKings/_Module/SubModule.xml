@@ -2,9 +2,9 @@
 
 <Module xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
         xsi:noNamespaceSchemaLocation="https://raw.githubusercontent.com/BUTR/Bannerlord.XmlSchemas/master/SubModule.xsd">
-	<Id value="BannerKings" />
-	<Name value="BannerKings" />
-	<Version value="v1.4.0.2" />
+	<Id value="BannerKings.Redux" />
+	<Name value="Banner Kings — Redux" />
+	<Version value="v1.5.0.0" />
 	<Official value="false" />
 	<DefaultModule value="true" />
 	<ModuleCategory value="Singleplayer" />

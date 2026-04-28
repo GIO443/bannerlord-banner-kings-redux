@@ -460,3 +460,6 @@ bot/
 
 # Claude Code project notes — kept locally, not in public repo.
 CLAUDE.md
+
+# Release zip outputs.
+dist/
