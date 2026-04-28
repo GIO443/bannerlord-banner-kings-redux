@@ -457,3 +457,6 @@ Thumbs.db
 
 # Discord RAG bot — out of repo; ignored if a local copy is restored.
 bot/
+
+# Claude Code project notes — kept locally, not in public repo.
+CLAUDE.md
