@@ -767,34 +767,16 @@ namespace BannerKings.Patches
         [HarmonyPatch(typeof(WorkshopsCampaignBehavior))]
         internal class WorkshopsCampaignBehaviorPatches
         {
-            [HarmonyPostfix]
-            [HarmonyPatch("InitializeWorkshops", MethodType.Normal)]
-            private static void InitializeWorkshopsPatch()
-            {
-                foreach (Town town in Town.AllCastles)
-                {
-                    town.InitializeWorkshops((int)(TaleWorlds.CampaignSystem.Campaign.Current.Models.WorkshopModel
-                        .DefaultWorkshopCountInSettlement / 2f));
-                }
-            }
+            // Disabled in Redux: original BK postfix added workshops to castles at game start,
+            // which caused vanilla RunTownShopsAtGameStart to crash on first production tick
+            // (ItemRosterElement.Amount < 0) on Bannerlord 1.3.x.
+            // [HarmonyPostfix]
+            // [HarmonyPatch("InitializeWorkshops", MethodType.Normal)]
+            // private static void InitializeWorkshopsPatch() { ... }
 
-            [HarmonyPostfix]
-            [HarmonyPatch("BuildWorkshopsAtGameStart", MethodType.Normal)]
-            private static void BuildWorkshopsAtGameStartPatch(WorkshopsCampaignBehavior __instance)
-            {
-                MethodInfo artisans = __instance.GetType().GetMethod("BuildArtisanWorkshop", BindingFlags.Instance | BindingFlags.NonPublic);
-                MethodInfo build = __instance.GetType().GetMethod("BuildWorkshopForHeroAtGameStart", BindingFlags.Instance | BindingFlags.NonPublic);
-                foreach (Town town in Town.AllCastles)
-                {
-                    artisans.Invoke(__instance, new object[] { town });
-                    for (int i = 1; i < town.Workshops.Length; i++)
-                    {
-                        Hero notableOwnerForWorkshop = TaleWorlds.CampaignSystem.Campaign.Current.Models.WorkshopModel
-                            .GetNotableOwnerForWorkshop(town.Workshops[i]);
-                        build.Invoke(__instance, new object[] { notableOwnerForWorkshop });
-                    }
-                }
-            }
+            // [HarmonyPostfix]
+            // [HarmonyPatch("BuildWorkshopsAtGameStart", MethodType.Normal)]
+            // private static void BuildWorkshopsAtGameStartPatch(WorkshopsCampaignBehavior __instance) { ... }
 
             [HarmonyPostfix]
             [HarmonyPatch("IsItemPreferredForTown", MethodType.Normal)]
