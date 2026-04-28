@@ -55,7 +55,7 @@ namespace BannerKings
         private List<ITypeInitializer> modInitializers = new List<ITypeInitializer>();
 
         public bool FirstUse { get; internal set; } = true;
-        public string TitlesGeneratorPath { get; set; } = BasePath.Name + "Modules/BannerKings/ModuleData/titles.xml";
+        public string TitlesGeneratorPath { get; set; } = BasePath.Name + "Modules/BannerKings.Redux/ModuleData/titles.xml";
         public string RecruitsXmlPath { get; set; }
 
         public bool wipeData = false;

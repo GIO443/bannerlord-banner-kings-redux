@@ -7,7 +7,7 @@ namespace BannerKings.Utils
 {
     internal static class ExceptionUtils
     {
-        private static readonly string path = BasePath.Name + "Modules/BannerKings/";
+        private static readonly string path = BasePath.Name + "Modules/BannerKings.Redux/";
         private static readonly string fileName = "errorlog.txt";
 
         public static void TryCatch(Action method, string className, bool notifty = true)
