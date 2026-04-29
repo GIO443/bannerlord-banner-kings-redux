@@ -78,107 +78,16 @@ namespace BannerKings.Patches
                 }
             }
 
-            [HarmonyPostfix]
-            [HarmonyPatch(nameof(SandboxAgentApplyDamageModel.CalculateDamage))]
-            private static void CalculateDamagePostfix(in AttackInformation attackInformation,
-                in AttackCollisionData collisionData, float baseDamage, ref float __result)
-            {
-                var aggressorCaptain = attackInformation.AttackerCaptainCharacter as CharacterObject;
-                var victimCaptain = attackInformation.VictimCaptainCharacter as CharacterObject;
-                var agressorUsage = attackInformation.AttackerWeapon.CurrentUsageItem;
-
-                if (agressorUsage != null && attackInformation.AttackerAgentCharacter is CharacterObject aggressor)
-                {
-                    if (aggressorCaptain is { IsHero: true })
-                    {
-                        var data = BannerKingsConfig.Instance.EducationManager.GetHeroEducation(aggressorCaptain.HeroObject);
-
-                        if (collisionData.StrikeType == 1)
-                        {
-                            if (aggressor.IsMounted && data.HasPerk(BKPerks.Instance.CataphractKlibanophoros))
-                                __result *= 1.06f;
-                        }
-
-                        if (data.Lifestyle != null && data.HasPerk(BKPerks.Instance.KheshigOutrider))
-                        {
-                            if (aggressor.IsMounted && agressorUsage.RelevantSkill == DefaultSkills.Bow)
-                                __result *= 1.05f;
-                        }
-
-                        if (data.Lifestyle != null && data.Lifestyle == DefaultLifestyles.Instance.Ritter)
-                        {
-                            if (!aggressor.IsMounted)
-                            {
-                                if (agressorUsage.WeaponClass == WeaponClass.TwoHandedSword &&
-                                    data.HasPerk(BKPerks.Instance.FianHighlander))
-                                    __result *= 1.04f;
-                                if (data.HasPerk(BKPerks.Instance.VaryagDrengr))
-                                    __result *= 1.1f;
-                            }
-                            else if (agressorUsage.RelevantSkill == DefaultSkills.Throwing &&
-                                     data.HasPerk(BKPerks.Instance.JawwalCamelMaster))
-                            {
-                                __result *= 1.1f;
-                            }
-                        }
-
-                        if (data.Lifestyle != null)
-                        {
-                            if (data.Lifestyle == DefaultLifestyles.Instance.Ritter)
-                            {
-                                var notRanged = agressorUsage.RelevantSkill != DefaultSkills.Bow &&
-                                                agressorUsage.RelevantSkill != DefaultSkills.Crossbow &&
-                                                agressorUsage.RelevantSkill != DefaultSkills.Throwing;
-                                if (aggressor.IsMounted)
-                                {
-                                    __result *= notRanged ? 1.05f : 0.85f;
-                                }
-                            }
-                            else if (data.Lifestyle.Equals(DefaultLifestyles.Instance.Varyag) && aggressor.IsMounted)
-                            {
-                                __result *= 0.8f;
-                            }
-                        }
-                    }
-
-                    if (aggressor.HeroObject != null)
-                    {
-                        var data = BannerKingsConfig.Instance.EducationManager.GetHeroEducation(aggressor.HeroObject);
-
-                        if (aggressor.IsMounted && data.Lifestyle != null && data.Lifestyle.Equals(DefaultLifestyles.Instance.Fian))
-                            __result *= 0.75f;
-
-                        if (agressorUsage.RelevantSkill == DefaultSkills.Bow && collisionData.CollisionBoneIndex != -1 &&
-                            data.HasPerk(BKPerks.Instance.FianRanger))
-                            __result *= 1.08f;
-
-                        if (agressorUsage.RelevantSkill == DefaultSkills.TwoHanded && !attackInformation.DoesAttackerHaveMountAgent &&
-                            data.HasPerk(BKPerks.Instance.FianFennid))
-                            __result *= 1.1f;
-
-                        if (aggressor.IsMounted && data.Lifestyle == DefaultLifestyles.Instance.Fian)
-                            __result *= 1f - DefaultLifestyles.Instance.Fian.SecondEffect * 0.1f;
-
-                        if (aggressor.IsMounted && data.HasPerk(BKPerks.Instance.CataphractAdaptiveTactics) &&
-                            (agressorUsage.RelevantSkill == DefaultSkills.Bow ||
-                             agressorUsage.RelevantSkill == DefaultSkills.OneHanded ||
-                             agressorUsage.RelevantSkill == DefaultSkills.Polearm))
-                            __result *= 1.05f;
-                    }
-                }
-
-                var missionWeapon = attackInformation.VictimMainHandWeapon;
-                var victimUsage = missionWeapon.CurrentUsageItem;
-                if (attackInformation.VictimAgentCharacter is CharacterObject victim && victimCaptain is { IsHero: true })
-                {
-                    var data = BannerKingsConfig.Instance.EducationManager.GetHeroEducation(victimCaptain.HeroObject);
-                    if (victim.IsMounted && data.HasPerk(BKPerks.Instance.CataphractKlibanophoros))
-                        __result *= 0.95f;
-                    if (victimUsage != null && !victim.IsMounted && victimUsage.IsShield &&
-                        data.HasPerk(BKPerks.Instance.VaryagShieldBrother))
-                        __result *= 0.96f;
-                }
-            }
+            // The original BK class had a CalculateDamage override declared as
+            // `public new` — which means it was *hiding* the inherited
+            // CalculateDamage rather than overriding it. Vanilla dispatches via
+            // the base type so the BK modifier never actually ran in any
+            // upstream BK build. Re-applying it now via Harmony would change
+            // long-standing behaviour, so this method is intentionally left
+            // unhooked. If the perk-based damage modifiers (Cataphract
+            // Klibanophoros, Kheshig Outrider, Varyag Shield Brother, etc.)
+            // turn out to be wanted, they should be re-added via a Postfix on
+            // the actual declaring type after a behaviour audit.
         }
 
         // --- BKAgentStatsModel -----------------------------------------------------------
