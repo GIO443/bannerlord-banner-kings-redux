@@ -798,6 +798,7 @@ configuration needed.
 | **MarryAnyone** | BK skips its marriage model so MA's relaxed rules apply. |
 | **Buy Land at Villages** | Both can coexist; the player can hold both BK estates and BLAV land in the same village, which can be confusing. Pick one or the other in practice. |
 | **Realistic Battle Mod (RBM)** | Full compat. BK's campaign-side combat XP / battle reward / battle simulation logic stays; RBM owns mission-time damage. |
+| **AI Influence (AI Diplomacy)** | BK yields its `InfluenceModel` to AI Influence on the vanilla GameModel slot, so the LLM-driven diplomacy / influence calculations can run cleanly. BK's internal influence queries (caps, costs for council appointments, claims, demands, knighthoods) still resolve through BK's own model so titles and claim logic continue to work. No configuration needed; detection is automatic. |
 
 **Compatible without configuration** — these touch different layers and have
 no overlap with BK:

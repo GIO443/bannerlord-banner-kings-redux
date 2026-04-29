@@ -38,6 +38,12 @@ namespace BannerKings.Utils
         public const string WarSailsId = "NavalDLC";
         public const string WarSailsAsm = "NavalDLC";
 
+        // AI Influence (AI Diplomacy) — https://www.nexusmods.com/mountandblade2bannerlord/mods/9711
+        // Module folder name confirmed as `AIInfluence` per Nexus install instructions.
+        // Assembly name presumed to match; ProbeAssembly() falls back gracefully if it differs.
+        public const string AIInfluenceId = "AIInfluence";
+        public const string AIInfluenceAsm = "AIInfluence";
+
         private static readonly ConcurrentDictionary<string, bool> _cache = new();
 
         private static MethodInfo _getModulesMethod;
@@ -78,6 +84,10 @@ namespace BannerKings.Utils
         /// <summary>True if the War Sails (NavalDLC) module is loaded.</summary>
         public static bool WarSails
             => IsLoaded(WarSailsId, WarSailsAsm);
+
+        /// <summary>True if AI Influence (AI Diplomacy) is loaded.</summary>
+        public static bool AIInfluence
+            => IsLoaded(AIInfluenceId, AIInfluenceAsm);
 
         // ----- internals -----
 

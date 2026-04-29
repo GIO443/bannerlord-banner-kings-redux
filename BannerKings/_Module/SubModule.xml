@@ -39,6 +39,7 @@
 		<DependedModuleMetadata id="MarryAnyone" order="LoadAfterThis" optional="true" />
 		<DependedModuleMetadata id="BuyLandAtVillages" order="LoadAfterThis" optional="true" />
 		<DependedModuleMetadata id="RBMCombat" order="LoadAfterThis" optional="true" />
+		<DependedModuleMetadata id="AIInfluence" order="LoadAfterThis" optional="true" />
 	</DependedModuleMetadatas>
 	<!-- Community Dependency Metadata -->
 	<SubModules>

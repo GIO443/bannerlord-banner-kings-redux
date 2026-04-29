@@ -107,7 +107,12 @@ namespace BannerKings
             campaignStarter.AddModel(new BKFoodModel());
             campaignStarter.AddModel(BannerKingsConfig.Instance.ConstructionModel);
             campaignStarter.AddModel(new BKMilitiaModel());
-            campaignStarter.AddModel(BannerKingsConfig.Instance.InfluenceModel);
+            // Defer to AI Influence (AI Diplomacy) when present — that mod owns the
+            // vanilla InfluenceModel slot. BK's internal queries (caps, costs) still
+            // resolve via BannerKingsConfig.Instance.InfluenceModel directly, so the
+            // config-level instance is intentionally not unregistered.
+            if (!ModCompat.AIInfluence)
+                campaignStarter.AddModel(BannerKingsConfig.Instance.InfluenceModel);
             campaignStarter.AddModel(new BKLoyaltyModel());
             campaignStarter.AddModel(BannerKingsConfig.Instance.VillageProductionModel);
             campaignStarter.AddModel(new BKSecurityModel());
