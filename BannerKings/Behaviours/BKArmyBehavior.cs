@@ -17,9 +17,22 @@ namespace BannerKings.Behaviours
 {
     public class BKArmyBehavior : CampaignBehaviorBase
     {
+        // Cooldown duration after an army dispersal or formation push before BK
+        // will push the same leader into another CallBannersGoal. 30 days lets a
+        // freshly-dispersed army's parties drift back to garrison/recruitment
+        // before BK tries again, breaking the recruit↔front-line oscillation
+        // observed on heavily-active fronts.
+        private const float ArmyFormationCooldownDays = 30f;
+
         private AuxiliumDuty playerArmyDuty;
         private CampaignTime lastDutyTime = CampaignTime.Zero;
-        private Dictionary<Hero, CampaignTime> heroRecords = new Dictionary<Hero, CampaignTime>(); 
+        private Dictionary<Hero, CampaignTime> heroRecords = new Dictionary<Hero, CampaignTime>();
+
+        // Per-hero cooldown tracker. Updated when BK successfully pushes the leader
+        // into CallBannersGoal, and again when any army the leader led disperses.
+        // Read at the head of EvaluateCreateArmy to gate the next push.
+        private Dictionary<Hero, CampaignTime> armyFormationCooldown = new Dictionary<Hero, CampaignTime>();
+
         public override void RegisterEvents()
         {
             CampaignEvents.DailyTickPartyEvent.AddNonSerializedListener(this, OnPartyDailyTick);
@@ -39,11 +52,29 @@ namespace BannerKings.Behaviours
             dataStore.SyncData("bannerkings-military-duty", ref playerArmyDuty);
             dataStore.SyncData("bannerkings-military-duty-time", ref lastDutyTime);
             dataStore.SyncData("bannerkings-army-records", ref heroRecords);
+            dataStore.SyncData("bannerkings-army-formation-cooldown", ref armyFormationCooldown);
 
             if (heroRecords == null)
             {
                 heroRecords = new Dictionary<Hero, CampaignTime>();
             }
+            if (armyFormationCooldown == null)
+            {
+                armyFormationCooldown = new Dictionary<Hero, CampaignTime>();
+            }
+        }
+
+        private bool IsOnArmyFormationCooldown(Hero hero)
+        {
+            if (hero == null) return false;
+            if (!armyFormationCooldown.TryGetValue(hero, out var lastTime)) return false;
+            return lastTime.ElapsedDaysUntilNow < ArmyFormationCooldownDays;
+        }
+
+        private void RecordArmyFormation(Hero hero)
+        {
+            if (hero == null) return;
+            armyFormationCooldown[hero] = CampaignTime.Now;
         }
 
         public void AddRecord(Hero hero)
@@ -75,9 +106,8 @@ namespace BannerKings.Behaviours
 
         private void EvaluateCreateArmy(MobileParty party)
         {
-            // MCM gate — when off, BK does not push AI lords into CallBannersGoal,
-            // so vanilla AI drives army formation. Useful when BK's eager
-            // formation triggers a recruit↔front-line loop on heavily-active fronts.
+            // MCM kill switch — keeps the toggle as a backstop for any case the
+            // cooldown doesn't catch. Primary defence is the cooldown below.
             if (!BannerKingsSettings.Instance.AIArmyFormation) return;
 
             if (!party.IsLordParty || party.LeaderHero == null || party.LeaderHero.Clan == null || party.Army != null ||
@@ -86,13 +116,27 @@ namespace BannerKings.Behaviours
 
             var leader = party.LeaderHero;
             var kingdom = leader.Clan.Kingdom;
-            if (kingdom == null || party.ActualClan == Clan.PlayerClan || leader.Clan.Influence < 100f)
+            if (kingdom == null || party.ActualClan == Clan.PlayerClan)
+                return;
+
+            // 30-day per-hero cooldown after the last successful CallBannersGoal push
+            // or any army dispersal. Without this, leaders rebuild influence within
+            // days of an army disbanding and immediately get re-pushed into a new
+            // formation, producing the recruit↔front-line oscillation reported by
+            // users.
+            if (IsOnArmyFormationCooldown(leader)) return;
+
+            // Influence floor raised from 100 → 200 so the leader has cushion to
+            // sustain the army for at least a few weeks before influence drains
+            // back to zero. The previous threshold let leaders form an army with
+            // barely enough influence to keep it standing through a single tick.
+            if (leader.Clan.Influence < 200f)
                 return;
 
             bool war = FactionHelper.GetEnemyKingdoms(kingdom).Any();
             if (war)
             {
-                if (!BannerKingsConfig.Instance.ArmyManagementModel.CanCreateArmy(leader) || 
+                if (!BannerKingsConfig.Instance.ArmyManagementModel.CanCreateArmy(leader) ||
                     MBRandom.RandomFloat < MBRandom.RandomFloat) return;
 
                 Clan clan = leader.Clan;
@@ -102,6 +146,7 @@ namespace BannerKings.Behaviours
                 {
                     var decision = new CallBannersGoal(leader);
                     decision.DoAiDecision();
+                    RecordArmyFormation(leader);
                 }
             }
         }
@@ -124,6 +169,15 @@ namespace BannerKings.Behaviours
 
         public void OnArmyDispersed(Army army, Army.ArmyDispersionReason reason, bool isPlayersArmy)
         {
+            // Record dispersal time for the army leader so EvaluateCreateArmy
+            // doesn't immediately re-push them into a new CallBannersGoal as
+            // soon as influence rebuilds. Applies to all kingdoms, not just
+            // the player's.
+            if (army?.LeaderParty?.LeaderHero != null)
+            {
+                RecordArmyFormation(army.LeaderParty.LeaderHero);
+            }
+
             var leaderParty = army.LeaderParty;
             var playerKingdom = Clan.PlayerClan.Kingdom;
             if (playerKingdom == null || playerKingdom != army.Kingdom || playerArmyDuty == null ||

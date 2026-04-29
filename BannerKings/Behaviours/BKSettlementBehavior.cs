@@ -355,6 +355,13 @@ namespace BannerKings.Behaviours
             var garrison = town.GarrisonParty;
             if (town.IsUnderSiege || garrison == null || garrison.MemberRoster.TotalHealthyCount < 100) return;
 
+            // Skip patrol spawn if the settlement has no bound villages. Without one,
+            // GarrisonPartyComponent.TickHourly has nowhere to patrol — the unit
+            // returns home every hour and oscillates as a frozen mob outside the
+            // gate. Sea-locked/island towns are the typical case; reported in the
+            // wild on War Sails coastal settlements.
+            if (town.Settlement.BoundVillages == null || town.Settlement.BoundVillages.Count == 0) return;
+
             if (MBRandom.RandomFloat < 0.05f && town.Security > 50f && town.Loyalty > 30f)
             {
                 MobileParty garrisonParty = GarrisonPartyComponent.CreateParty(town.Settlement);
