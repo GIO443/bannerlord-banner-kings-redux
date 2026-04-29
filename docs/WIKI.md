@@ -76,6 +76,12 @@ native support for the **War Sails (NavalDLC)** Nord faction, including:
 - *Optional:* **War Sails (NavalDLC)** — TaleWorlds DLC. If installed, the
   Nord title hierarchy, seafaring lifestyles, and Nordic Thrall Law activate.
   The mod runs fine without it.
+- *Strongly recommended:* **Better Exception Window**
+  ([Nexus link](https://www.nexusmods.com/mountandblade2bannerlord/mods/2032)).
+  Replaces vanilla Bannerlord's terse crash dialog with a detailed HTML
+  crash report (full stack, inner exception, loaded modules, harmony
+  patches). Without it, any crash you hit gives us nothing to debug
+  from. Install it before you start a save you care about.
 
 ### Steps
 
@@ -817,8 +823,10 @@ the population balance code converts excess slaves to serfs over time.
   (≈ 1 in-game year) and minimum loyalty / authority gates.
 - **"My new game crashes during loading"** — almost always a non-BK mod's
   Harmony patch failing (e.g., GovernorsHandleIssues against newer
-  Bannerlord builds). Check `Crashes/mostrecentcrash.htm`; the inner
-  exception will name the mod.
+  Bannerlord builds). Install **Better Exception Window** if you haven't
+  already (see *Reporting bugs* below) and read the inner exception in
+  the crash report — it usually names the offending mod by its patch
+  method, and you can disable that mod and continue.
 
 ---
 
@@ -904,16 +912,39 @@ Bannerlord Tweaks / cosmetic mods / etc.
 
 ## 12. Reporting bugs
 
+### Install Better Exception Window first
+
+Before you submit a crash report — and ideally before you even play a
+save you care about — install **Better Exception Window** from Nexus
+([Bannerlord.BetterExceptionWindow](https://www.nexusmods.com/mountandblade2bannerlord/mods/2032)).
+It replaces vanilla Bannerlord's terse crash dialog with a detailed HTML
+crash report that lists the full stack trace, the inner exception, all
+loaded modules with versions and load order, and the harmony patches
+attached to the crashing method. With Better Exception Window installed,
+a crash report goes from "the game crashed" to "the game crashed in
+*[mod X's]* patch on *[method Y]*" — which is what we need to do
+anything with the report.
+
+Without it, a crash drops you back to the desktop with a message box
+that says nothing useful, and there's nothing for us to debug from.
+
+### What to send
+
 A useful crash/issue report includes:
 
-1. `Crashes/mostrecentcrash.htm` (game-generated) — has the full stack trace
-   and the loaded module list. Open it and look at the "Reasons" and
-   "Inner Exception" sections; they often name the offending mod
-   immediately.
-2. The last few hundred lines of `rgl_log.txt` — Banner Kings warnings are
-   tagged `[BK]`.
-3. Save file name, Banner Kings — Redux version (visible on the main menu),
-   and whether War Sails / NavalDLC is installed.
+1. **The Better Exception Window crash report HTML.** This is the file
+   produced by the Better Exception Window mod when the game crashes;
+   the filename is whatever Better Exception Window writes (often a
+   timestamped `.html` in the BEW output directory, or whatever name
+   you save it under). Open it once before sending and look at the
+   "Reasons" and "Inner Exception" sections — they often name the
+   offending mod immediately, and you can sanity-check that the report
+   isn't blank before you upload it.
+2. The last few hundred lines of `rgl_log.txt` (Bannerlord's general
+   game log; it lives in the game's Logs directory). Banner Kings
+   warnings are tagged `[BK]`.
+3. Save file name, Banner Kings — Redux version (visible on the main
+   menu), and whether War Sails / NavalDLC is installed.
 4. Steps to reproduce, ideally from a fresh save.
 
 **Don't bother reporting** these — they're known and harmless:
