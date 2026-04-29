@@ -44,6 +44,7 @@ namespace BannerKings.Behaviours.Shipping
             CampaignEvents.WeeklyTickEvent.AddNonSerializedListener(this, OnWeeklyTick);
             CampaignEvents.AfterSettlementEntered.AddNonSerializedListener(this, AfterSettlementEntered);
             CampaignEvents.HourlyTickPartyEvent.AddNonSerializedListener(this, TickParty);
+            CampaignEvents.HourlyTickEvent.AddNonSerializedListener(this, TickSailing);
             CampaignEvents.OnSessionLaunchedEvent.AddNonSerializedListener(this,
                 (CampaignGameStarter starter) =>
                 {
@@ -317,16 +318,23 @@ namespace BannerKings.Behaviours.Shipping
         }
 
         // Vanilla's player ship-disembark goes through the port menu's
-        // "Go to the town center" option; AI doesn't touch menus, so AI
-        // parties that arrive at a destination port stay at sea unless we
-        // flip the flag. The IsCurrentlyAtSea setter cascades to
-        // AttachedParties (armies disembark together) so we only need to
-        // touch the leader.
+        // "Go to the town center" option; AI lord parties don't touch menus,
+        // so they stay at sea unless we flip the flag. The IsCurrentlyAtSea
+        // setter cascades to AttachedParties (armies disembark together) so
+        // we only need to touch the leader.
+        //
+        // Limit this to AI lord parties — vanilla NavalDLC handles its own
+        // naval AI for convoys, caravans, bandit ships, etc. Flipping the flag
+        // on those leaves them in land mode while geometrically at sea, which
+        // strands them on the coast (this was the source of "convoys won't
+        // disembark" reports in v1.5.1.0).
         private void DisembarkAIOnPortArrival(MobileParty party, Settlement settlement)
         {
             if (party == null || party == MobileParty.MainParty) return;
             if (settlement == null || !settlement.HasPort) return;
             if (!party.IsCurrentlyAtSea) return;
+            if (!party.IsLordParty || party.LeaderHero == null) return;
+            if (party.LeaderHero.Clan == Clan.PlayerClan) return;
             if (party.Army != null && party.Army.LeaderParty != party) return;
 
             try
@@ -372,18 +380,35 @@ namespace BannerKings.Behaviours.Shipping
             }
         }
 
-        private void TickParty(MobileParty party)
+        // Behaviour-level arrival sweep. SetTravel sets IsActive=false on the
+        // travelling party which suppresses HourlyTickPartyEvent for that party,
+        // so we cannot rely on the per-party tick to fire FinishTravel — caravans
+        // would sit on the coast forever. Iterating the sailing dict from a
+        // behaviour-level hourly tick is independent of the party's active state.
+        private void TickSailing()
         {
-            // Caravan arrival check (existing)
-            if (party.IsCaravan && party != MobileParty.MainParty && sailing.ContainsKey(party))
+            if (sailing.Count == 0) return;
+            List<Travel> finished = null;
+            foreach (var pair in sailing)
             {
-                Travel travel = sailing[party];
+                if (pair.Key == null) continue;
+                if (pair.Key == MobileParty.MainParty) continue; // main party uses the wait menu
+                Travel travel = pair.Value;
                 if (travel.Arrival.IsPast || travel.Arrival.IsNow)
                 {
-                    FinishTravel(travel);
+                    finished ??= new List<Travel>();
+                    finished.Add(travel);
                 }
             }
+            if (finished == null) return;
+            foreach (var travel in finished)
+            {
+                FinishTravel(travel);
+            }
+        }
 
+        private void TickParty(MobileParty party)
+        {
             // AI lord proactive port redirect — when an AI lord party has a
             // target settlement on a shipping lane, and the nearest connecting
             // port is much closer than the target itself, redirect to the port.

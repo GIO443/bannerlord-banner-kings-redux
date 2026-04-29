@@ -193,11 +193,15 @@ namespace BannerKings.Managers.Titles
                 foreach (var vassal in title.Vassals)
                 {
                     Hero defacto = vassal.DeFacto;
-                    if (contestants.ContainsKey(defacto)) contestants[defacto] += 1;
-                    else contestants.Add(defacto, 1);
+                    if (defacto != null)
+                    {
+                        if (contestants.ContainsKey(defacto)) contestants[defacto] += 1;
+                        else contestants.Add(defacto, 1);
+                    }
                     var results = vassal.GetDeFactoHolders();
                     foreach (var result in results)
                     {
+                        if (result.Key == null) continue;
                         if (contestants.ContainsKey(result.Key)) contestants[result.Key] += result.Value;
                         else contestants.Add(result.Key, result.Value);
                     }

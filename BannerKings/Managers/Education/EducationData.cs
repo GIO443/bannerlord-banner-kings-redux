@@ -219,6 +219,8 @@ namespace BannerKings.Managers.Education
         public void GainLanguageFluency(Language language, float rate)
         {
             var result = LANGUAGE_RATE * rate;
+            if (float.IsNaN(result) || float.IsInfinity(result) || result < 0f) result = 0f;
+            if (result > 0.05f) result = 0.05f;
             languages[language] += result;
             if (languages[language] >= 1f)
             {
@@ -250,6 +252,8 @@ namespace BannerKings.Managers.Education
         public void GainBookReading(BookType book, float rate)
         {
             var result = BOOK_RATE * rate;
+            if (float.IsNaN(result) || float.IsInfinity(result) || result < 0f) result = 0f;
+            if (result > 0.10f) result = 0.10f;
             books[book] += result;
             if (books[book] >= 1f)
             {
