@@ -127,6 +127,36 @@ namespace BannerKings.Patches
             }
         }
 
+        // --- Cap the naval over-crew speed penalty so quest-mandated overloading
+        //     (e.g., the War Sails Northern Crossing quest gives the player ~190
+        //     troops and forces them onto a fleet with ~50 crew capacity) doesn't
+        //     bottom the party out at minimum sea speed. NavalDLC's vanilla
+        //     penalty is 1 / ratio - 1, which at 3.8x over hits -74% and combined
+        //     with weather/draft/etc. floors the speed at MinimumSpeed (1.0).
+        //     Clamp the per-call penalty to -0.5 so the worst case is half-speed
+        //     instead of stranded.
+        [HarmonyPatch]
+        internal static class OverCrewPenaltyClampPatch
+        {
+            private static Type _modelType;
+
+            private static bool Prepare()
+            {
+                _modelType = AccessTools.TypeByName("NavalDLC.GameComponents.NavalDLCPartySpeedCalculationModel");
+                return _modelType != null
+                    && AccessTools.Method(_modelType, "GetOverCrewSizeEffect") != null;
+            }
+
+            private static MethodBase TargetMethod()
+                => AccessTools.Method(_modelType, "GetOverCrewSizeEffect");
+
+            private static void Postfix(ref float __result)
+            {
+                if (!ModCompat.WarSails) return;
+                if (__result < -0.5f) __result = -0.5f;
+            }
+        }
+
         // --- Jomsviking Boarding Fury: +melee damage during naval missions --------
         [HarmonyPatch]
         internal static class JomsvikingBoardingFuryPatch
