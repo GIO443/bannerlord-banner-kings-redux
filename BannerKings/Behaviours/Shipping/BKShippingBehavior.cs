@@ -255,8 +255,44 @@ namespace BannerKings.Behaviours.Shipping
 
         private void AfterSettlementEntered(MobileParty party, Settlement settlement, Hero hero)
         {
-            if (party == null || !party.IsCaravan) return;
+            if (party == null) return;
 
+            // Caravan auto-board (existing behaviour, unchanged)
+            if (party.IsCaravan)
+            {
+                AfterSettlementEntered_Caravan(party, settlement);
+                return;
+            }
+
+            // AI lord party auto-board — when an AI lord party enters a port whose
+            // shipping lane includes their target settlement, automatically board
+            // ship for the target. This addresses the user-reported bug where AI
+            // lords reach the coast and can't proceed across water; they buy ships
+            // but never use them. Now BK's shipping system carries them.
+            if (party != MobileParty.MainParty
+                && party.IsLordParty
+                && party.LeaderHero != null
+                && party.LeaderHero.Clan != null
+                && party.LeaderHero.Clan != Clan.PlayerClan
+                && party.Army == null)            // armies are coordinated; don't ship only the leader
+            {
+                var lordTarget = party.TargetSettlement;
+                if (lordTarget == null || lordTarget == settlement) return;
+
+                var lanes = DefaultShippingLanes.Instance.GetSettlementLanes(settlement);
+                foreach (ShippingLane lane in lanes)
+                {
+                    if (lane.Ports.Contains(lordTarget) && CanTravel(lordTarget, party))
+                    {
+                        SetTravel(party, lordTarget);
+                        return;
+                    }
+                }
+            }
+        }
+
+        private void AfterSettlementEntered_Caravan(MobileParty party, Settlement settlement)
+        {
             var lanes = DefaultShippingLanes.Instance.GetSettlementLanes(settlement);
             if (!lanes.Any()) return;
 
@@ -265,12 +301,12 @@ namespace BannerKings.Behaviours.Shipping
             {
                 BKCaravansBehavior behavior = TaleWorlds.CampaignSystem.Campaign.Current.GetCampaignBehavior<BKCaravansBehavior>();
                 town = (Town)Caravans_ThinkNextDestination.Invoke(behavior, new object[] { party });
-            } 
+            }
             catch (Exception e)
             {
 
             }
-            
+
             if (town == null) return;
 
             party.SetMoveGoToSettlement(town.Settlement, MobileParty.NavigationType.All, false);
@@ -290,15 +326,74 @@ namespace BannerKings.Behaviours.Shipping
 
         private void TickParty(MobileParty party)
         {
-            if (!party.IsCaravan || party == MobileParty.MainParty) return;
-
-            if (sailing.ContainsKey(party))
+            // Caravan arrival check (existing)
+            if (party.IsCaravan && party != MobileParty.MainParty && sailing.ContainsKey(party))
             {
                 Travel travel = sailing[party];
                 if (travel.Arrival.IsPast || travel.Arrival.IsNow)
                 {
                     FinishTravel(travel);
                 }
+            }
+
+            // AI lord proactive port redirect — when an AI lord party has a
+            // target settlement on a shipping lane, and the nearest connecting
+            // port is much closer than the target itself, redirect to the port.
+            // The party will reach the port, then Step A's AfterSettlementEntered
+            // hook auto-boards them. Without this, AI lords often pathfind
+            // straight toward a cross-water target and get stuck on the coast.
+            RedirectAIToShippingPort(party);
+        }
+
+        private void RedirectAIToShippingPort(MobileParty party)
+        {
+            try
+            {
+                if (party == null || party == MobileParty.MainParty) return;
+                if (!party.IsLordParty || party.LeaderHero == null) return;
+                if (party.LeaderHero.Clan == null || party.LeaderHero.Clan == Clan.PlayerClan) return;
+                if (party.Army != null) return;                     // armies coordinate; don't split
+                if (sailing.ContainsKey(party)) return;             // already on a ship
+                if (party.CurrentSettlement != null) return;        // wait for Step A on settlement entry
+
+                var target = party.TargetSettlement;
+                if (target == null) return;
+
+                // Only redirect if the original target sits on a shipping lane.
+                var targetLanes = DefaultShippingLanes.Instance.GetSettlementLanes(target);
+                if (!targetLanes.Any()) return;
+
+                // Find the closest port on any of those lanes (other than the
+                // target itself) that is materially closer than the target.
+                Settlement bestPort = null;
+                float partyToTarget = party.GetPosition2D.Distance(target.GatePosition.ToVec2());
+                if (partyToTarget <= 1f) return;
+
+                float bestDistance = partyToTarget * 0.7f;          // require >=30% closer than target
+                foreach (var lane in targetLanes)
+                {
+                    foreach (var port in lane.Ports)
+                    {
+                        if (port == target) continue;
+                        if (port.IsUnderSiege) continue;
+                        float d = party.GetPosition2D.Distance(port.GatePosition.ToVec2());
+                        if (d < bestDistance)
+                        {
+                            bestDistance = d;
+                            bestPort = port;
+                        }
+                    }
+                }
+
+                if (bestPort == null) return;
+                if (party.TargetSettlement == bestPort) return;     // already redirected last tick
+
+                party.SetMoveGoToSettlement(bestPort, MobileParty.NavigationType.All, false);
+            }
+            catch
+            {
+                // Defensive: never throw out of an hourly tick. AI parties getting
+                // weird targets from other mods should not crash BK.
             }
         }
     }

@@ -414,9 +414,20 @@ namespace BannerKings.Behaviours
                 }, 
                 (MenuCallbackArgs args) =>
                 {
-                    LocationEncounter locationEncounter = PlayerEncounter.LocationEncounter;
-                    // InventoryManager removed in 1.3.x
-                }, 
+                    // Castle trade — re-enabled in Redux against the 1.3.x API
+                    // (InventoryScreenHelper.OpenScreenAsTrade), replacing the
+                    // disabled InventoryManager call removed during the 1.3.x
+                    // port. Trades against the castle's own ItemRoster, which
+                    // BK populates through its economy system, so castles act
+                    // as small markets even though vanilla doesn't give them
+                    // workshops.
+                    var settlement = Settlement.CurrentSettlement;
+                    if (settlement == null || settlement.Town == null) return;
+                    InventoryScreenHelper.OpenScreenAsTrade(
+                        settlement.ItemRoster,
+                        settlement.Town,
+                        doneLogicExtrasDelegate: null);
+                },
                 false, -1, false, null);
 
             // ------- VILLAGE --------
