@@ -75,6 +75,11 @@ namespace BannerKings.Behaviours
 
         private void EvaluateCreateArmy(MobileParty party)
         {
+            // MCM gate — when off, BK does not push AI lords into CallBannersGoal,
+            // so vanilla AI drives army formation. Useful when BK's eager
+            // formation triggers a recruit↔front-line loop on heavily-active fronts.
+            if (!BannerKingsSettings.Instance.AIArmyFormation) return;
+
             if (!party.IsLordParty || party.LeaderHero == null || party.LeaderHero.Clan == null || party.Army != null ||
                 party.MapEvent != null)
                 return;
@@ -264,6 +269,8 @@ namespace BannerKings.Behaviours
         {
             private static bool Prefix(Hero armyLeader, Settlement targetSettlement, Army.ArmyTypes selectedArmyType)
             {
+                // When the BK army gate is off, fall through to vanilla unconditionally.
+                if (!BannerKingsSettings.Instance.AIArmyFormation) return true;
                 return new BKArmyManagementModel().CanCreateArmy(armyLeader);
             }
         }

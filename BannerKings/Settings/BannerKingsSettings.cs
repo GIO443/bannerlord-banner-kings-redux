@@ -19,6 +19,10 @@ namespace BannerKings.Settings
         [SettingPropertyGroup("{=FnRzVf4Q}Performance")]
         public bool Feasts { get; set; } = true;
 
+        [SettingProperty("AI Army Formation", RequireRestart = false, HintText = "When enabled, BK lets AI clan leaders form armies on their own (CallBannersGoal). Disable this if AI lords are stuck in a recruit-then-march loop, or if you want vanilla AI to drive army formation entirely. The override on Kingdom.CreateArmy that uses BK's CanCreateArmy gating is also bypassed when this is off. Default: True.")]
+        [SettingPropertyGroup("{=FnRzVf4Q}Performance")]
+        public bool AIArmyFormation { get; set; } = true;
+
         [SettingProperty("{=W54KmZDR}AI Companions", RequireRestart = true, HintText = "{=juP6OXmp}Enable the ability for AI to generate companions. Will add a large amount of heroes to the world and may impact performance. Default: True.")]
         [SettingPropertyGroup("{=FnRzVf4Q}Performance")]
         public bool AICompanions { get; set; } = true;
