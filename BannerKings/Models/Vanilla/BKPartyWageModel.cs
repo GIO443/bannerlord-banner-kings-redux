@@ -169,12 +169,16 @@ namespace BannerKings.Models.Vanilla
                         PerkHelper.AddPerkBonusForTown(DefaultPerks.OneHanded.MilitaryTradition, mobileParty.CurrentSettlement.Town, ref result);
                         PerkHelper.AddPerkBonusForTown(DefaultPerks.TwoHanded.Berserker, mobileParty.CurrentSettlement.Town, ref result);
                         PerkHelper.AddPerkBonusForTown(DefaultPerks.Bow.HunterClan, mobileParty.CurrentSettlement.Town, ref result);
-                        float troopRatio = (float)num4 / (float)mobileParty.MemberRoster.TotalRegulars;
-                        this.CalculatePartialGarrisonWageReduction(troopRatio, mobileParty, DefaultPerks.Polearm.StandardBearer, ref result, true);
-                        float troopRatio2 = (float)num5 / (float)mobileParty.MemberRoster.TotalRegulars;
-                        this.CalculatePartialGarrisonWageReduction(troopRatio2, mobileParty, DefaultPerks.Riding.CavalryTactics, ref result, true);
-                        float troopRatio3 = (float)num6 / (float)mobileParty.MemberRoster.TotalRegulars;
-                        this.CalculatePartialGarrisonWageReduction(troopRatio3, mobileParty, DefaultPerks.Crossbow.PeasantLeader, ref result, true);
+                        int totalRegulars = mobileParty.MemberRoster.TotalRegulars;
+                        if (totalRegulars > 0)
+                        {
+                            float troopRatio = (float)num4 / (float)totalRegulars;
+                            this.CalculatePartialGarrisonWageReduction(troopRatio, mobileParty, DefaultPerks.Polearm.StandardBearer, ref result, true);
+                            float troopRatio2 = (float)num5 / (float)totalRegulars;
+                            this.CalculatePartialGarrisonWageReduction(troopRatio2, mobileParty, DefaultPerks.Riding.CavalryTactics, ref result, true);
+                            float troopRatio3 = (float)num6 / (float)totalRegulars;
+                            this.CalculatePartialGarrisonWageReduction(troopRatio3, mobileParty, DefaultPerks.Crossbow.PeasantLeader, ref result, true);
+                        }
                     }
                     else if (mobileParty.CurrentSettlement.IsCastle)
                     {
@@ -199,31 +203,35 @@ namespace BannerKings.Models.Vanilla
             float value = (mobileParty.LeaderHero != null && mobileParty.LeaderHero.Clan != null && mobileParty.LeaderHero.Clan.Kingdom != null && 
                 !mobileParty.LeaderHero.Clan.IsUnderMercenaryService && 
                 mobileParty.LeaderHero.Clan.Kingdom.ActivePolicies.Contains(DefaultPolicies.MilitaryCoronae)) ? 0.1f : 0f;
-            if (mobileParty.HasPerk(DefaultPerks.Trade.SwordForBarter, true))
+            int rosterRegulars = mobileParty.MemberRoster.TotalRegulars;
+            if (rosterRegulars > 0)
             {
-                float num18 = (float)num12 / (float)mobileParty.MemberRoster.TotalRegulars;
-                if (num18 > 0f)
+                if (mobileParty.HasPerk(DefaultPerks.Trade.SwordForBarter, true))
                 {
-                    float value2 = DefaultPerks.Trade.SwordForBarter.SecondaryBonus * num18;
-                    result.AddFactor(value2, DefaultPerks.Trade.SwordForBarter.Name);
+                    float num18 = (float)num12 / (float)rosterRegulars;
+                    if (num18 > 0f)
+                    {
+                        float value2 = DefaultPerks.Trade.SwordForBarter.SecondaryBonus * num18;
+                        result.AddFactor(value2, DefaultPerks.Trade.SwordForBarter.Name);
+                    }
                 }
-            }
-            if (mobileParty.HasPerk(DefaultPerks.Steward.Contractors, false))
-            {
-                float num19 = (float)num13 / (float)mobileParty.MemberRoster.TotalRegulars;
-                if (num19 > 0f)
+                if (mobileParty.HasPerk(DefaultPerks.Steward.Contractors, false))
                 {
-                    float value3 = DefaultPerks.Steward.Contractors.PrimaryBonus * num19;
-                    result.AddFactor(value3, DefaultPerks.Steward.Contractors.Name);
+                    float num19 = (float)num13 / (float)rosterRegulars;
+                    if (num19 > 0f)
+                    {
+                        float value3 = DefaultPerks.Steward.Contractors.PrimaryBonus * num19;
+                        result.AddFactor(value3, DefaultPerks.Steward.Contractors.Name);
+                    }
                 }
-            }
-            if (mobileParty.HasPerk(DefaultPerks.Trade.MercenaryConnections, true))
-            {
-                float num20 = (float)num13 / (float)mobileParty.MemberRoster.TotalRegulars;
-                if (num20 > 0f)
+                if (mobileParty.HasPerk(DefaultPerks.Trade.MercenaryConnections, true))
                 {
-                    float value4 = DefaultPerks.Trade.MercenaryConnections.SecondaryBonus * num20;
-                    result.AddFactor(value4, DefaultPerks.Trade.MercenaryConnections.Name);
+                    float num20 = (float)num13 / (float)rosterRegulars;
+                    if (num20 > 0f)
+                    {
+                        float value4 = DefaultPerks.Trade.MercenaryConnections.SecondaryBonus * num20;
+                        result.AddFactor(value4, DefaultPerks.Trade.MercenaryConnections.Name);
+                    }
                 }
             }
             result.AddFactor(value, DefaultPolicies.MilitaryCoronae.Name);
@@ -310,10 +318,14 @@ namespace BannerKings.Models.Vanilla
                     }
                 }
 
-                var proportion = MBMath.ClampFloat(totalCulture / mobileParty.MemberRoster.TotalManCount, 0f, 1f);
-                if (proportion > 0f)
+                int totalManCount = mobileParty.MemberRoster.TotalManCount;
+                if (totalManCount > 0)
                 {
-                    result.AddFactor(proportion * -0.1f, GameTexts.FindText("str_culture"));
+                    var proportion = MBMath.ClampFloat(totalCulture / totalManCount, 0f, 1f);
+                    if (proportion > 0f)
+                    {
+                        result.AddFactor(proportion * -0.1f, GameTexts.FindText("str_culture"));
+                    }
                 }
 
                 if (mobileParty.IsGarrison)
@@ -322,7 +334,8 @@ namespace BannerKings.Models.Vanilla
                 }
 
                 var education = BannerKingsConfig.Instance.EducationManager.GetHeroEducation(leader);
-                float mountedProportion = mountedTroops / mobileParty.MemberRoster.Count;
+                int rosterCount = mobileParty.MemberRoster.Count;
+                float mountedProportion = rosterCount > 0 ? mountedTroops / rosterCount : 0f;
                 if (education.HasPerk(BKPerks.Instance.CataphractEquites) && mountedTroops > 0f)
                 {
                     result.AddFactor(mountedProportion * -0.1f, BKPerks.Instance.CataphractEquites.Name);

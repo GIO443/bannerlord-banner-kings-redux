@@ -31,6 +31,16 @@ namespace BannerKings.Behaviours.Feasts
                 CampaignEvents.AfterSettlementEntered.AddNonSerializedListener(this, OnSettlementEntered);
                 CampaignEvents.WarDeclared.AddNonSerializedListener(this, OnWarDeclared);
                 CampaignEvents.OnSettlementOwnerChangedEvent.AddNonSerializedListener(this, OnOwnerChanged);
+                CampaignEvents.HeroKilledEvent.AddNonSerializedListener(this, OnHeroKilled);
+            }
+        }
+
+        private void OnHeroKilled(Hero victim, Hero killer, KillCharacterAction.KillCharacterActionDetail detail, bool showNotification)
+        {
+            if (victim == null) return;
+            if (heroRecords != null && heroRecords.ContainsKey(victim))
+            {
+                heroRecords.Remove(victim);
             }
         }
 

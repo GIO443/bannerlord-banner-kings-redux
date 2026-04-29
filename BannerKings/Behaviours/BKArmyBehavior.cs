@@ -9,6 +9,7 @@ using HarmonyLib;
 using System.Collections.Generic;
 using System.Linq;
 using TaleWorlds.CampaignSystem;
+using TaleWorlds.CampaignSystem.Actions;
 using TaleWorlds.CampaignSystem.Party;
 using TaleWorlds.CampaignSystem.Settlements;
 using TaleWorlds.Core;
@@ -28,6 +29,16 @@ namespace BannerKings.Behaviours
             CampaignEvents.ArmyCreated.AddNonSerializedListener(this, OnArmyCreated);
             CampaignEvents.ArmyDispersed.AddNonSerializedListener(this, OnArmyDispersed);
             CampaignEvents.AiHourlyTickEvent.AddNonSerializedListener(this, AiHourlyTick);
+            CampaignEvents.HeroKilledEvent.AddNonSerializedListener(this, OnHeroKilled);
+        }
+
+        private void OnHeroKilled(Hero victim, Hero killer, KillCharacterAction.KillCharacterActionDetail detail, bool showNotification)
+        {
+            if (victim == null) return;
+            if (heroRecords != null && heroRecords.ContainsKey(victim))
+            {
+                heroRecords.Remove(victim);
+            }
         }
 
         public override void SyncData(IDataStore dataStore)

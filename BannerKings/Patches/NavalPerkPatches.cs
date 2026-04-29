@@ -80,6 +80,11 @@ namespace BannerKings.Patches
             private static MethodBase TargetMethod()
                 => AccessTools.Method(_modelType, "CalculateHitDamage");
 
+            private static PropertyInfo _leaderPartyProp;
+            private static PropertyInfo _mobilePartyProp;
+            private static Type _cachedAttackerSideType;
+            private static Type _cachedLeaderPartyType;
+
             private static void Postfix(object attackerSide, ref ExplainedNumber __result)
             {
                 if (!ModCompat.WarSails || attackerSide == null) return;
@@ -87,10 +92,25 @@ namespace BannerKings.Patches
                 MobileParty raiderParty = null;
                 try
                 {
-                    var leaderPartyProp = attackerSide.GetType().GetProperty("LeaderParty");
-                    var leaderParty = leaderPartyProp?.GetValue(attackerSide);
-                    var mobilePartyProp = leaderParty?.GetType().GetProperty("MobileParty");
-                    raiderParty = mobilePartyProp?.GetValue(leaderParty) as MobileParty;
+                    var attackerSideType = attackerSide.GetType();
+                    if (_leaderPartyProp == null || _cachedAttackerSideType != attackerSideType)
+                    {
+                        _leaderPartyProp = attackerSideType.GetProperty("LeaderParty");
+                        _cachedAttackerSideType = attackerSideType;
+                        _mobilePartyProp = null;
+                        _cachedLeaderPartyType = null;
+                    }
+                    var leaderParty = _leaderPartyProp?.GetValue(attackerSide);
+                    if (leaderParty != null)
+                    {
+                        var leaderPartyType = leaderParty.GetType();
+                        if (_mobilePartyProp == null || _cachedLeaderPartyType != leaderPartyType)
+                        {
+                            _mobilePartyProp = leaderPartyType.GetProperty("MobileParty");
+                            _cachedLeaderPartyType = leaderPartyType;
+                        }
+                        raiderParty = _mobilePartyProp?.GetValue(leaderParty) as MobileParty;
+                    }
                 }
                 catch { return; }
 
@@ -173,15 +193,23 @@ namespace BannerKings.Patches
             private static MethodBase TargetMethod()
                 => AccessTools.Method(_modelType, "ApplyDamageAmplifications");
 
+            private static FieldInfo _attackerField;
+            private static Type _cachedAttackInfoType;
+
             private static void Postfix(object attackInformation, ref float __result)
             {
                 if (!ModCompat.WarSails || attackInformation == null) return;
 
                 try
                 {
-                    var attackerProp = attackInformation.GetType().GetField("AttackerAgentCharacter")
-                                       ?? attackInformation.GetType().GetField("AttackerAgentOriginCharacter");
-                    var attackerCharacter = attackerProp?.GetValue(attackInformation);
+                    var attackInfoType = attackInformation.GetType();
+                    if (_attackerField == null || _cachedAttackInfoType != attackInfoType)
+                    {
+                        _attackerField = attackInfoType.GetField("AttackerAgentCharacter")
+                                         ?? attackInfoType.GetField("AttackerAgentOriginCharacter");
+                        _cachedAttackInfoType = attackInfoType;
+                    }
+                    var attackerCharacter = _attackerField?.GetValue(attackInformation);
                     if (!(attackerCharacter is CharacterObject co) || !co.IsHero) return;
 
                     var hero = co.HeroObject;

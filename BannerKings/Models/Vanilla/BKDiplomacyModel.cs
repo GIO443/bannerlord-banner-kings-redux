@@ -814,6 +814,7 @@ namespace BannerKings.Models.Vanilla
                 }
             }
 
+            if (totalThreat <= 0f) return 0f;
             return threat.CurrentTotalStrength / totalThreat;
         }
 
@@ -939,7 +940,7 @@ namespace BannerKings.Models.Vanilla
                 defenderStrength += ally.CurrentTotalStrength / 2f;
             }
 
-            float strengthFactor = (attackerStrength / defenderStrength) - 1f;
+            float strengthFactor = defenderStrength > 0f ? (attackerStrength / defenderStrength) - 1f : 0f;
             result.Add(MathF.Abs(baseNumber) * MathF.Clamp(strengthFactor * 0.6f, -2f, 0.5f), new TextObject("{=KcLdYKrY}Difference in strength"));
 
             /*if (factionDeclaredWar.Fiefs.Count < factionDeclaresWar.Fiefs.Count / 2f)
@@ -965,7 +966,7 @@ namespace BannerKings.Models.Vanilla
                 }
             }
 
-            float fiefsFactor = (attackerFiefs  / defenderFiefs) - 1f;
+            float fiefsFactor = defenderFiefs > 0f ? (attackerFiefs / defenderFiefs) - 1f : 0f;
             result.Add(MathF.Abs(baseNumber) * MathF.Clamp(fiefsFactor * 0.1f, -2f, 2f), new TextObject("{=MvV0HUdo}Difference in controlled fiefs"));
 
             if (defenderFiefs >= attackerFiefs * 2f)
@@ -978,8 +979,9 @@ namespace BannerKings.Models.Vanilla
             {
                 if (war.StartDate.ElapsedYearsUntilNow < 1f) result.Add(50000f, new TextObject("{=UaofTriA}Recently started war"));
 
-                float score = MathF.Clamp(war.CalculateWarScore(war.Attacker, false).ResultNumber /
-                    war.TotalWarScore.ResultNumber, -1f, 1f) * 2f;
+                float totalWarScore = war.TotalWarScore.ResultNumber;
+                float score = totalWarScore != 0f ? MathF.Clamp(war.CalculateWarScore(war.Attacker, false).ResultNumber /
+                    totalWarScore, -1f, 1f) * 2f : 0f;
                 result.Add(MathF.Abs(baseNumber) * (war.Attacker == factionDeclaresWar ? -score : score));
 
                 float fatigue = BannerKingsConfig.Instance.WarModel.CalculateFatigue(war, factionDeclaresWar).ResultNumber * 4f;

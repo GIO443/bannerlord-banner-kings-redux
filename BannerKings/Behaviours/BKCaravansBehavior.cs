@@ -617,6 +617,14 @@ namespace BannerKings.Behaviours
             {
                 _previouslyChangedCaravanTargetsDueToEnemyOnWay.Remove(mobileParty);
             }
+            if (_caravanLastHomeTownVisitTime.ContainsKey(mobileParty))
+            {
+                _caravanLastHomeTownVisitTime.Remove(mobileParty);
+            }
+            if (_tradeRumorTakenCaravans.ContainsKey(mobileParty))
+            {
+                _tradeRumorTakenCaravans.Remove(mobileParty);
+            }
         }
 
         private void OnMobilePartyCreated(MobileParty mobileParty)

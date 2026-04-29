@@ -224,7 +224,11 @@ namespace BannerKings.Models.Vanilla
             result.LimitMin(0f);
             result.LimitMax(2f);
             var labor = workforce * 0.010f;
-            result.Add(labor / data.LandData.DifficultyFinal, new TextObject("{=8EX6VriS}Workforce"));
+            float difficulty = data.LandData.DifficultyFinal;
+            if (difficulty > 0f)
+            {
+                result.Add(labor / difficulty, new TextObject("{=8EX6VriS}Workforce"));
+            }
 
             return result;
         }

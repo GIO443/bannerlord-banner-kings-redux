@@ -206,6 +206,7 @@ namespace BannerKings.Patches
         internal class ClanFinancesPatches
         {
             private static DefaultClanFinanceModel DefaultClanFinanceModel = new DefaultClanFinanceModel();
+            private static readonly MethodInfo CalculatePartyWageMethod = AccessTools.Method(typeof(DefaultClanFinanceModel), "CalculatePartyWage");
             /*private static MethodInfo AddExpensesFromPartiesAndGarrisons => DefaultClanFinanceModel
                 .GetType()
                 .GetMethod("AddExpensesFromPartiesAndGarrisons", BindingFlags.Instance | BindingFlags.NonPublic);
@@ -342,9 +343,9 @@ namespace BannerKings.Patches
             private static bool PartyExpensesPrefix(Clan clan, ref ExplainedNumber goldChange,
                 bool applyWithdrawals, bool includeDetails)
             {
-                var model = new DefaultClanFinanceModel();
-                var calculatePartyWageFunction = model.GetType()
-                    .GetMethod("CalculatePartyWage", BindingFlags.Instance | BindingFlags.NonPublic);
+                var model = DefaultClanFinanceModel;
+                var calculatePartyWageFunction = CalculatePartyWageMethod;
+                if (calculatePartyWageFunction == null) return true;
 
                 ExplainedNumber explainedNumber = new ExplainedNumber(0f, goldChange.IncludeDescriptions, null);
 
@@ -352,7 +353,7 @@ namespace BannerKings.Patches
                 MobileParty mainParty = (leader != null) ? leader.PartyBelongedTo : null;
                 if (mainParty != null)
                 {
-                    int budget = clan.Gold + (int)goldChange.ResultNumber + (int)goldChange.ResultNumber;
+                    int budget = clan.Gold + (int)goldChange.ResultNumber;
                     object[] array = { mainParty, budget, applyWithdrawals };
                     int expense = (int)calculatePartyWageFunction.Invoke(model, array);
                     explainedNumber.Add(-expense, new TextObject("{=YkZKXsIn}Main party wages"));
@@ -377,7 +378,7 @@ namespace BannerKings.Patches
   
                 foreach (var party in list)
                 {
-                    int budget = clan.Gold + (int)goldChange.ResultNumber + (int)goldChange.ResultNumber;
+                    int budget = clan.Gold + (int)goldChange.ResultNumber;
                     object[] array = { party, budget, applyWithdrawals };
                     int expense = (int)calculatePartyWageFunction.Invoke(model, array);
 

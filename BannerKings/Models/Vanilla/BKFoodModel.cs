@@ -195,9 +195,9 @@ namespace BannerKings.Models.Vanilla
                 float tenants = data.LandData.AvailableTenantsWorkForce;
                 float totalWorkforce = serfs + slaves + tenants;
 
-                float serfProportion = serfs / totalWorkforce;
-                float slaveProportion = slaves / totalWorkforce;
-                float tenantsProportion = tenants / totalWorkforce;
+                float serfProportion = totalWorkforce > 0f ? serfs / totalWorkforce : 0f;
+                float slaveProportion = totalWorkforce > 0f ? slaves / totalWorkforce : 0f;
+                float tenantsProportion = totalWorkforce > 0f ? tenants / totalWorkforce : 0f;
 
                 result.Add((landData.Farmland * serfProportion) * landData.GetAcreClassOutput("farmland", PopType.Serfs),
                     new TextObject("{=8Wuxnwnf}Farmlands ({CLASS})")

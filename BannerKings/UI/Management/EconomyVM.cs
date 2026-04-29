@@ -22,6 +22,8 @@ namespace BannerKings.UI.Management
 {
     public class EconomyVM : BannerKingsViewModel
     {
+        private static Concept TradePowerConcept = null;
+
         private BKCriminalPolicy criminalItem;
         private DecisionElement exportToogle, tariffToogle, slaveTaxToogle, mercantilismToogle;
         private MBBindingList<InformationElement> productionInfo, revenueInfo, satisfactionInfo,
@@ -39,6 +41,10 @@ namespace BannerKings.UI.Management
             revenueInfo = new MBBindingList<InformationElement>();
             satisfactionInfo = new MBBindingList<InformationElement>();
             slaveryInfo = new MBBindingList<InformationElement>();
+            if (TradePowerConcept == null)
+            {
+                TradePowerConcept = Concept.All.FirstOrDefault(x => x.StringId == "str_bk_trade_power");
+            }
             RefreshValues();
         }
 
@@ -172,11 +178,11 @@ namespace BannerKings.UI.Management
                         .ToString()));
 
                 var tradePower = BannerKingsConfig.Instance.EconomyModel.CalculateTradePower(Settlement, true);
-                Concept tradePowerConcept = Concept.All.First(x => x.StringId == "str_bk_trade_power");
+                Concept tradePowerConcept = TradePowerConcept;
                 RevenueInfo.Add(new InformationElement(new TextObject("{=PJmuMrrY}Trade Power:").ToString(),
                     $"{tradePower.ResultNumber:P}",
                     new TextObject("{=ez3NzFgO}{TEXT}\n{EXPLANATIONS}")
-                        .SetTextVariable("TEXT", tradePowerConcept.Description)
+                        .SetTextVariable("TEXT", tradePowerConcept != null ? tradePowerConcept.Description : TextObject.GetEmpty())
                         .SetTextVariable("EXPLANATIONS", tradePower.GetExplanations())
                         .ToString()));
 

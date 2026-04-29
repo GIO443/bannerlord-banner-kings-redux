@@ -242,7 +242,7 @@ namespace BannerKings.Models.Vanilla
 
 
             var suzerain = BannerKingsConfig.Instance.TitleManager.CalculateHeroSuzerain(clan.Leader);
-            if (suzerain == null)
+            if (suzerain == null || suzerain.deJure == null)
             {
                 return;
             }

@@ -384,7 +384,8 @@ namespace BannerKings.Models.Vanilla
             {
                 foreach (var estate in data.EstateData.Estates)
                 {
-                    float proportion = estate.Acreage/ data.LandData.Acreage;
+                    float totalAcreage = data.LandData.Acreage;
+                    float proportion = totalAcreage > 0f ? estate.Acreage / totalAcreage : 0f;
                     float estateResult = MathF.Clamp(settlementResult.ResultNumber * proportion, 0f, settlementResult.ResultNumber * 0.2f);
                     settlementResult.Add(-estateResult, estate.Name);
                     if (!includeDescriptions && estate.Owner != null && estate.Owner.IsNotable)
