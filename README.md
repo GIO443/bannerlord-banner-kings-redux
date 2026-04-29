@@ -2,6 +2,18 @@
 
 > **Module Id:** `BannerKings.Redux` &nbsp;·&nbsp; **Folder:** `Modules/BannerKings.Redux/` &nbsp;·&nbsp; **Version:** see `_Module/SubModule.xml`
 
+## 📥 Download
+
+Grab the latest release zip from the GitHub Releases page:
+
+### **➡️ [github.com/GIO443/bannerlord-banner-kings-redux/releases/latest](https://github.com/GIO443/bannerlord-banner-kings-redux/releases/latest)**
+
+The release zip is the same packaged build the Nexus page used to host —
+extract it into your Bannerlord install (see *Installing* below). The
+Nexus page is currently hidden while attribution/licensing is sorted
+with the original author; GitHub Releases is the authoritative download
+in the meantime.
+
 > **This is an unofficial fork** of [Banner Kings by R-Vaccari](https://github.com/R-Vaccari/bannerlord-banner-kings),
 > updated for Bannerlord v1.3.x with native War Sails (NavalDLC) Nord support. The original author has been
 > inactive for a while; this fork is maintained as a separate mod and will be taken down immediately upon

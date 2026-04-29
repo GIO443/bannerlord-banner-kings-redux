@@ -13,6 +13,20 @@ repository — this file is intentionally written for players.
 
 ---
 
+## 📥 Download
+
+The release zip lives on the GitHub Releases page:
+
+### **➡️ [github.com/GIO443/bannerlord-banner-kings-redux/releases/latest](https://github.com/GIO443/bannerlord-banner-kings-redux/releases/latest)**
+
+That's the authoritative download. The Nexus page is currently hidden
+while attribution and licensing details are sorted with the original
+author — GitHub Releases is where you grab the build in the meantime.
+Extract the zip into your Bannerlord install per the *Installing*
+section below.
+
+---
+
 ## Table of contents
 
 1. [What is Banner Kings — Redux](#1-what-is-banner-kings--redux)
@@ -20,7 +34,7 @@ repository — this file is intentionally written for players.
 3. [What's in the mod (high-level)](#3-whats-in-the-mod-high-level)
 4. [First 30 minutes — what should I do?](#4-first-30-minutes--what-should-i-do)
 5. [Glossary — the words that come up constantly](#5-glossary--the-words-that-come-up-constantly)
-6. [Lifestyles, doctrines, laws, policies](#6-lifestyles-doctrines-laws-policies)
+6. [Lifestyles, laws, policies](#6-lifestyles-laws-policies)
 7. [Player how-to](#7-player-how-to)
 8. [Per-system FAQ](#8-per-system-faq)
 9. [Edge cases & frequent confusions](#9-edge-cases--frequent-confusions)
@@ -41,7 +55,6 @@ vanilla treats settlements as resource nodes and clans as hero bags, BK adds:
 - **Feudal titles** — a hierarchy of Empires → Kingdoms → Duchies → Counties →
   Baronies → Lordships, each with deeds, claimants, succession rules, and
   contracts.
-- **Religions** — multiple faiths with doctrines, clergy, piety, and rites.
 - **Education** — heroes have languages, books, scholarship, and lifestyles
   (skill-line specializations that grant escalating perks).
 - **Estates** — clan-owned, hero-managed land within villages that produces
@@ -65,6 +78,13 @@ native support for the **War Sails (NavalDLC)** Nord faction, including:
 ---
 
 ## 2. Installing
+
+### Where to download
+
+[github.com/GIO443/bannerlord-banner-kings-redux/releases/latest](https://github.com/GIO443/bannerlord-banner-kings-redux/releases/latest)
+— click the most recent release, expand *Assets*, and download the zip.
+GitHub Releases is currently the authoritative source while the Nexus
+page is hidden.
 
 ### Requirements
 
@@ -121,15 +141,6 @@ and a stack of demesne laws (slavery, draft, tenancy, council appointment, army
 type). Vassals are bound per-title rather than per-kingdom: you can hold a
 county under one duke and a barony under another.
 
-### Religion
-
-Heroes belong to a faith. Faiths have doctrines (some active, some passive),
-divinities, and rites. Piety accrues from skill use and observance, and is
-spent on rites and conversion. Settlements have dominant and minority faiths;
-clergy spawn, preach, and shift adherent counts over time. Stances between
-faiths (`Tolerated`, `Untolerated`, `Hostile`) drive marriage rules,
-conversion costs, and casus belli.
-
 ### Education
 
 Each hero has a language pool, a book they're currently reading, and a chosen
@@ -162,8 +173,7 @@ uprising depending on the group.
 ### Shipping & travel
 
 Caravans and parties auto-board ships at known shipping lanes. Sea travel
-takes real time and is faster under specific doctrines (Astrology) or
-seafaring perks (Drakkar Helmsman).
+takes real time and is faster under seafaring perks (Drakkar Helmsman).
 
 **AI lords now use ships.** When an AI lord party (or an entire AI army)
 arrives at a port whose shipping lane connects to its target, the party
@@ -172,6 +182,18 @@ and disembarks at the destination port. Armies travel intact — the
 vanilla `IsCurrentlyAtSea` cascade keeps sub-parties attached to the
 leader. Before this, AI lords would buy ships and never use them; you'd
 see them stuck at the coast.
+
+The auto-disembark only fires for **AI lord parties** Banner Kings put at
+sea — vanilla NavalDLC convoys, caravans, and bandit ships use their own
+naval AI and are left alone. Earlier builds disembarked everything on
+port arrival, which left convoys in land mode while still geometrically
+on water and stranded them on the coast.
+
+Caravan and player sea travel uses Banner Kings' own ticker (a
+behaviour-level hourly check rather than a per-party tick). This means
+caravans that suspend themselves mid-voyage still get re-checked every
+hour and arrive on schedule — earlier builds lost the per-party tick once
+the caravan deactivated, and the caravan would sit on the coast forever.
 
 **Quest-mandated overloaded fleets.** The War Sails Northern Crossing
 quest hands you ~190 troops on a fleet with ~50 crew capacity, which
@@ -183,8 +205,8 @@ not stranded.
 ### Goals
 
 Long-running goals frame the late game: found a culture-specific empire, restore
-a deposed dynasty, complete a faith's foundation rite, reach a population
-benchmark, or build the largest mercantile network.
+a deposed dynasty, reach a population benchmark, or build the largest
+mercantile network.
 
 ### Raiding, slavery, and Nord economy *(War Sails)*
 
@@ -212,13 +234,10 @@ condensed onboarding:
 3. **Visit a tavern in any cultural capital and find the book seller.** Buy
    one book in a language you understand. Books grant slow skill XP that
    accumulates while you carry them.
-4. **Don't ignore your faith.** Talk to a clergyman in a tavern or capital
-   and let your hero be inducted. Piety is a real currency in BK and starts
-   accumulating immediately.
-5. **Skip estates until you have a clan tier 2.** They're expensive and take
+4. **Skip estates until you have a clan tier 2.** They're expensive and take
    time to pay off. Start with a workshop in an active town; the income is
    immediate and reliable.
-6. **Vassalize before founding a kingdom.** A barony under an existing king
+5. **Vassalize before founding a kingdom.** A barony under an existing king
    is a stable platform to grow the clan and learn the contract system. Going
    independent too early is a brutal multifront war.
 
@@ -249,23 +268,13 @@ These are the terms most likely to trip up new players.
   Election / Theocratic. Determines how the title passes on holder death.
 - **Gender law** — Agnatic (male only), Cognatic (eldest regardless of
   gender), Agnatic-Cognatic (male-preferred), Enatic (female only).
-- **Piety** — religious-stat counterpart to influence. Spent on rites,
-  blessings, and conversions; gained from prayer, sacrifices, and observance.
-- **Fervor** — a faith's strength as a campaign-wide pool, driven by adherent
-  count, holy site control, and active doctrines.
-- **Stance** — one religion's attitude toward another: `Tolerated`,
-  `Untolerated`, `Hostile`. Affects relations, conversion costs, and
-  whether war can be declared on faith grounds.
-- **Doctrine** — an unlockable, sometimes mutually exclusive tenet of a faith
-  (e.g., *Astrology* boosts ship speed; *Reavers* awards piety from raids).
 - **Lifestyle** — paired-skill specialization gating perks (Cataphract =
   Riding+Polearm, Outlaw = Roguery+Crossbow, etc.).
 - **Scholarship** — flag set when a hero has any of four research perks
   (ScholarshipMechanic / Accountant / NaturalScientist / Treasurer). Required
   to enter the Scholar lifestyle.
 - **Notable** — a non-noble settlement personality (Rural Notable, Headman,
-  Gang Leader, Preacher, Merchant). Drives recruitment, quests, and
-  prosperity.
+  Gang Leader, Merchant). Drives recruitment, quests, and prosperity.
 - **Gentry** — minor landed family, below clan tier 1. Often a notable's
   promoted relatives. Can be sponsored into a vassal clan.
 - **Knight (BK sense)** — a hero granted knighthood by a clan, becoming a
@@ -287,7 +296,7 @@ These are the terms most likely to trip up new players.
 
 ---
 
-## 6. Lifestyles, doctrines, laws, policies
+## 6. Lifestyles, laws, policies
 
 ### Lifestyles
 
@@ -326,25 +335,6 @@ at least 15 in both to adopt it. Both skills must be exercised — only the
 The lifestyle picker shows each lifestyle's bonuses, perks, and lore in the
 hover tooltip. Bonuses appear at the top so you can see them even on
 lifestyles you don't yet qualify for.
-
-### Doctrines (a sample)
-
-Doctrines are tenets of a faith. Some are passive (constant effects), some are
-active (votable, mutually exclusive). Selected high-impact ones:
-
-| Doctrine | Effect |
-|---|---|
-| Astrology | Sea travel ~25% faster |
-| Tolerant | Reduces hostile-stance penalties; eases conversion |
-| Esotericism | Bonus to scholar lifestyle XP, hidden rites |
-| Reavers | Raid output and morale bonus; piety from raiding |
-| Warlike | Combat XP and morale boosts |
-| Pacifism | Morale penalty in offensive war, peace influence boost |
-| Sacrifice | Human sacrifice rite; piety surge, relation hits |
-| HeathenTax | Surcharge on out-of-faith notables in your settlements |
-| Childbirth | Increased fertility for adherent clans |
-| Pastoralism | Herd animal bonuses in villages |
-| Druidism / Animism | Tribal-only nature worship doctrines |
 
 ### Demesne laws
 
@@ -442,7 +432,7 @@ Two BK paths:
 2. Open the *Goals* tab → select *Found [Culture] Empire* → click *Begin*.
 3. Travel to the foundation site (the goal's UI shows it).
 4. Pay the influence + gold cost shown.
-5. The foundation rite plays. Your clan becomes the founding house of a
+5. The foundation ceremony plays. Your clan becomes the founding house of a
    new kingdom-tier title.
 
 **Usurpation:**
@@ -497,36 +487,6 @@ random loot far from the nearest town.
 4. Open the town menu → *Sell prisoners*. The slave-price calculation
    kicks in automatically; you'll see ~150–270 gold per prisoner
    depending on the market.
-
-### How do religion conversion and rites work?
-
-**Personal conversion:**
-1. Find a clergyman of the target faith — preachers spawn in taverns,
-   bishops sit in capitals.
-2. Talk to them → choose *I would like to be inducted*.
-3. Pay the piety + gold cost shown. The induction dialog explains
-   what's required.
-4. Your faith change applies on the next daily tick.
-
-**Settlement conversion:**
-1. Assign a clergyman of your faith to the settlement (court → council
-   → religious officer slot, or via dialogue with the clergyman in
-   their current location).
-2. The clergyman preaches over time. Adherent counts shift over weeks.
-3. Conversion only progresses if your faith is *Tolerated* by the
-   realm contract OR a demesne law permits it. Hostile-stance
-   conversions are blocked.
-
-**Performing a rite:**
-1. Open the BK character panel → *Religion* tab → *Rites* list.
-2. Each rite shows its prerequisite (battle won, settlement taken,
-   hero married, etc.) and piety cost.
-3. When the prerequisite is met, the *Perform* button activates.
-   Click it — the rite resolves immediately.
-
-**Failure mode:** if the *Perform* button stays grey and the
-prerequisite text says e.g. *"Requires hero married within last
-season"* and you haven't, the rite isn't ready yet.
 
 ### How do I get into a kingdom's council?
 
@@ -591,8 +551,8 @@ ineligible for the bonus.
    active tournament, win, take the prize.
 4. **Mercenary contracts** to a wealthy kingdom (mid game) — talk to
    their ruler about service; payment is daily.
-5. **Raiding** — strongest with the *Reavers* doctrine and a raid-focused
-   lifestyle (Outlaw, Mercenary, Varyag, Jawwal, Kheshig, Drakkar Captain).
+5. **Raiding** — strongest with a raid-focused lifestyle (Outlaw,
+   Mercenary, Varyag, Jawwal, Kheshig, Drakkar Captain).
 6. **Selling prisoners as slaves** — see the dedicated section above.
    Best in Nord and Aserai markets with the right laws.
 7. **Custom mercenary contracts** sold to AI clans (late, complex) —
@@ -607,8 +567,8 @@ Ranked roughly by yield per hour of attention:
 2. **Caravans** (vanilla + BK trade modifiers).
 3. **Tournament prize riding** (early game).
 4. **Mercenary contracts** to a wealthy kingdom (mid).
-5. **Raiding** — strongest with the *Reavers* doctrine and a raid-focused
-   lifestyle (Outlaw, Mercenary, Varyag, Jawwal, Kheshig, Drakkar Captain).
+5. **Raiding** — strongest with a raid-focused lifestyle (Outlaw,
+   Mercenary, Varyag, Jawwal, Kheshig, Drakkar Captain).
 6. **Selling prisoners as slaves** to high-demand markets (Aserai, and
    especially Nord ports under the Nordic Thrall Law). 150 gold base per
    prisoner, with up to ±50% on demand and law multipliers.
@@ -671,28 +631,12 @@ Empire (tier 1) is a multi-kingdom super-realm (Western/Northern/Southern
 Empire in vanilla). Kingdom (tier 2) is the realm tier most factions sit at.
 Empire-tier titles unlock through the Empire foundation goal.
 
-### Religion
-
-**Q: How do I see my hero's faith?**
-Character → BK Religion tab. Shows current faith, piety, last rite, doctrine
-votes, and conversion progress if any.
-
-**Q: Can my whole kingdom share one faith?**
-Yes via the kingdom contract's religion clause + active conversion. Settling
-mixed-faith populations under one ruler causes notable relation hits unless
-the doctrine is *Tolerant* or the local stance is `Tolerated`.
-
-**Q: What happens if I marry across faiths?**
-Allowed if both faiths' marriage rules permit it. Hostile-stance pairings
-are banned. Tolerated-stance pairings carry a piety penalty for both
-spouses on the marriage day.
-
 ### Education
 
 **Q: How do I pick a lifestyle?**
 Character → BK Education tab → Lifestyle dropdown. Locked once chosen until
-that lifestyle is fully completed (5 perk tiers) or a respec rite is
-performed (rare and very expensive).
+that lifestyle is fully completed (5 perk tiers) or a respec is performed
+(rare and very expensive).
 
 **Q: Why is my lifestyle progress so slow?**
 Both linked skills must be exercised — only the *lower* of the two
@@ -736,9 +680,8 @@ No — caravans whose destination is on a known shipping lane auto-board.
 Unboard via the caravan menu in that port.
 
 **Q: Why is my ship taking forever?**
-Travel time is distance / 75 (or distance / 60 with the *Astrology*
-doctrine, faster again under the Drakkar Helmsman perk). Cross-Calradia
-trips take 4–6 days.
+Travel time is distance / 75, faster under the Drakkar Helmsman perk.
+Cross-Calradia trips take 4–6 days.
 
 **Q: Why am I crawling at speed 1 with the War Sails quest fleet?**
 You shouldn't be on Redux. Vanilla NavalDLC penalises overloaded fleets
@@ -813,14 +756,24 @@ the population balance code converts excess slaves to serfs over time.
   gate (any of ScholarshipMechanic, Accountant, NaturalScientist, Treasurer).
   Without it, progress doesn't tick.
 - **"Council Marshal didn't reduce wages"** — the reduction is
-  multiplicative; other modifiers (custom troop, doctrine, mercenary status)
-  can dominate. Check the wage tooltip breakdown in the party UI.
+  multiplicative; other modifiers (custom troop, mercenary status) can
+  dominate. Check the wage tooltip breakdown in the party UI.
 - **"Estate showing zero income"** — daily ticks accumulate but income posts
   weekly. Or the estate has no tenants — check the estate panel.
-- **"Religion fervor dropping every day"** — fervor decays without active
-  rites and adherent growth. Run the holy-day rite or take an active doctrine.
 - **"Can't change demesne law"** — locked behind a contract-change cooldown
   (≈ 1 in-game year) and minimum loyalty / authority gates.
+- **"Skills level too fast in Banner Kings"** — older builds shipped
+  with the *Alternative Leveling* MCM toggle on by default, and its XP
+  curve only added ~20 XP per level past level 1, so any small XP gain
+  rocketed you through 10+ levels. The toggle now defaults **off** (vanilla
+  XP curve), so a fresh start with 1 focus point in Leadership behaves
+  the same as vanilla. Existing saves: open MCM → BannerKings →
+  Balancing → uncheck *Alternative Leveling*.
+- **"Language learning finishes instantly"** — symptom of the same
+  alternate-leveling explosion (Scholarship XP racing up boosted the
+  language-rate skill effect off the rails) plus an unsafe rate path.
+  Per-tick fluency gain is now hard-capped at 5%, so even with the worst
+  rate inputs a language can't finish in fewer than ~20 in-game days.
 - **"My new game crashes during loading"** — almost always a non-BK mod's
   Harmony patch failing (e.g., GovernorsHandleIssues against newer
   Bannerlord builds). Install **Better Exception Window** if you haven't
@@ -898,9 +851,8 @@ Bannerlord Tweaks / cosmetic mods / etc.
   Redux build runs a migration where defined; otherwise old fields keep
   their values and new fields lazy-init to safe defaults.
 - **Removing BK from an active save is not safe.** References to BK objects
-  (titles, estates, custom troops, religion data) become orphaned and the
-  save will corrupt. Once you start a save with BK, keep BK installed for
-  the life of that save.
+  (titles, estates, custom troops) become orphaned and the save will corrupt.
+  Once you start a save with BK, keep BK installed for the life of that save.
 - **Updating BK on an active save is generally safe within a minor version**
   (e.g., v1.5.0 → v1.5.1). Major-version updates (e.g., upstream BK →
   Redux, or a future v2.x) may require a fresh save.
@@ -962,8 +914,8 @@ repo:
 
 **https://github.com/GIO443/bannerlord-banner-kings-redux/issues**
 
-Issues with the original Banner Kings systems (titles, religions, estates,
-council, etc. — anything also present in the original release) are upstream
+Issues with the original Banner Kings systems (titles, estates, council,
+etc. — anything also present in the original release) are upstream
 BK problems. They'll get fixed in Redux as we encounter them, but the
 underlying design is R-Vaccari's.
 
@@ -973,8 +925,8 @@ underlying design is R-Vaccari's.
 
 **Banner Kings is the work of [R-Vaccari](https://github.com/R-Vaccari) and
 the original Banner Kings contributors.** Every system this wiki describes —
-titles, councils, courts, religions, languages, populations, estates,
-education, succession, the economy rework, the framework underneath — was
+titles, councils, courts, languages, populations, estates, education,
+succession, the economy rework, the framework underneath — was
 designed and built by them over years of effort. The craft and the vision
 are entirely theirs.
 
