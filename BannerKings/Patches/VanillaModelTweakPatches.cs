@@ -566,12 +566,42 @@ namespace BannerKings.Patches
         [HarmonyPatch(typeof(DefaultPartySizeLimitModel))]
         internal static class BKPartyLimitTweakPatches
         {
+            // PartyBase caches the latest computed party-size limit in two private fields
+            // and returns the cached int from the property getter that the HUD troop-bar
+            // reads. Vanilla's getter calls the model and writes the cache itself, so
+            // *fresh* lookups should already see our postfix value. But if the cache was
+            // populated before our patches were applied (or via a code path that doesn't
+            // round-trip through the patched method) the bar shows the pre-postfix
+            // value while the tooltip shows the post-postfix value (177 vs 57 reported
+            // in v1.5.5.0 testing). Forcing the cache back to our final result on every
+            // postfix run keeps the bar honest.
+            private static readonly System.Reflection.FieldInfo _cachedSizeField =
+                AccessTools.Field(typeof(TaleWorlds.CampaignSystem.Party.PartyBase), "_cachedPartyMemberSizeLimit");
+            private static readonly System.Reflection.FieldInfo _cachedVersionField =
+                AccessTools.Field(typeof(TaleWorlds.CampaignSystem.Party.PartyBase), "_partyMemberSizeLastCheckVersion");
+
             private static void AddSuppliesLine(ref ExplainedNumber result, float amount,
                 string surplusKey, string deficitKey)
             {
                 if (amount == 0f) return;
                 string key = amount > 0f ? surplusKey : deficitKey;
                 result.Add(amount, new TextObject(key));
+            }
+
+            private static void SyncCachedSize(TaleWorlds.CampaignSystem.Party.PartyBase party, int value)
+            {
+                if (party == null) return;
+                if (_cachedSizeField == null || _cachedVersionField == null) return;
+                try
+                {
+                    _cachedSizeField.SetValue(party, value);
+                    if (party.MemberRoster != null)
+                        _cachedVersionField.SetValue(party, party.MemberRoster.VersionNo);
+                }
+                catch
+                {
+                    // Field layout could shift in a future TaleWorlds patch; never crash on cache sync.
+                }
             }
 
 
@@ -640,6 +670,10 @@ namespace BannerKings.Patches
 
                 if (party.MobileParty.PartyComponent is PopulationPartyComponent)
                     __result.Add(50f);
+
+                // Keep the HUD's cached PartySizeLimit field in sync with the postfix
+                // result so the troop bar and the tooltip show the same number.
+                SyncCachedSize(party, (int)__result.ResultNumber);
             }
         }
 
