@@ -981,18 +981,30 @@ namespace BannerKings.Patches
             [HarmonyPatch("SendVillagerPartyToTradeBoundTown", MethodType.Normal)]
             private static bool SendVillagerPartyToTradeBoundTown(MobileParty villagerParty)
             {
+                // Defensive: any null in the home/village/bound chain should fall
+                // through to vanilla (which has its own handling) rather than
+                // setting nothing and stranding the villager outside the gate.
+                if (villagerParty == null || villagerParty.HomeSettlement == null ||
+                    villagerParty.HomeSettlement.Village == null) return true;
+
                 Settlement bound = villagerParty.HomeSettlement.Village.Bound;
-                if (!bound.IsUnderSiege) villagerParty.SetMoveGoToSettlement(bound, MobileParty.NavigationType.All, false);
-                else
+                if (bound != null && !bound.IsUnderSiege)
                 {
-                    Settlement tradeBound = villagerParty.HomeSettlement.Village.TradeBound;
-                    if (tradeBound != null)
-                    {
-                        if (!tradeBound.IsUnderSiege) villagerParty.SetMoveGoToSettlement(tradeBound, MobileParty.NavigationType.All, false);
-                    }
+                    villagerParty.SetMoveGoToSettlement(bound, MobileParty.NavigationType.All, false);
+                    return false;
                 }
 
-                return false;
+                Settlement tradeBound = villagerParty.HomeSettlement.Village.TradeBound;
+                if (tradeBound != null && !tradeBound.IsUnderSiege)
+                {
+                    villagerParty.SetMoveGoToSettlement(tradeBound, MobileParty.NavigationType.All, false);
+                    return false;
+                }
+
+                // Both options unavailable. Fall through to vanilla so the villager
+                // gets *some* movement order — better to walk home or wander than to
+                // freeze outside a besieged city with no target at all.
+                return true;
             }
         }
 

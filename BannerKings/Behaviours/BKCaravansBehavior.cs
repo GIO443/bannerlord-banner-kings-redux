@@ -512,14 +512,28 @@ namespace BannerKings.Behaviours
                         {
                             _previouslyChangedCaravanTargetsDueToEnemyOnWay.Add(caravanParty, new List<Settlement>());
                         }
-                        if (caravanParty.TargetSettlement != null)
-                        {
-                            _previouslyChangedCaravanTargetsDueToEnemyOnWay[caravanParty].Add(caravanParty.TargetSettlement);
-                        }
+                        // Find the replacement BEFORE blacklisting the current target.
+                        // If we blacklist first and ThinkNextDestination returns null,
+                        // the caravan loses its current target with no replacement —
+                        // and on every subsequent tick we'd add another town to the
+                        // blacklist until all towns are exhausted, deadlocking the
+                        // caravan with no valid destination forever.
                         Town town2 = ThinkNextDestination(caravanParty);
                         if (town2 != null)
                         {
+                            if (caravanParty.TargetSettlement != null)
+                            {
+                                _previouslyChangedCaravanTargetsDueToEnemyOnWay[caravanParty].Add(caravanParty.TargetSettlement);
+                            }
                             caravanParty.SetMoveGoToSettlement(town2.Settlement, MobileParty.NavigationType.All, false);
+                        }
+                        else if (_previouslyChangedCaravanTargetsDueToEnemyOnWay[caravanParty].Count > 0)
+                        {
+                            // No reachable destination among non-blacklisted towns.
+                            // Clear the blacklist so next tick can pick anything —
+                            // better to revisit a previously-tried town than to
+                            // freeze the caravan in place.
+                            _previouslyChangedCaravanTargetsDueToEnemyOnWay[caravanParty].Clear();
                         }
                     }
                     Town destinationForMobileParty2 = GetDestinationForMobileParty(caravanParty);
@@ -645,12 +659,26 @@ namespace BannerKings.Behaviours
         {
             float num = 0f;
             Town result = null;
-            float caravanFullness = caravanParty.TotalWeightCarried / (float)caravanParty.InventoryCapacity;
+            float caravanFullness = caravanParty.InventoryCapacity > 0
+                ? caravanParty.TotalWeightCarried / (float)caravanParty.InventoryCapacity
+                : 0f;
             CampaignTime lastHomeVisitTimeOfCaravan;
             _caravanLastHomeTownVisitTime.TryGetValue(caravanParty, out lastHomeVisitTimeOfCaravan);
+            // Self-heal the blacklist dict if this caravan was never registered
+            // (e.g. created before BK was installed, or via a path that bypasses
+            // OnMobilePartyCreated). Without this, the indexer below threw
+            // KeyNotFoundException, the hourly tick failed, and since vanilla
+            // CaravansCampaignBehavior is removed there was no fallback —
+            // caravan stayed wherever it was, sometimes outside a city gate.
+            List<Settlement> blacklist;
+            if (!_previouslyChangedCaravanTargetsDueToEnemyOnWay.TryGetValue(caravanParty, out blacklist))
+            {
+                blacklist = new List<Settlement>();
+                _previouslyChangedCaravanTargetsDueToEnemyOnWay.Add(caravanParty, blacklist);
+            }
             foreach (Town town in Town.AllFiefs)
             {
-                if (town.Owner.Settlement != caravanParty.CurrentSettlement && !town.IsUnderSiege && !town.MapFaction.IsAtWarWith(caravanParty.MapFaction) && (!town.Settlement.Parties.Contains(MobileParty.MainParty) || !MobileParty.MainParty.MapFaction.IsAtWarWith(caravanParty.MapFaction)) && !_previouslyChangedCaravanTargetsDueToEnemyOnWay[caravanParty].Contains(town.Settlement))
+                if (town.Owner.Settlement != caravanParty.CurrentSettlement && !town.IsUnderSiege && !town.MapFaction.IsAtWarWith(caravanParty.MapFaction) && (!town.Settlement.Parties.Contains(MobileParty.MainParty) || !MobileParty.MainParty.MapFaction.IsAtWarWith(caravanParty.MapFaction)) && !blacklist.Contains(town.Settlement))
                 {
                     float tradeScoreForTown = GetTradeScoreForTown(caravanParty, town, lastHomeVisitTimeOfCaravan, caravanFullness, distanceCut);
                     var data = town.Settlement.PopulationData();
