@@ -28,19 +28,7 @@ namespace BannerKings.Models.Vanilla
             (recruiter.MapFaction.IsKingdomFaction && recruiter.MapFaction.Leader == recruiter)
             || (recruiter.Clan.IsUnderMercenaryService && partyLeader != null && partyLeader.Clan == recruiter.Clan);
 
-        public override bool CheckPartyEligibility(MobileParty party, out TextObject explanation)
-        {
-            bool result = base.CheckPartyEligibility(party, out explanation);
-            if (party.ActualClan != null)
-            {
-                if (party.ActualClan.IsUnderMercenaryService)
-                    result = CanHeroRecruitMercs(Hero.MainHero, party.LeaderHero);
-                else if (Clan.PlayerClan.IsUnderMercenaryService)
-                    result = false;
-            }  
-
-            return result;
-        }
+        // CheckPartyEligibility moved to a Harmony Postfix in VanillaModelTweakPatches.
 
         public override bool CanCreateArmy(Hero armyLeader)
         {
@@ -116,88 +104,8 @@ namespace BannerKings.Models.Vanilla
             return results;
         }
 
-        public override ExplainedNumber CalculateDailyCohesionChange(Army army, bool includeDescriptions = false)
-        {
-            ExplainedNumber result =  base.CalculateDailyCohesionChange(army, includeDescriptions);
-            result.LimitMax(-0.1f);
-            
-            if (army.LeaderParty != null && army.LeaderParty.LeaderHero != null)
-            {
-                EducationData education = BannerKingsConfig.Instance.EducationManager.GetHeroEducation(army.LeaderParty.LeaderHero);
-                if (education.HasPerk(BKPerks.Instance.CommanderInspirer))
-                {
-                    result.Add(result.ResultNumber * -0.12f, BKPerks.Instance.CommanderInspirer.Name);
-                }
-            }
-
-            if (army.Kingdom != null)
-            {
-                FeudalTitle kingdomTitle = BannerKingsConfig.Instance.TitleManager.GetSovereignTitle(army.Kingdom);
-                if (kingdomTitle != null)
-                {
-                    if (kingdomTitle.Contract.IsLawEnacted(DefaultDemesneLaws.Instance.ArmyHorde))
-                    {
-                        result.Add(-0.5f, DefaultDemesneLaws.Instance.ArmyHorde.Name);
-                    }
-                    else if (kingdomTitle.Contract.IsLawEnacted(DefaultDemesneLaws.Instance.ArmyLegion))
-                    {
-                        result.Add(0.5f, DefaultDemesneLaws.Instance.ArmyLegion.Name);
-                    }
-                }
-            }
-
-            result.Add(result.ResultNumber * -BannerKingsSettings.Instance.CohesionBoost, 
-                new TaleWorlds.Localization.TextObject("{=hpWaDjNM}Army Cohesion Boost"));
-
-            Utils.Helpers.ApplyTraitEffect(army.LeaderParty.LeaderHero, DefaultTraitEffects.Instance.CalculatingCohesion, ref result);
-            return result;
-        }
-
-        public override float DailyBeingAtArmyInfluenceAward(MobileParty armyMemberParty)
-        {
-            var result = base.DailyBeingAtArmyInfluenceAward(armyMemberParty);
-            if (armyMemberParty.MapFaction.IsKingdomFaction)
-            {
-                Kingdom kingdom = (armyMemberParty.MapFaction as Kingdom);
-                if (kingdom.ActivePolicies.Contains(BKPolicies.Instance.LimitedArmyPrivilege))
-                {
-                    result *= 1.5f;
-                }
-
-                FeudalTitle kingdomTitle = BannerKingsConfig.Instance.TitleManager.GetSovereignTitle(kingdom);
-                if (kingdomTitle != null)
-                {
-                    if (kingdomTitle.Contract.IsLawEnacted(DefaultDemesneLaws.Instance.ArmyLegion))
-                    {
-                        result *= 0.7f;
-                    }
-                }
-            } 
-
-            if (armyMemberParty.LeaderHero != null)
-            {
-                var education = BannerKingsConfig.Instance.EducationManager.GetHeroEducation(armyMemberParty.LeaderHero);
-                if (education.HasPerk(BKPerks.Instance.MercenaryFamousSellswords))
-                {
-                    result *= 1.3f;
-                }
-
-                if(education.HasPerk(BKPerks.Instance.KheshigHonorGuard))
-                {
-                    result *= 1.3f;
-                }
-
-                Clan clan = armyMemberParty.LeaderHero.Clan;
-                if (clan.IsUnderMercenaryService && 
-                    armyMemberParty.Army.LeaderParty.ActualClan != null &&
-                    armyMemberParty.Army.LeaderParty.ActualClan.IsUnderMercenaryService)
-                {
-                    result *= 0.5f;
-                }
-            }
-
-            return result;
-        }
+        // CalculateDailyCohesionChange and DailyBeingAtArmyInfluenceAward moved to
+        // Harmony Postfixes in VanillaModelTweakPatches.
 
         public override int CalculatePartyInfluenceCost(MobileParty armyLeaderParty, MobileParty party)
         {

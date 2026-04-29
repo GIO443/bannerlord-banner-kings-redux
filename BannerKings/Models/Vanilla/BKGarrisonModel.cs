@@ -15,27 +15,7 @@ namespace BannerKings.Models.Vanilla
 {
     public class BKGarrisonModel : DefaultSettlementGarrisonModel
     {
-        public override ExplainedNumber CalculateBaseGarrisonChange(Settlement settlement, bool includeDescriptions = false)
-        {
-            var baseResult = base.CalculateBaseGarrisonChange(settlement, includeDescriptions);
-            if (BannerKingsConfig.Instance.PopulationManager != null &&
-                BannerKingsConfig.Instance.PopulationManager.IsSettlementPopulated(settlement))
-            {
-                var garrison =
-                    ((BKGarrisonPolicy) BannerKingsConfig.Instance.PolicyManager.GetPolicy(settlement, "garrison")).Policy;
-                switch (garrison)
-                {
-                    case GarrisonPolicy.Dischargement:
-                        baseResult.Add(-1f, new TextObject("{=DEhtngoL}Garrison policy"));
-                        break;
-                    case GarrisonPolicy.Enlistment:
-                        baseResult.Add(1f, new TextObject("{=DEhtngoL}Garrison policy"));
-                        break;
-                }
-            }
-
-            return baseResult;
-        }
+        // CalculateBaseGarrisonChange moved to a Harmony Postfix in VanillaModelTweakPatches.
 
         public override int FindNumberOfTroopsToLeaveToGarrison(MobileParty mobileParty, Settlement settlement)
         {

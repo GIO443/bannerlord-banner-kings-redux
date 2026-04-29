@@ -566,6 +566,15 @@ namespace BannerKings.Patches
         [HarmonyPatch(typeof(DefaultPartySizeLimitModel))]
         internal static class BKPartyLimitTweakPatches
         {
+            private static void AddSuppliesLine(ref ExplainedNumber result, float amount,
+                string surplusKey, string deficitKey)
+            {
+                if (amount == 0f) return;
+                string key = amount > 0f ? surplusKey : deficitKey;
+                result.Add(amount, new TextObject(key));
+            }
+
+
             [HarmonyPostfix]
             [HarmonyPatch(nameof(DefaultPartySizeLimitModel.GetPartyMemberSizeLimit))]
             private static void GetPartyMemberSizeLimitPostfix(PartyBase party, bool includeDescriptions, ref ExplainedNumber __result)
@@ -611,10 +620,13 @@ namespace BannerKings.Patches
                         .GetCampaignBehavior<BKPartyNeedsBehavior>()?.GetPartySupplies(party.MobileParty);
                     if (supplies != null && party.MobileParty.MemberRoster.TotalManCount > supplies.MinimumSoldiersThreshold)
                     {
-                        __result.Add(-supplies.WeaponsNeed, new TextObject("{=7Y1M7b0R}Lacking weapon supplies"));
-                        __result.Add(-supplies.ArrowsNeed, new TextObject("{=2Luts26h}Lacking ammunition supplies"));
-                        __result.Add(-supplies.HorsesNeed, new TextObject("{=Ps0ugfFQ}Lacking mount supplies"));
-                        __result.Add(-supplies.ShieldsNeed, new TextObject("{=ut6PVJ40}Lacking shield supplies"));
+                        // Need fields go negative on surplus, positive on deficit. Flip sign so a
+                        // surplus is a positive party-size buff, and label by the sign of the result so
+                        // the tooltip reads "Surplus weapon supplies +N" rather than "Lacking ... +N".
+                        AddSuppliesLine(ref __result, -supplies.WeaponsNeed, "{=!}Surplus weapon supplies", "{=7Y1M7b0R}Lacking weapon supplies");
+                        AddSuppliesLine(ref __result, -supplies.ArrowsNeed, "{=!}Surplus ammunition supplies", "{=2Luts26h}Lacking ammunition supplies");
+                        AddSuppliesLine(ref __result, -supplies.HorsesNeed, "{=!}Surplus mount supplies", "{=Ps0ugfFQ}Lacking mount supplies");
+                        AddSuppliesLine(ref __result, -supplies.ShieldsNeed, "{=!}Surplus shield supplies", "{=ut6PVJ40}Lacking shield supplies");
                     }
 
                     var title = BannerKingsConfig.Instance.TitleManager?.GetHighestTitle(leader);
@@ -1108,6 +1120,318 @@ namespace BannerKings.Patches
                 if (data.HasPerk(BKPerks.Instance.SiegePlanner))
                     __result *= 1.25f;
             }
+        }
+
+        // -----------------------------------------------------------------------------
+        // MIXED-file peel-offs (v1.5.5.0). The BK class still exists for its REPLACE
+        // methods; only the TWEAK methods are pulled into postfixes here.
+        // -----------------------------------------------------------------------------
+
+        // --- BKArmyManagementModel (kept for CanCreateArmy + helpers) --------------------
+        [HarmonyPatch(typeof(DefaultArmyManagementCalculationModel))]
+        internal static class BKArmyManagementTweakPatches
+        {
+            // CanHeroRecruitMercs is a one-liner on BKArmyManagementModel — inlined here so
+            // the postfix doesn't need to round-trip through the registered model instance.
+            private static bool CanHeroRecruitMercs(Hero recruiter, Hero partyLeader) =>
+                (recruiter.MapFaction.IsKingdomFaction && recruiter.MapFaction.Leader == recruiter)
+                || (recruiter.Clan.IsUnderMercenaryService && partyLeader != null && partyLeader.Clan == recruiter.Clan);
+
+            [HarmonyPostfix]
+            [HarmonyPatch(nameof(DefaultArmyManagementCalculationModel.CheckPartyEligibility))]
+            private static void CheckPartyEligibilityPostfix(MobileParty party, ref TextObject explanation, ref bool __result)
+            {
+                if (party.ActualClan == null) return;
+                if (party.ActualClan.IsUnderMercenaryService)
+                    __result = CanHeroRecruitMercs(Hero.MainHero, party.LeaderHero);
+                else if (Clan.PlayerClan.IsUnderMercenaryService)
+                    __result = false;
+            }
+
+            [HarmonyPostfix]
+            [HarmonyPatch(nameof(DefaultArmyManagementCalculationModel.CalculateDailyCohesionChange))]
+            private static void CalculateDailyCohesionChangePostfix(Army army, bool includeDescriptions, ref ExplainedNumber __result)
+            {
+                __result.LimitMax(-0.1f);
+
+                if (army.LeaderParty != null && army.LeaderParty.LeaderHero != null)
+                {
+                    var education = BannerKingsConfig.Instance.EducationManager.GetHeroEducation(army.LeaderParty.LeaderHero);
+                    if (education.HasPerk(BKPerks.Instance.CommanderInspirer))
+                        __result.Add(__result.ResultNumber * -0.12f, BKPerks.Instance.CommanderInspirer.Name);
+                }
+
+                if (army.Kingdom != null)
+                {
+                    var kingdomTitle = BannerKingsConfig.Instance.TitleManager.GetSovereignTitle(army.Kingdom);
+                    if (kingdomTitle != null)
+                    {
+                        if (kingdomTitle.Contract.IsLawEnacted(BannerKings.Managers.Titles.Laws.DefaultDemesneLaws.Instance.ArmyHorde))
+                            __result.Add(-0.5f, BannerKings.Managers.Titles.Laws.DefaultDemesneLaws.Instance.ArmyHorde.Name);
+                        else if (kingdomTitle.Contract.IsLawEnacted(BannerKings.Managers.Titles.Laws.DefaultDemesneLaws.Instance.ArmyLegion))
+                            __result.Add(0.5f, BannerKings.Managers.Titles.Laws.DefaultDemesneLaws.Instance.ArmyLegion.Name);
+                    }
+                }
+
+                __result.Add(__result.ResultNumber * -BannerKingsSettings.Instance.CohesionBoost,
+                    new TextObject("{=hpWaDjNM}Army Cohesion Boost"));
+
+                if (army.LeaderParty?.LeaderHero != null)
+                    Utils.Helpers.ApplyTraitEffect(army.LeaderParty.LeaderHero,
+                        DefaultTraitEffects.Instance.CalculatingCohesion, ref __result);
+            }
+
+            [HarmonyPostfix]
+            [HarmonyPatch(nameof(DefaultArmyManagementCalculationModel.DailyBeingAtArmyInfluenceAward))]
+            private static void DailyBeingAtArmyInfluenceAwardPostfix(MobileParty armyMemberParty, ref float __result)
+            {
+                if (armyMemberParty.MapFaction.IsKingdomFaction)
+                {
+                    var kingdom = armyMemberParty.MapFaction as Kingdom;
+                    if (kingdom.ActivePolicies.Contains(BannerKings.Managers.Kingdoms.Policies.BKPolicies.Instance.LimitedArmyPrivilege))
+                        __result *= 1.5f;
+
+                    var kingdomTitle = BannerKingsConfig.Instance.TitleManager.GetSovereignTitle(kingdom);
+                    if (kingdomTitle != null &&
+                        kingdomTitle.Contract.IsLawEnacted(BannerKings.Managers.Titles.Laws.DefaultDemesneLaws.Instance.ArmyLegion))
+                        __result *= 0.7f;
+                }
+
+                if (armyMemberParty.LeaderHero != null)
+                {
+                    var education = BannerKingsConfig.Instance.EducationManager.GetHeroEducation(armyMemberParty.LeaderHero);
+                    if (education.HasPerk(BKPerks.Instance.MercenaryFamousSellswords)) __result *= 1.3f;
+                    if (education.HasPerk(BKPerks.Instance.KheshigHonorGuard)) __result *= 1.3f;
+
+                    var clan = armyMemberParty.LeaderHero.Clan;
+                    if (clan.IsUnderMercenaryService &&
+                        armyMemberParty.Army?.LeaderParty?.ActualClan != null &&
+                        armyMemberParty.Army.LeaderParty.ActualClan.IsUnderMercenaryService)
+                        __result *= 0.5f;
+                }
+            }
+        }
+
+        // --- BKGarrisonModel (kept for FindNumberOfTroopsToLeaveToGarrison) --------------
+        [HarmonyPatch(typeof(DefaultSettlementGarrisonModel))]
+        internal static class BKGarrisonTweakPatches
+        {
+            [HarmonyPostfix]
+            [HarmonyPatch(nameof(DefaultSettlementGarrisonModel.CalculateBaseGarrisonChange))]
+            private static void CalculateBaseGarrisonChangePostfix(Settlement settlement, bool includeDescriptions, ref ExplainedNumber __result)
+            {
+                if (BannerKingsConfig.Instance.PopulationManager == null ||
+                    !BannerKingsConfig.Instance.PopulationManager.IsSettlementPopulated(settlement)) return;
+                var garrison = ((BKGarrisonPolicy)BannerKingsConfig.Instance.PolicyManager.GetPolicy(settlement, "garrison")).Policy;
+                switch (garrison)
+                {
+                    case GarrisonPolicy.Dischargement:
+                        __result.Add(-1f, new TextObject("{=DEhtngoL}Garrison policy"));
+                        break;
+                    case GarrisonPolicy.Enlistment:
+                        __result.Add(1f, new TextObject("{=DEhtngoL}Garrison policy"));
+                        break;
+                }
+            }
+        }
+
+        // --- BKKingdomDecisionModel (kept for custom decision methods) -------------------
+        [HarmonyPatch(typeof(DefaultKingdomDecisionPermissionModel))]
+        internal static class BKKingdomDecisionTweakPatches
+        {
+            [HarmonyPostfix]
+            [HarmonyPatch(nameof(DefaultKingdomDecisionPermissionModel.IsKingSelectionDecisionAllowed))]
+            private static void IsKingSelectionDecisionAllowedPostfix(Kingdom kingdom, ref bool __result)
+            {
+                if (BannerKingsConfig.Instance.TitleManager == null) return;
+                var title = BannerKingsConfig.Instance.TitleManager.GetSovereignTitle(kingdom);
+                if (title == null) return;
+                __result = title.Contract.Succession.ElectedSuccession;
+            }
+        }
+
+        // --- BKLearningModel (kept for AlternateLeveling XP curve + helpers) -------------
+        [HarmonyPatch(typeof(DefaultCharacterDevelopmentModel))]
+        internal static class BKLearningTweakPatches
+        {
+            [HarmonyPostfix]
+            [HarmonyPatch(nameof(DefaultCharacterDevelopmentModel.CalculateLearningRate), new[] {
+                typeof(IReadOnlyPropertyOwner<CharacterAttribute>), typeof(int), typeof(int),
+                typeof(SkillObject), typeof(bool)
+            })]
+            private static void CalculateLearningRatePostfix(ref ExplainedNumber __result)
+            {
+                __result.LimitMin(0.05f);
+            }
+        }
+
+        // --- BKProsperityModel (kept for CalculateProsperityChange) ----------------------
+        [HarmonyPatch(typeof(DefaultSettlementProsperityModel))]
+        internal static class BKProsperityTweakPatches
+        {
+            [HarmonyPostfix]
+            [HarmonyPatch(nameof(DefaultSettlementProsperityModel.CalculateHearthChange))]
+            private static void CalculateHearthChangePostfix(Village village, bool includeDescriptions, ref ExplainedNumber __result)
+            {
+                var owner = village.GetActualOwner();
+                if (owner != null)
+                {
+                    var education = BannerKingsConfig.Instance.EducationManager.GetHeroEducation(owner);
+                    if (education.HasPerk(BKPerks.Instance.CivilCultivator))
+                        __result.Add(1f, BKPerks.Instance.CivilCultivator.Name);
+                    if (education.HasPerk(BKPerks.Instance.RitterPettySuzerain))
+                        __result.Add(0.1f, BKPerks.Instance.RitterPettySuzerain.Name);
+                }
+
+                var data = BannerKingsConfig.Instance.PopulationManager?.GetPopData(village.Settlement);
+                if (data?.VillageData != null)
+                {
+                    var marketplace = data.VillageData.GetBuildingLevel(DefaultVillageBuildings.Instance.Marketplace);
+                    if (marketplace > 0)
+                        __result.Add(0.075f * marketplace, DefaultVillageBuildings.Instance.Marketplace.Name);
+                }
+
+                var tax = (BannerKings.Managers.Policies.BKTaxPolicy)BannerKingsConfig.Instance.PolicyManager.GetPolicy(village.Settlement, "tax");
+                if (tax.Policy != BannerKings.Managers.Policies.BKTaxPolicy.TaxType.Standard)
+                {
+                    if (tax.Policy == BannerKings.Managers.Policies.BKTaxPolicy.TaxType.High)
+                        __result.AddFactor(-0.15f, new TextObject("{=EhHXS8PN}High tax policy"));
+                    else if (tax.Policy == BannerKings.Managers.Policies.BKTaxPolicy.TaxType.Low)
+                        __result.AddFactor(0.1f, new TextObject("{=j6AoAS6n}Low tax policy"));
+                    else
+                        __result.AddFactor(0.2f, new TextObject("{=HMao8su6}Tax exemption policy"));
+                }
+
+                if (village.Bound != null && village.Bound.IsCastle && owner != null)
+                {
+                    BannerKingsConfig.Instance.CourtManager.ApplyCouncilEffect(ref __result, owner,
+                        DefaultCouncilPositions.Instance.Castellan,
+                        DefaultCouncilTasks.Instance.OverseeBaronies, 0.15f, false);
+                }
+
+                // Inlined from BKProsperityModel.AddDemesneLawEffect (private helper that
+                // also runs from the REPLACE CalculateProsperityChange override; duplicated
+                // here so the hearth-change tweak gets the same demesne-law adjustments
+                // the original BK code applied).
+                if (data?.TitleData?.Title != null)
+                {
+                    var title = data.TitleData.Title;
+                    if (title.Contract != null)
+                    {
+                        if (title.Contract.IsLawEnacted(BannerKings.Managers.Titles.Laws.DefaultDemesneLaws.Instance.SerfsLaxDuties))
+                        {
+                            float proportion = data.GetCurrentTypeFraction(BannerKings.Managers.PopulationManager.PopType.Serfs);
+                            __result.AddFactor(proportion * 0.05f, BannerKings.Managers.Titles.Laws.DefaultDemesneLaws.Instance.SerfsLaxDuties.Name);
+                        }
+                        if (title.Contract.IsLawEnacted(BannerKings.Managers.Titles.Laws.DefaultDemesneLaws.Instance.CraftsmenLaxDuties))
+                        {
+                            float proportion = data.GetCurrentTypeFraction(BannerKings.Managers.PopulationManager.PopType.Craftsmen);
+                            __result.AddFactor(proportion * 0.08f, BannerKings.Managers.Titles.Laws.DefaultDemesneLaws.Instance.SerfsLaxDuties.Name);
+                        }
+                    }
+                }
+            }
+        }
+
+        // --- BKTargetScoreModel (BK class is fully replaced by postfixes here) -----------
+        [HarmonyPatch(typeof(DefaultTargetScoreCalculatingModel))]
+        internal static class BKTargetScoreTweakPatches
+        {
+            [HarmonyPostfix]
+            [HarmonyPatch(nameof(DefaultTargetScoreCalculatingModel.RaidingFactor), MethodType.Getter)]
+            private static void RaidingFactorPostfix(ref float __result)
+            {
+                __result *= 1f + BannerKingsSettings.Instance.RaidIncentive;
+            }
+
+            [HarmonyPostfix]
+            [HarmonyPatch(nameof(DefaultTargetScoreCalculatingModel.CalculatePatrollingScoreForSettlement))]
+            private static void CalculatePatrollingScoreForSettlementPostfix(Settlement settlement, bool isFromPort, MobileParty mobileParty, ref float __result)
+            {
+                if (__result <= 0f || BannerKingsSettings.Instance.PatrolIncentive <= 0f) return;
+                if (settlement.MapFaction != mobileParty.MapFaction) return;
+                if (settlement.OwnerClan == null || mobileParty.ActualClan == null) return;
+                if (settlement.OwnerClan != mobileParty.ActualClan) return;
+                __result *= 1f + (settlement.MapFaction.IsKingdomAtWar()
+                    ? BannerKingsSettings.Instance.PatrolIncentive / 2f
+                    : BannerKingsSettings.Instance.PatrolIncentive);
+            }
+
+            [HarmonyPostfix]
+            [HarmonyPatch(nameof(DefaultTargetScoreCalculatingModel.CurrentObjectiveValue))]
+            private static void CurrentObjectiveValuePostfix(MobileParty mobileParty, ref float __result)
+            {
+                if (mobileParty.Army == null || mobileParty.TargetSettlement == null) return;
+
+                var targetFaction = mobileParty.TargetSettlement.MapFaction;
+                if (targetFaction == mobileParty.MapFaction || !targetFaction.IsAtWarWith(mobileParty.MapFaction)) return;
+
+                var war = TaleWorlds.CampaignSystem.Campaign.Current.GetCampaignBehavior<BannerKings.Behaviours.Diplomacy.BKDiplomacyBehavior>()
+                    ?.GetWar(mobileParty.MapFaction, targetFaction);
+                var justification = war?.CasusBelli;
+                if (justification == null) return;
+
+                var defaultBehavior = mobileParty.DefaultBehavior;
+                if (defaultBehavior == AiBehavior.RaidSettlement)
+                {
+                    __result *= justification.RaidWeight;
+                    if (mobileParty.ActualClan != null && mobileParty.TargetSettlement.Culture != mobileParty.ActualClan.Culture)
+                        __result *= 1.3f;
+                }
+                else if (defaultBehavior == AiBehavior.BesiegeSettlement || defaultBehavior == AiBehavior.DefendSettlement)
+                {
+                    __result *= justification.ConquestWeight;
+                }
+
+                if (mobileParty.LeaderHero != null)
+                {
+                    if (defaultBehavior == AiBehavior.BesiegeSettlement)
+                        Utils.Helpers.ApplyTraitEffect(mobileParty.LeaderHero, DefaultTraitEffects.Instance.ValorCommander, ref __result);
+                    if (defaultBehavior == AiBehavior.RaidSettlement)
+                        Utils.Helpers.ApplyTraitEffect(mobileParty.LeaderHero, DefaultTraitEffects.Instance.MercyRaid, ref __result);
+                }
+            }
+
+            [HarmonyPostfix]
+            [HarmonyPatch(nameof(DefaultTargetScoreCalculatingModel.GetTargetScoreForFaction))]
+            private static void GetTargetScoreForFactionPostfix(Settlement targetSettlement, Army.ArmyTypes missionType, MobileParty mobileParty, float ourStrength, ref float __result)
+            {
+                if (__result == 0f) return;
+                var targetFaction = targetSettlement.MapFaction;
+                if (mobileParty.Army == null || targetFaction == mobileParty.MapFaction ||
+                    !targetFaction.IsAtWarWith(mobileParty.MapFaction)) return;
+
+                var war = TaleWorlds.CampaignSystem.Campaign.Current.GetCampaignBehavior<BannerKings.Behaviours.Diplomacy.BKDiplomacyBehavior>()
+                    ?.GetWar(mobileParty.MapFaction, targetFaction);
+                if (war == null) return;
+
+                var justification = war.CasusBelli;
+                if (justification.Fief == targetSettlement)
+                {
+                    if (missionType == Army.ArmyTypes.Besieger || missionType == Army.ArmyTypes.Defender)
+                        __result *= 1.2f;
+                    else if (targetSettlement.IsVillage &&
+                             justification.Fief.Town != null &&
+                             justification.Fief.BoundVillages.Contains(targetSettlement.Village) &&
+                             missionType == Army.ArmyTypes.Raider)
+                        __result *= 1.1f;
+                }
+
+                if (targetSettlement.Town != null && war.DefenderFront != null && war.AttackerFront != null)
+                {
+                    if (targetSettlement.Town == war.DefenderFront || targetSettlement.Town == war.AttackerFront)
+                        __result *= 1f + BannerKingsSettings.Instance.FrontFocus;
+                    else if (AreSettlementsClose(targetSettlement, war.DefenderFront.Settlement) ||
+                             AreSettlementsClose(targetSettlement, war.AttackerFront.Settlement))
+                        __result *= 1f + (BannerKingsSettings.Instance.FrontFocus / 2f);
+                }
+            }
+
+            private static bool AreSettlementsClose(Settlement reference, Settlement target) =>
+                TaleWorlds.CampaignSystem.Campaign.Current.Models.MapDistanceModel
+                    .GetDistance(reference, target, false, false, MobileParty.NavigationType.All)
+                < TaleWorlds.CampaignSystem.Campaign.Current
+                    .GetAverageDistanceBetweenClosestTwoTownsWithNavigationType(MobileParty.NavigationType.All) * 1.1f;
         }
     }
 }

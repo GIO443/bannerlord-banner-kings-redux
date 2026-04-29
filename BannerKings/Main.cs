@@ -167,7 +167,8 @@ namespace BannerKings
             // BK still consults the config-level model for title/dowry logic.
             if (!ModCompat.MarryAnyone)
                 campaignStarter.AddModel(BannerKingsConfig.Instance.MarriageModel);
-            campaignStarter.AddModel(new BKTargetScoreModel());
+            // BKTargetScoreModel was deleted in v1.5.5.0 — its overrides are postfixes
+            // in VanillaModelTweakPatches now (RaidingFactor property included).
 
             BKAttributes.Instance.Initialize();
             BKSkills.Instance.Initialize();

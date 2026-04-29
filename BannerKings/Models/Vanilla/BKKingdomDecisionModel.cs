@@ -7,20 +7,7 @@ namespace BannerKings.Models.Vanilla
 {
     public class BKKingdomDecisionModel : DefaultKingdomDecisionPermissionModel
     {
-        public override bool IsKingSelectionDecisionAllowed(Kingdom kingdom)
-        {
-            if (BannerKingsConfig.Instance.TitleManager != null)
-            {
-                var title = BannerKingsConfig.Instance.TitleManager.GetSovereignTitle(kingdom);
-                if (title != null)
-                {
-                    var succession = title.Contract.Succession;
-                    return succession.ElectedSuccession;
-                }
-            }
-
-            return base.IsKingSelectionDecisionAllowed(kingdom);
-        }
+        // IsKingSelectionDecisionAllowed moved to a Harmony Postfix in VanillaModelTweakPatches.
 
         public bool IsTradePactAllowed(Kingdom kingdom1, Kingdom kingdom2, out TextObject reason)
         {

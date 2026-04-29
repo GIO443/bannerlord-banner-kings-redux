@@ -31,63 +31,9 @@ namespace BannerKings.Models.Vanilla
         private static readonly TextObject Governor = new("{=DyZdcwa4}Governor");
         private static readonly TextObject HousingCostsText = new("{=zYjK6Kzb}Housing Costs");
 
-        public override ExplainedNumber CalculateHearthChange(Village village, bool includeDescriptions = false)
-        {
-            var baseResult = base.CalculateHearthChange(village, includeDescriptions);
-            //if (BannerKingsConfig.Instance.PopulationManager != null && BannerKingsConfig.Instance.PopulationManager.IsSettlementPopulated(village.Settlement))
-            // new BKGrowthModel().CalculateHearthGrowth(village, ref baseResult);
-
-            var owner = village.GetActualOwner();
-            var education = BannerKingsConfig.Instance.EducationManager.GetHeroEducation(owner);
-            if (education.HasPerk(BKPerks.Instance.CivilCultivator))
-            {
-                baseResult.Add(1f, BKPerks.Instance.CivilCultivator.Name);
-            }
-
-            if (education.HasPerk(BKPerks.Instance.RitterPettySuzerain))
-            {
-                baseResult.Add(0.1f, BKPerks.Instance.RitterPettySuzerain.Name);
-            }
-
-            var data = BannerKingsConfig.Instance.PopulationManager.GetPopData(village.Settlement);
-            if (data != null)
-            {
-                var villageData = data.VillageData;
-                var marketplace = villageData.GetBuildingLevel(DefaultVillageBuildings.Instance.Marketplace);
-                if (marketplace > 0)
-                {
-                    baseResult.Add(0.075f * marketplace, DefaultVillageBuildings.Instance.Marketplace.Name);
-                }
-            }
-
-            var tax = (BKTaxPolicy)BannerKingsConfig.Instance.PolicyManager.GetPolicy(village.Settlement, "tax");
-            if (tax.Policy != TaxType.Standard)
-            {
-                if (tax.Policy == TaxType.High)
-                {
-                    baseResult.AddFactor(-0.15f, new TextObject("{=EhHXS8PN}High tax policy"));
-                }
-                else if (tax.Policy == TaxType.Low)
-                {
-                    baseResult.AddFactor(0.1f, new TextObject("{=j6AoAS6n}Low tax policy"));
-                }
-                else
-                {
-                    baseResult.AddFactor(0.2f, new TextObject("{=HMao8su6}Tax exemption policy"));
-                }
-            }
-
-            if (village.Bound.IsCastle)
-            {
-                BannerKingsConfig.Instance.CourtManager.ApplyCouncilEffect(ref baseResult,
-                    owner, DefaultCouncilPositions.Instance.Castellan,
-                    DefaultCouncilTasks.Instance.OverseeBaronies,
-                    0.15f, false);
-            }
-
-            AddDemesneLawEffect(data, ref baseResult);
-            return baseResult;
-        }
+        // CalculateHearthChange moved to a Harmony Postfix in VanillaModelTweakPatches.
+        // The AddDemesneLawEffect helper below is still used by the REPLACE
+        // CalculateProsperityChange method, so it stays.
 
         public override ExplainedNumber CalculateProsperityChange(Town fortification, bool includeDescriptions = false)
         {

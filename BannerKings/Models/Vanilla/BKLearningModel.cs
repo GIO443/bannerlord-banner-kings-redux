@@ -140,13 +140,9 @@ namespace BannerKings.Models.Vanilla
             return result; 
         }
 
-        public override ExplainedNumber CalculateLearningRate(IReadOnlyPropertyOwner<CharacterAttribute> characterAttributes, int focusValue, int skillValue,
-            SkillObject skill, bool includeDescriptions = false)
-        {
-            var baseResult = base.CalculateLearningRate(characterAttributes, focusValue, skillValue, skill, includeDescriptions);
-            baseResult.LimitMin(0.05f);
-            return baseResult;
-        }
+        // CalculateLearningRate (the LimitMin(0.05) tweak) moved to a Harmony Postfix in
+        // VanillaModelTweakPatches. The CalculateLearningRate(Hero, ...) helper below is
+        // a custom BK signature, not a vanilla override, so it stays here.
 
         public ExplainedNumber CalculateLearningLimit(Hero hero, int attributeValue, int focusValue, SkillObject skill, bool includeDescriptions = false)
         {
