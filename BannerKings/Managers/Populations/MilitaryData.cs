@@ -89,13 +89,13 @@ namespace BannerKings.Managers.Populations
 
         public IEnumerable<SiegeEngineType> Engines => engines;
 
-        public int Ballistae => new BKSiegeEventModel().GetPrebuiltSiegeEnginesOfSettlement(settlement)
+        public int Ballistae => Campaign.Current.Models.SiegeEventModel.GetPrebuiltSiegeEnginesOfSettlement(settlement)
             .Count(x => x == DefaultSiegeEngineTypes.Ballista);
 
-        public int Catapultae => new BKSiegeEventModel().GetPrebuiltSiegeEnginesOfSettlement(settlement)
+        public int Catapultae => Campaign.Current.Models.SiegeEventModel.GetPrebuiltSiegeEnginesOfSettlement(settlement)
             .Count(x => x == DefaultSiegeEngineTypes.Catapult);
 
-        public int Trebuchets => new BKSiegeEventModel().GetPrebuiltSiegeEnginesOfSettlement(settlement)
+        public int Trebuchets => Campaign.Current.Models.SiegeEventModel.GetPrebuiltSiegeEnginesOfSettlement(settlement)
             .Count(x => x == DefaultSiegeEngineTypes.Trebuchet);
 
         public PopType GetCharacterManpowerType(CharacterObject character)

@@ -100,6 +100,13 @@ namespace BannerKings
             //campaignStarter.RemoveBehavior(campaignStarter.CampaignBehaviors.First(x => x.GetType() == typeof(CaravansCampaignBehavior)));
 
 
+            // Models registered as full GameModel replacements where BK genuinely
+            // restructures the math. Pure-tweak overrides (single override that just
+            // calls base + adds a small modifier) used to live alongside these but
+            // are now Harmony Postfix patches in
+            // BannerKings.Patches.VanillaModelTweakPatches — vanilla model runs and
+            // BK adjustments show up in the ExplainedNumber tooltip alongside vanilla
+            // factors.
             campaignStarter.AddModel(new BKPrisonerModel());
             campaignStarter.AddModel(BannerKingsConfig.Instance.CompanionModel);
             campaignStarter.AddModel(BannerKingsConfig.Instance.ProsperityModel);
@@ -115,62 +122,31 @@ namespace BannerKings
                 campaignStarter.AddModel(BannerKingsConfig.Instance.InfluenceModel);
             campaignStarter.AddModel(new BKLoyaltyModel());
             campaignStarter.AddModel(BannerKingsConfig.Instance.VillageProductionModel);
-            campaignStarter.AddModel(new BKSecurityModel());
-            campaignStarter.AddModel(new BKPartyLimitModel());
             campaignStarter.AddModel(BannerKingsConfig.Instance.EconomyModel);
             campaignStarter.AddModel(new BKPriceFactorModel());
             campaignStarter.AddModel(BannerKingsConfig.Instance.WorkshopModel);
             campaignStarter.AddModel(BannerKingsConfig.Instance.ClanFinanceModel);
             campaignStarter.AddModel(BannerKingsConfig.Instance.ArmyManagementModel);
-            campaignStarter.AddModel(new BKSiegeEventModel());
-            campaignStarter.AddModel(new BKTournamentModel());
-            campaignStarter.AddModel(new BKRaidModel());
             campaignStarter.AddModel(BannerKingsConfig.Instance.VolunteerModel);
-            campaignStarter.AddModel(new BKNotableSpawnModel());
             // Defer garrison sizing to ImprovedGarrisons when present.
             if (!ModCompat.ImprovedGarrisons)
                 campaignStarter.AddModel(new BKGarrisonModel());
-            campaignStarter.AddModel(new BKRansomModel());
-            campaignStarter.AddModel(new BKClanTierModel());
             campaignStarter.AddModel(new BKPartyWageModel());
-            campaignStarter.AddModel(new BKSettlementValueModel());
-            campaignStarter.AddModel(new BKNotablePowerModel());
             campaignStarter.AddModel(BannerKingsConfig.Instance.SmithingModel);
-            campaignStarter.AddModel(new BKMapTrackModel());
-            campaignStarter.AddModel(new BKAgentDamageModel());
-            campaignStarter.AddModel(new BKAgentStatsModel());
-            campaignStarter.AddModel(new BKPartySpeedModel());
-            campaignStarter.AddModel(new BKBattleSimulationModel());
             campaignStarter.AddModel(new BKPartyConsumptionModel());
-            campaignStarter.AddModel(new BKWallHitpointModel());
-            campaignStarter.AddModel(new BKInventoryCapacityModel());
-            campaignStarter.AddModel(new BKMapVisibilityModel());
-            campaignStarter.AddModel(new BKPartyImpairmentModel());
-            campaignStarter.AddModel(BannerKingsConfig.Instance.CrimeModel);
-            campaignStarter.AddModel(new BKTroopUpgradeModel());
-            campaignStarter.AddModel(new BKBattleRewardModel());
-            campaignStarter.AddModel(new BKCombatXpModel());
-            campaignStarter.AddModel(new BKBattleMoraleModel());
             campaignStarter.AddModel(BannerKingsConfig.Instance.LearningModel);
-            campaignStarter.AddModel(BannerKingsConfig.Instance.KingdomDecisionModel);  
-            campaignStarter.AddModel(new BKPregnancyModel());
-            campaignStarter.AddModel(new BKPartyHealingModel());
-            campaignStarter.AddModel(new BKBanditModel());
+            campaignStarter.AddModel(BannerKingsConfig.Instance.KingdomDecisionModel);
             campaignStarter.AddModel(new BKPartyTrainningModel());
             // Defer to Diplomacy mod when present — it owns kingdom-decision tuning.
             // BK's internal pacts/casus belli still calculate via the BK config-level
             // model (BKDiplomacyModel instance held by BannerKingsConfig).
             if (!ModCompat.DiplomacyMod)
                 campaignStarter.AddModel(new BKDiplomacyModel());
-            //campaignStarter.AddModel(new BKTargetScoreModel());
             campaignStarter.AddModel(new BKPartyBuyingFoodModel());
-            campaignStarter.AddModel(new BKCategorySelector());
-            campaignStarter.AddModel(new BKSettlementAccessModel());
             // Defer to MarryAnyone when present — it removes vanilla restrictions.
             // BK still consults the config-level model for title/dowry logic.
             if (!ModCompat.MarryAnyone)
                 campaignStarter.AddModel(BannerKingsConfig.Instance.MarriageModel);
-            //campaignStarter.AddModel(new BKItemValueModel()); // BKItemValueModel removed
             campaignStarter.AddModel(new BKTargetScoreModel());
 
             BKAttributes.Instance.Initialize();
