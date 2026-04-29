@@ -21,10 +21,21 @@ namespace BannerKings.Behaviours
         {
             CampaignEvents.AiHourlyTickEvent.AddNonSerializedListener(this, new Action<MobileParty, PartyThinkParams>(this.AiHourlyTick));
             CampaignEvents.OnSessionLaunchedEvent.AddNonSerializedListener(this, new Action<CampaignGameStarter>(this.OnSessionLaunched));
-            CampaignEvents.OnAfterSessionLaunchedEvent.AddNonSerializedListener(this, (CampaignGameStarter campaignGameStarter) =>
-            {
-                Campaign.Current.CampaignBehaviorManager.RemoveBehavior<AiVisitSettlementBehavior>();
-            });
+            // Intentionally do NOT remove vanilla AiVisitSettlementBehavior any more.
+            //
+            // Upstream BK removed it and replaced it wholesale with this class. But
+            // our AiHourlyTick early-returns for caravans, villagers, militia, and
+            // non-lord-non-faction parties (line ~56), so removing vanilla left those
+            // party types with no AiVisitSettlement scoring contribution at all —
+            // they had to rely on whatever other behaviour subscribed to
+            // PartyThinkParams. That's the suspect for the recurring "caravans /
+            // villagers stopped outside cities" reports.
+            //
+            // Letting both run side by side: vanilla covers the party types we skip,
+            // and BK's replacement still adds its lord-specific scoring tweaks
+            // (food/gold/perk/food-consumption considerations) for the lord parties
+            // it does process. PartyThinkParams is additive across listeners, so
+            // both contributions stack and the highest-scoring behaviour still wins.
         }
 
         // Token: 0x06003F09 RID: 16137 RVA: 0x0013735C File Offset: 0x0013555C
