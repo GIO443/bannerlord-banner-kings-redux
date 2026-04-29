@@ -1412,7 +1412,15 @@ namespace BannerKings.Behaviours
         {
             if (MobileParty.ConversationParty != null && MobileParty.ConversationParty.IsCaravan)
             {
-                // removed in 1.3.x: InventoryManager.OpenTradeWithCaravanOrAlleyParty(MobileParty.ConversationParty, InventoryManager.InventoryCategoryType.None);
+                // Re-implemented against 1.3.x API. The vanilla 1.2.x call
+                // InventoryManager.OpenTradeWithCaravanOrAlleyParty was replaced
+                // by InventoryScreenHelper.OpenScreenAsInventoryOfSubParty in
+                // 1.3.x, which opens an inventory exchange between two parties
+                // in trade mode (see SandBox.CampaignBehaviors for examples).
+                InventoryScreenHelper.OpenScreenAsInventoryOfSubParty(
+                    MobileParty.ConversationParty,
+                    MobileParty.MainParty,
+                    null);
             }
             return true;
         }
@@ -1487,8 +1495,16 @@ namespace BannerKings.Behaviours
             }
             if (flag)
             {
-                // InventoryManager removed in 1.3.x
-                MobileParty.ConversationParty.ItemRoster.Clear();
+                // 1.3.x replacement for InventoryManager.OpenTradeWith…: open the
+                // loot screen so the player picks what to take from the
+                // surrendering caravan. The previous "removed in 1.3.x" branch
+                // simply cleared the caravan's roster, deleting the items
+                // entirely — the player got nothing. OpenScreenAsLoot handles
+                // the transfer based on player selection.
+                InventoryScreenHelper.OpenScreenAsLoot(new Dictionary<PartyBase, ItemRoster>
+                {
+                    { MobileParty.ConversationParty.Party, MobileParty.ConversationParty.ItemRoster }
+                });
             }
             int num = MathF.Max(MobileParty.ConversationParty.PartyTradeGold, 0);
             if (num > 0)
@@ -1517,8 +1533,13 @@ namespace BannerKings.Behaviours
             }
             if (flag)
             {
-                // InventoryManager removed in 1.3.x
-                encounteredMobileParty.ItemRoster.Clear();
+                // 1.3.x replacement: loot screen for the cargo. Previously the
+                // .Clear() branch deleted the caravan's items so the player got
+                // nothing.
+                InventoryScreenHelper.OpenScreenAsLoot(new Dictionary<PartyBase, ItemRoster>
+                {
+                    { encounteredMobileParty.Party, encounteredMobileParty.ItemRoster }
+                });
             }
             int num = MathF.Max(encounteredMobileParty.PartyTradeGold, 0);
             if (num > 0)
@@ -1531,7 +1552,15 @@ namespace BannerKings.Behaviours
             {
                 troopRoster.AddToCounts(troopRosterElement.Character, troopRosterElement.Number, false, 0, 0, true, -1);
             }
-            // removed in 1.3.x: PartyScreenManager.OpenScreenAsLoot(TroopRoster.CreateDummyTroopRoster(), troopRoster, encounteredMobileParty.Name, troopRoster.TotalManCount, null);
+            // 1.3.x replacement for PartyScreenManager.OpenScreenAsLoot — the
+            // helper class moved to PartyScreenHelper but the signature is the
+            // same. Lets the player pick which caravan members to take prisoner.
+            PartyScreenHelper.OpenScreenAsLoot(
+                TroopRoster.CreateDummyTroopRoster(),
+                troopRoster,
+                encounteredMobileParty.Name,
+                troopRoster.TotalManCount,
+                null);
             SkillLevelingManager.OnLoot(MobileParty.MainParty, encounteredMobileParty, itemRoster, false);
             DestroyPartyAction.Apply(MobileParty.MainParty.Party, encounteredMobileParty);
             PlayerEncounter.LeaveEncounter = true;

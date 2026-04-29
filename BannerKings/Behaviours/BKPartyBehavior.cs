@@ -836,7 +836,14 @@ namespace BannerKings.Behaviours
                 () => true,
                 () =>
                 {
-                    // removed in 1.3.x: PartyScreenManager.OpenScreenAsManageTroopsAndPrisoners(PlayerEncounter.EncounteredParty.MobileParty);
+                    // 1.3.x replacement for PartyScreenManager.OpenScreenAsManageTroopsAndPrisoners
+                    // — the helper class was renamed to PartyScreenHelper. Lets
+                    // the player swap troops/prisoners with their raised retinue.
+                    var encountered = PlayerEncounter.EncounteredParty?.MobileParty;
+                    if (encountered != null)
+                    {
+                        PartyScreenHelper.OpenScreenAsManageTroopsAndPrisoners(encountered);
+                    }
                 });
 
             starter.AddPlayerLine("retinue_party_leave", "raised_retinue_greeting", "close_window",

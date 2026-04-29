@@ -197,7 +197,25 @@ namespace BannerKings.Behaviours.Diplomacy.Wars
         {
             if (Demand != null)
             {
-                bool success = false; // GetDailyTributePaid removed in 1.3.x (tribute system removed)
+                // The pre-1.3.x DiplomacyHelper.GetDailyTributePaid was removed,
+                // but the underlying tribute data is still on StanceLink in
+                // 1.3.x — exposed via GetDailyTributeToPay(IFaction). When the
+                // defender ends up paying tribute to the attacker, the
+                // attacker's demand was met (rebellion succeeded).
+                bool success = false;
+                try
+                {
+                    var stance = Attacker.GetStanceWith(Defender);
+                    if (stance != null)
+                    {
+                        success = stance.GetDailyTributeToPay(Defender) > 0;
+                    }
+                }
+                catch
+                {
+                    // Defensive: tribute API differences across 1.3.x patches
+                    // shouldn't block rebellion finalisation.
+                }
                 Demand.EndRebellion(Attacker as Kingdom, Defender as Kingdom, success);
             }
 
