@@ -51,7 +51,27 @@ namespace BannerKings
             if (!_patchesInstalled)
             {
                 _patchesInstalled = true;
-                new Harmony("BannerKings").PatchAll();
+                // Per-class patching with isolation: if one [HarmonyPatch]-decorated
+                // type fails (e.g. ambiguous method match because vanilla has
+                // multiple overloads, missing target method on a 1.3.x signature
+                // change, etc.), it logs and the remaining patches still apply.
+                // PatchAll() throws on the first failure and aborts every other
+                // patch — that's how v1.5.4.0/4.1 took out the whole mod for one
+                // dead-code postfix.
+                var harmony = new Harmony("BannerKings");
+                foreach (var t in typeof(Main).Assembly.GetTypes())
+                {
+                    try
+                    {
+                        harmony.CreateClassProcessor(t).Patch();
+                    }
+                    catch (System.Exception ex)
+                    {
+                        TaleWorlds.Library.Debug.Print(
+                            $"[BK] Skipped Harmony patches on {t.FullName}: {ex.GetType().Name}: {ex.Message}",
+                            color: TaleWorlds.Library.Debug.DebugColor.Yellow);
+                    }
+                }
                 Xtender.Register(typeof(Main).Assembly);
                 Xtender.Enable();
             }
