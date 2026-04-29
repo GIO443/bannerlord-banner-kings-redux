@@ -65,6 +65,16 @@ namespace BannerKings.Behaviours
         [HarmonyPatch(typeof(PlayerTownVisitCampaignBehavior), "game_menu_town_town_market_on_consequence")]
         internal class MarketPatch
         {
+            // The vanilla menu callback may have been renamed or moved across 1.3.x
+            // patches; gate the patch so a missing target method becomes a no-op
+            // skip rather than a Harmony exception during PatchAll.
+            private static bool Prepare()
+            {
+                var method = AccessTools.Method(typeof(PlayerTownVisitCampaignBehavior),
+                    "game_menu_town_town_market_on_consequence");
+                return method != null;
+            }
+
             private static void Postfix(MenuCallbackArgs args)
             {
                 roster.Clear();

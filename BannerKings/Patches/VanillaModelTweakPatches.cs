@@ -234,8 +234,16 @@ namespace BannerKings.Patches
         [HarmonyPatch(typeof(DefaultCombatSimulationModel))]
         internal static class BKBattleSimulationTweakPatches
         {
+            // SimulateHit has overloads in vanilla; explicit parameter-type array
+            // is required so Type.GetMethod doesn't throw AmbiguousMatchException
+            // during PatchAll.
             [HarmonyPostfix]
-            [HarmonyPatch(nameof(DefaultCombatSimulationModel.SimulateHit))]
+            [HarmonyPatch(nameof(DefaultCombatSimulationModel.SimulateHit), new[] {
+                typeof(CharacterObject), typeof(CharacterObject),
+                typeof(PartyBase), typeof(PartyBase),
+                typeof(float), typeof(MapEvent),
+                typeof(float), typeof(float)
+            })]
             private static void SimulateHitPostfix(CharacterObject strikerTroop, CharacterObject struckTroop,
                 PartyBase strikerParty, PartyBase struckParty, float strikerAdvantage, MapEvent battle,
                 float strikerSideMorale, float struckSideMorale, ref ExplainedNumber __result)
