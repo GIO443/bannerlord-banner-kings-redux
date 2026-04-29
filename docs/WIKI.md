@@ -1,458 +1,280 @@
-# BannerKings — Redux Wiki (1.3.x Fork)
+# Banner Kings — Redux Player Wiki
 
-A pseudo-wiki of the **Banner Kings — Redux** mod for Mount & Blade II: Bannerlord,
-scoped to the 1.3.x fork with native War Sails (NavalDLC) / Nord integration.
-Module id is `BannerKings.Redux`; the deployed module folder is
-`Modules/BannerKings.Redux/`. Audience: players asking "what does X do", modders
-asking "where does X live in the code", and the RAG bot that will read this file.
+Welcome. This is the player-facing handbook for **Banner Kings — Redux**, a
+maintenance fork of R-Vaccari's Banner Kings updated for Bannerlord v1.3.x with
+native War Sails (NavalDLC) integration. If you're looking for code internals
+and developer documentation, those live next to the code in the GitHub
+repository — this file is intentionally written for players.
+
+> Banner Kings is the work of R-Vaccari and the original Banner Kings
+> contributors. This fork is a community maintenance effort while the upstream
+> project is dormant. All credit for the design, content, and core systems
+> belongs to the original author. See "Credits" at the bottom of this page.
 
 ---
 
-## 1. Project at a glance
+## Table of contents
 
-BannerKings ("BK") is a deep simulation overlay on top of Bannerlord's Campaign. Where
+1. [What is Banner Kings — Redux](#1-what-is-banner-kings--redux)
+2. [Installing](#2-installing)
+3. [What's in the mod (high-level)](#3-whats-in-the-mod-high-level)
+4. [First 30 minutes — what should I do?](#4-first-30-minutes--what-should-i-do)
+5. [Glossary — the words that come up constantly](#5-glossary--the-words-that-come-up-constantly)
+6. [Lifestyles, doctrines, laws, policies](#6-lifestyles-doctrines-laws-policies)
+7. [Player how-to](#7-player-how-to)
+8. [Per-system FAQ](#8-per-system-faq)
+9. [Edge cases & frequent confusions](#9-edge-cases--frequent-confusions)
+10. [Mod compatibility](#10-mod-compatibility)
+11. [Save-game safety](#11-save-game-safety)
+12. [Reporting bugs](#12-reporting-bugs)
+13. [Credits & license](#13-credits--license)
+
+---
+
+## 1. What is Banner Kings — Redux
+
+Banner Kings is a deep simulation overlay on top of Bannerlord's Campaign. Where
 vanilla treats settlements as resource nodes and clans as hero bags, BK adds:
 
-- **Population simulation** — every settlement has serfs, slaves, craftsmen, nobles,
-  with classes that grow/shrink based on policies, food, raids, and laws.
-- **Feudal titles** — a hierarchy of Empires → Kingdoms → Duchies → Counties → Baronies →
-  Lordships, each with deeds, claimants, succession rules, and contracts.
+- **Population simulation** — every settlement has serfs, slaves, craftsmen,
+  nobles. Classes grow and shrink based on policies, food, raids, and laws.
+- **Feudal titles** — a hierarchy of Empires → Kingdoms → Duchies → Counties →
+  Baronies → Lordships, each with deeds, claimants, succession rules, and
+  contracts.
 - **Religions** — multiple faiths with doctrines, clergy, piety, and rites.
-- **Education** — heroes have languages, books, scholarship, lifestyles (skill-line specs).
-- **Estates** — clan-owned, hero-managed land within villages that produce income/food.
-- **Council & courts** — clans and kingdoms have appointed officers (Marshal, Steward,
-  Chancellor, Spymaster, Court Physician) with real effects.
-- **Mercenary contracts, criminality, gentry, knighthood** — many smaller systems.
+- **Education** — heroes have languages, books, scholarship, and lifestyles
+  (skill-line specializations that grant escalating perks).
+- **Estates** — clan-owned, hero-managed land within villages that produces
+  income and food and can be inherited or sold.
+- **Council & courts** — clans and kingdoms have appointed officers (Marshal,
+  Steward, Chancellor, Spymaster, Court Physician) with real effects on
+  recruitment, taxes, diplomacy, and hero recovery.
+- **Mercenary contracts, criminality, gentry, knighthood** — many smaller
+  systems woven through the campaign loop.
 
-The fork's two purposes:
+This **Redux fork** brings the mod current with Bannerlord v1.3.x and adds
+native support for the **War Sails (NavalDLC)** Nord faction, including:
 
-1. **Port to Bannerlord 1.3.x (build 110062+)** — original project stalled before 1.3.x.
-2. **Native War Sails / Nord faction support** — Nord settlements/clans/titles/culture
-   integrated directly so Nord interactions don't null-ref crash, plus three
-   Nord seafaring lifestyles (Jomsviking, Drakkar Captain, Sjofarandi) with
-   real naval-side perk effects via Harmony hooks into NavalDLC's own models.
-
----
-
-## 2. Code layout
-
-```
-BannerKings/
-├── BannerKingsConfig.cs       Singleton, lazy-inits all managers
-├── Main.cs                    SubModule entry, registers behaviors & models
-├── Patches.cs                 Misc Harmony patches (Hero, NameGenerator, etc.)
-├── Patches/                   Topic-grouped Harmony patches (Economy, Diplomacy,
-│                              Fixes, NordCompat, etc.)
-├── Behaviours/                CampaignBehaviorBase subclasses — the runtime "hooks"
-├── Managers/                  Pure-data domain managers (titles, religion, education…)
-├── Models/Vanilla/            BK overrides of vanilla GameModels (XP, finance, war…)
-├── Components/                MobileParty/Settlement Components (estates, militia, etc.)
-├── CampaignContent/           Traits, characters, story content
-├── UI/                        Gauntlet view models & screens
-├── Actions/                   Static helpers wrapping campaign actions
-├── Settings/                  MCM settings & feature toggles
-├── Utils/                     Helpers (text, math, save migration)
-├── Dialogue/                  Conversation lines & conditions
-└── _Module/ModuleData/        XML data: titles, religions, lifestyles, traits…
-```
-
-### Naming conventions
-- `BK*Behavior` — campaign behaviors (live game-loop hooks).
-- `BK*Model` — overrides of `XxxModel` from `TaleWorlds.CampaignSystem.GameComponents`.
-- `Default*` — singleton registries of static content (e.g., `DefaultLifestyles.Instance`).
-- `*Manager` — manager singletons accessed via `BannerKingsConfig.Instance.XxxManager`.
+- A full Nord title hierarchy (kingdom → 2 duchies → 4 counties → 9 baronies)
+- Three Nord seafaring lifestyles — Jomsviking, Drakkar Captain, Sjofarandi —
+  with real perks that affect naval combat, party speed at sea, and spotting
+- The **Nordic Thrall Law**, a culture-specific demesne law that makes the
+  Nord economy lean hard into raid-based slavery and slave trade
+- Crash hardening so the mod runs cleanly with or without War Sails installed
 
 ---
 
-## 3. Bootstrap & lifecycle
+## 2. Installing
 
-`Main.cs::OnGameStart` registers BK's models and behaviors with the campaign starter.
-`BannerKingsConfig.Instance` is the top-level service locator; managers are **lazy-
-initialized** on first access to avoid null-refs during early load:
+### Requirements
 
-```csharp
-public PopulationManager PopulationManager
-{
-    get => _populationManager ??= new PopulationManager(...);
-}
-```
+- **Mount & Blade II: Bannerlord v1.3.x** (build 110062 or later)
+- **Harmony** — `Bannerlord.Harmony`
+- **ButterLib** — `Bannerlord.ButterLib`
+- **UIExtenderEx** — `Bannerlord.UIExtenderEx`
+- **MCM (Mod Configuration Menu)** — `Bannerlord.MBOptionScreen`
+- *Optional:* **War Sails (NavalDLC)** — TaleWorlds DLC. If installed, the
+  Nord title hierarchy, seafaring lifestyles, and Nordic Thrall Law activate.
+  The mod runs fine without it.
 
-Save data lives in two places:
-- Per-behavior `SyncData` saves the behavior's own state.
-- Managers are saved via `SaveDefiner` which registers BK types with the save system.
+### Steps
 
----
+1. Install the four required mods above.
+2. **Remove any existing `Modules/BannerKings/` folder**, if present from a
+   previous install of the original BK. Redux is a separate module and saves
+   are not interchangeable. Pick one.
+3. Drop the contents of the release zip into your Bannerlord install. You
+   should end up with
+   `…/Mount & Blade II Bannerlord/Modules/BannerKings.Redux/`.
+4. Enable **Banner Kings — Redux** in the launcher and place it after the
+   four required dependencies.
+5. **Start a fresh save.** Saves from the original BK will not load on Redux.
 
-## 4. Major systems
+### Sub-mod compatibility
 
-### 4.1 Population (`Managers/Populations/`)
-Each settlement gets a `PopulationData` with `PopulationClass` rows (Serfs, Slaves,
-Craftsmen, Nobles, Tenants). Daily ticks update growth, food consumption, mood, and
-class transitions. `LandData`, `EconomicData`, `MilitaryData`, `CultureData`,
-`MineralData`, `VillageData` are sub-records on the same data object. Tax and
-production models read these to compute settlement output.
-
-Owned by: `Behaviours/BKSettlementBehavior.cs`, `BKPopulationsBehavior` (if present),
-manager: `PopulationManager` (collection of `Settlement → PopulationData`).
-
-### 4.2 Titles (`Managers/Titles/`)
-A `FeudalTitle` is the deed-of-ownership for a settlement (or a virtual region for
-higher tiers). Tiers run Empire (1) → Kingdom (2) → Duchy (3) → County (4) →
-Barony (5) → Lordship (6). Each title carries:
-- `deJure` — legal owner (Hero).
-- `deFacto` — actual controlling hero, derived from settlement ownership.
-- `Vassals` — child titles.
-- `Contract` — `FeudalContract` defining government type, succession, inheritance,
-  gender law, and demesne laws.
-- `Claimants` — heroes with pressed claims.
-
-Behavior: `BKTitleBehavior.cs` handles inheritance, claim aging, succession events,
-and patches vanilla heir selection (`OnHeirSelectionOver(Hero selectedHeir)` in
-1.3.x — note: not the older `List<InquiryElement>` signature).
-
-XML data: `_Module/ModuleData/titles.xml` plus `nord_titles.xml` for War Sails.
-
-### 4.3 Religion (`Managers/Institutions/Religions/`)
-A `Religion` has a `Faith` (theology, divinities, taboos, holy days), `Doctrines`
-(unlockable tenets like *Astrology* — speeds ship travel — or *Iconoclasm*), clergy
-hierarchy, and stances against other faiths (`Tolerated`, `Untolerated`, `Hostile`).
-
-Heroes have a piety stat. Taking a settlement from a different faith, or sacking a
-holy site, modifies notable relations (see `BKRelationsBehavior`).
-
-Behavior: `BKReligionsBehavior.cs`. Conversion, blessings, and rite resolution live
-here.
-
-### 4.4 Education & Lifestyles (`Managers/Education/`)
-`EducationData` per hero tracks:
-- **Languages** known/learning (`DefaultLanguages` — includes `Nordic` for War Sails).
-- **Books** owned/read; books grant skill XP and a small permanent perk.
-- **Scholarship** flag (from perks like ScholarshipMechanic / Accountant /
-  NaturalScientist / Treasurer — all four enable "scholar mode").
-- **Lifestyle** chosen (see below) and progress toward each tier.
-
-A **Lifestyle** is a paired skill specialization (e.g., `Cataphract` ties Riding +
-Polearm) that grants escalating perks at progress thresholds. `BKLifestyleBehavior`
-ticks progress as the hero exercises both linked skills.
-
-`BKEducationBehavior.cs` also runs the **book seller** spawn loop — populates
-`bookSellers` (now null-guarded) so taverns always have a way to acquire books.
-
-### 4.5 Council & Court (`Managers/Court/`)
-Each clan has a `CouncilData` with positions: Marshal, Steward, Chancellor,
-Spymaster, Court Physician (and lower tiers). Filling them costs influence/gold and
-applies stat effects to clan parties or the realm. Kingdom-level councils exist for
-the ruling clan with elevated authority (e.g., royal Marshal).
-
-Behavior: `Behaviours/BKManagerBehavior.cs` and council-decision classes in
-`Managers/Kingdoms/Council/`.
-
-### 4.6 Estates (`Components/EstateComponent.cs`, `Managers/Populations/Estates/`)
-Estates are sub-properties inside a village owned by clans. They hold tenants
-(serfs/slaves), produce food and gold, and can be inherited, sold, or seized.
-`EstateComponent` is the `MobilePartyComponent` for the auto-managed estate parties
-that move between fields and the manor.
-
-UI: `UI/Estates/`.
-
-### 4.7 Diplomacy & Groups (`Behaviours/Diplomacy/`)
-Two layers:
-- **Kingdom diplomacy** — `KingdomDiplomacy.cs` extends vanilla war/peace with
-  alliances, vassalages, and CB-style war justifications.
-- **Interest groups & demands** — `Groups/` hosts factional sub-clusters within a
-  kingdom (radicals, moderates, claimants). They issue **demands** that, if
-  unaddressed, escalate to grievances or rebellion. Demand types:
-  `ClaimantDemand`, `CouncilPositionDemand`, `PolicyChangeDemand`, `SecessionDemand`,
-  `TitleDemand`.
-
-### 4.8 Goals (`Managers/Goals/`)
-A planning layer for AI clans/kingdoms. Each `Goal` has `IsAvailable`, a cost, and
-side effects. `KingdomGoal` and `EmpireGoal` are higher-tier strategic goals.
-`GoalManager` schedules evaluation per clan tick.
-
-### 4.9 Mercenary contracts (`Behaviours/Mercenary/`)
-`CustomTroop` lets the player design a custom mercenary unit — culture, equipment
-roster, skills, formation class. Heavy reflection into vanilla `BasicCharacterObject`
-(now field-cached for perf). Contracts have hire price, daily wage (3× vanilla — by
-design), and a duration; auto-renewal pulls from clan gold.
-
-### 4.10 Shipping (`Managers/Shipping/`, `Behaviours/Shipping/`)
-`DefaultShippingLanes` defines per-culture sea routes between ports. `BKShippingBehavior`
-hosts the player **wait menu** (`bk_shipping_wait`) for sea travel: pay gold → time
-elapses → arrive at destination port (or just outside if besieged). AI caravans
-auto-board when their destination is on a known lane. Astrology doctrine speeds
-travel by ~25%. Disembark logic respects siege state.
-
-### 4.11 Relations (`Behaviours/Relations/`)
-`BKRelationsBehavior` extends the vanilla relation int with `RelationsModifier`s —
-named, dated, optionally expiring contributions ("Support on decision X (+15)").
-Hooks: kingdom decisions, quest completion, daily decay, battle defeats, settlement
-captures (with religion/culture matching for the conqueror's reception by notables).
-
-### 4.12 Criminality (`Behaviours/Criminality/`)
-`DefaultCriminalSentences` defines outcomes for caught criminals (fines, imprisonment,
-execution). `BKBanditBehavior` spawns and manages bandit clans with culture/biome
-preferences.
-
-### 4.13 Gentry, Knighthood, Notables
-Three behaviors layer sub-noble heroes on top of vanilla:
-- `BKGentryBehavior` — minor landed families below clan tier 1, can be sponsored.
-- `BKKnighthoodBehavior` — granting knighthood (creates a vassal tier-1 clan with a
-  fief grant and oath).
-- `BKNotableBehavior` — extends notable progression, retiring, and inheritance.
-
-### 4.14 Lordships, Republics, Coronations
-- `BKLordPropertyBehavior` — tracks personal vs. clan vs. realm property.
-- `BKRepublicBehavior` — alternate constitution (republics elect rulers).
-- `BKCoronationBehavior` — crowning event, bestows authority bonus, affects legitimacy.
+**Sub-mods built against the original Banner Kings are not supported.** This
+specifically includes Cultures Expanded and any mod that derives from the
+original BK release. They will likely crash or behave incorrectly on Redux.
 
 ---
 
-## 5. Patches (Harmony)
+## 3. What's in the mod (high-level)
 
-After the 1.3.x audit only essential patches remain. They live in `Patches/`:
+### Population & economy
 
-- **EconomyPatches** — caravan fixes, garrison auto-recruit cap, loot distribution
-  (`LootDefeatedPartyItems` in 1.3.x).
-- **DiplomacyPatches** — war proposal cost wiring
-  (`GetIsProposingWarEnabledWithReason`).
-- **FixesPatches** — 7 BK-essential vanilla fixes (companions, map screen, name
-  generator, inventory logic, item registration, food consumption). All other
-  legacy fixes were deleted as obsolete in 1.3.x.
-- **NordCompatPatches** — null guards around Nord settlements when War Sails is
-  installed without explicit BK Nord data, plus a clamp on
-  `ItemRosterElement.set_Amount` so vanilla's `WorkshopsCampaignBehavior`
-  doesn't throw on a fresh game when BK's economy seeding leaves market
-  stocks thinner than vanilla expects.
-- **NavalPerkPatches** — reflection-bound Harmony postfixes on War Sails'
-  own `NavalDLC.GameComponents.*` models so the seafaring lifestyle perks
-  (Drakkar Helmsman, Drakkar Raid Master, Sjofarandi Pathfinder/Sea-Eyes,
-  Jomsviking Boarding Fury) take effect on naval scenes and at sea.
-  Targets resolve via `AccessTools.TypeByName` so BK doesn't take a
-  compile-time reference on `NavalDLC.dll`. Each `Prepare()` returns
-  false when the type or method isn't present, so the patches no-op
-  cleanly when War Sails isn't installed.
-- **UIExtenderMixinHierarchyPatch** — walks the VM type hierarchy when
-  UIExtenderEx attaches mixins, so vanilla mixins still attach when
-  NavalDLC subclasses the target VM (`NavalKingdomManagementVM` etc.).
-  Without this, BK's kingdom-screen and map-bar mixins silently fail
-  to attach on a War Sails install.
-- **`Patches.cs`** — top-level misc patches (Hero render, etc.).
+Every settlement carries a population data block: nobles, craftsmen, serfs,
+slaves, tenants. Classes interact with each other (serfs can become craftsmen
+where there's housing demand; slaves can be freed into serfs by law; craftsmen
+can become gentry over time) and respond to policies you set per fief.
 
-Reflection-heavy hot paths cache `FieldInfo` / `MethodInfo` / `PropertyInfo`
-statically (see `BKSettlementBehavior`, `BKSkillBehavior`, `UIManager`,
-`CustomTroop`, `BKReligionsBehavior`).
+### Titles, vassalage, and contracts
 
----
+Titles are inheritable by clan tree, can be claimed and pressed in war, and
+each carries a feudal contract — government type, succession rule, gender law,
+and a stack of demesne laws (slavery, draft, tenancy, council appointment, army
+type). Vassals are bound per-title rather than per-kingdom: you can hold a
+county under one duke and a barony under another.
 
-## 6. Models (`Models/Vanilla/`)
+### Religion
 
-BK overrides ~30 vanilla `GameModel`s. Notable ones:
+Heroes belong to a faith. Faiths have doctrines (some active, some passive),
+divinities, and rites. Piety accrues from skill use and observance, and is
+spent on rites and conversion. Settlements have dominant and minority faiths;
+clergy spawn, preach, and shift adherent counts over time. Stances between
+faiths (`Tolerated`, `Untolerated`, `Hostile`) drive marriage rules,
+conversion costs, and casus belli.
 
-| Model | What it changes |
-|---|---|
-| `BKClanFinanceModel` | Folds estate income, mercenary wages, council costs into clan budget |
-| `BKPartyWageModel` | Custom merc wage = 3× vanilla; council Marshal reduces wage |
-| `BKBattleRewardModel` | Slave capture, religious morale, estate-tied loot share |
-| `BKEconomyModel` | Population-driven prosperity & demand instead of vanilla curve |
-| `BKMarriageModel` | Title-aware compatibility, dowries, claim transfer |
-| `BKLearningModel` | Education & lifestyle XP multipliers |
-| `BKDiplomacyModel` | War/peace scoring includes title pressure & faith stance |
-| `BKMilitiaModel` / `BKGarrisonModel` | Population class drives militia comp |
-| `BKVillageProductionModel` | Estate output, climate, religion bonuses |
+### Education
 
-When an override's base method was removed in 1.3.x the override was deleted, never
-left as a no-op.
+Each hero has a language pool, a book they're currently reading, and a chosen
+lifestyle. Lifestyles are paired-skill specializations (Bow + Athletics for
+Fian, Riding + Polearm for Cataphract, etc.) that grant escalating perks at
+progress thresholds. Books grant skill XP and minor passive effects.
 
----
+### Estates
 
-## 7. UI (`UI/`)
+A village contains slots that clans can buy as estates. Each estate has
+tenants, food/gold output, and an inheritance line. You can hold multiple
+estates across multiple villages. Estates pass on owner death via the estate
+contract's inheritance rule — independently of fief succession.
 
-Gauntlet-driven. Top-level entry: `BannerKingsScreen.cs` (full-screen mod menu).
-Tabs in `UI/VanillaTabs/`:
-- **TownManagement** — population, garrison, buildings, estates per settlement.
-- **Kingdoms** — diplomacy, councils, peerage, demesne laws, succession.
-- **Character** — religion, education, lifestyle, courtiers.
-- **Court** — clan officers, oaths.
-- **Cultures** — culture deep-dive, traits, languages.
-- **Crafting** — extra materials and armor crafting extensions.
+### Council and court
 
-Notifications & cutscenes live in `UI/Notifications/` and `UI/Cutscenes/`
-(empire-founding scene, coronations).
+Each clan can appoint officers — Marshal (military), Steward (economy),
+Chancellor (diplomacy), Spymaster (intrigue), Court Physician (health). Each
+position costs influence/gold to fill and has tier-by-tier effects. Kingdoms
+also have a kingdom-level council available to the ruling clan.
 
----
+### Diplomacy, demands, and interest groups
 
-## 8. War Sails / Nord integration
+Within each kingdom, sub-factions (interest groups — radicals, moderates,
+zealots, traders, etc.) issue demands: claimant pressure, council positions,
+policy changes, secession, title transfers. Refusing a demand raises grievance.
+Hitting max grievance triggers escalation: defection, secession war, or an
+uprising depending on the group.
 
-Native, not a separate sub-mod. Touch points:
-- `_Module/ModuleData/titles.xml` and `nord_titles.xml` — Nordic title hierarchy.
-- `Managers/Titles/Succession/DefaultSuccessions.cs` — Nord succession rules
-  (typically agnatic seniority).
-- `Managers/Education/Languages/DefaultLanguages.cs` — `Nordic` language entry.
-- `Patches/NordCompatPatches.cs` — null guards: if Nord settlement has no BK data
-  yet, return safe defaults instead of crashing.
-- `Patches/NavalPerkPatches.cs` — Harmony hooks into `NavalDLC.GameComponents.*`
-  so the seafaring lifestyle perks have real naval effects (party speed at sea,
-  spotting range at sea, naval raid hit damage, melee damage on naval missions).
-- `Patches/UIExtenderMixinHierarchyPatch.cs` — fixes UIExtenderEx mixin
-  attachment when NavalDLC subclasses the target VM.
-- `Managers/Education/Lifestyles/DefaultLifestyles.cs` — three Nord-restricted
-  seafaring lifestyles (`Jomsviking`, `Drakkar Captain`, `Sjofarandi`) registered
-  via `AddObject(...)` only when `ModCompat.WarSails` is true and the Nord
-  culture object exists. Their nine perks live under the **Seafaring** region of
-  `Managers/Skills/BKPerks.cs`.
-- `Utils/ModCompat.cs` — `ModCompat.WarSails` (module id `NavalDLC`, assembly
-  name `NavalDLC`) is the single source of truth for "is War Sails loaded?"
-  used everywhere the Naval-specific code paths gate on the DLC.
-- Works with **and without** the War Sails DLC installed. All Nord/seafaring
-  content is gated so it adds nothing when the DLC is absent.
+### Shipping & travel
+
+Caravans and parties auto-board ships at known shipping lanes. Sea travel
+takes real time and is faster under specific doctrines (Astrology) or
+seafaring perks (Drakkar Helmsman).
+
+### Goals
+
+Long-running goals frame the late game: found a culture-specific empire, restore
+a deposed dynasty, complete a faith's foundation rite, reach a population
+benchmark, or build the largest mercantile network.
+
+### Raiding, slavery, and Nord economy *(War Sails)*
+
+The Nords lean hard into the raid-economy loop. The Nordic Thrall Law applies
+automatically to Nord realms and amplifies slave demand by 80%, making Nord
+ports the most profitable place in Calradia to sell prisoners as slaves. Nord
+towns run slave caravans regardless of policy. Combined with the Drakkar
+Captain lifestyle, raiding and selling becomes a viable Nord economic build.
 
 ---
 
-## 9. Settings & cheats
+## 4. First 30 minutes — what should I do?
 
-- `Settings/` — MCM-driven feature toggles (turn off religions, estates, etc.).
-- `BannerKingsCheats.cs` — debug commands prefixed `bk_*` (grant title, set piety,
-  spawn estate, simulate raid, force election, etc.). Disabled in non-dev builds.
+If you've never played BK before, the systems can feel overwhelming. A
+condensed onboarding:
 
----
-
-## 10. Build & dev
-
-```bash
-BANNERLORD_GAME_DIR="C:/Program Files (x86)/Steam/steamapps/common/Mount & Blade II Bannerlord" \
-  dotnet build BannerKings/BannerKings.csproj -c Release
-```
-
-The csproj resolves all game refs from `$(BANNERLORD_GAME_DIR)`. The module
-ships under the **`BannerKings.Redux`** id/folder; an explicit `DeployReduxBin`
-MSBuild target force-copies the build output to
-`Modules/BannerKings.Redux/bin/Win64_Shipping_Client/` because the
-`Bannerlord.BuildResources` NuGet auto-deploys to a path derived from the
-project file name (`Modules/BannerKings/`) and ignores `<OutputPath>` /
-`<ModuleId>` overrides.
-
-Release packaging:
-
-```bash
-BANNERLORD_GAME_DIR="..." scripts/package-release.sh
-```
-
-produces `dist/BannerKings.Redux-<version>.zip` whose top-level folder is
-`BannerKings.Redux/`, ready to drop into NexusMods.
-
-Build is currently clean (0 errors). The remaining ~149 BHA0001 warnings are
-analyzer false positives — verified against the actual 1.3.x DLLs with Mono.Cecil.
+1. **Pick a starting culture you want to commit to.** Some lifestyles, laws,
+   and opportunities are culture-locked. Vlandian → Ritter / feudal lord
+   ergonomics. Battanian → Fian / woodland skirmisher. Aserai → Jawwal /
+   slave economy. Nord → seafaring + raid-economy build *(War Sails only)*.
+2. **Pick a lifestyle on the BK Education tab.** It locks once chosen, so
+   read each one's bonuses (the picker tooltip now shows them at the top).
+   Skill values matter: you need at least 15 in each of the lifestyle's two
+   skills to start.
+3. **Visit a tavern in any cultural capital and find the book seller.** Buy
+   one book in a language you understand. Books grant slow skill XP that
+   accumulates while you carry them.
+4. **Don't ignore your faith.** Talk to a clergyman in a tavern or capital
+   and let your hero be inducted. Piety is a real currency in BK and starts
+   accumulating immediately.
+5. **Skip estates until you have a clan tier 2.** They're expensive and take
+   time to pay off. Start with a workshop in an active town; the income is
+   immediate and reliable.
+6. **Vassalize before founding a kingdom.** A barony under an existing king
+   is a stable platform to grow the clan and learn the contract system. Going
+   independent too early is a brutal multifront war.
 
 ---
 
-## 11. Common gotchas
+## 5. Glossary — the words that come up constantly
 
-- **Don't call manager properties before `OnGameStart`** — they lazy-init only on
-  access; some early hooks may fire pre-init. Use the lazy-init guard, not a
-  null check.
-- **`OnHeirSelectionOver` signature changed in 1.3.x** — takes `Hero selectedHeir`,
-  not `List<InquiryElement>`. Old patches will silently no-op.
-- **`InitializeLordPartyProperties` is gone in 1.3.x** — the patch was removed,
-  not retargeted.
-- **Reflection hot paths are cached** — when adding new reflection, follow the
-  `private static readonly FieldInfo X = AccessTools.Field(...)` pattern to avoid
-  per-tick cost. `Hero.Name` and per-hero loops are the worst offenders.
-- **Perk values** — vanilla `EffectIncrementType.AddFactor` takes a *fraction*
-  (`0.05f` = +5%). Whole-number values are a 100× balance bug. All BK perks were
-  audited and corrected.
-- **Lifestyle scholarship gate** — requires *any* of ScholarshipMechanic /
-  Accountant / NaturalScientist / Treasurer. Earlier code had four duplicate
-  ScholarshipMechanic checks; fixed.
+These are the terms most likely to trip up new players.
 
----
-
-## 12. Where things live — quick lookup
-
-| Question | File |
-|---|---|
-| How is a hero's title decided when they die? | `BKTitleBehavior.cs::OnHeirSelectionOver` + `FeudalTitle.Succession` |
-| Where do religion stances apply? | `BKRelationsBehavior.cs::OnSettlementOwnerChanged` |
-| Where is sea travel time calculated? | `BKShippingBehavior.cs::CalculateArrival` |
-| How do interest groups raise demands? | `Behaviours/Diplomacy/Groups/Demands/*.cs` |
-| Where is council position cost? | `Models/Vanilla/BK*` + `Managers/Court/CourtManager.cs` |
-| How do estates produce income? | `Components/EstateComponent.cs` + `BKVillageProductionModel.cs` |
-| Where is the book seller spawn loop? | `BKEducationBehavior.cs` (null-guarded) |
-| Custom merc unit creation flow | `Behaviours/Mercenary/CustomTroop.cs` |
-
----
-
-## 13. Glossary
-
-Terms that come up constantly and trip up new players.
-
-- **De jure** — the *legal* owner of a title (held by the bearer's clan tree even
-  if their kingdom doesn't physically control the fief). Inherited via
-  `FeudalContract.Inheritance`.
+- **De jure** — the *legal* owner of a title (held by the bearer's clan tree
+  even if their kingdom doesn't physically control the fief).
 - **De facto** — the *actual* current controller, derived from settlement
   ownership. A hero can hold a title de jure while another holds it de facto;
   this is a casus belli.
 - **Demesne** — the personal fiefs and estates a clan directly administers
   (vs. fiefs held by sub-vassals in the same title tree).
-- **Vassal** — a clan that has sworn to a liege. In BK, vassalage is per-title
-  not per-kingdom: you can hold a county under one duke and a barony under
-  another.
+- **Vassal** — a clan that has sworn to a liege. In BK, vassalage is
+  per-title, not per-kingdom: you can hold a county under one duke and a
+  barony under another.
 - **Liege** — the higher-tier title-holder you are sworn to.
-- **Contract** — the bundle of laws on a title (`FeudalContract`): government
-  type, succession rule, gender law, inheritance, plus 0–N demesne laws.
+- **Contract** — the bundle of laws on a title: government type, succession
+  rule, gender law, inheritance, plus 0–N demesne laws.
 - **Demesne law** — toggleable rule on a title (e.g., *Slave Trade Allowed*,
-  *Imperial Coronation Required*). Defined in `DefaultDemesneLaws.cs`.
-- **Government** — Imperial / Feudal / Tribal / Republic / Theocratic. Affects
-  vassal limits, taxation cap, and which decisions are available.
-- **Succession** — Hereditary Monarchy / Elective Monarchy / Republican Election
-  / Theocratic. Determines how the title passes on holder death.
-- **Gender law** — Agnatic (male only), Cognatic (eldest regardless of gender),
-  Agnatic-Cognatic (male-preferred), Enatic (female only).
+  *Imperial Coronation Required*). Each is voted on by vassals.
+- **Government** — Imperial / Feudal / Tribal / Republic / Theocratic.
+  Affects vassal limits, taxation cap, and which decisions are available.
+- **Succession** — Hereditary Monarchy / Elective Monarchy / Republican
+  Election / Theocratic. Determines how the title passes on holder death.
+- **Gender law** — Agnatic (male only), Cognatic (eldest regardless of
+  gender), Agnatic-Cognatic (male-preferred), Enatic (female only).
 - **Piety** — religious-stat counterpart to influence. Spent on rites,
-  blessings, conversions; gained from prayer, sacrifices, holy-day observance.
-- **Fervor** — a faith's strength as a campaign-wide pool (driven by adherent
-  count, holy site control, doctrines).
+  blessings, and conversions; gained from prayer, sacrifices, and observance.
+- **Fervor** — a faith's strength as a campaign-wide pool, driven by adherent
+  count, holy site control, and active doctrines.
 - **Stance** — one religion's attitude toward another: `Tolerated`,
-  `Untolerated`, `Hostile`. Affects relations, conversion costs, war justification.
+  `Untolerated`, `Hostile`. Affects relations, conversion costs, and
+  whether war can be declared on faith grounds.
 - **Doctrine** — an unlockable, sometimes mutually exclusive tenet of a faith
-  (e.g., *Astrology* boosts ship speed; *Reavers* enables raid bonuses).
+  (e.g., *Astrology* boosts ship speed; *Reavers* awards piety from raids).
 - **Lifestyle** — paired-skill specialization gating perks (Cataphract =
-  Riding+Polearm, Outlaw = Roguery+Crossbow, etc.). Tracked in `EducationData`.
+  Riding+Polearm, Outlaw = Roguery+Crossbow, etc.).
 - **Scholarship** — flag set when a hero has any of four research perks
   (ScholarshipMechanic / Accountant / NaturalScientist / Treasurer). Required
   to enter the Scholar lifestyle.
 - **Notable** — a non-noble settlement personality (Rural Notable, Headman,
-  Gang Leader, Preacher, Merchant). Drives recruitment, quests, prosperity.
+  Gang Leader, Preacher, Merchant). Drives recruitment, quests, and
+  prosperity.
 - **Gentry** — minor landed family, below clan tier 1. Often a notable's
   promoted relatives. Can be sponsored into a vassal clan.
 - **Knight (BK sense)** — a hero granted knighthood by a clan, becoming a
-  tier-1 vassal clan with a fief grant and oath. Distinct from vanilla "knight"
-  troop tier.
-- **Estate** — a sub-property inside a village owned by a clan, with tenants,
-  food/gold output, and an inheritance line. Clans can hold multiple per village.
+  tier-1 vassal clan with a fief grant and an oath. Distinct from the
+  vanilla "knight" troop tier.
+- **Estate** — a sub-property inside a village owned by a clan, with
+  tenants, food/gold output, and an inheritance line.
 - **Council** — clan-level officer board: Marshal, Steward, Chancellor,
-  Spymaster, Court Physician. Each costs influence/gold and grants stat effects.
-- **Peerage** — kingdom-level political tier (Full Peer / Partial Peer /
-  No Peer). Determines voting rights on kingdom decisions and policy changes.
+  Spymaster, Court Physician.
+- **Peerage** — kingdom-level political tier (Full Peer / Partial Peer / No
+  Peer). Determines voting rights on kingdom decisions.
 - **Interest group** — sub-faction within a kingdom (radicals, moderates,
   zealots, traders). Issues demands; can defect.
-- **Demand** — formal pressure from an interest group: `ClaimantDemand`,
-  `CouncilPositionDemand`, `PolicyChangeDemand`, `SecessionDemand`, `TitleDemand`.
-- **Claim** — a hero's pressed right to a title, aging into a justified war
-  basis. Resolved at `BKTitleBehavior` succession ticks.
+- **Demand** — formal pressure from an interest group: claimant, council
+  position, policy change, secession, title transfer.
+- **Claim** — a hero's pressed right to a title, justifying war.
 - **Custom troop** — player-designed mercenary unit (culture, equipment,
-  skills, formation). 3× vanilla wage by design.
+  skills, formation). Costs roughly 3× vanilla wage by design.
 
 ---
 
-## 14. Major content registries
+## 6. Lifestyles, doctrines, laws, policies
 
-These `Default*` classes are the canonical content lists. If a player asks
-"what lifestyles exist" or "what doctrines exist", point them here.
+### Lifestyles
 
-### Lifestyles (`Managers/Education/Lifestyles/DefaultLifestyles.cs`)
+Pick one on the BK Education tab. Each has two linked skills; you must reach
+at least 15 in both to adopt it. Both skills must be exercised — only the
+*lower* skill contributes to progress per tick.
 
-Active ones (have full perk trees and skill-progression hooks):
+**Core lifestyles** (always available):
 
 | Lifestyle | Skills | Theme |
 |---|---|---|
@@ -472,38 +294,29 @@ Active ones (have full perk trees and skill-progression hooks):
 | Jawwal | Throwing + Riding | Aserai light cavalry |
 | Commander | Leadership + Tactics | Battlefield commander |
 
-War Sails-gated (only registered when the NavalDLC module is loaded *and* the
-Nord culture exists; perks defined under the **Seafaring** region of
-`Managers/Skills/BKPerks.cs`):
+**Nord seafaring lifestyles** *(War Sails only, Nord culture only)*:
 
-| Lifestyle | Skills | Theme | Naval-specific patches |
+| Lifestyle | Skills | Theme | Naval-specific bonuses |
 |---|---|---|---|
 | Jomsviking | Two-Handed + Athletics | Nord shieldwall warrior | Boarding Fury → +6% melee damage on naval missions |
 | Drakkar Captain | Leadership + Tactics | Sea-going war-band leader | Helmsman → +4% party speed at sea; Raid Master → +12% raid hit damage on naval raids |
 | Sjofarandi | Bow + Scouting | Coastal pathfinder/scout | Pathfinder + Sea-Eyes → +12%/+8% spotting range at sea |
 
-Each seafaring lifestyle ships with three real `PerkObject` perks; the perks
-not listed in the "Naval-specific patches" column rely on vanilla effect slots
-(party speed, scouting range, melee/bow damage, morale ceiling, party size)
-that already apply on naval scenes without bespoke patching.
+The lifestyle picker shows each lifestyle's bonuses, perks, and lore in the
+hover tooltip. Bonuses appear at the top so you can see them even on
+lifestyles you don't yet qualify for.
 
-The lifestyle picker (`UI/VanillaTabs/Character/Education/EducationVM.cs::SelectLifestyle`)
-shows each lifestyle's bonuses, perk list, and lore description in the hover
-tooltip, with bonuses always at the top so they remain visible on locked
-entries even when vanilla truncates long disabled-entry tooltips.
+### Doctrines (a sample)
 
-Orphaned (declared but no perk wiring): `Courtier`, `Scholar`, `Diplomat`.
-
-### Doctrines (`Managers/Institutions/Religions/Doctrines/DefaultDoctrines.cs`)
-
-Selected high-impact ones:
+Doctrines are tenets of a faith. Some are passive (constant effects), some are
+active (votable, mutually exclusive). Selected high-impact ones:
 
 | Doctrine | Effect |
 |---|---|
-| Astrology | Sea travel ~25% faster (read by `BKShippingBehavior`) |
+| Astrology | Sea travel ~25% faster |
 | Tolerant | Reduces hostile-stance penalties; eases conversion |
 | Esotericism | Bonus to scholar lifestyle XP, hidden rites |
-| Reavers | Raid output and morale bonus |
+| Reavers | Raid output and morale bonus; piety from raiding |
 | Warlike | Combat XP and morale boosts |
 | Pacifism | Morale penalty in offensive war, peace influence boost |
 | Sacrifice | Human sacrifice rite; piety surge, relation hits |
@@ -512,87 +325,86 @@ Selected high-impact ones:
 | Pastoralism | Herd animal bonuses in villages |
 | Druidism / Animism | Tribal-only nature worship doctrines |
 
-### Faiths and religions
+### Demesne laws
 
-Faiths and religions are loaded from XML (`_Module/ModuleData/`) and registered
-through `DefaultFaiths.ModAdditions` rather than hard-coded. Faith subtypes:
-`MonotheisticFaith`, `PolytheisticFaith`, `HenotheisticFaith`, `DualisticFaith`.
-Each defines: divinities, taboos, holy days, allowed/forbidden marriages,
-funeral rite, baseline stance map.
+Toggleable on a title's contract. The slavery laws are illustrative:
 
-### Demesne laws (`Managers/Titles/Laws/DefaultDemesneLaws.cs`)
+| Slavery law | Effect |
+|---|---|
+| Standard | Baseline; no modifiers |
+| Vlandic Law | Slave demand −30%; Vlandian prisoners cannot be enslaved |
+| Aseran Law | Slave demand +50%; slaves count as military manpower |
+| Nordic Thrall Law *(Nord-only)* | Slave demand +80%; slaves count as military manpower; Nord ports run slave caravans regardless of policy; no automatic manumission |
+| Manumission | Slave demand reduced to zero — abolitionist law |
 
-Toggleable on a title's `FeudalContract`. Examples: tax exemption tiers,
-slave trade allowed, serfdom intensity, militia draft policy, religious
-tolerance, war booty rules.
+Other law families: drafting (Hidage / Vassalage / Free Contracts), tenancy
+(Full / Mixed / None), council (Appointed / Elected), army type (Private /
+Horde / Legion).
 
-### Government / succession / inheritance (`Managers/Titles/Governments/`)
+### Per-settlement policies
 
-- `DefaultGovernments.cs` — Imperial, Feudal, Tribal, Republic, Theocratic.
-- `DefaultSuccessions.cs` — HereditaryMonarchy, ElectiveMonarchy, Republic, Theocratic.
-- `DefaultInheritances.cs` — Primogeniture, Ultimogeniture, Seniority, ElectiveMonarchy.
-- `DefaultGenderLaws.cs` — Agnatic, Cognatic, AgnaticCognatic, Enatic.
+You set these directly from the BK settlement panel. They take effect daily.
 
-### Policies (`Managers/Policies/`)
-
-Per-settlement player-set toggles:
-
-- `BKTaxPolicy` — Standard / High / Low / Exempted.
-- `BKMilitiaPolicy` — Balanced / Melee / Ranged.
-- `BKDraftPolicy` — Standard / High Draft / No Draft.
-- `BKGarrisonPolicy` — Standard / Reinforce / Disband.
-- `BKWorkforcePolicy` — Construction / Production / Martial.
-- `BKCriminalPolicy` — Lenient / Standard / Strict.
+| Policy | Options |
+|---|---|
+| Tax | Standard / High / Low / Exempted |
+| Militia | Balanced / Melee / Ranged |
+| Draft | Standard / High Draft / No Draft |
+| Garrison | Standard / Reinforce / Disband |
+| Workforce | Construction / Production / Martial |
+| Criminal | Lenient / Standard / Strict |
 
 ---
 
-## 15. Player-facing how-to
+## 7. Player how-to
 
 ### How do I claim a title?
 
-1. Acquire a claim — by inheritance (parent dies and passes it), marriage
-   (spouse's claim transfers per gender law), grant (current holder grants
-   it to you), or fabrication (a council Chancellor of high enough skill can
-   forge a claim over time).
-2. Press the claim — declare war using the claim as casus belli, win, take
-   the fief. Or, if you're already the de facto holder, the claim auto-resolves
-   on the next succession tick.
-3. Be granted — your liege can grant a vacant title of theirs to you for
-   influence + gold.
+You acquire a claim by:
+- **Inheritance** — a parent or relative dies and the claim passes to you.
+- **Marriage** — your spouse's claim transfers per the realm's gender law.
+- **Grant** — the current holder grants the title to you for influence + gold.
+- **Fabrication** — a Chancellor of high enough skill on your council can
+  forge a claim over time.
+
+You **press** a claim by:
+- Declaring war on the holder using the claim as casus belli, winning, and
+  taking the fief.
+- Or, if you're already the de facto holder of the underlying settlements,
+  the claim auto-resolves on the next succession tick.
 
 ### How do I start my own kingdom?
 
 Two BK paths beyond vanilla:
-
-- **Found a culture-specific empire goal** (`Managers/Goals/EmpireGoal.cs`) —
-  hold N counties of one culture, complete the foundation rite, pay the
-  influence cost.
-- **Convert an existing kingdom you took over** — usurp the kingdom-tier
-  title via claim/war/election, then use the council to issue a new contract.
+- **Found a culture-specific empire goal.** Hold N counties of one culture,
+  complete the foundation rite, pay the influence cost.
+- **Convert an existing kingdom you took over.** Usurp the kingdom-tier
+  title via claim, war, or election, then use the council to issue a new
+  contract under your name.
 
 ### How do I become a vassal?
 
 Approach a kingdom's ruler. They'll offer a title (typically a barony or
-county) under their crown. Accepting binds your clan via `FeudalContract`'s
-duties — you owe taxes, levies, and council attendance; you receive military
-protection and trade access.
+county) under their crown. Accepting binds your clan via the contract — you
+owe taxes, levies, and council attendance; you receive military protection
+and trade access.
 
 ### How do religion conversion and rites work?
 
-- **Personal conversion** — visit a clergyman (preacher in tavern, bishop in
-  capital), spend piety + gold, take an oath. Faith change applies on next
-  daily tick.
+- **Personal conversion** — visit a clergyman (preacher in a tavern, bishop
+  in a capital), spend piety + gold, take an oath. Your faith change applies
+  on the next daily tick.
 - **Settlement conversion** — assigned clergy preach over time, raising
-  adherent count; requires the faith to be tolerated by the realm contract
+  adherent count. Requires the faith to be tolerated by the realm contract,
   or the demesne law to permit conversion.
-- **Rites** — listed per faith (`Faiths/Rites/`). Each costs piety, has
-  cooldown, and a triggering condition (battle won, settlement taken, hero
-  married, etc.). Effects range from troop morale to permanent traits.
+- **Rites** — listed per faith. Each costs piety, has a cooldown, and a
+  triggering condition (battle won, settlement taken, hero married, etc.).
+  Effects range from troop morale to permanent traits.
 
 ### How do I get an estate?
 
-- **Buy** — at the village screen, "Manage estates" → purchase the estate
-  from the current owner. Cost scales with land size and tenant count.
+- **Buy** — at the village screen, *Manage estates* → purchase from the
+  current owner. Cost scales with land size and tenant count.
 - **Grant** — your liege can grant you a vacant estate.
 - **Inherit** — passes via the estate's inheritance line on owner death.
 - **Seize** — if a vassal's estate becomes claimable (e.g., owner died
@@ -600,29 +412,27 @@ protection and trade access.
 
 ### How do I hire a custom mercenary unit?
 
-`Behaviours/Mercenary/CustomTroop.cs` flow:
-
 1. Open the BK Mercenary screen.
 2. Pick a culture (sets accent and naming pool).
 3. Pick a formation class (Infantry, Ranged, Cavalry, HorseArcher).
 4. Build the equipment roster from your inventory or purchases.
-5. Pay hire price + ongoing daily wage = 3× vanilla equivalent.
+5. Pay the hire price + ongoing daily wage (≈ 3× vanilla equivalent).
 6. The unit is added to your clan's recruitable pool.
 
 ### How do I appoint council members?
 
-Open the clan/court screen. For each position, you see candidates (skill
-ratings + relation + traits). Picking costs influence and a relation
+Open the clan/court screen. For each position, you see candidates with skill
+ratings, relation, and traits. Picking costs influence and a relation
 adjustment. Demoting also costs influence and applies a relation hit.
-Kingdom-level council (royal Marshal etc.) is only available to the
-ruling clan and uses kingdom influence.
+Kingdom-level council (royal Marshal, etc.) is only available to the ruling
+clan and uses kingdom influence.
 
 ### What does a Marshal actually do?
 
 Reduces party wage costs across the realm, boosts levy size from settlements,
-and slightly improves army cohesion. The exact numbers come from
-`Models/Vanilla/BKPartyWageModel.cs` and the army cohesion model. Marshal
-position gates into council-tier perks.
+and slightly improves army cohesion. Marshal also gates into council-tier
+perks. Verify the wage tooltip breakdown in your party UI to see the live
+modifier.
 
 ### How do I make money?
 
@@ -632,48 +442,69 @@ Ranked roughly by yield per hour of attention:
 2. **Caravans** (vanilla + BK trade modifiers).
 3. **Tournament prize riding** (early game).
 4. **Mercenary contracts** to a wealthy kingdom (mid).
-5. **Raiding** under the *Reavers* doctrine (high relation cost).
-6. **Custom mercenary contracts** sold to AI clans (late, complex).
+5. **Raiding** — strongest with the *Reavers* doctrine and a raid-focused
+   lifestyle (Outlaw, Mercenary, Varyag, Jawwal, Kheshig, Drakkar Captain).
+6. **Selling prisoners as slaves** to high-demand markets (Aserai, and
+   especially Nord ports under the Nordic Thrall Law). 150 gold base per
+   prisoner, with up to ±50% on demand and law multipliers.
+7. **Custom mercenary contracts** sold to AI clans (late, complex).
+
+### Is slave trading and raiding profitable?
+
+Yes, but with caveats:
+
+- **Selling captured prisoners as slaves**: ~150 gold base per prisoner,
+  scaled by local demand. A run of 20 prisoners delivered to a high-demand
+  Nord or Aserai port nets ~3,000 gold instantly.
+- **Holding slaves in your own fief**: ~0.115 gold per slave per day in
+  tax-line income (with the *Slaves Domestic Duties* law). Break-even vs
+  selling takes ~3.6 in-game years.
+- **Conclusion**: sell directly. Holding in your own fief is only better if
+  you specifically want population growth and intend to keep that fief for
+  many in-game years.
+- **Cultural amplifiers matter.** Aserai (`SlaveryAserai`, +50% demand) and
+  Nord (`SlaveryNord`, +80% demand) are the best markets. Vlandian
+  (`SlaveryVlandia`, −30%, no Vlandian enslavement) and Manumission realms
+  are poor markets.
 
 ---
 
-## 16. Per-system FAQ — exact answers
+## 8. Per-system FAQ
 
 ### Population
 
 **Q: Why is my settlement losing population?**
-Check `PopulationData` in the settlement UI — common causes: food shortage
-(check granary + village output), high tax policy (drives serfs to flee),
-recent raid (halves growth for ~30 days), failed siege defense, slave
-overrun (slave class cap exceeded triggers riots).
+Common causes: food shortage (check granary + village output), high tax
+policy (drives serfs to flee), recent raid (halves growth for ~30 days),
+failed siege defense, slave overrun (slave class cap exceeded triggers
+riots).
 
 **Q: How do classes transition?**
-Daily ticks in `BKSettlementBehavior` evaluate per-settlement: serfs can
-become craftsmen if there's craftsman housing demand, slaves can be freed
-into serfs by demesne law, craftsmen can be promoted to nobles by the
-gentry pipeline.
+Daily ticks evaluate per settlement: serfs can become craftsmen if there's
+craftsman housing demand, slaves can be freed into serfs by demesne law,
+craftsmen can be promoted to nobles via the gentry pipeline.
 
 **Q: What does "settlement issue" mean?**
-A `PopulationData` issue is a flagged condition (food shortage, slave
-overrun, mood collapse). Resolve it via the relevant policy lever or by
-addressing the underlying cause.
+A flagged condition (food shortage, slave overrun, mood collapse, etc.).
+Resolve it via the relevant policy lever or by addressing the underlying
+cause.
 
 ### Titles
 
 **Q: My heir is the wrong person — why?**
-Inheritance order is decided by `FeudalContract.Inheritance` and
-`GenderLaw`. Primogeniture + Cognatic = eldest child. Primogeniture +
-Agnatic = eldest male; if no males, bypasses to brother before daughter.
-Seniority = oldest living clan member by birth date.
+Inheritance order is decided by the contract's `Inheritance` rule and gender
+law. *Primogeniture + Cognatic* = eldest child. *Primogeniture + Agnatic* =
+eldest male; if no males, bypasses to brother before daughter. *Seniority*
+= oldest living clan member by birth date.
 
 **Q: Can I change a title's contract?**
-Yes — `BKContractChangeDecision` (`Managers/Kingdoms/Contract/`). Costs
-influence, takes time, can be vetoed by vassals via the demand system.
+Yes, via the kingdom decision system. Costs influence, takes time, and can
+be vetoed by vassals via the demand system.
 
 **Q: What's the difference between Empire and Kingdom?**
 Empire (tier 1) is a multi-kingdom super-realm (Western/Northern/Southern
 Empire in vanilla). Kingdom (tier 2) is the realm tier most factions sit at.
-Empire-tier titles unlock at `EmpireGoal` completion.
+Empire-tier titles unlock through the Empire foundation goal.
 
 ### Religion
 
@@ -684,19 +515,19 @@ votes, and conversion progress if any.
 **Q: Can my whole kingdom share one faith?**
 Yes via the kingdom contract's religion clause + active conversion. Settling
 mixed-faith populations under one ruler causes notable relation hits unless
-the doctrine is `Tolerant` or the local stance is `Tolerated`.
+the doctrine is *Tolerant* or the local stance is `Tolerated`.
 
 **Q: What happens if I marry across faiths?**
 Allowed if both faiths' marriage rules permit it. Hostile-stance pairings
 are banned. Tolerated-stance pairings carry a piety penalty for both
-spouses on marriage day.
+spouses on the marriage day.
 
 ### Education
 
 **Q: How do I pick a lifestyle?**
 Character → BK Education tab → Lifestyle dropdown. Locked once chosen until
 that lifestyle is fully completed (5 perk tiers) or a respec rite is
-performed (rare, very expensive).
+performed (rare and very expensive).
 
 **Q: Why is my lifestyle progress so slow?**
 Both linked skills must be exercised — only the *lower* of the two
@@ -704,25 +535,22 @@ contributes per tick. Pure cavalry play barely advances a Cataphract
 because Polearm doesn't tick when you don't melee.
 
 **Q: Where do I get books?**
-Tavern book seller (spawned by `BKEducationBehavior`) or as quest reward.
-A book seller exists in every cultural capital tavern as long as
-`bookSellers.Count >= DesiredSellerCount()`.
+Tavern book sellers (one in every cultural capital tavern) or as quest
+rewards.
 
-**Q: I see "Jomsviking" / "Drakkar Captain" / "Sjofarandi" in the lifestyle
-list — what are those?**
+**Q: I see "Jomsviking" / "Drakkar Captain" / "Sjofarandi" in the
+lifestyle list — what are those?**
 Three Nord-restricted seafaring lifestyles that only appear when both the
-**War Sails (NavalDLC)** module is loaded *and* the Nord culture object exists.
-They have full perk trees like every other BK lifestyle, with the perks
-themed around shieldwall combat (Jomsviking), longship command (Drakkar
-Captain), and coastal scouting (Sjofarandi). Naval-specific bonuses are wired
-through `Patches/NavalPerkPatches.cs` so they actually trigger on War Sails
-scenes; the rest use vanilla effect slots that apply both on land and at sea.
+**War Sails (NavalDLC)** module is loaded *and* the Nord culture exists.
+Jomsviking is a shieldwall infantry build, Drakkar Captain is a longship
+commander, Sjofarandi is a coastal scout/archer. Naval-specific bonuses
+trigger on War Sails sea scenes; the rest apply on land too.
 
-**Q: Why don't I see the bonuses listed when I hover a lifestyle I can't take
-yet?**
+**Q: Why don't I see the bonuses listed when I hover a lifestyle I can't
+take yet?**
 You should — the picker tooltip shows bonuses first, then perks, then lore,
-then any unmet-requirement reasons last. If the bonuses appear cut off, that
-is the vanilla disabled-entry tooltip truncating; the bonus block is always
+then any unmet-requirement reasons last. If they appear cut off, that's
+vanilla truncating long disabled-entry tooltips; the bonus block is always
 the first thing in the string so it survives the truncation.
 
 ### Diplomacy & demands
@@ -734,205 +562,248 @@ group type.
 
 **Q: What's "support on decision" relation?**
 When you side with a clan in a kingdom decision, they gain a relation
-modifier with you (+8 to +25 by support strength) for 5 years
-(`BKRelationsBehavior::OnKingdomDecisionConcluded`).
+modifier with you (+8 to +25 by support strength) for 5 years.
 
 ### Shipping & travel
 
 **Q: My caravan went on a ship — bug?**
-No — `BKShippingBehavior::AfterSettlementEntered` auto-boards caravans whose
-destination is on a known shipping lane. Unboard via the caravan menu in
-that port.
+No — caravans whose destination is on a known shipping lane auto-board.
+Unboard via the caravan menu in that port.
 
 **Q: Why is my ship taking forever?**
-Travel time = distance / 75 (or /60 with the *Astrology* doctrine). Distances
-on the campaign map are large; cross-Calradia trips take 4–6 days.
+Travel time is distance / 75 (or distance / 60 with the *Astrology*
+doctrine, faster again under the Drakkar Helmsman perk). Cross-Calradia
+trips take 4–6 days.
 
 ### Mercenaries & combat
 
 **Q: Custom troop daily wage seems insane.**
-By design, 3× vanilla. The hire price is also higher. They're meant to be
+By design, ≈ 3× vanilla. The hire price is also higher. They're meant to be
 elite fillers, not core army composition.
 
 **Q: Where do BK perks apply?**
-Most BK perks use vanilla `EffectIncrementType.AddFactor` — applied at
-model evaluation time wherever vanilla reads the same skill effect. After
-the 1.3.x balance pass, no whole-number perk values remain.
+At model evaluation time wherever vanilla reads the same skill effect. The
+seafaring perks specifically also hook into War Sails' naval game models.
+
+### Slavery & raiding *(Nord-flavoured paths)*
+
+**Q: Where do I sell prisoners as slaves?**
+Any town accepts prisoners via the standard prisoner-ransom UI. With the
+*Enslavement* criminal policy active, the gold paid switches from vanilla
+ransom to BK's slave-price calculation. Nord ports under the Nordic Thrall
+Law pay the most (≈ +80% demand), Aserai second (+50%).
+
+**Q: How do slave caravans work?**
+AI-only feature. Towns with enough surplus slaves and the *Slave Export*
+decision enacted dispatch caravans that move 0.5% of the slave population
+per day. Nord towns run these caravans automatically regardless of the
+decision (Nordic Thrall Law overrides the gate).
+
+**Q: How do I free slaves in my realm?**
+Enact the *Manumission* demesne law. It drives slave demand to zero, and
+the population balance code converts excess slaves to serfs over time.
 
 ---
 
-## 17. Edge cases & frequent confusions
+## 9. Edge cases & frequent confusions
 
-- **"My title disappeared"** — usually inherited by an heir on death you
+- **"My title disappeared"** — usually inherited by an heir on a death you
   didn't notice, or absorbed into a higher-tier title via succession. Check
-  `BKTitleBehavior` event log in the encyclopedia → titles tab.
-- **"BK menu is empty"** — feature was disabled in the MCM `Settings/`
-  options. Re-enable and reload save.
-- **"Crash on entering Nord settlement"** — only on pre-fix builds. The fork
-  ships `Patches/NordCompatPatches.cs` to null-guard. Update the mod.
-- **"My lifestyle locked at scholar"** — the Scholar lifestyle requires the
-  scholarship gate (any of ScholarshipMechanic/Accountant/NaturalScientist
-  /Treasurer). Without it, progress doesn't tick.
-- **"Council Marshal didn't reduce wages"** — reduction is multiplicative on
-  `BKPartyWageModel`. Other modifiers (custom troop, doctrine) can dominate.
-  Check the wage tooltip breakdown in the party UI.
-- **"Estate showing zero income"** — daily ticks accumulate; income posts
-  weekly. Or the estate has no tenants — check `EstateComponent` data.
+  the title event log in the encyclopedia → titles tab.
+- **"BK menu is empty"** — the feature was disabled in the MCM settings.
+  Re-enable and reload the save.
+- **"Crash on entering a Nord settlement"** — only on pre-fix or
+  non-Redux builds. Update to the latest Banner Kings — Redux release;
+  the Nord null-guards are bundled.
+- **"My lifestyle locked at Scholar"** — Scholar requires the scholarship
+  gate (any of ScholarshipMechanic, Accountant, NaturalScientist, Treasurer).
+  Without it, progress doesn't tick.
+- **"Council Marshal didn't reduce wages"** — the reduction is
+  multiplicative; other modifiers (custom troop, doctrine, mercenary status)
+  can dominate. Check the wage tooltip breakdown in the party UI.
+- **"Estate showing zero income"** — daily ticks accumulate but income posts
+  weekly. Or the estate has no tenants — check the estate panel.
 - **"Religion fervor dropping every day"** — fervor decays without active
-  rites and adherent growth. Run the holy-day rite or take an *active*
-  doctrine.
-- **"Can't change demesne law"** — locked behind contract change cooldown
-  (~1 in-game year) and minimum loyalty / authority gates.
+  rites and adherent growth. Run the holy-day rite or take an active doctrine.
+- **"Can't change demesne law"** — locked behind a contract-change cooldown
+  (≈ 1 in-game year) and minimum loyalty / authority gates.
+- **"My new game crashes during loading"** — almost always a non-BK mod's
+  Harmony patch failing (e.g., GovernorsHandleIssues against newer
+  Bannerlord builds). Check `Crashes/mostrecentcrash.htm`; the inner
+  exception will name the mod.
 
 ---
 
-## 18. Cross-mod compatibility
+## 10. Mod compatibility
 
-- **War Sails / NavalDLC** — natively supported. Nord titles, succession,
-  language, null guards all built in.
-- **Diplomacy mod** — overlapping kingdom-decision systems. BK's
-  `KingdomDiplomacy` adds layers; usually compatible, but `Diplomacy`'s
-  custom alliance UI shows alongside BK's.
-- **Custom Spawns / Calradia at War** — compatible; BK doesn't touch
-  spawn templates.
-- **Realistic Battle Mod** — combat-side compat fine. RBM's damage model
-  doesn't conflict with BK's economy/title overlay.
-- **Banner Color Persistence / cosmetic mods** — no interaction.
-- **Stand-alone mods that override `XxxModel`** — last-loaded-wins. Load BK
-  *after* combat overhaul mods if you want BK's economy/wage models to apply.
+Banner Kings detects other mods at startup and yields its overlapping
+features to them where appropriate. The detection is automatic; no
+configuration needed.
 
----
-
-## 19. Save game safety
-
-- Saves are version-tagged. Loading a save from an older BK build runs
-  `SaveDefiner` migration where defined; otherwise old fields keep their
-  values and new fields lazy-init.
-- Removing BK from an active save is **not** safe — references to BK objects
-  (titles, estates, custom troops) become orphaned.
-- Updating BK on an active save is generally safe within a minor version.
-  Major versions (e.g., 1.2 → 1.3 fork) may require restart.
-
----
-
-## 20. Reporting issues
-
-For a useful crash/issue report include:
-
-1. `Crashes/mostrecentcrash.htm` (game-generated) — full stack and module list.
-2. `rgl_log.txt` (last few hundred lines) — BK warns are tagged `[BK]`.
-3. Save file name, BK version, and War Sails on/off.
-4. Steps to reproduce, ideally from a fresh save.
-
-Common report-killers (don't bother reporting these — known and excluded):
-
-- "BUTR Harmony analyzer warnings" — 149 false positives, verified.
-- "Compile warnings about obsolete types" — 1.3.x deprecations not yet
-  removed, harmless.
-
----
-
-## 21. Mod compatibility (the in-depth answer)
-
-§18 above is the short version. This section is what the RAG bot should
-quote when players ask "does BK work with X?".
-
-### 21.1 How BK detects other mods
-
-`BannerKings/Utils/ModCompat.cs` exposes one method and a small set of
-properties:
-
-```csharp
-ModCompat.IsLoaded(string moduleId, string assemblyName = null)
-ModCompat.DiplomacyMod
-ModCompat.ImprovedGarrisons
-ModCompat.RecruitEverywhere
-ModCompat.MarryAnyone
-ModCompat.BuyLandAtVillages
-ModCompat.RealisticBattleMod
-```
-
-Detection tries `TaleWorlds.ModuleManager.ModuleInfo.GetModules()` (via
-reflection so missing API surfaces don't crash BK), then falls back to
-scanning `AppDomain.CurrentDomain.GetAssemblies()`. Results are cached.
-Cost is a single dictionary hit per check after the first call.
-
-### 21.2 What BK skips when each mod is present
-
-| Mod | What BK yields |
+| Mod | Behaviour |
 |---|---|
-| **Diplomacy** | (1) Skips registering `BKDiplomacyModel` in `Main.cs::OnGameStart` so Diplomacy's diplomacy model wins. (2) Patches on `KingdomDiplomacyVM` (`CalculateWarSupport`, `GetIsProposingWarEnabledWithReason`, `OnDeclareWar`) become no-ops, returning `true` from the prefix to let vanilla / Diplomacy's flow run. (3) `ConsiderWar` prefix on `KingdomDecisionProposalBehavior` lets vanilla through. BK still tracks its own pacts/casus belli internally for title/claim logic, just doesn't compete for the kingdom-decision UI. |
-| **ImprovedGarrisons** | Skips the `UpdateClanSettlementAutoRecruitment` prefix on `ClanVariablesCampaignBehavior`, so IG can manage `Town.GarrisonAutoRecruitmentIsEnabled` and recruit composition without BK overwriting it. BK's `BKGarrisonModel` is also not registered. The patrol-party feature (`HandleGarrison` / `GarrisonPartyComponent`) still draws troops from the garrison; toggle it off in MCM if you don't want patrols depleting an IG-managed roster. |
-| **RecruitEverywhere** | Skips `RecruitVolunteersFromNotable` prefix and `GetVolunteerTroopsOfHeroForRecruitment` prefix so RE owns volunteer pool semantics. |
-| **MarryAnyone** | Skips registering `BKMarriageModel` so MA's relaxed restrictions apply. BK's title/dowry calculations still run via the config-level model when a marriage actually happens. |
-| **BuyLandAtVillages** | No code skip (BK's estate system is independent). Documented overlap only — both can coexist, but the player can hold both BK estates and BLAV land in the same village, which is confusing. Pick one or the other in practice. |
-| **RealisticBattleMod (RBM)** | No code skip. RBM patches `AgentDamageModel` etc.; load order in `SubModule.xml` is `LoadAfterThis` so RBM wins on combat. BK keeps its campaign-side combat XP / battle reward / battle simulation logic. |
+| **War Sails (NavalDLC)** | Natively supported. Nord titles, succession, language, null guards, naval perk hooks, seafaring lifestyles, Nordic Thrall Law all built in. |
+| **Diplomacy** | BK yields its diplomacy model (war support, war proposal, alliance handling) so Diplomacy's UI runs cleanly. BK still tracks pacts and casus belli internally for title/claim logic. |
+| **Improved Garrisons** | BK skips its garrison auto-recruitment override so IG can manage garrison composition. BK's patrol-party feature (separate from garrison composition) still draws troops from the garrison; toggle it off in MCM if it conflicts. |
+| **Recruit Everywhere** | BK skips its volunteer-recruitment overrides so RE owns the volunteer pool. |
+| **MarryAnyone** | BK skips its marriage model so MA's relaxed rules apply. |
+| **Buy Land at Villages** | Both can coexist; the player can hold both BK estates and BLAV land in the same village, which can be confusing. Pick one or the other in practice. |
+| **Realistic Battle Mod (RBM)** | Full compat. BK's campaign-side combat XP / battle reward / battle simulation logic stays; RBM owns mission-time damage. |
 
-### 21.3 Mods expected to be compatible without code changes
+**Compatible without configuration** — these touch different layers and have
+no overlap with BK:
 
-These touch different layers and have no overlap with BK's domain:
+- RTS Camera / Family Tree / Settlement Icons / Better Time / Realistic Weather
+- Open Source Armory / Saddles / Banner Color Persistence
+- Custom Spawns / Calradia at War (BK's bandit behaviour doesn't override
+  spawn templates)
+- Serve as Soldier (different code path)
+- BetterExceptionWindow / Adjustable Troop Selection
 
-- **RTSCommand** — mission-time camera / agent commands. BK is campaign-time.
-- **Family Tree** — read-only over `Hero` data.
-- **Settlement Icons / Better Time / Realistic Weather** — UI / time / weather only.
-- **Open Source Armory / Saddles / Banner Color Persistence** — items / cosmetic.
-- **Custom Spawns / Calradia at War** — spawn templates; BK's `BKBanditBehavior` doesn't override templates.
-- **Serve as Soldier (SAS)** — soldier-mode flow on a different code path.
-- **BetterExceptionWindow / Adjustable Troop Selection** — error UI / troop picker UI.
+**Compatible but watch for stacking**:
 
-### 21.4 Mods that need manual care
-
-- **Distinguished Service** — both touch `MapEvent` / troop XP. No detected
-  crash, but XP rewards may stack. If you don't want stacked bonuses,
-  disable BK's `BKCombatXpModel` via MCM (added knob if present in your
-  build).
-- **Bannerlord Tweaks** — patches widely; usually fine if loaded after BK.
-  If a tweak silently reverts a BK behavior, it loaded later — check
+- **Distinguished Service** — both touch combat XP. May stack; disable BK's
+  combat XP model in MCM if you don't want the bonus stacked.
+- **Bannerlord Tweaks** — patches widely. Usually fine if loaded after BK.
+  If a tweak silently reverts a BK behaviour, it loaded later — adjust
   launcher order.
-- **Heroes Must Die** — both listen to hero death. BK's `BKTitleBehavior`
-  inheritance may run before HMD's logic; if title succession looks
-  wrong with HMD, set HMD to load after BK.
-- **Calradia Expanded / CE Kingdoms** — adds new factions that need BK
-  title data, same problem as Nords. Currently only Nord null-guards
-  exist (`Patches/NordCompatPatches.cs`). New-faction shims would have
-  to be authored per faction.
-- **Detailed Character Creation** — overlaps with BK's `BKCampaignStartBehavior`
-  patches. Test the prologue thoroughly when both are installed.
+- **Heroes Must Die** — both listen to hero death. If title succession looks
+  wrong with HMD, set HMD to load *after* BK.
+- **Calradia Expanded / CE Kingdoms** — adds new factions that don't have BK
+  title data. Currently only Nord null-guards exist; new factions may crash
+  or load with empty BK data.
+- **Detailed Character Creation** — overlaps with the BK campaign-start hooks.
+  Test the prologue thoroughly when both are installed.
 
-### 21.5 Confirmed incompatible
+**Not compatible**:
 
-Nothing currently. If a mod-vs-BK interaction crashes consistently, file
-an issue with the crash HTM and we'll add either a detection skip or an
-incompatibility entry to `SubModule.xml`.
+- **Sub-mods built against the original Banner Kings** (Cultures Expanded,
+  etc.). They target the upstream BK release and are not compatible with
+  Redux.
 
-### 21.6 Recommended load order
-
-`SubModule.xml` declares `LoadAfterThis` for the well-known cooperators.
-With those hints the BUTR launcher places BK before:
+**Recommended load order** (the launcher will sort this automatically if
+you've enabled all of them):
 
 ```
-BannerKings
-  ↓ (BK loads first, runs its detection)
-Diplomacy / ImprovedGarrisons / RecruitEverywhere / MarryAnyone /
-BuyLandAtVillages / RBMCombat
-  ↓ (these load next; BK has already chosen what to skip)
+Harmony → ButterLib → UIExtenderEx → MCM
+Native → SandBoxCore → SandBox → StoryMode → CustomBattle
+NavalDLC (if installed)
+Banner Kings — Redux
+Diplomacy / Improved Garrisons / Recruit Everywhere / MarryAnyone /
+Buy Land at Villages / RBMCombat / etc.
 Bannerlord Tweaks / cosmetic mods / etc.
 ```
 
-### 21.7 Adding a new compat shim
+---
 
-1. Add the module id and assembly name as constants in `ModCompat.cs`.
-2. Add a convenience property (`public static bool MyMod => IsLoaded(...)`).
-3. Add `if (ModCompat.MyMod) return true;` at the prefix entry of any
-   patch that would compete, or wrap the relevant `AddModel` /
-   `AddBehavior` call in `if (!ModCompat.MyMod) ...` in `Main.cs`.
-4. Add a `<DependedModuleMetadata id="MyMod" order="LoadAfterThis"
-   optional="true" />` line in `SubModule.xml`.
-5. Add a row to §21.2 of this wiki.
+## 11. Save-game safety
+
+- **Saves are version-tagged.** Loading a save from an older Banner Kings
+  Redux build runs a migration where defined; otherwise old fields keep
+  their values and new fields lazy-init to safe defaults.
+- **Removing BK from an active save is not safe.** References to BK objects
+  (titles, estates, custom troops, religion data) become orphaned and the
+  save will corrupt. Once you start a save with BK, keep BK installed for
+  the life of that save.
+- **Updating BK on an active save is generally safe within a minor version**
+  (e.g., v1.5.0 → v1.5.1). Major-version updates (e.g., upstream BK →
+  Redux, or a future v2.x) may require a fresh save.
+- **Switching from upstream Banner Kings to Banner Kings — Redux on an
+  existing save is not supported.** The two are separate modules with
+  separate save data. Start fresh.
 
 ---
 
-*Generated 2026-04-27 from a code survey of the 1.3.x fork. Sections 1–12
-cover code architecture; 13–21 cover gameplay, player questions, and mod
-compatibility, and are the primary RAG retrieval surface for player-facing
-/ask queries. Update when major systems change.*
+## 12. Reporting bugs
+
+A useful crash/issue report includes:
+
+1. `Crashes/mostrecentcrash.htm` (game-generated) — has the full stack trace
+   and the loaded module list. Open it and look at the "Reasons" and
+   "Inner Exception" sections; they often name the offending mod
+   immediately.
+2. The last few hundred lines of `rgl_log.txt` — Banner Kings warnings are
+   tagged `[BK]`.
+3. Save file name, Banner Kings — Redux version (visible on the main menu),
+   and whether War Sails / NavalDLC is installed.
+4. Steps to reproduce, ideally from a fresh save.
+
+**Don't bother reporting** these — they're known and harmless:
+
+- "BUTR Harmony analyzer warnings" in the build log — false positives
+  against the live 1.3.x DLLs.
+- Compile warnings about obsolete types — 1.3.x deprecations not yet
+  fully removed. They don't affect runtime.
+- "GovernorsHandleIssues crashed" — that's a different mod failing to
+  patch a method. Disable it.
+
+Issues for this fork specifically (1.3.x compatibility, War Sails / Nord
+integration, seafaring lifestyles, Nordic Thrall Law) belong on the GitHub
+repo:
+
+**https://github.com/GIO443/bannerlord-banner-kings-redux/issues**
+
+Issues with the original Banner Kings systems (titles, religions, estates,
+council, etc. — anything also present in the original release) are upstream
+BK problems. They'll get fixed in Redux as we encounter them, but the
+underlying design is R-Vaccari's.
+
+---
+
+## 13. Credits & license
+
+**Banner Kings is the work of [R-Vaccari](https://github.com/R-Vaccari) and
+the original Banner Kings contributors.** Every system this wiki describes —
+titles, councils, courts, religions, languages, populations, estates,
+education, succession, the economy rework, the framework underneath — was
+designed and built by them over years of effort. The craft and the vision
+are entirely theirs.
+
+The original author has been **inactive for an extended period**; the
+upstream repository has had no commits in roughly a year, and regulars on
+the original mod's official Discord report no contact with R-Vaccari over
+the same span. With Banner Kings no longer compiling against current
+Bannerlord builds and players asking for a working version, **Banner Kings —
+Redux** was put together as a community maintenance fork.
+
+This fork's contributions on top of the original BK:
+
+- **Bannerlord 1.3.x compatibility port** — fixing all TaleWorlds API
+  breakage from the 1.3.x updates so the mod builds and runs again.
+- **Native War Sails (NavalDLC) integration** — Nord titles, succession,
+  language, three Nord seafaring lifestyles, naval-side perk effects,
+  and the Nordic Thrall Law.
+- **Crash hardening** — null-guards, mixin attachment fixes for NavalDLC's
+  subclassed view models, the ItemRoster underflow clamp, the book-seller
+  iteration fix, and other targeted stability work.
+- **UI polish** — consolidated kingdom-screen tab, lifestyle picker bonus
+  tooltips, Tax/Conquest aspect button rewire, several latent UI bugs fixed.
+
+These are real engineering contributions but they're a thin layer on top of a
+thick original — by line count, less than 2% of the codebase is Redux work.
+**The mod is overwhelmingly R-Vaccari's; we are keeping it running.**
+
+### License posture
+
+The upstream Banner Kings repository declares no license. By default this
+means R-Vaccari retains all rights over the original code. We have not
+received explicit permission from R-Vaccari to fork or redistribute Banner
+Kings, and we do not claim it is BSD- or MIT-licensed.
+
+Banner Kings — Redux is published in good faith as a maintenance fork
+during the upstream project's dormancy, with full credit to the original
+author and an explicit standing offer:
+
+> If R-Vaccari (or any of the original contributors) requests this fork to
+> be taken down, for any reason and at any time, it will be removed
+> immediately, without question, without delay, and without argument.
+
+Thanks also to:
+- The **BUTR team** — Harmony, ButterLib, UIExtenderEx, the Harmony
+  Analyzer. None of this stack works without them.
+- The **MCM / MBOptionScreen** maintainers.
+- **TaleWorlds** for Bannerlord and the War Sails DLC.
+- The **Bannerlord modding community** on Discord and Nexus, whose
+  collective troubleshooting underpins half the workarounds in the codebase.
+
+Banner Kings belongs to R-Vaccari. This fork is borrowed time, gratefully.
