@@ -88,9 +88,41 @@ namespace BannerKings.Behaviours.Shipping
             CampaignEvents.OnGameLoadFinishedEvent.AddNonSerializedListener(this,
                 () =>
                 {
+                    // Rescue any caravan stuck in BK shipping limbo from older
+                    // builds: IsActive=false but no path to FinishTravel (e.g. its
+                    // Travel.Arrival had already passed before TickSailing was
+                    // introduced, or the FinishTravel call no-op'd because of the
+                    // pre-fix ordering bug). Any inactive caravan we find on load
+                    // we drop from the sailing dict and reactivate; vanilla AI
+                    // takes over on the next tick.
+                    List<MobileParty> stuck = null;
                     foreach (var caravan in MobileParty.AllCaravanParties)
                     {
+                        if (caravan == null) continue;
                         caravan.Party.UpdateVisibilityAndInspected(caravan.Position);
+                        if (!caravan.IsActive)
+                        {
+                            stuck ??= new List<MobileParty>();
+                            stuck.Add(caravan);
+                        }
+                    }
+                    if (stuck != null)
+                    {
+                        foreach (var party in stuck)
+                        {
+                            try
+                            {
+                                if (sailing.ContainsKey(party)) sailing.Remove(party);
+                                party.IsActive = true;
+                                party.Ai.EnableAi();
+                                party.IsVisible = true;
+                                party.Party.UpdateVisibilityAndInspected(party.Position);
+                            }
+                            catch
+                            {
+                                // Defensive: never crash on load.
+                            }
+                        }
                     }
                 });
         }
@@ -220,12 +252,16 @@ namespace BannerKings.Behaviours.Shipping
                     GameMenu.ExitToLast();
             }
 
-            if (teleportOutside) travel.Party.Position = travel.Destination.GatePosition;
-            else EnterSettlementAction.ApplyForParty(party, travel.Destination);
-
-            party.Party.UpdateVisibilityAndInspected(party.Position);
+            // Reactivate the party BEFORE calling EnterSettlementAction —
+            // EnterSettlementAction silently no-ops on inactive parties, which
+            // was leaving caravans at their pre-voyage position with IsActive
+            // flipped back on (the "stuck on coast" state players reported).
             party.IsActive = true;
             party.Ai.EnableAi();
+            party.IsVisible = true;
+
+            if (teleportOutside) travel.Party.Position = travel.Destination.GatePosition;
+            else EnterSettlementAction.ApplyForParty(party, travel.Destination);
 
             party.Party.UpdateVisibilityAndInspected(party.Position);
             RemoveParty(travel.Party);
@@ -306,7 +342,13 @@ namespace BannerKings.Behaviours.Shipping
 
                 try
                 {
-                    LeaveSettlementAction.ApplyForParty(party);
+                    // Match vanilla NavalTransitionCampaignBehavior.SetSail exactly:
+                    // call SetSailAtPosition while the party is still in the
+                    // settlement and let the IsCurrentlyAtSea setter handle the
+                    // exit + at-sea transition. Calling LeaveSettlementAction
+                    // first detaches the party from the settlement before
+                    // SetSailAtPosition can read its location, which left some
+                    // lord parties sitting on the coast in earlier builds.
                     party.SetSailAtPosition(settlement.PortPosition);
                     party.SetMoveGoToSettlement(lordTarget, MobileParty.NavigationType.All, false);
                 }
@@ -358,26 +400,43 @@ namespace BannerKings.Behaviours.Shipping
                 BKCaravansBehavior behavior = TaleWorlds.CampaignSystem.Campaign.Current.GetCampaignBehavior<BKCaravansBehavior>();
                 town = (Town)Caravans_ThinkNextDestination.Invoke(behavior, new object[] { party });
             }
-            catch (Exception e)
+            catch (Exception)
             {
-
+                // Reflection failure — fall back to vanilla AI by leaving early.
             }
 
             if (town == null) return;
-
-            party.SetMoveGoToSettlement(town.Settlement, MobileParty.NavigationType.All, false);
             if (town.Settlement == settlement || party.CurrentSettlement == null) return;
 
+            // Decide *first* whether we're going to ship the caravan. If yes, take
+            // the BK shipping path entirely — do NOT also call SetMoveGoToSettlement
+            // toward the across-water target, because if SetTravel turns out not to
+            // fire (CanTravel false), the caravan would walk to the coast and stick.
+            ShippingLane connectingLane = null;
             foreach (ShippingLane lane in lanes)
             {
-                if (lane.Ports.Contains(party.TargetSettlement))
+                if (lane.Ports.Contains(town.Settlement))
                 {
-                    if (CanTravel(party.TargetSettlement, party))
-                    {
-                        SetTravel(party, party.TargetSettlement);
-                    }
+                    connectingLane = lane;
+                    break;
                 }
             }
+
+            if (connectingLane != null && !sailing.ContainsKey(party))
+            {
+                // Across-water destination — caravan needs the ship. Don't gate
+                // this on CanTravel's gold check: stranding the caravan on the
+                // coast (which is what happened when CanTravel returned false but
+                // SetMoveGoToSettlement already pointed across the water) is
+                // worse than an unaffordable trade-gold deduction. The fare comes
+                // out of PartyTradeGold, which can go negative without breaking
+                // the caravan.
+                SetTravel(party, town.Settlement);
+                return;
+            }
+
+            // Land-reachable destination — let vanilla pathfinding handle it.
+            party.SetMoveGoToSettlement(town.Settlement, MobileParty.NavigationType.All, false);
         }
 
         // Behaviour-level arrival sweep. SetTravel sets IsActive=false on the
