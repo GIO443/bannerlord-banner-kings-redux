@@ -23,6 +23,20 @@ namespace BannerKings.Managers.Goals.Decisions
         List<BannerOption> allBanners = new List<BannerOption>();
         List<InquiryElement> elements = new List<InquiryElement>();
 
+        // AI-only objective. When set by EvaluateCreateArmy, ApplyGoal builds
+        // the army with this type/target and immediately marches the leader to
+        // the target — so the resulting army has a clear purpose instead of
+        // being a Patrolling-type army with no target (which vanilla AI
+        // disperses within days, producing the recruit↔front-line loop).
+        private Settlement aiTargetSettlement;
+        private Army.ArmyTypes aiArmyType = Army.ArmyTypes.Patrolling;
+
+        public void SetAIObjective(Settlement target, Army.ArmyTypes type)
+        {
+            aiTargetSettlement = target;
+            aiArmyType = type;
+        }
+
         public CallBannersGoal(Hero fulfiller = null) : base("goal_call_banners", fulfiller)
         {
         }
@@ -218,11 +232,36 @@ namespace BannerKings.Managers.Goals.Decisions
         {
             var hero = GetFulfiller();
             var mobileParty = hero.PartyBelongedTo;
-            Army army = new Army(hero.Clan.Kingdom, mobileParty, Army.ArmyTypes.Patrolling);
-            Settlement settlement = hero.CurrentSettlement != null ? hero.CurrentSettlement :
+
+            // Use the AI-set army type if available; otherwise fall back to
+            // Patrolling for the player flow (player decides where to go after
+            // the army forms). For AI, EvaluateCreateArmy resolves a real
+            // target+type via FindArmyObjective so the army has direction.
+            Army army = new Army(hero.Clan.Kingdom, mobileParty, aiArmyType);
+
+            // Gather location:
+            //   - AI with a target → gather at the leader's current location and
+            //     then move toward the target. (Gathering at the target itself
+            //     pulls vassals through enemy territory, which is suicidal.)
+            //   - Otherwise → gather at the leader's current settlement, or the
+            //     nearest friendly fief.
+            Settlement gatherSettlement = hero.CurrentSettlement != null ? hero.CurrentSettlement :
                 BannerKings.Utils.Helpers.FindNearestSettlement(x => x.Town != null || x.IsVillage, hero.PartyBelongedTo);
-            army.Gather(settlement);
+            army.Gather(gatherSettlement);
             mobileParty.Army = army;
+
+            // March the army leader toward the AI-resolved objective so the army
+            // has a destination. Without this, the army gathers and idles —
+            // vanilla AI then disperses it for "no purpose" within a few days.
+            // Sub-parties follow the leader's pathfinding via Army linkage.
+            // SetMoveGoToSettlement works for both besieger (target = enemy fief)
+            // and defender (target = friendly fief under siege); vanilla AI then
+            // initiates the appropriate behaviour (siege start / siege relief)
+            // based on the target's state.
+            if (aiTargetSettlement != null && aiTargetSettlement != gatherSettlement)
+            {
+                mobileParty.SetMoveGoToSettlement(aiTargetSettlement, MobileParty.NavigationType.All, false);
+            }
 
             var behavior = TaleWorlds.CampaignSystem.Campaign.Current.GetCampaignBehavior<BKGentryBehavior>();
             float influenceTotal = 0f;

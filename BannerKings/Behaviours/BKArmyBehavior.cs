@@ -17,21 +17,9 @@ namespace BannerKings.Behaviours
 {
     public class BKArmyBehavior : CampaignBehaviorBase
     {
-        // Cooldown duration after an army dispersal or formation push before BK
-        // will push the same leader into another CallBannersGoal. 30 days lets a
-        // freshly-dispersed army's parties drift back to garrison/recruitment
-        // before BK tries again, breaking the recruit↔front-line oscillation
-        // observed on heavily-active fronts.
-        private const float ArmyFormationCooldownDays = 30f;
-
         private AuxiliumDuty playerArmyDuty;
         private CampaignTime lastDutyTime = CampaignTime.Zero;
         private Dictionary<Hero, CampaignTime> heroRecords = new Dictionary<Hero, CampaignTime>();
-
-        // Per-hero cooldown tracker. Updated when BK successfully pushes the leader
-        // into CallBannersGoal, and again when any army the leader led disperses.
-        // Read at the head of EvaluateCreateArmy to gate the next push.
-        private Dictionary<Hero, CampaignTime> armyFormationCooldown = new Dictionary<Hero, CampaignTime>();
 
         public override void RegisterEvents()
         {
@@ -52,29 +40,11 @@ namespace BannerKings.Behaviours
             dataStore.SyncData("bannerkings-military-duty", ref playerArmyDuty);
             dataStore.SyncData("bannerkings-military-duty-time", ref lastDutyTime);
             dataStore.SyncData("bannerkings-army-records", ref heroRecords);
-            dataStore.SyncData("bannerkings-army-formation-cooldown", ref armyFormationCooldown);
 
             if (heroRecords == null)
             {
                 heroRecords = new Dictionary<Hero, CampaignTime>();
             }
-            if (armyFormationCooldown == null)
-            {
-                armyFormationCooldown = new Dictionary<Hero, CampaignTime>();
-            }
-        }
-
-        private bool IsOnArmyFormationCooldown(Hero hero)
-        {
-            if (hero == null) return false;
-            if (!armyFormationCooldown.TryGetValue(hero, out var lastTime)) return false;
-            return lastTime.ElapsedDaysUntilNow < ArmyFormationCooldownDays;
-        }
-
-        private void RecordArmyFormation(Hero hero)
-        {
-            if (hero == null) return;
-            armyFormationCooldown[hero] = CampaignTime.Now;
         }
 
         public void AddRecord(Hero hero)
@@ -106,8 +76,8 @@ namespace BannerKings.Behaviours
 
         private void EvaluateCreateArmy(MobileParty party)
         {
-            // MCM kill switch — keeps the toggle as a backstop for any case the
-            // cooldown doesn't catch. Primary defence is the cooldown below.
+            // MCM kill switch — backstop for users who want vanilla AI to drive
+            // army formation entirely.
             if (!BannerKingsSettings.Instance.AIArmyFormation) return;
 
             if (!party.IsLordParty || party.LeaderHero == null || party.LeaderHero.Clan == null || party.Army != null ||
@@ -119,36 +89,81 @@ namespace BannerKings.Behaviours
             if (kingdom == null || party.ActualClan == Clan.PlayerClan)
                 return;
 
-            // 30-day per-hero cooldown after the last successful CallBannersGoal push
-            // or any army dispersal. Without this, leaders rebuild influence within
-            // days of an army disbanding and immediately get re-pushed into a new
-            // formation, producing the recruit↔front-line oscillation reported by
-            // users.
-            if (IsOnArmyFormationCooldown(leader)) return;
+            // Real-target gate: the prior bug was that CallBannersGoal builds an
+            // army of type Patrolling with no target, which vanilla AI disperses
+            // for "no purpose" within days, producing the recruit↔front-line
+            // oscillation. Push the goal only when there is an actionable
+            // objective the army can actually pursue, and pass that objective
+            // through to the goal so the resulting army has direction.
+            var objective = FindArmyObjective(party, kingdom);
+            if (objective == null) return;
 
-            // Influence floor raised from 100 → 200 so the leader has cushion to
-            // sustain the army for at least a few weeks before influence drains
-            // back to zero. The previous threshold let leaders form an army with
-            // barely enough influence to keep it standing through a single tick.
-            if (leader.Clan.Influence < 200f)
-                return;
+            if (!BannerKingsConfig.Instance.ArmyManagementModel.CanCreateArmy(leader)) return;
 
-            bool war = FactionHelper.GetEnemyKingdoms(kingdom).Any();
-            if (war)
+            // BK-side feasibility checks (banners available, supplies, influence
+            // pool). Influence floor stays modest (100) — feasibility, not
+            // padding, is what keeps the army alive once formed.
+            if (leader.Clan.Influence < 100f) return;
+            if (party.TotalFoodAtInventory < party.MemberRoster.TotalManCount * 0.5f) return;
+            if (BannerKingsConfig.Instance.ArmyManagementModel.GetMobilePartiesToCallToArmy(party).Count < 2) return;
+            if (leader.Clan.Influence < BannerKingsConfig.Instance.InfluenceModel.CalculateInfluenceCap(leader.Clan).ResultNumber * 0.4f) return;
+
+            var (target, type) = objective.Value;
+            var decision = new CallBannersGoal(leader);
+            decision.SetAIObjective(target, type);
+            decision.DoAiDecision();
+        }
+
+        /// <summary>
+        /// Resolve an actionable objective for the AI lord — a friendly fief
+        /// to relieve from siege, or an enemy fief reachable within a sane
+        /// distance to besiege. Returns null when nothing is worth forming an
+        /// army for; in that case BK does not push the goal and vanilla AI
+        /// drives whatever it would naturally drive.
+        /// </summary>
+        private (Settlement target, Army.ArmyTypes type)? FindArmyObjective(MobileParty leaderParty, Kingdom kingdom)
+        {
+            var leaderPos = leaderParty.GetPosition2D;
+
+            // Priority 1 — defend a friendly fief currently under siege within range.
+            const float DefenseRangeSq = 350f * 350f;
+            Settlement bestDefense = null;
+            float bestDefenseDistSq = DefenseRangeSq;
+            foreach (var s in kingdom.Settlements)
             {
-                if (!BannerKingsConfig.Instance.ArmyManagementModel.CanCreateArmy(leader) ||
-                    MBRandom.RandomFloat < MBRandom.RandomFloat) return;
-
-                Clan clan = leader.Clan;
-                if (clan.Influence >= BannerKingsConfig.Instance.InfluenceModel.CalculateInfluenceCap(clan).ResultNumber * 0.5f &&
-                    party.TotalFoodAtInventory > party.MemberRoster.TotalManCount * 0.5f &&
-                    BannerKingsConfig.Instance.ArmyManagementModel.GetMobilePartiesToCallToArmy(party).Count > 2)
+                if (!s.IsUnderSiege) continue;
+                if (!s.IsFortification) continue;
+                float d2 = leaderPos.DistanceSquared(s.GatePosition.ToVec2());
+                if (d2 < bestDefenseDistSq)
                 {
-                    var decision = new CallBannersGoal(leader);
-                    decision.DoAiDecision();
-                    RecordArmyFormation(leader);
+                    bestDefenseDistSq = d2;
+                    bestDefense = s;
                 }
             }
+            if (bestDefense != null) return (bestDefense, Army.ArmyTypes.Defender);
+
+            // Priority 2 — besiege an enemy fortification within range.
+            const float OffenseRangeSq = 280f * 280f;
+            Settlement bestOffense = null;
+            float bestOffenseDistSq = OffenseRangeSq;
+            foreach (var enemy in FactionHelper.GetEnemyKingdoms(kingdom))
+            {
+                foreach (var s in enemy.Settlements)
+                {
+                    if (!s.IsFortification) continue;
+                    if (s.OwnerClan == null) continue;
+                    if (s.IsUnderSiege) continue; // skip already-besieged targets; another army has it
+                    float d2 = leaderPos.DistanceSquared(s.GatePosition.ToVec2());
+                    if (d2 < bestOffenseDistSq)
+                    {
+                        bestOffenseDistSq = d2;
+                        bestOffense = s;
+                    }
+                }
+            }
+            if (bestOffense != null) return (bestOffense, Army.ArmyTypes.Besieger);
+
+            return null;
         }
 
         public void OnPartyJoinedArmyEvent(MobileParty party)
@@ -169,15 +184,6 @@ namespace BannerKings.Behaviours
 
         public void OnArmyDispersed(Army army, Army.ArmyDispersionReason reason, bool isPlayersArmy)
         {
-            // Record dispersal time for the army leader so EvaluateCreateArmy
-            // doesn't immediately re-push them into a new CallBannersGoal as
-            // soon as influence rebuilds. Applies to all kingdoms, not just
-            // the player's.
-            if (army?.LeaderParty?.LeaderHero != null)
-            {
-                RecordArmyFormation(army.LeaderParty.LeaderHero);
-            }
-
             var leaderParty = army.LeaderParty;
             var playerKingdom = Clan.PlayerClan.Kingdom;
             if (playerKingdom == null || playerKingdom != army.Kingdom || playerArmyDuty == null ||

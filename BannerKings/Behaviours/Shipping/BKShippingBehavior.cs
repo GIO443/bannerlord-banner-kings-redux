@@ -268,26 +268,88 @@ namespace BannerKings.Behaviours.Shipping
             // shipping lane includes their target settlement, automatically board
             // ship for the target. This addresses the user-reported bug where AI
             // lords reach the coast and can't proceed across water; they buy ships
-            // but never use them. Now BK's shipping system carries them.
+            // but never use them. Now BK's shipping system carries them. Armies
+            // are handled by shipping every member party simultaneously.
             if (party != MobileParty.MainParty
                 && party.IsLordParty
                 && party.LeaderHero != null
                 && party.LeaderHero.Clan != null
-                && party.LeaderHero.Clan != Clan.PlayerClan
-                && party.Army == null)            // armies are coordinated; don't ship only the leader
+                && party.LeaderHero.Clan != Clan.PlayerClan)
             {
+                // For armies, only act on the leader entry; the member parties
+                // are shipped by the leader-handling code below.
+                if (party.Army != null && party.Army.LeaderParty != party) return;
+
                 var lordTarget = party.TargetSettlement;
                 if (lordTarget == null || lordTarget == settlement) return;
 
                 var lanes = DefaultShippingLanes.Instance.GetSettlementLanes(settlement);
                 foreach (ShippingLane lane in lanes)
                 {
-                    if (lane.Ports.Contains(lordTarget) && CanTravel(lordTarget, party))
+                    if (!lane.Ports.Contains(lordTarget)) continue;
+
+                    if (party.Army != null)
+                    {
+                        ShipArmy(party.Army, lordTarget);
+                    }
+                    else if (CanTravel(lordTarget, party))
                     {
                         SetTravel(party, lordTarget);
-                        return;
                     }
+                    return;
                 }
+            }
+        }
+
+        /// <summary>
+        /// Ship every member of an AI army simultaneously to the same destination
+        /// port. Without this, an army reaching a coastal port has no way to
+        /// cross water — the leader can't ship alone (it would split the army)
+        /// and vanilla offers no AI naval movement. Approach: snapshot all
+        /// parties, disperse the army (so vanilla doesn't try to keep an
+        /// invisible-during-transit formation alive), then SetTravel each
+        /// party. They arrive at the destination port one by one and the
+        /// kingdom AI re-forms the army naturally if the situation still calls
+        /// for one.
+        /// </summary>
+        private void ShipArmy(Army army, Settlement destination)
+        {
+            try
+            {
+                if (army == null || destination == null) return;
+
+                // Snapshot the parties before dispersal — Army.Parties is going
+                // to mutate as soon as we disperse.
+                var parties = new List<MobileParty>();
+                if (army.LeaderParty != null) parties.Add(army.LeaderParty);
+                foreach (MobileParty p in army.Parties)
+                {
+                    if (p != null && !parties.Contains(p)) parties.Add(p);
+                }
+
+                // Verify at least the leader can pay; skip if no party can.
+                bool anyCanTravel = parties.Any(p => CanTravel(destination, p));
+                if (!anyCanTravel) return;
+
+                // Disperse the army so vanilla doesn't auto-disband mid-transit
+                // when all member parties go invisible. Each party then ships
+                // independently and lands at the same port. DisbandArmyAction
+                // is vanilla's dispersal entry point.
+                DisbandArmyAction.ApplyByUnknownReason(army);
+
+                foreach (var p in parties)
+                {
+                    if (p == null) continue;
+                    if (sailing.ContainsKey(p)) continue;
+                    if (p.MapEvent != null) continue;     // mid-battle; skip
+                    // For sub-parties without enough gold, fall back to letting
+                    // PartyTradeGold go negative — same as vanilla SetTravel.
+                    SetTravel(p, destination);
+                }
+            }
+            catch
+            {
+                // Defensive: never crash army management on a shipping edge case.
             }
         }
 
@@ -352,7 +414,12 @@ namespace BannerKings.Behaviours.Shipping
                 if (party == null || party == MobileParty.MainParty) return;
                 if (!party.IsLordParty || party.LeaderHero == null) return;
                 if (party.LeaderHero.Clan == null || party.LeaderHero.Clan == Clan.PlayerClan) return;
-                if (party.Army != null) return;                     // armies coordinate; don't split
+
+                // For armies, redirect only the leader; sub-parties follow via
+                // Army linkage. Skipping armies entirely would strand cross-water
+                // sieges at the coast.
+                if (party.Army != null && party.Army.LeaderParty != party) return;
+
                 if (sailing.ContainsKey(party)) return;             // already on a ship
                 if (party.CurrentSettlement != null) return;        // wait for Step A on settlement entry
 
