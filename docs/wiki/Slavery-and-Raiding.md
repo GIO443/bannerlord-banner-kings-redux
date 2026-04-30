@@ -131,16 +131,91 @@ slave price for Serfs.
   and influence loss per caravan. Profit beats penalty for one-off
   captures; sustained illegal slaving will cost more than it earns.
 
-### 5. Foreign mercenaries
+### 5. Foreign mercenaries and mercenary raiding
 
-If your raid leader's culture differs from your employing kingdom's
-culture (e.g. a Sturgian captain serving Vlandia), 20% of captives are
-skimmed for the captain's private benefit:
+The skim system models the awkward reality that a captain serving a
+foreign crown has private interests of his own. **The trigger is
+strictly: the raid leader's clan has a Kingdom, AND the leader's
+culture differs from that Kingdom's culture.** Both conditions are
+required — independent mercenary captains (no kingdom) are *not*
+flagged as foreign, even though they're explicitly serving no one,
+because the skim is about secretly diverting an employer's haul.
+Without an employer, there's nothing to skim *from* — you just keep
+everything via the regular destination policy.
 
-- Independent merc (no employer kingdom): instant gold payout, no
-  secondary caravan.
-- Kingdom-affiliated foreign captain: a *second*, smaller caravan spawns
-  to the captain's clan home. Both caravans are interceptable.
+**Who counts as foreign:**
+
+- **A mercenary clan on an active kingdom contract**, where the clan's
+  leader has a different culture than the employing kingdom — almost
+  the textbook case.
+- **A vassal whose culture differs from their liege's kingdom** — e.g.
+  a Battanian count under a Vlandian king after a successful claim
+  war. They get the skim every time they raid for Vlandia, indefinitely.
+- **The player serving a foreign kingdom**, with your character's
+  culture set to anything other than that kingdom's culture.
+
+A clan in a kingdom whose leader shares the kingdom's culture is
+treated as native and the skim doesn't apply. An independent clan
+(no kingdom) is also not flagged as foreign — see "Independent
+mercenaries" below for what they actually do.
+
+**The split for a foreign captain.** When a foreign-led party raids:
+
+- **20% of captives** (default — MCM-tunable as *Foreign Merc Skim*)
+  are diverted to the captain's private profit pool.
+- The remaining **80%** travel to the destination chosen by the raid
+  capture policy (Nearest Friendly / Nearest Owned / Most Profitable
+  for the player; always Nearest Owned for AI clans).
+- **Skim destination**: a *second*, smaller captive caravan spawns at
+  the raided village and walks to the captain's **clan home
+  settlement** — not their employer's territory. Disposition is
+  always **Slaves**, regardless of the policy's disposition setting:
+  the captain personally captured these heads and is selling them
+  through his own networks, not on his employer's books. Both
+  caravans (main + skim) appear on the map and are interceptable.
+- **Edge case** — if the foreign captain's clan has a kingdom but no
+  home settlement (an orphan clan, rare), the skim collapses to
+  instant gold paid directly to the captain at the destination's
+  slave price.
+
+**Cohort culture exclusion uses the leader's culture, not the
+employer's.** A Battanian mercenary serving Vlandia who raids a
+Battanian village does not take Battanian captives — even though
+Vlandia might have wanted them. The exclusion is about identity, not
+employer obligation. A foreign captain raiding villages of *their
+own* culture produces no captives at all (the cohort is empty after
+exclusion), and the system silently aborts the capture.
+
+**Independent mercenaries** (clan exists, no kingdom — typical of a
+fresh mercenary band or a clan between contracts) are *not* flagged
+as foreign. All captives go to the main caravan via the regular
+destination policy. With no fief or kingdom, the destination
+fallback chain (added in v1.6.3.0) routes them via *Most Profitable*
+as a last resort — a long caravan to whatever market pays best,
+through whatever route the trade graph picks.
+
+**Mercenary raiding scenarios at a glance:**
+
+- **Player as an independent mercenary captain.** No skim. Your raids
+  produce one caravan with all captives, routed by your policy
+  toggle on the village menu (or fallback to Most Profitable if you
+  own no fief).
+- **Player vassal/mercenary in a foreign kingdom.** Skim 20% to a
+  side caravan to your clan home (Slaves). Main caravan follows your
+  policy.
+- **AI mercenary clans on contract.** Same flow. AI clans always use
+  **Nearest Owned** for the main caravan; the skim side caravan goes
+  to their clan home as Slaves. AI mercenary clans with no fief and
+  no clan home hit the fallback chain and route the main caravan via
+  Most Profitable.
+- **Vassal clans of mismatched culture.** Same skim rules. A
+  long-standing Battanian vassal of Vlandia keeps diverting 20% of
+  their raid captives to their own clan home over decades — meaningful
+  demographic pressure on the vassal's own demesne, and meaningful
+  loss to the Vlandian crown's recruitable pool.
+- **Bandits and BK bandit-hero clans never produce captives.** This
+  shortcut applies before the foreign-merc check, so a hired bandit
+  clan acting as a war party still won't trigger captures.
 
 ### 6. Intercepting enemy caravans
 
