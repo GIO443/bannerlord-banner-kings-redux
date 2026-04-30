@@ -848,6 +848,37 @@ namespace BannerKings.Behaviours.Shipping
                 var target = party.TargetSettlement;
                 if (target == null) return;
 
+                // Loop-prevention: if the current target is itself a port
+                // (graph node with at least one sea edge), the caravan is
+                // already heading to a port — almost certainly from a prior
+                // redirect of ours. Re-evaluating from a port-target makes
+                // us pick a DIFFERENT port (the original target gets
+                // excluded from the candidate scan as graphTarget), and
+                // the next tick we flip back, ping-ponging the caravan
+                // forever between two ports without it ever actually
+                // walking. Leave them alone — let them reach the port
+                // we already pushed them toward, then
+                // AfterSettlementEntered_Caravan picks up the next hop.
+                {
+                    var graphCheck = ShippingGraph.Instance;
+                    if (graphCheck.Adjacency.ContainsKey(target))
+                    {
+                        bool targetHasSeaEdge = false;
+                        foreach (var edge in graphCheck.Adjacency[target])
+                        {
+                            if (edge.Kind == ShippingGraph.EdgeKind.Sea) { targetHasSeaEdge = true; break; }
+                        }
+                        if (targetHasSeaEdge)
+                        {
+                            // Don't log this every tick — it'd flood the file.
+                            // Skip silently; AfterSettlementEntered_Caravan
+                            // will surface the boarding decision when arrival
+                            // happens.
+                            return;
+                        }
+                    }
+                }
+
                 // Graph-driven redirect. The unified shipping graph already
                 // weights every edge (sea + land) by distance × risk, so it
                 // naturally chooses the shortest viable route between any
