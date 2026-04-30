@@ -82,9 +82,42 @@ namespace BannerKings.Managers.Populations.Estates
         public bool IsDisabled => Owner == null;
         public ExplainedNumber AcrePriceExplained => BannerKingsConfig.Instance.EstatesModel.CalculateAcrePrice(EstatesData.Settlement, true);
         public ExplainedNumber EstateValue => BannerKingsConfig.Instance.EstatesModel.CalculateEstatePrice(this, true);
-        public ExplainedNumber AcreageGrowth => Task == EstateTask.Land_Expansion ? BannerKingsConfig.Instance.ConstructionModel
-            .CalculateLandExpansion(BannerKingsConfig.Instance.PopulationManager.GetPopData(EstatesData.Settlement),
-            LandExpansionWorkforce) : new ExplainedNumber(0f);
+        public ExplainedNumber AcreageGrowth
+        {
+            get
+            {
+                int workforce = 0;
+                if (Task == EstateTask.Land_Expansion)
+                {
+                    // Dedicated expansion task: diverts half of population +
+                    // all slaves into clearing land. Production drops in
+                    // exchange.
+                    workforce = LandExpansionWorkforce;
+                }
+                else if (Task == EstateTask.Prodution)
+                {
+                    // Production task: excess workforce automatically clears
+                    // land. Workers beyond what the existing acres need
+                    // (saturation > 100%) would otherwise sit idle —
+                    // funnel them into expansion as a passive bonus.
+                    // Production output isn't reduced (only the SATURATED
+                    // portion of workforce drives production; over-saturation
+                    // was already wasted).
+                    int total = Population + Slaves;
+                    float effectiveAcres = Farmland + (Pastureland * 0.5f) + (Woodland * 0.15f);
+                    float required = effectiveAcres * 0.5f;
+                    int excess = (int)MathF.Max(0f, total - required);
+                    workforce = excess;
+                }
+                if (workforce <= 0)
+                {
+                    return new ExplainedNumber(0f);
+                }
+                return BannerKingsConfig.Instance.ConstructionModel.CalculateLandExpansion(
+                    BannerKingsConfig.Instance.PopulationManager.GetPopData(EstatesData.Settlement),
+                    workforce);
+            }
+        }
         public ExplainedNumber Production => BannerKingsConfig.Instance.EstatesModel.CalculateEstateProduction(this, true);
         public ExplainedNumber PopulationCapacity => BannerKingsConfig.Instance.GrowthModel.CalculateEstateCap(this, false);
         public ExplainedNumber PopulationCapacityExplained => BannerKingsConfig.Instance.GrowthModel.CalculateEstateCap(this, true);
@@ -242,32 +275,35 @@ namespace BannerKings.Managers.Populations.Estates
 
             Population = (int)MathF.Clamp(Population, 0f, PopulationCapacity.ResultNumber);
             BannerKingsConfig.Instance.PopulationManager.AddEstate(this);
-            if (Task == EstateTask.Land_Expansion)
-            {
-                var progress = AcreageGrowth.ResultNumber;
-                if (progress > 0f)
-                {
-                    var composition = data.LandData.Composition;
-                    var list = new List<(int, float)>
-                    {
-                        new(0, composition[0]),
-                        new(1, composition[1]),
-                        new(2, composition[2])
-                    };
-                    var choosen = MBRandom.ChooseWeighted(list);
 
-                    switch (choosen)
-                    {
-                        case 0:
-                            Farmland += progress;
-                            break;
-                        case 1:
-                            Pastureland += progress;
-                            break;
-                        default:
-                            Woodland += progress;
-                            break;
-                    }
+            // Acreage growth applies for both Land_Expansion (full
+            // workforce divert) AND Production with excess workforce
+            // (over-saturated estates passively clear extra land).
+            // AcreageGrowth.ResultNumber returns 0 when neither
+            // condition holds, so no extra gate needed here.
+            var progress = AcreageGrowth.ResultNumber;
+            if (progress > 0f)
+            {
+                var composition = data.LandData.Composition;
+                var list = new List<(int, float)>
+                {
+                    new(0, composition[0]),
+                    new(1, composition[1]),
+                    new(2, composition[2])
+                };
+                var choosen = MBRandom.ChooseWeighted(list);
+
+                switch (choosen)
+                {
+                    case 0:
+                        Farmland += progress;
+                        break;
+                    case 1:
+                        Pastureland += progress;
+                        break;
+                    default:
+                        Woodland += progress;
+                        break;
                 }
             }
         }
