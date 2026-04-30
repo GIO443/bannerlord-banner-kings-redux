@@ -353,17 +353,33 @@ namespace BannerKings.Components
                 if (distance <= 1f)
                 {
                     EnterSettlementAction.ApplyForParty(MobileParty, target);
+                    return;
                 }
-                else
+
+                // Preserve an explicit intermediate move-target. BKRaidCaptureBehavior's
+                // hop router (and the village-anchor flow) sets the party's
+                // TargetSettlement to the next graph hop; without this guard,
+                // this hourly tick would clobber that intermediate with the
+                // component's FINAL TargetSettlement on every tick, defeating
+                // hop routing entirely and walking captive caravans straight
+                // via vanilla pathfind. Only override when the intermediate
+                // has become unviable (sieged, looted/raided village).
+                var moveTarget = MobileParty.TargetSettlement;
+                if (moveTarget != null && moveTarget != target)
                 {
-                    if (target.IsVillage)
-                    {
-                        if (target.Village.VillageState is Village.VillageStates.Looted or Village.VillageStates.BeingRaided)
-                            MobileParty.SetMoveGoToSettlement(target, MobileParty.NavigationType.All, false);
-                        else MobileParty.SetMoveGoToSettlement(HomeSettlement, MobileParty.NavigationType.All, false);
-                    }
-                    else MobileParty.SetMoveGoToSettlement(!target.IsUnderSiege ? target : HomeSettlement, MobileParty.NavigationType.All, false);
+                    bool intermediateUnsafe =
+                        moveTarget.IsUnderSiege ||
+                        (moveTarget.IsVillage && moveTarget.Village.VillageState is Village.VillageStates.Looted or Village.VillageStates.BeingRaided);
+                    if (!intermediateUnsafe) return;
                 }
+
+                if (target.IsVillage)
+                {
+                    if (target.Village.VillageState is Village.VillageStates.Looted or Village.VillageStates.BeingRaided)
+                        MobileParty.SetMoveGoToSettlement(target, MobileParty.NavigationType.All, false);
+                    else MobileParty.SetMoveGoToSettlement(HomeSettlement, MobileParty.NavigationType.All, false);
+                }
+                else MobileParty.SetMoveGoToSettlement(!target.IsUnderSiege ? target : HomeSettlement, MobileParty.NavigationType.All, false);
             }
             else
             {

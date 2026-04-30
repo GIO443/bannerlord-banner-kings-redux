@@ -633,9 +633,28 @@ namespace BannerKings
                 int prisoners = 0;
                 try { foreach (var e in party.PrisonRoster.GetTroopRoster()) if (!e.Character.IsHero) prisoners += e.Number; } catch { }
                 int troops = party.MemberRoster?.TotalManCount ?? 0;
+
+                // Probe BK's shipping-behavior tracking dict so we can
+                // distinguish "legitimately at sea, will arrive when timer
+                // fires" from "BK lost track, party will sit forever".
+                string travelInfo = "BKTracked=false";
+                try
+                {
+                    var ship = TaleWorlds.CampaignSystem.Campaign.Current
+                        ?.GetCampaignBehavior<BannerKings.Behaviours.Shipping.BKShippingBehavior>();
+                    if (ship != null && ship.TryGetTravelInfo(party, out var dest, out var arr))
+                    {
+                        string when;
+                        try { when = arr.IsPast ? $"{(-(arr - CampaignTime.Now).ToHours):n1}h overdue" : $"in {(arr - CampaignTime.Now).ToHours:n1}h"; }
+                        catch { when = "unknown"; }
+                        travelInfo = $"BKTracked=true → {dest?.Name}, arrival {when}";
+                    }
+                }
+                catch { /* defensive */ }
+
                 sb.AppendLine($"  {party.Name} @ {current} → moveTo={moveTarget}; finalDest={finalDest}; " +
                               $"troops={troops}; prisoners={prisoners}; IsActive={party.IsActive}; " +
-                              $"AtSea={party.IsCurrentlyAtSea}; AiDisabled={party.Ai?.IsDisabled}; captor={captor}");
+                              $"AtSea={party.IsCurrentlyAtSea}; AiDisabled={party.Ai?.IsDisabled}; captor={captor}; {travelInfo}");
             }
             catch (Exception ex)
             {

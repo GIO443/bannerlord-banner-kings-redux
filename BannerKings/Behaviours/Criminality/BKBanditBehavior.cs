@@ -167,17 +167,20 @@ namespace BannerKings.Behaviours
 
         public void CreateBanditHero(Clan clan)
         {
-            Hideout hideout = Hideout.All.FirstOrDefault(x => x.Settlement.Culture == clan.Culture);
-            Settlement settlement = null;
-            if (hideout != null)
-            {
-                settlement = hideout.Settlement;
-            }
+            // Predicate is null-safe: a Hideout with a null Settlement (rare,
+            // but observed on some total-conversion mods) would NRE inside
+            // the lambda otherwise. Same goes for the random fallback —
+            // GetRandomElement returns null on an empty list, and even on
+            // non-empty lists a single Hideout with a null Settlement would
+            // crash the next dereference.
+            Hideout hideout = Hideout.All.FirstOrDefault(x => x?.Settlement?.Culture == clan.Culture);
+            Settlement settlement = hideout?.Settlement;
 
             if (settlement == null)
             {
-                hideout = Hideout.All.GetRandomElement();
-                settlement = hideout.Settlement;
+                hideout = Hideout.All.FirstOrDefault(x => x?.Settlement != null);
+                settlement = hideout?.Settlement;
+                if (settlement == null) return; // No hideouts on the map at all.
             }
 
             Town closest = BannerKings.Utils.Helpers.FindNearestTown(x => x.IsTown, settlement);

@@ -45,6 +45,15 @@ namespace BannerKings.Behaviours.Raids
             // stalled trade caravan to BK_caravan_watchdog.txt so we can
             // diagnose stuck-caravan reports against on-disk evidence.
             CampaignEvents.DailyTickEvent.AddNonSerializedListener(this, OnDailyWatchdog);
+            // Drop destroyed parties from the watchdog state dict so the
+            // dict doesn't accumulate stale references over a long campaign.
+            CampaignEvents.MobilePartyDestroyed.AddNonSerializedListener(this, OnMobilePartyDestroyed);
+        }
+
+        private void OnMobilePartyDestroyed(MobileParty party, PartyBase destroyer)
+        {
+            if (party == null) return;
+            if (_watchdogState.ContainsKey(party)) _watchdogState.Remove(party);
         }
 
         public override void SyncData(IDataStore dataStore)
@@ -526,6 +535,8 @@ namespace BannerKings.Behaviours.Raids
             try
             {
                 var graph = BannerKings.Managers.Shipping.ShippingGraph.Instance;
+                Settlement nextHop = null;
+
                 // If the caravan stopped at a village (not in graph), anchor
                 // onto the graph by walking to the nearest fief, then resume
                 // graph hops on next arrival. Without this, a long captive
@@ -535,39 +546,53 @@ namespace BannerKings.Behaviours.Raids
                 {
                     var perspectiveStop = ppc.CaptorHero?.MapFaction ?? party.MapFaction;
                     var anchor = FindNearestGraphFief(entered, graph, perspectiveStop);
+                    nextHop = (anchor != null && anchor != finalTarget) ? anchor : finalTarget;
                     if (anchor != null && anchor != finalTarget)
-                    {
-                        party.SetMoveGoToSettlement(anchor, MobileParty.NavigationType.All, false);
                         LogRaid($"captive caravan {party.Name}: village stop {entered.Name} — anchoring to safe {anchor.Name}");
-                        return;
+                }
+                else if (!graph.Adjacency.ContainsKey(finalTarget))
+                {
+                    nextHop = finalTarget;
+                }
+                else
+                {
+                    var perspective = ppc.CaptorHero?.MapFaction ?? party.MapFaction;
+                    var path = graph.GetAdaptivePath(entered, finalTarget, perspective)
+                               ?? graph.GetShortestPath(entered, finalTarget);
+                    if (path == null || path.Count < 2)
+                    {
+                        nextHop = finalTarget;
                     }
-                    party.SetMoveGoToSettlement(finalTarget, MobileParty.NavigationType.All, false);
-                    return;
-                }
-                if (!graph.Adjacency.ContainsKey(finalTarget))
-                {
-                    party.SetMoveGoToSettlement(finalTarget, MobileParty.NavigationType.All, false);
-                    return;
+                    else
+                    {
+                        nextHop = path[1];
+                        LogRaid($"captive caravan {party.Name}: hop {entered.Name} → {nextHop.Name} (final: {finalTarget.Name})");
+                    }
                 }
 
-                var perspective = ppc.CaptorHero?.MapFaction ?? party.MapFaction;
-                var path = graph.GetAdaptivePath(entered, finalTarget, perspective)
-                           ?? graph.GetShortestPath(entered, finalTarget);
-                if (path == null || path.Count < 2)
-                {
-                    party.SetMoveGoToSettlement(finalTarget, MobileParty.NavigationType.All, false);
-                    return;
-                }
+                if (nextHop == null) return;
 
-                var nextHop = path[1];
-                LogRaid($"captive caravan {party.Name}: hop {entered.Name} → {nextHop.Name} (final: {finalTarget.Name})");
+                // Captive caravans have AI disabled at creation (see
+                // PopulationPartyComponent.CreateCaptiveCaravan). Without an
+                // explicit LeaveSettlementAction the party stays in the
+                // intermediate settlement indefinitely — SetMoveGoToSettlement
+                // alone doesn't trigger the leave for AI-disabled parties.
+                if (party.CurrentSettlement != null)
+                {
+                    try { LeaveSettlementAction.ApplyForParty(party); } catch { /* defensive */ }
+                }
                 party.SetMoveGoToSettlement(nextHop, MobileParty.NavigationType.All, false);
             }
             catch
             {
                 // Defensive: never throw out of an arrival event. Worst case
                 // the caravan continues toward its existing target via vanilla.
-                try { party.SetMoveGoToSettlement(finalTarget, MobileParty.NavigationType.All, false); } catch { }
+                try
+                {
+                    if (party.CurrentSettlement != null) LeaveSettlementAction.ApplyForParty(party);
+                    party.SetMoveGoToSettlement(finalTarget, MobileParty.NavigationType.All, false);
+                }
+                catch { }
             }
         }
 

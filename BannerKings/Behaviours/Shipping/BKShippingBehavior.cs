@@ -39,12 +39,39 @@ namespace BannerKings.Behaviours.Shipping
             }
         }
 
+        // Diagnostic surface for the caravan watchdog. Returns the sailing
+        // entry's destination + arrival time, or (null, default) if BK isn't
+        // tracking this party. The watchdog uses this to distinguish
+        // legitimately mid-voyage parties (in the dict) from truly stuck
+        // ones (inactive but not tracked).
+        public bool TryGetTravelInfo(MobileParty party, out Settlement destination, out CampaignTime arrival)
+        {
+            if (party != null && sailing.TryGetValue(party, out var t))
+            {
+                destination = t.Destination;
+                arrival = t.Arrival;
+                return true;
+            }
+            destination = null;
+            arrival = default;
+            return false;
+        }
+
         public override void RegisterEvents()
         {
             CampaignEvents.WeeklyTickEvent.AddNonSerializedListener(this, OnWeeklyTick);
             CampaignEvents.AfterSettlementEntered.AddNonSerializedListener(this, AfterSettlementEntered);
             CampaignEvents.HourlyTickPartyEvent.AddNonSerializedListener(this, TickParty);
             CampaignEvents.HourlyTickEvent.AddNonSerializedListener(this, TickSailing);
+            // Mid-session orphan-rescue. The OnGameLoadFinishedEvent rescue
+            // covers loaded saves but not parties that go stuck DURING a
+            // session. Daily tick scans for caravans with the BK shipping-
+            // limbo signature (IsActive=false / Ai disabled / not in sailing
+            // dict) and reactivates them so vanilla AI takes over.
+            CampaignEvents.DailyTickEvent.AddNonSerializedListener(this, RescueOrphanedCaravans);
+            // Cleanup: remove destroyed parties from the sailing dict so
+            // TickSailing doesn't try to FinishTravel on a dead party.
+            CampaignEvents.MobilePartyDestroyed.AddNonSerializedListener(this, OnMobilePartyDestroyed);
             CampaignEvents.OnSessionLaunchedEvent.AddNonSerializedListener(this,
                 (CampaignGameStarter starter) =>
                 {
@@ -88,23 +115,24 @@ namespace BannerKings.Behaviours.Shipping
             CampaignEvents.OnGameLoadFinishedEvent.AddNonSerializedListener(this,
                 () =>
                 {
-                    // Rescue any caravan stuck in BK shipping limbo from older
-                    // builds: IsActive=false but no path to FinishTravel (e.g. its
-                    // Travel.Arrival had already passed before TickSailing was
-                    // introduced, or the FinishTravel call no-op'd because of the
-                    // pre-fix ordering bug). Any inactive caravan we find on load
-                    // we drop from the sailing dict and reactivate; vanilla AI
-                    // takes over on the next tick.
+                    // Rescue caravans stuck in BK shipping limbo from older
+                    // builds: IsActive=false with no entry in the sailing
+                    // dict (no path to FinishTravel, no TickSailing pickup).
+                    // CRITICAL: skip caravans that ARE in the sailing dict —
+                    // those are legitimately mid-voyage from a save made
+                    // during a sea trip, and TickSailing will reactivate
+                    // them when their arrival timer fires. Earlier versions
+                    // force-rescued ALL inactive caravans on load, which
+                    // cancelled every in-progress voyage on save/load.
                     List<MobileParty> stuck = null;
                     foreach (var caravan in MobileParty.AllCaravanParties)
                     {
                         if (caravan == null) continue;
-                        caravan.Party.UpdateVisibilityAndInspected(caravan.Position);
-                        if (!caravan.IsActive)
-                        {
-                            stuck ??= new List<MobileParty>();
-                            stuck.Add(caravan);
-                        }
+                        try { caravan.Party.UpdateVisibilityAndInspected(caravan.Position); } catch { }
+                        if (caravan.IsActive) continue;
+                        if (sailing.ContainsKey(caravan)) continue; // legitimately mid-voyage
+                        stuck ??= new List<MobileParty>();
+                        stuck.Add(caravan);
                     }
                     if (stuck != null)
                     {
@@ -112,9 +140,8 @@ namespace BannerKings.Behaviours.Shipping
                         {
                             try
                             {
-                                if (sailing.ContainsKey(party)) sailing.Remove(party);
                                 party.IsActive = true;
-                                party.Ai.EnableAi();
+                                party.Ai?.EnableAi();
                                 party.IsVisible = true;
                                 party.Party.UpdateVisibilityAndInspected(party.Position);
                             }
@@ -396,6 +423,25 @@ namespace BannerKings.Behaviours.Shipping
             if (party.LeaderHero.Clan == Clan.PlayerClan) return;
             if (party.Army != null && party.Army.LeaderParty != party) return;
 
+            // Stay at sea when the lord is en route to a further port that
+            // shares a lane with the current one. Without this, the
+            // sequence is: arrive at intermediate port → disembark → lord
+            // branch immediately re-embarks → wasteful round-trip every
+            // hop. Just refresh the move target instead.
+            var lordTarget = party.TargetSettlement;
+            if (lordTarget != null && lordTarget != settlement && lordTarget.HasPort)
+            {
+                foreach (var lane in DefaultShippingLanes.Instance.GetSettlementLanes(settlement))
+                {
+                    if (lane.Ports.Contains(lordTarget))
+                    {
+                        try { party.SetMoveGoToSettlement(lordTarget, MobileParty.NavigationType.All, false); }
+                        catch { /* defensive */ }
+                        return;
+                    }
+                }
+            }
+
             try
             {
                 party.IsCurrentlyAtSea = false;
@@ -408,6 +454,18 @@ namespace BannerKings.Behaviours.Shipping
 
         private void AfterSettlementEntered_Caravan(MobileParty party, Settlement settlement)
         {
+            // CRITICAL: skip parties already at sea via NavalDLC's own naval
+            // AI. They're vanilla NavalDLC convoys (IsCaravan=true, but
+            // IsCurrentlyAtSea=true). Calling SetTravel on them sets
+            // IsActive=false and disables AI, leaving them mid-ocean with
+            // no way to reach their destination — observed as the
+            // "Convoy of X the Y" stuck-caravan pattern with IsActive=False
+            // / AiDisabled=True / AtSea=True.
+            if (party.IsCurrentlyAtSea) return;
+
+            // Already in BK shipping — don't double-book.
+            if (sailing.ContainsKey(party)) return;
+
             var lanes = DefaultShippingLanes.Instance.GetSettlementLanes(settlement);
             if (!lanes.Any()) return;
 
@@ -495,9 +553,19 @@ namespace BannerKings.Behaviours.Shipping
         {
             if (sailing.Count == 0) return;
             List<Travel> finished = null;
+            List<MobileParty> orphans = null;   // dict keys we want to drop without finishing
             foreach (var pair in sailing)
             {
                 if (pair.Key == null) continue;
+                // Guard against destroyed / removed parties slipping through
+                // the dict (e.g. older saves before OnMobilePartyDestroyed
+                // cleanup was wired in).
+                if (pair.Key.IsActive == false && pair.Key.PartyComponent == null)
+                {
+                    orphans ??= new List<MobileParty>();
+                    orphans.Add(pair.Key);
+                    continue;
+                }
                 if (pair.Key == MobileParty.MainParty) continue; // main party uses the wait menu
                 Travel travel = pair.Value;
                 if (travel.Arrival.IsPast || travel.Arrival.IsNow)
@@ -506,11 +574,87 @@ namespace BannerKings.Behaviours.Shipping
                     finished.Add(travel);
                 }
             }
+            if (orphans != null)
+            {
+                foreach (var key in orphans) sailing.Remove(key);
+            }
             if (finished == null) return;
             foreach (var travel in finished)
             {
-                FinishTravel(travel);
+                // Per-party isolation. If FinishTravel throws on a single
+                // party (vanilla quirk on an unusual destination, etc.),
+                // remove that party from the dict so it doesn't poison the
+                // tick forever, and continue with the next one.
+                try
+                {
+                    FinishTravel(travel);
+                }
+                catch (Exception ex)
+                {
+                    try
+                    {
+                        TaleWorlds.Library.Debug.Print(
+                            $"[BK] FinishTravel threw on {travel?.Party?.Name}: {ex.GetType().Name}: {ex.Message}",
+                            color: TaleWorlds.Library.Debug.DebugColor.Yellow);
+                        // Reactivate the party so it isn't stranded inactive,
+                        // then drop from sailing so we don't keep retrying.
+                        if (travel?.Party != null)
+                        {
+                            try { travel.Party.IsActive = true; } catch { }
+                            try { travel.Party.Ai?.EnableAi(); } catch { }
+                            try { travel.Party.IsVisible = true; } catch { }
+                            sailing.Remove(travel.Party);
+                        }
+                    }
+                    catch { /* even rescue failed — give up on this party */ }
+                }
             }
+        }
+
+        // Per-day mid-session orphan-rescue. Catches caravans that ended up
+        // IsActive=false / Ai disabled but aren't in the sailing dict, which
+        // is the "stuck on coast forever" pattern that the load-time rescue
+        // can't address while a save is live. Reactivates them so vanilla
+        // AI can drive them again.
+        private void RescueOrphanedCaravans()
+        {
+            try
+            {
+                foreach (var caravan in MobileParty.AllCaravanParties)
+                {
+                    if (caravan == null) continue;
+                    if (caravan.IsActive) continue;
+                    if (sailing.ContainsKey(caravan)) continue; // legitimately mid-voyage
+                    if (caravan == MobileParty.MainParty) continue;
+
+                    try
+                    {
+                        TaleWorlds.Library.Debug.Print(
+                            $"[BK] Orphan rescue: reactivating inactive caravan {caravan.Name} not in sailing dict",
+                            color: TaleWorlds.Library.Debug.DebugColor.Yellow);
+                        caravan.IsActive = true;
+                        caravan.Ai?.EnableAi();
+                        caravan.IsVisible = true;
+                        // Clear at-sea limbo if vanilla NavalDLC isn't
+                        // tracking them either. Side note: we DON'T do this
+                        // for parties NavalDLC owns — we just nudged the
+                        // wrong toggle there. Only orphan-rescue parties
+                        // that have no naval AI to fall back on.
+                        if (caravan.IsCurrentlyAtSea && !caravan.HasNavalNavigationCapability)
+                        {
+                            try { caravan.IsCurrentlyAtSea = false; } catch { }
+                        }
+                    }
+                    catch { /* defensive */ }
+                }
+            }
+            catch { /* never throw out of a daily tick */ }
+        }
+
+        private void OnMobilePartyDestroyed(MobileParty party, PartyBase destroyer)
+        {
+            if (party == null) return;
+            if (sailing.ContainsKey(party)) sailing.Remove(party);
         }
 
         private void TickParty(MobileParty party)
