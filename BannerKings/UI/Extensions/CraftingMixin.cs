@@ -128,6 +128,19 @@ namespace BannerKings.UI.Extensions
 
         public override void OnRefresh()
         {
+            // BK Smithing System toggle off → no-op refresh. The mixin still
+            // attaches to the vanilla CraftingVM (UIExtenderEx auto-registers
+            // it via [ViewModelMixin]), but every observable side effect is
+            // suppressed: armor mode flag stays false, materials list stays
+            // empty, UpdateMainAction skipped, hours-spent text not refreshed.
+            // Combined with the prefab-extension gate in CraftingExtensions,
+            // vanilla smithy UI is functionally untouched.
+            if (!BannerKingsSettings.Instance.BKSmithingEnabled)
+            {
+                IsInArmorMode = false;
+                return;
+            }
+
             if (crafting.IsInCraftingMode || crafting.IsInRefinementMode || crafting.IsInSmeltingMode)
             {
                 IsInArmorMode = false;

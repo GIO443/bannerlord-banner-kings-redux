@@ -1,10 +1,33 @@
 ﻿using System.Collections.Generic;
+using System.Linq;
 using System.Xml;
 using Bannerlord.UIExtenderEx.Attributes;
 using Bannerlord.UIExtenderEx.Prefabs2;
 
 namespace BannerKings.UI.Extensions
 {
+    // Single gate every BK smithing prefab patch consults at evaluation
+    // time. With BKSmithingEnabled = false, every patch in this file
+    // contributes an empty insert / empty attribute list, so vanilla
+    // CraftingScreen XML is left untouched — no Armor tab button, no
+    // material side-panels, no hours-spent text, no hijacked Main /
+    // Cancel button bindings. The patch types still register with
+    // UIExtenderEx (we can't conditionally skip registration without
+    // restructuring the assembly scan), but they do nothing when
+    // applied. All BK smithing infrastructure is preserved on disk
+    // and can be re-enabled in MCM at any time.
+    internal static class BKSmithingGate
+    {
+        private static readonly List<XmlNode> EmptyNodes = new(0);
+        private static readonly List<PrefabExtensionSetAttributePatch.Attribute> EmptyAttrs =
+            new(0);
+
+        public static bool Disabled => !BannerKings.Settings.BannerKingsSettings.Instance.BKSmithingEnabled;
+
+        public static IEnumerable<XmlNode> GuardNodes(IEnumerable<XmlNode> nodes) => Disabled ? EmptyNodes : nodes;
+        public static List<PrefabExtensionSetAttributePatch.Attribute> GuardAttrs(List<PrefabExtensionSetAttributePatch.Attribute> attrs) => Disabled ? EmptyAttrs : attrs;
+    }
+
     [PrefabExtension("Crafting", "descendant::CraftingScreenWidget/Children", "Crafting")]
     internal class CraftingArmorLeftPanelExtension1 : PrefabExtensionInsertPatch
     {
@@ -21,7 +44,7 @@ namespace BannerKings.UI.Extensions
         public override InsertType Type => InsertType.Child;
         public override int Index => 1;
 
-        [PrefabExtensionXmlNodes] public IEnumerable<XmlNode> Nodes => nodes;
+        [PrefabExtensionXmlNodes] public IEnumerable<XmlNode> Nodes => BKSmithingGate.GuardNodes(nodes);
     }
 
     [PrefabExtension("Crafting", "descendant::CraftingScreenWidget/Children", "Crafting")]
@@ -41,7 +64,7 @@ namespace BannerKings.UI.Extensions
         public override InsertType Type => InsertType.Child;
         public override int Index => 5;
 
-        [PrefabExtensionXmlNodes] public IEnumerable<XmlNode> Nodes => nodes;
+        [PrefabExtensionXmlNodes] public IEnumerable<XmlNode> Nodes => BKSmithingGate.GuardNodes(nodes);
     }
 
     [PrefabExtension("Crafting", "descendant::ListPanel[@Id='CategoryParent']/Children", "Crafting")]
@@ -61,7 +84,7 @@ namespace BannerKings.UI.Extensions
         public override InsertType Type => InsertType.Child;
         public override int Index => 2;
 
-        [PrefabExtensionXmlNodes] public IEnumerable<XmlNode> Nodes => nodes;
+        [PrefabExtensionXmlNodes] public IEnumerable<XmlNode> Nodes => BKSmithingGate.GuardNodes(nodes);
     }
 
     [PrefabExtension("Crafting", "descendant::Widget[@Id='RightPanel']/Children", "Crafting")]
@@ -85,51 +108,51 @@ namespace BannerKings.UI.Extensions
         public override InsertType Type => InsertType.Child;
         public override int Index => 3;
 
-        [PrefabExtensionXmlNodes] public IEnumerable<XmlNode> Nodes => nodes;
+        [PrefabExtensionXmlNodes] public IEnumerable<XmlNode> Nodes => BKSmithingGate.GuardNodes(nodes);
     }
 
     [PrefabExtension("Crafting", "descendant::ButtonWidget[@Id='RefinementCategoryButton']", "Crafting")]
     internal class RefinementCategoryButtonPatch : PrefabExtensionSetAttributePatch
     {
-        public override List<Attribute> Attributes => new()
+        public override List<Attribute> Attributes => BKSmithingGate.GuardAttrs(new()
         {
             new Attribute("SuggestedWidth", "320")
-        };
+        });
     }
 
     [PrefabExtension("Crafting", "descendant::ButtonWidget[@Id='CraftingCategoryButton']", "Crafting")]
     internal class CraftingCategoryButtonPatch : PrefabExtensionSetAttributePatch
     {
-        public override List<Attribute> Attributes => new()
+        public override List<Attribute> Attributes => BKSmithingGate.GuardAttrs(new()
         {
             new Attribute("SuggestedWidth", "320")
-        };
+        });
     }
 
     [PrefabExtension("Crafting", "descendant::ButtonWidget[@Id='SmeltingCategoryButton']", "Crafting")]
     internal class SmeltingCategoryButtonPatch : PrefabExtensionSetAttributePatch
     {
-        public override List<Attribute> Attributes => new()
+        public override List<Attribute> Attributes => BKSmithingGate.GuardAttrs(new()
         {
             new Attribute("SuggestedWidth", "320")
-        };
+        });
     }
 
     [PrefabExtension("Crafting", "descendant::ButtonWidget[@Id='MainActionButtonWidget']", "Crafting")]
     internal class MainActionButtonPatch : PrefabExtensionSetAttributePatch
     {
-        public override List<Attribute> Attributes => new()
+        public override List<Attribute> Attributes => BKSmithingGate.GuardAttrs(new()
         {
             new Attribute("Command.Click", "ExecuteMainActionBK")
-        };
+        });
     }
 
     [PrefabExtension("Crafting", "descendant::ListPanel[@Id='MainActionListPanel']/Children/ButtonWidget[1]", "Crafting")]
     internal class CraftingCancelButtonPatch : PrefabExtensionSetAttributePatch
     {
-        public override List<Attribute> Attributes => new()
+        public override List<Attribute> Attributes => BKSmithingGate.GuardAttrs(new()
         {
             new Attribute("Command.Click", "CloseWithWait")
-        };
+        });
     }
 }
