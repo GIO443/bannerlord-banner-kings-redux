@@ -506,23 +506,32 @@ namespace BannerKings.Behaviours.Shipping
                 var target = party.TargetSettlement;
                 if (target == null) return;
 
-                // Only redirect if the original target sits on a shipping lane.
-                var targetLanes = DefaultShippingLanes.Instance.GetSettlementLanes(target);
-                if (!targetLanes.Any()) return;
+                // Only redirect if the original target sits on *some* shipping
+                // lane — that's the proxy for "the target is across water."
+                // We don't restrict the candidate ports to that same lane,
+                // though: cross-continent travel (Nord → Empire) requires
+                // hopping between distinct lanes, and the previous logic
+                // looked only inside the target's lane and so couldn't match
+                // a Nord port for an Empire-bound caravan. Once the party
+                // reaches ANY port, AfterSettlementEntered_Caravan / the AI
+                // lord shipping hook plans the next hop via the lane it's
+                // on, and the chain self-resolves.
+                if (!DefaultShippingLanes.Instance.GetSettlementLanes(target).Any()) return;
 
-                // Find the closest port on any of those lanes (other than the
-                // target itself) that is materially closer than the target.
+                // Find the closest port on any lane (other than the target
+                // itself) that is materially closer than the target.
                 Settlement bestPort = null;
                 float partyToTarget = party.GetPosition2D.Distance(target.GatePosition.ToVec2());
                 if (partyToTarget <= 1f) return;
 
                 float bestDistance = partyToTarget * 0.7f;          // require >=30% closer than target
-                foreach (var lane in targetLanes)
+                foreach (var lane in DefaultShippingLanes.Instance.All)
                 {
                     foreach (var port in lane.Ports)
                     {
                         if (port == target) continue;
                         if (port.IsUnderSiege) continue;
+                        if (port.MapFaction != null && port.MapFaction.IsAtWarWith(party.MapFaction)) continue;
                         float d = party.GetPosition2D.Distance(port.GatePosition.ToVec2());
                         if (d < bestDistance)
                         {
