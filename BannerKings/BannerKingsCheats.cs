@@ -3,9 +3,14 @@ using BannerKings.Managers.Helpers;
 using BannerKings.Managers.Innovations;
 using BannerKings.Managers.Court;
 using BannerKings.Behaviours.Mercenary;
+using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text;
 using TaleWorlds.CampaignSystem;
+using TaleWorlds.CampaignSystem.Actions;
+using TaleWorlds.CampaignSystem.Party;
+using TaleWorlds.CampaignSystem.Party.PartyComponents;
 using TaleWorlds.Core;
 using TaleWorlds.Library;
 using TaleWorlds.Localization;
@@ -270,6 +275,232 @@ namespace BannerKings
 
             // FactionManager.DeclareAlliance removed in 1.3.x
             return "Alliance system removed in 1.3.x";
+        }
+
+        // =====================================================================
+        // Test scenario commands — quick world-state setup for shipping/economy
+        // /diplomacy iteration. Composable: run test_setup, then layer war /
+        // caravan / state-dump on top. All gated by CampaignCheats.CheckCheatUsage
+        // so they're inert without cheats enabled in the launcher. None of these
+        // touch the slave-raid surface (separate work in flight on 1.6.x).
+        // =====================================================================
+
+        [CommandLineFunctionality.CommandLineArgumentFunction("test_setup", "bannerkings")]
+        public static string TestSetup(List<string> strings)
+        {
+            if (!CampaignCheats.CheckCheatUsage(ref CampaignCheats.ErrorType)) return CampaignCheats.ErrorType;
+
+            var hero = Hero.MainHero;
+            if (hero == null) return "No main hero — start a campaign first.";
+
+            int goldGain = 500_000;
+            int renownGain = 1_000;
+            try { hero.ChangeHeroGold(goldGain); } catch (Exception ex) { return "Gold grant failed: " + ex.Message; }
+            try { GainRenownAction.Apply(hero, renownGain, true); } catch { /* best-effort */ }
+
+            // Full peerage (idempotent — SetPeerage replaces, doesn't append).
+            try
+            {
+                var council = BannerKingsConfig.Instance.CourtManager.GetCouncil(Clan.PlayerClan);
+                council.SetPeerage(new Peerage(new TextObject("{=9OhMK2Wk}Full Peerage"),
+                    true, true, true, true, true, false));
+            }
+            catch { /* peerage may not be ready on a brand-new campaign tick */ }
+
+            return $"test_setup: +{goldGain:n0} gold, +{renownGain} renown, full peerage applied to {Clan.PlayerClan?.Name}.";
+        }
+
+        [CommandLineFunctionality.CommandLineArgumentFunction("test_war", "bannerkings")]
+        public static string TestWar(List<string> strings)
+        {
+            if (!CampaignCheats.CheckCheatUsage(ref CampaignCheats.ErrorType)) return CampaignCheats.ErrorType;
+            if (strings == null || strings.Count == 0)
+                return "Format: bannerkings.test_war <factionA> | <factionB>";
+
+            var parts = CampaignCheats.ConcatenateString(strings).Split('|');
+            if (parts.Length != 2) return "Format: bannerkings.test_war <factionA> | <factionB>";
+
+            var a = FindKingdom(parts[0].Trim());
+            var b = FindKingdom(parts[1].Trim());
+            if (a == null) return $"Kingdom not found: {parts[0]}";
+            if (b == null) return $"Kingdom not found: {parts[1]}";
+            if (a == b) return "Cannot declare war on self.";
+            if (a.IsAtWarWith(b)) return $"{a.Name} and {b.Name} are already at war.";
+
+            try { DeclareWarAction.ApplyByDefault(a, b); }
+            catch (Exception ex) { return "DeclareWarAction failed: " + ex.Message; }
+            return $"War declared: {a.Name} ↔ {b.Name}.";
+        }
+
+        [CommandLineFunctionality.CommandLineArgumentFunction("test_peace", "bannerkings")]
+        public static string TestPeace(List<string> strings)
+        {
+            if (!CampaignCheats.CheckCheatUsage(ref CampaignCheats.ErrorType)) return CampaignCheats.ErrorType;
+            if (strings == null || strings.Count == 0)
+                return "Format: bannerkings.test_peace <factionA> | <factionB>";
+
+            var parts = CampaignCheats.ConcatenateString(strings).Split('|');
+            if (parts.Length != 2) return "Format: bannerkings.test_peace <factionA> | <factionB>";
+
+            var a = FindKingdom(parts[0].Trim());
+            var b = FindKingdom(parts[1].Trim());
+            if (a == null) return $"Kingdom not found: {parts[0]}";
+            if (b == null) return $"Kingdom not found: {parts[1]}";
+            if (!a.IsAtWarWith(b)) return $"{a.Name} and {b.Name} are not at war.";
+
+            try { MakePeaceAction.Apply(a, b); }
+            catch (Exception ex) { return "MakePeaceAction failed: " + ex.Message; }
+            return $"Peace made: {a.Name} ↔ {b.Name}.";
+        }
+
+        [CommandLineFunctionality.CommandLineArgumentFunction("test_clear_wars", "bannerkings")]
+        public static string TestClearWars(List<string> strings)
+        {
+            if (!CampaignCheats.CheckCheatUsage(ref CampaignCheats.ErrorType)) return CampaignCheats.ErrorType;
+
+            int count = 0;
+            // Walk unique kingdom pairs once. Snapshot to a list so MakePeace
+            // mutating stance state mid-iteration doesn't trip the enumerator.
+            var pairs = new List<(Kingdom, Kingdom)>();
+            var all = Kingdom.All.ToList();
+            for (int i = 0; i < all.Count; i++)
+                for (int j = i + 1; j < all.Count; j++)
+                    if (all[i].IsAtWarWith(all[j])) pairs.Add((all[i], all[j]));
+            foreach (var (a, b) in pairs)
+            {
+                try { MakePeaceAction.Apply(a, b); count++; } catch { /* mid-iteration mutation */ }
+            }
+            return $"Resolved {count} active war(s).";
+        }
+
+        [CommandLineFunctionality.CommandLineArgumentFunction("test_spawn_caravan", "bannerkings")]
+        public static string TestSpawnCaravan(List<string> strings)
+        {
+            if (!CampaignCheats.CheckCheatUsage(ref CampaignCheats.ErrorType)) return CampaignCheats.ErrorType;
+            if (strings == null || strings.Count == 0)
+                return "Format: bannerkings.test_spawn_caravan <heroName> | <fromTownIdOrName>";
+
+            var parts = CampaignCheats.ConcatenateString(strings).Split('|');
+            if (parts.Length != 2) return "Format: bannerkings.test_spawn_caravan <heroName> | <fromTownIdOrName>";
+
+            string heroToken = parts[0].Trim();
+            string townToken = parts[1].Trim();
+
+            var hero = Hero.AllAliveHeroes.FirstOrDefault(h => h.Name != null && h.Name.ToString() == heroToken);
+            if (hero == null) return $"Hero not found: {heroToken}";
+            if (!hero.CanLeadParty()) return $"{hero.Name} cannot lead a party.";
+
+            var town = FindSettlement(townToken);
+            if (town == null) return $"Settlement not found: {townToken}";
+            if (town.Town == null) return $"{town.Name} is not a town.";
+
+            // Same template fallback chain as BKCaravansBehavior.SpawnCaravan
+            // (BKCaravansBehavior.cs:310-324) — try elite, then regular, bail
+            // gracefully if the hero's culture has nothing to spawn from.
+            var culture = hero.Culture;
+            PartyTemplateObject template = null;
+            if (culture?.CaravanPartyTemplates != null && culture.CaravanPartyTemplates.Count > 0)
+                template = culture.CaravanPartyTemplates.GetRandomElement();
+            if (template == null) return $"No caravan template available for culture {culture?.StringId}.";
+
+            try
+            {
+                CaravanPartyComponent.CreateCaravanParty(hero, town, template, false, null, null, false);
+            }
+            catch (Exception ex) { return "CreateCaravanParty failed: " + ex.Message; }
+            return $"Spawned caravan owned by {hero.Name} at {town.Name}.";
+        }
+
+        [CommandLineFunctionality.CommandLineArgumentFunction("test_relocate_caravan", "bannerkings")]
+        public static string TestRelocateCaravan(List<string> strings)
+        {
+            if (!CampaignCheats.CheckCheatUsage(ref CampaignCheats.ErrorType)) return CampaignCheats.ErrorType;
+            if (strings == null || strings.Count == 0)
+                return "Format: bannerkings.test_relocate_caravan <caravanName> | <toTownIdOrName>";
+
+            var parts = CampaignCheats.ConcatenateString(strings).Split('|');
+            if (parts.Length != 2) return "Format: bannerkings.test_relocate_caravan <caravanName> | <toTownIdOrName>";
+
+            string caravanToken = parts[0].Trim();
+            string townToken = parts[1].Trim();
+
+            var caravan = MobileParty.AllCaravanParties
+                .FirstOrDefault(c => c?.Name != null && c.Name.ToString() == caravanToken);
+            if (caravan == null) return $"Caravan not found: {caravanToken}";
+
+            var town = FindSettlement(townToken);
+            if (town == null) return $"Settlement not found: {townToken}";
+
+            try
+            {
+                caravan.Position = town.GatePosition;
+                caravan.SetMoveGoToSettlement(town, MobileParty.NavigationType.All, false);
+            }
+            catch (Exception ex) { return "Relocate failed: " + ex.Message; }
+            return $"Relocated {caravan.Name} to {town.Name}.";
+        }
+
+        [CommandLineFunctionality.CommandLineArgumentFunction("test_dump_state", "bannerkings")]
+        public static string TestDumpState(List<string> strings)
+        {
+            var sb = new StringBuilder();
+            try
+            {
+                var hero = Hero.MainHero;
+                var clan = Clan.PlayerClan;
+                sb.AppendLine($"Player: {hero?.Name} | gold {hero?.Gold:n0} | renown {hero?.Clan?.Renown:n0} | tier {clan?.Tier}");
+                if (clan?.Fiefs != null && clan.Fiefs.Count > 0)
+                    sb.AppendLine($"  Fiefs: {string.Join(", ", clan.Fiefs.Select(f => f.Name?.ToString()))}");
+                else sb.AppendLine("  Fiefs: (none)");
+
+                var wars = new List<string>();
+                var all = Kingdom.All.ToList();
+                for (int i = 0; i < all.Count; i++)
+                    for (int j = i + 1; j < all.Count; j++)
+                        if (all[i].IsAtWarWith(all[j]))
+                            wars.Add($"{all[i].Name} ↔ {all[j].Name}");
+                sb.AppendLine($"Active wars ({wars.Count}): {(wars.Count == 0 ? "(none)" : string.Join("; ", wars))}");
+
+                var sieges = Settlement.All.Where(s => s != null && s.IsUnderSiege).Select(s => s.Name?.ToString()).ToList();
+                sb.AppendLine($"Sieges ({sieges.Count}): {(sieges.Count == 0 ? "(none)" : string.Join(", ", sieges))}");
+
+                var caravans = MobileParty.AllCaravanParties.Where(c => c != null).ToList();
+                sb.AppendLine($"Caravans ({caravans.Count}):");
+                int shown = 0;
+                foreach (var c in caravans)
+                {
+                    if (shown >= 8) { sb.AppendLine($"  … {caravans.Count - shown} more"); break; }
+                    string at = c.CurrentSettlement?.Name?.ToString() ?? $"({c.Position.X:n0},{c.Position.Y:n0})";
+                    string tgt = c.TargetSettlement?.Name?.ToString() ?? "(no target)";
+                    sb.AppendLine($"  {c.Name} @ {at} → {tgt}");
+                    shown++;
+                }
+
+                // Risk hotspots — chain into existing graph report and pluck
+                // the section we want without rebuilding it from scratch.
+                var report = BannerKings.Managers.Shipping.ShippingGraph.Instance.BuildReport();
+                int idx = report.IndexOf("Adaptive risk hotspots", StringComparison.Ordinal);
+                if (idx >= 0) sb.Append(report.Substring(idx));
+            }
+            catch (Exception ex) { sb.AppendLine("[dump_state error: " + ex.Message + "]"); }
+            return sb.ToString();
+        }
+
+        // ---- helpers ----
+
+        private static Kingdom FindKingdom(string token)
+        {
+            if (string.IsNullOrEmpty(token)) return null;
+            return Kingdom.All.FirstOrDefault(k => k.StringId == token)
+                ?? Kingdom.All.FirstOrDefault(k => k.Name != null && k.Name.ToString().Equals(token, StringComparison.OrdinalIgnoreCase));
+        }
+
+        private static Settlement FindSettlement(string token)
+        {
+            if (string.IsNullOrEmpty(token)) return null;
+            var byId = Settlement.Find(token);
+            if (byId != null) return byId;
+            return Settlement.All.FirstOrDefault(s => s.Name != null && s.Name.ToString().Equals(token, StringComparison.OrdinalIgnoreCase));
         }
     }
 }

@@ -236,6 +236,33 @@ Diagnose the live state in-game with these console commands:
   caravan would actually take given the current world state. Use this
   when a caravan is taking a surprising path.
 
+**Test-scenario commands (v1.6.1.2).** A small suite of cheats for
+forcing world state instead of waiting for it. Cheats must be enabled
+in the launcher; otherwise these are inert. Composable — run them in
+sequence to set up a specific situation:
+
+- `bannerkings.test_setup` — leveraged player start: +500 000 gold,
+  +1 000 renown, full peerage applied to your clan. Idempotent.
+- `bannerkings.test_war Vlandia | Sturgia` — declare war between two
+  kingdoms. Argument is `<factionA> | <factionB>` (StringId or display
+  name, pipe-separated).
+- `bannerkings.test_peace Vlandia | Sturgia` — make peace between two
+  kingdoms.
+- `bannerkings.test_clear_wars` — peace out every active war on the
+  map. Useful for resetting between scenario runs.
+- `bannerkings.test_spawn_caravan SomeMerchant | town_V8` — spawn a
+  fresh caravan owned by the named hero, starting at the given town.
+- `bannerkings.test_relocate_caravan CaravanName | town_S4` — teleport
+  an existing caravan to another town. Caravan name is what appears in
+  the encyclopedia.
+- `bannerkings.test_dump_state` — read-only summary: player gold /
+  renown / fiefs, ongoing wars, ongoing sieges, every caravan's
+  current/target settlement, and the current shipping risk hotspots.
+
+A typical shipping iteration loop: `test_setup` → `test_war Vlandia | Sturgia`
+→ `shipping_risk_path town_V8 town_S2` (confirm the war redirects the route)
+→ `test_clear_wars` (reset).
+
 **Quest-mandated overloaded fleets.** The War Sails Northern Crossing
 quest hands you ~190 troops on a fleet with ~50 crew capacity, which
 under vanilla NavalDLC's −74% over-crew speed penalty would floor you at
@@ -632,6 +659,101 @@ Yes, but with caveats:
   Nord (`SlaveryNord`, +80% demand) are the best markets. Vlandian
   (`SlaveryVlandia`, −30%, no Vlandian enslavement) and Manumission realms
   are poor markets.
+
+### How does the village raid capture system work?
+
+When the **Raid Capture System** is enabled in MCM (default on), every
+village you raid produces a *captive caravan* on top of vanilla raid
+damage. The vanilla raid still hits hearths and prosperity exactly as
+before — the captives are conceptually drawn from the already-displaced
+cohort, so the source village is *not* damaged extra. The caravan ships
+captives to your nearest friendly fief, and on arrival they enter the
+local population either as Slaves or as Serfs depending on your toggle.
+
+**1. Set your defaults.** When you walk up to a hostile village (the
+`village_hostile_action` menu, the same one with "Raid the village" and
+"Loot the village"), three new lines appear above the raid options:
+
+- `Captives: Take` / `Captives: Leave` — click to flip. Sticky per clan.
+  Default Take if your clan's realm has slavery, Leave otherwise.
+- `Disposition: Slaves` / `Disposition: Serfs` — only shown if Captives
+  is set to Take. Sticky per clan. Default Slaves under slavery realms,
+  Serfs otherwise.
+- `Estimated captives: ~N` — read-only preview computed from village
+  serf population. Helps you decide whether the raid is worth setting up
+  for capture.
+
+**2. Run the raid.** Choose "Raid the village" as normal. When the raid
+completes, BK applies your toggles:
+
+- A captive caravan spawns at the raided village and walks to the
+  *nearest friendly* town or castle that isn't at war with your party.
+- Captives keep their **original culture** — Battanian raids on a mixed
+  Vlandian village produce a culture-weighted cohort of Vlandian, Empire,
+  etc., **excluding your raid leader's culture**. This is intentional: no
+  internal slave-taking among your own ethnos.
+- A small culture-typed escort accompanies the caravan (10–40 troops, tier
+  ≤ 2). Strong enough to fend off a small bandit pack; weak enough that
+  any war party will roll over it. Decide whether to escort it home
+  yourself.
+
+**3. Arrival.** When the caravan reaches its destination, captives are
+absorbed into the receiving fief's population (Slaves or Serfs per your
+toggle), each cohort credited under its *own* culture in `CultureData`.
+You receive a lump-sum payout to your hero — full slave price for Slaves,
+~55% of slave price for Serfs.
+
+**4. Disposition legality.**
+
+- **Independent clan** (no kingdom): both Slaves and Serfs always legal.
+- **Realm with `SlaveryNord` / `SlaveryAserai` / criminal Enslavement**:
+  both legal, default Slaves.
+- **Realm without slavery**: Serfs legal; Slaves shows
+  *"Slaves (UNLAWFUL)"* — you can still pick it for the higher payout, but
+  expect a criminal rating tick, relation hit with your kingdom's ruler,
+  and influence loss per caravan. Profit beats penalty for one-off
+  captures; sustained illegal slaving will cost more than it earns.
+
+**5. Foreign mercenaries.** If your raid leader's culture differs from
+your employing kingdom's culture (e.g. a Sturgian captain serving Vlandia),
+20% of captives are skimmed for the captain's private benefit:
+
+- Independent merc (no employer kingdom): instant gold payout, no
+  secondary caravan.
+- Kingdom-affiliated foreign captain: a *second*, smaller caravan spawns
+  to the captain's clan home. Both caravans are interceptable.
+
+**6. Intercepting enemy caravans.** Hostile captive caravans appear on the
+map and can be attacked like any party. Defeating one releases the
+captives (no transfer to your fief) — useful for harassing slaver realms.
+
+**7. Demographic warfare.** Because captives keep their original culture
+and feed the destination's `CultureData`, sustained raiding visibly
+reshapes both sides over decades:
+
+- **Donor settlements** lose pop biased toward their own culture (your
+  culture is excluded), so a raided foreign town slowly purifies toward
+  the *raider's* cultural minority over many raids.
+- **Receiver settlements** gain a foreign-culture cohort with low
+  acceptance (0.20). The next-tick weight recompute shifts assimilation
+  in their favor; over many caravans, visible foreign pockets form in
+  your towns, with all the loyalty/recruit-pool consequences that come
+  with cultural mismatch.
+
+**8. Toggling the system off.** Open MCM → Banner Kings → Slavery →
+*Raid Capture System*. With it off, only the existing slavery system
+runs (criminal-policy Enslavement on prisoner sale, `decision_slaves_export`
+slave caravans). Existing saves remain compatible either way.
+
+**Gotchas:**
+
+- Raid leader's *culture* (not their kingdom's) decides the cohort
+  exclusion. Mercenary captains carry their own culture into this rule.
+- Bandits never produce captives — only player and AI lord raids do.
+- If no friendly town/castle exists (besieged, all-hostile, etc.), the
+  caravan routes to your clan's home settlement as a fallback.
+- Caravans are not invincible. Plan to escort them home if you raided
+  deep in enemy territory.
 
 ---
 
