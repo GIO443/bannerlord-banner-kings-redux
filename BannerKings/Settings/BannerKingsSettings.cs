@@ -60,6 +60,10 @@ namespace BannerKings.Settings
         [SettingPropertyGroup("{=2oJQ4Snn}Economy")]
         public bool RealisticCaravanIncome { get; set; } = true;
 
+        [SettingProperty("Adaptive Shipping Risk", RequireRestart = false, HintText = "When on, caravans avoid hostile ports, sieged endpoints, and bandit-heavy coasts; freight prices climb in war zones; routes recompute as the world changes. When off, the shipping graph still chooses cross-continent routes but ignores war/siege/banditry — the v1.5.x heuristic single-lane behaviour returns. Default: true.")]
+        [SettingPropertyGroup("{=2oJQ4Snn}Economy")]
+        public bool AdaptiveShippingRisk { get; set; } = true;
+
         [SettingProperty("{=4pJUkbew}AI Dismiss Parties", RequireRestart = false, HintText = "{=FhNxraXd}AI clan leaders will dismiss parties from their family members during peace in order to save more money. Default: true.")]
         [SettingPropertyGroup("{=2oJQ4Snn}Economy")]
         public bool DismissParties { get; set; } = true;

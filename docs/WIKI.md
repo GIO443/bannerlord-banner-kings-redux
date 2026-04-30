@@ -218,6 +218,13 @@ back to the static shortest path only if every adaptive route is fully
 blocked (every connecting port at war). Player freight prices use the
 same weighted distance — sailing into a war zone costs more.
 
+Toggle this off via **MCM → Banner Kings → Economy → Adaptive Shipping
+Risk** (default: on, no restart required). With the toggle off,
+caravans still use the shipping graph for cross-continent routing but
+ignore war / siege / banditry — freight prices fall back to raw
+straight-line distance, matching v1.5.x flavour. Useful if a long
+campaign-wide war makes shipping feel too disrupted.
+
 Diagnose the live state in-game with these console commands:
 
 - `bannerkings.shipping_topology` — connected components, bridge ports,

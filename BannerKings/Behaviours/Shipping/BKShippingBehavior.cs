@@ -178,16 +178,19 @@ namespace BannerKings.Behaviours.Shipping
             // shipping graph (e.g. embarking from a non-port menu) so the
             // player path can never be priced as "unreachable".
             float distance = party.CurrentSettlement.GatePosition.Distance(settlement.GatePosition);
-            try
+            if (Settings.BannerKingsSettings.Instance.AdaptiveShippingRisk)
             {
-                var graph = ShippingGraph.Instance;
-                var perspective = party.MapFaction;
-                float adaptive = graph.GetAdaptiveDistance(party.CurrentSettlement, settlement, perspective);
-                if (adaptive > 0f) distance = adaptive;
-            }
-            catch
-            {
-                // Defensive: fall through to raw distance on any graph hiccup.
+                try
+                {
+                    var graph = ShippingGraph.Instance;
+                    var perspective = party.MapFaction;
+                    float adaptive = graph.GetAdaptiveDistance(party.CurrentSettlement, settlement, perspective);
+                    if (adaptive > 0f) distance = adaptive;
+                }
+                catch
+                {
+                    // Defensive: fall through to raw distance on any graph hiccup.
+                }
             }
 
             return MBRandom.RoundRandomized(distance);
@@ -446,10 +449,15 @@ namespace BannerKings.Behaviours.Shipping
                     // Falls back to raw shortest path if every adaptive route
                     // is blocked (e.g. all bridge ports owned by a faction at
                     // war with the caravan) so the trade network doesn't
-                    // collapse during widespread wars.
+                    // collapse during widespread wars. The MCM toggle bypasses
+                    // adaptive entirely — caravans then use static graph paths
+                    // and ignore war/siege/banditry, matching v1.5.x flavour.
                     var perspective = party.MapFaction;
-                    var path = graph.GetAdaptivePath(settlement, town.Settlement, perspective)
-                               ?? graph.GetShortestPath(settlement, town.Settlement);
+                    List<TaleWorlds.CampaignSystem.Settlements.Settlement> path =
+                        Settings.BannerKingsSettings.Instance.AdaptiveShippingRisk
+                            ? (graph.GetAdaptivePath(settlement, town.Settlement, perspective)
+                               ?? graph.GetShortestPath(settlement, town.Settlement))
+                            : graph.GetShortestPath(settlement, town.Settlement);
                     if (path != null && path.Count >= 2)
                     {
                         // path[0] is the current settlement, path[1] is the next hop.
@@ -564,15 +572,20 @@ namespace BannerKings.Behaviours.Shipping
                         // port if every path from it crosses ports at war
                         // with the caravan. If the graph can't answer
                         // (port not in graph yet, transient state), accept
-                        // the candidate on geometric grounds.
-                        try
+                        // the candidate on geometric grounds. Skipped when
+                        // the adaptive shipping toggle is off — geometric
+                        // closeness is the only filter then.
+                        if (Settings.BannerKingsSettings.Instance.AdaptiveShippingRisk)
                         {
-                            if (graph.Adjacency.ContainsKey(port) && graph.Adjacency.ContainsKey(target))
+                            try
                             {
-                                if (graph.GetAdaptivePath(port, target, party.MapFaction) == null) continue;
+                                if (graph.Adjacency.ContainsKey(port) && graph.Adjacency.ContainsKey(target))
+                                {
+                                    if (graph.GetAdaptivePath(port, target, party.MapFaction) == null) continue;
+                                }
                             }
+                            catch { /* fall through to geometric check */ }
                         }
-                        catch { /* fall through to geometric check */ }
                         float d = party.GetPosition2D.Distance(port.GatePosition.ToVec2());
                         if (d < bestDistance)
                         {
