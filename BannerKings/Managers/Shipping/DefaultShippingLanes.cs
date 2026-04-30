@@ -17,11 +17,11 @@ namespace BannerKings.Managers.Shipping
         {
             get
             {
-                yield return Laconis;
-                yield return Perassic;
-                yield return Junme;
-                yield return Western;
-                if (Norden.Ports != null && Norden.Ports.Count > 0) yield return Norden;
+                if (Laconis.Ports != null && Laconis.Ports.Count >= 2) yield return Laconis;
+                if (Perassic.Ports != null && Perassic.Ports.Count >= 2) yield return Perassic;
+                if (Junme.Ports != null && Junme.Ports.Count >= 2) yield return Junme;
+                if (Western.Ports != null && Western.Ports.Count >= 2) yield return Western;
+                if (Norden.Ports != null && Norden.Ports.Count >= 2) yield return Norden;
                 foreach (var lane in ModAdditions) yield return lane;
             }
         }
@@ -47,6 +47,24 @@ namespace BannerKings.Managers.Shipping
                     yield return lane;
         }
 
+        // Resolves a list of settlement StringIds to actual Settlement
+        // references, skipping any that don't exist on the current map.
+        // Used by Initialize so a missing port (e.g. when a total-conversion
+        // mod replaces Calradia's settlements with its own) doesn't crash
+        // the lane setup — the lane just gets fewer ports, or is skipped
+        // entirely if too few survive.
+        private static List<Settlement> ResolvePorts(params string[] stringIds)
+        {
+            var list = new List<Settlement>();
+            if (stringIds == null) return list;
+            foreach (var id in stringIds)
+            {
+                var s = Settlement.All.FirstOrDefault(x => x.StringId == id);
+                if (s != null) list.Add(s);
+            }
+            return list;
+        }
+
         public override void Initialize()
         {
             // Lanes connect via *shared port membership*: a settlement that
@@ -59,71 +77,54 @@ namespace BannerKings.Managers.Shipping
             // the coastal bridge to Sturgia/Empire North. Other three Nord
             // ports (Gretysfjord, Thronderlag, Hargard) are Nord-only and
             // ship internally via Norden.
+            //
+            // ALL settlement lookups go through ResolvePorts which filters
+            // out missing IDs. Whole-conversion mods (e.g. Realm of Thrones)
+            // replace Calradia's settlements; the lane lookups would then
+            // resolve to nothing and we'd ship empty lanes, which `All`
+            // gates out (>=2 ports required). No crash on init.
 
-            var laconisPorts = new List<Settlement>()
+            // Laconis — Empire-North/Sturgia coastal + Nord bridge (town_N1).
+            var laconisPorts = ResolvePorts("town_S4", "town_EN2", "village_EN4_2", "village_S3_2", "town_S2", "town_N1");
+            if (laconisPorts.Count >= 2)
             {
-                Settlement.All.First(x => x.StringId == "town_S4"),
-                Settlement.All.First(x => x.StringId == "town_EN2"),
-                Settlement.All.First(x => x.StringId == "village_EN4_2"),
-                Settlement.All.First(x => x.StringId == "village_S3_2"),
-                // town_S2 (Sturgia central, also on Junme) bridges Laconis ↔ Junme
-                // so a caravan that ships from Hvalvik via Laconis to S2 can then
-                // ship onward via Junme to Vlandia (town_V8 / Ostican). Without
-                // this shared port the northern shipping network dead-ended at
-                // Sturgia / Empire North with no chain to Vlandia.
-                Settlement.All.First(x => x.StringId == "town_S2")
-            };
-            // War Sails is optional; only bridge in the Nord port if the
-            // settlement actually exists in this campaign.
-            var hvalvik = Settlement.All.FirstOrDefault(x => x.StringId == "town_N1");
-            if (hvalvik != null) laconisPorts.Add(hvalvik);
+                Laconis.Initialize(new TextObject("{=ZJBYtrAB}Laconian Shipping Network"),
+                    TextObject.GetEmpty(),
+                    laconisPorts);
+            }
 
-            Laconis.Initialize(new TextObject("{=ZJBYtrAB}Laconian Shipping Network"),
-                TextObject.GetEmpty(),
-                laconisPorts);
+            // Western — short Vlandian coastal hop.
+            var westernPorts = ResolvePorts("town_V7", "town_V8");
+            if (westernPorts.Count >= 2)
+            {
+                Western.Initialize(new TextObject("{=tySxydya}Western Sea Network"),
+                    TextObject.GetEmpty(),
+                    westernPorts);
+            }
 
-            Western.Initialize(new TextObject("{=tySxydya}Western Sea Network"),
-                TextObject.GetEmpty(),
-                new List<Settlement>()
-                {
-                    Settlement.All.First(x => x.StringId == "town_V7"),
-                    Settlement.All.First(x => x.StringId == "town_V8")
-                });
+            // Junme — Sturgia ↔ Vlandia bridge via town_S2 + town_V8.
+            var junmePorts = ResolvePorts("town_S2", "town_V8");
+            if (junmePorts.Count >= 2)
+            {
+                Junme.Initialize(new TextObject("{=FGXR8tdb}Junme Trade Network"),
+                    TextObject.GetEmpty(),
+                    junmePorts,
+                    false,
+                    Utils.Helpers.GetCulture("nord"));
+            }
 
-            Junme.Initialize(new TextObject("{=FGXR8tdb}Junme Trade Network"),
-                TextObject.GetEmpty(),
-                new List<Settlement>()
-                {
-                    Settlement.All.First(x => x.StringId == "town_S2"),
-                    Settlement.All.First(x => x.StringId == "town_V8")
-                },
-                false,
-                Utils.Helpers.GetCulture("nord"));
-
-            Perassic.Initialize(new TextObject("{=TFoGRBnG}Perassic Trade Network"),
-                TextObject.GetEmpty(),
-                new List<Settlement>()
-                {
-                    Settlement.All.First(x => x.StringId == "town_ES2"),
-                    Settlement.All.First(x => x.StringId == "town_A4"),
-                    Settlement.All.First(x => x.StringId == "town_A8"),
-                    Settlement.All.First(x => x.StringId == "town_EW2"),
-                    Settlement.All.First(x => x.StringId == "town_EW4"),
-                    Settlement.All.First(x => x.StringId == "town_A1"),
-                    Settlement.All.First(x => x.StringId == "town_A6")
-                });
+            // Perassic — Empire-South / Aserai shipping ring.
+            var perassicPorts = ResolvePorts("town_ES2", "town_A4", "town_A8", "town_EW2", "town_EW4", "town_A1", "town_A6");
+            if (perassicPorts.Count >= 2)
+            {
+                Perassic.Initialize(new TextObject("{=TFoGRBnG}Perassic Trade Network"),
+                    TextObject.GetEmpty(),
+                    perassicPorts);
+            }
 
             // Nord (War Sails) coastal lane. Skipped entirely when War Sails isn't
-            // installed — town_N1..N4 won't exist and FirstOrDefault returns null.
-            var n1 = Settlement.All.FirstOrDefault(x => x.StringId == "town_N1");
-            var n2 = Settlement.All.FirstOrDefault(x => x.StringId == "town_N2");
-            var n3 = Settlement.All.FirstOrDefault(x => x.StringId == "town_N3");
-            var n4 = Settlement.All.FirstOrDefault(x => x.StringId == "town_N4");
-            var nordPorts = new List<Settlement>();
-            if (n1 != null) nordPorts.Add(n1);
-            if (n2 != null) nordPorts.Add(n2);
-            if (n3 != null) nordPorts.Add(n3);
-            if (n4 != null) nordPorts.Add(n4);
+            // installed — town_N1..N4 won't exist and ResolvePorts returns empty.
+            var nordPorts = ResolvePorts("town_N1", "town_N2", "town_N3", "town_N4");
             if (nordPorts.Count >= 2)
             {
                 Norden.Initialize(new TextObject("{=!}Norden Sea Network"),
