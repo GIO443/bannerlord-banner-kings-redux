@@ -688,6 +688,14 @@ namespace BannerKings.Behaviours.Shipping
                 if (party.Army != null && party.Army.LeaderParty != party) return;
 
                 if (sailing.ContainsKey(party)) return;             // already on a ship
+                // Hands-off: parties already at sea are owned by NavalDLC
+                // (its convoys / its naval AI) or by BK's own SetSail
+                // branch for AI lords. Issuing SetMoveGoToSettlement with
+                // NavigationType.All on an at-sea party gives the land
+                // pathfinder a target, so the party walks on land terrain
+                // while still showing the boat sprite — "boating around on
+                // land", which was the reported symptom in the field.
+                if (party.IsCurrentlyAtSea) return;
                 if (party.CurrentSettlement != null) return;        // wait for Step A on settlement entry
 
                 var target = party.TargetSettlement;
