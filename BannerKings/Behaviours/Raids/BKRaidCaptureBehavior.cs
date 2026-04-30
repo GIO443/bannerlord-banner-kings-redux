@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using BannerKings.Components;
@@ -22,6 +23,12 @@ namespace BannerKings.Behaviours.Raids
         private RaidCapturePolicyManager policyManager = new RaidCapturePolicyManager();
         private readonly BKRaidCaptureModel model = new BKRaidCaptureModel();
 
+        // Watchdog state — last-seen position per caravan party. Used by the
+        // daily tick to detect parties that haven't moved meaningfully in
+        // 24h. Non-serialized; rebuilds from a cold start on session load.
+        private readonly Dictionary<MobileParty, (Vec2 pos, CampaignTime stamp)> _watchdogState
+            = new Dictionary<MobileParty, (Vec2, CampaignTime)>();
+
         public RaidCapturePolicyManager Policies => policyManager;
 
         public override void RegisterEvents()
@@ -34,6 +41,10 @@ namespace BannerKings.Behaviours.Raids
             // arrival absorb logic already short-circuits on intermediate
             // entries, so the caravan stays alive until we hit the target.
             CampaignEvents.AfterSettlementEntered.AddNonSerializedListener(this, AfterSettlementEntered_CaptiveRouter);
+            // Daily watchdog: dumps state of every captive caravan + every
+            // stalled trade caravan to BK_caravan_watchdog.txt so we can
+            // diagnose stuck-caravan reports against on-disk evidence.
+            CampaignEvents.DailyTickEvent.AddNonSerializedListener(this, OnDailyWatchdog);
         }
 
         public override void SyncData(IDataStore dataStore)
@@ -557,6 +568,106 @@ namespace BannerKings.Behaviours.Raids
                 // Defensive: never throw out of an arrival event. Worst case
                 // the caravan continues toward its existing target via vanilla.
                 try { party.SetMoveGoToSettlement(finalTarget, MobileParty.NavigationType.All, false); } catch { }
+            }
+        }
+
+        // Watchdog: scans active caravan-style parties (captive + regular)
+        // once a day, compares position against last-seen, dumps a one-line
+        // status entry per party plus a flag if the party hasn't moved more
+        // than StuckMoveThreshold map units in 24h. Output goes to
+        // BK_caravan_watchdog.txt; use `bannerkings.dump_caravans` for an
+        // on-demand snapshot at the same level of detail.
+        private const float StuckMoveThreshold = 5f;
+
+        private void OnDailyWatchdog()
+        {
+            try
+            {
+                var sb = new System.Text.StringBuilder();
+                CampaignTime now;
+                try { now = CampaignTime.Now; } catch { return; }
+
+                int captiveCount = 0;
+                int stuck = 0;
+                sb.AppendLine($"--- Daily watchdog @ {now} ---");
+
+                // Captive caravans first — primary suspect for the user's report.
+                foreach (var party in MobileParty.All)
+                {
+                    if (party?.PartyComponent is not BannerKings.Components.PopulationPartyComponent ppc) continue;
+                    if (!ppc.IsRaidCaptiveCaravan) continue;
+                    captiveCount++;
+                    if (DescribeAndCheckStuck(party, ppc, sb, now)) stuck++;
+                }
+
+                // Regular trade caravans — track only ones that look idle.
+                int regCheck = 0;
+                foreach (var party in MobileParty.AllCaravanParties)
+                {
+                    if (party == null) continue;
+                    if (DescribeAndCheckStuck(party, null, sb, now)) regCheck++;
+                }
+
+                sb.AppendLine($"Summary: {captiveCount} captive caravans tracked, {stuck} flagged stuck; {regCheck} trade caravans flagged stuck.");
+                BannerKingsCheats.AppendDiagnosticLine("caravan_watchdog.txt", sb.ToString());
+            }
+            catch (Exception ex)
+            {
+                try { BannerKingsCheats.AppendDiagnosticLine("caravan_watchdog.txt", "[watchdog error] " + ex.GetType().Name + ": " + ex.Message); } catch { }
+            }
+        }
+
+        // Returns true if the party hasn't moved meaningfully since last seen.
+        private bool DescribeAndCheckStuck(MobileParty party,
+            BannerKings.Components.PopulationPartyComponent ppc,
+            System.Text.StringBuilder sb,
+            CampaignTime now)
+        {
+            try
+            {
+                Vec2 pos = party.GetPosition2D;
+                bool flaggedStuck = false;
+                if (_watchdogState.TryGetValue(party, out var last))
+                {
+                    float delta = pos.Distance(last.pos);
+                    float hours = (float)(now - last.stamp).ToHours;
+                    if (hours >= 24f && delta < StuckMoveThreshold)
+                    {
+                        flaggedStuck = true;
+                    }
+                    // For regular caravans, only emit a line when stuck —
+                    // otherwise the log floods. Captive caravans always emit.
+                    if (ppc == null && !flaggedStuck) return false;
+                }
+                else if (ppc == null)
+                {
+                    // Track first-seen for regular caravans but don't log yet.
+                    _watchdogState[party] = (pos, now);
+                    return false;
+                }
+
+                _watchdogState[party] = (pos, now);
+
+                string current = party.CurrentSettlement?.Name?.ToString() ?? $"({pos.X:n0},{pos.Y:n0})";
+                string moveTarget = party.MoveTargetParty?.Name?.ToString()
+                    ?? party.TargetSettlement?.Name?.ToString()
+                    ?? "(no move target)";
+                string finalDest = ppc?.TargetSettlement?.Name?.ToString() ?? "(n/a)";
+                string captor = ppc?.CaptorHero?.Name?.ToString() ?? "(no captor)";
+                int prisoners = 0;
+                try { foreach (var e in party.PrisonRoster.GetTroopRoster()) if (!e.Character.IsHero) prisoners += e.Number; } catch { }
+
+                string kind = ppc != null ? "captive" : "trade";
+                string flag = flaggedStuck ? " [STUCK]" : "";
+                sb.AppendLine($"  [{kind}] {party.Name}{flag} @ {current} → moveTo={moveTarget}; finalDest={finalDest}; " +
+                              $"IsActive={party.IsActive}; AtSea={party.IsCurrentlyAtSea}; AiDisabled={party.Ai?.IsDisabled}; " +
+                              $"prisoners={prisoners}; captor={captor}");
+                return flaggedStuck;
+            }
+            catch (Exception ex)
+            {
+                sb.AppendLine($"  [error inspecting party] {party?.Name}: {ex.Message}");
+                return false;
             }
         }
 

@@ -313,6 +313,19 @@ Cheats must be enabled in the launcher.
 - `bannerkings.test_dump_raid_state` — list the player policy, the
   current settings (enable / fraction / skim / log), and every active
   captive caravan with cargo breakdown by culture, target, captor.
+- `bannerkings.dump_caravans` *(v1.6.3.2)* — instant snapshot of every
+  caravan-style party (captive + trade) with position, current
+  settlement, move target, final destination, IsActive, AtSea,
+  AiDisabled, prisoner count, captor. Output → BK_dump_caravans.txt.
+  Use this when a caravan looks stuck; the field values usually
+  identify the cause (IsActive=false → BK shipping limbo; moveTo=null
+  → AI lost its goal; AtSea=true on land settlement → disembark
+  failure; etc.).
+
+A passive **daily caravan watchdog** also appends every captive
+caravan's state and any 24h-idle trade caravan to BK_caravan_watchdog.txt
+when MCM *Log Raid Capture Behavior* is on, so retroactive diagnosis is
+possible even if the cheat wasn't run at the time.
 
 **Behavior logging** (no cheats required): toggle **MCM → Banner Kings
 → Slavery → Log Raid Capture Behavior**. With it on, every capture

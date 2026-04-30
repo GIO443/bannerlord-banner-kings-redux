@@ -572,6 +572,77 @@ namespace BannerKings
             return summary;
         }
 
+        // On-demand dump of every caravan-style party (captive + trade) with
+        // position, target, IsActive, IsCurrentlyAtSea, prisoner count, etc.
+        // Same data the daily watchdog logs but available immediately for
+        // diagnosing live "caravan stuck" reports. Output → BK_dump_caravans.txt.
+        [CommandLineFunctionality.CommandLineArgumentFunction("dump_caravans", "bannerkings")]
+        public static string DumpCaravans(List<string> strings)
+        {
+            try
+            {
+                var sb = new StringBuilder();
+                int captiveCount = 0;
+                int regularCount = 0;
+
+                sb.AppendLine("Captive caravans:");
+                foreach (var party in MobileParty.All)
+                {
+                    if (party?.PartyComponent is not BannerKings.Components.PopulationPartyComponent ppc) continue;
+                    if (!ppc.IsRaidCaptiveCaravan) continue;
+                    captiveCount++;
+                    AppendCaravanLine(sb, party, ppc);
+                }
+                if (captiveCount == 0) sb.AppendLine("  (none)");
+
+                sb.AppendLine();
+                sb.AppendLine("Trade caravans:");
+                foreach (var party in MobileParty.AllCaravanParties)
+                {
+                    if (party == null) continue;
+                    regularCount++;
+                    AppendCaravanLine(sb, party, null);
+                }
+                if (regularCount == 0) sb.AppendLine("  (none)");
+
+                WriteDiagnosticFile("dump_caravans.txt", sb.ToString());
+                string summary = $"dump_caravans: {captiveCount} captive, {regularCount} trade. {LastWriteResult}";
+                InformationManager.DisplayMessage(new InformationMessage(summary, Color.FromUint(0xFFFFD700)));
+                return summary;
+            }
+            catch (Exception ex)
+            {
+                string err = "dump_caravans failed: " + ex.GetType().Name + ": " + ex.Message;
+                InformationManager.DisplayMessage(new InformationMessage(err, Color.FromUint(0xFFFF4040)));
+                return err;
+            }
+        }
+
+        private static void AppendCaravanLine(StringBuilder sb, MobileParty party,
+            BannerKings.Components.PopulationPartyComponent ppc)
+        {
+            try
+            {
+                var pos = party.GetPosition2D;
+                string current = party.CurrentSettlement?.Name?.ToString() ?? $"({pos.X:n0},{pos.Y:n0})";
+                string moveTarget = party.MoveTargetParty?.Name?.ToString()
+                    ?? party.TargetSettlement?.Name?.ToString()
+                    ?? "(no move target)";
+                string finalDest = ppc?.TargetSettlement?.Name?.ToString() ?? "(n/a)";
+                string captor = ppc?.CaptorHero?.Name?.ToString() ?? "-";
+                int prisoners = 0;
+                try { foreach (var e in party.PrisonRoster.GetTroopRoster()) if (!e.Character.IsHero) prisoners += e.Number; } catch { }
+                int troops = party.MemberRoster?.TotalManCount ?? 0;
+                sb.AppendLine($"  {party.Name} @ {current} → moveTo={moveTarget}; finalDest={finalDest}; " +
+                              $"troops={troops}; prisoners={prisoners}; IsActive={party.IsActive}; " +
+                              $"AtSea={party.IsCurrentlyAtSea}; AiDisabled={party.Ai?.IsDisabled}; captor={captor}");
+            }
+            catch (Exception ex)
+            {
+                sb.AppendLine($"  [error inspecting {party?.Name}] {ex.Message}");
+            }
+        }
+
         // -- Raid capture system test cheats (v1.6.2.0+) --
 
         [CommandLineFunctionality.CommandLineArgumentFunction("test_raid_policy", "bannerkings")]
