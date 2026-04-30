@@ -53,6 +53,62 @@ namespace BannerKings.Managers.Populations.Estates
             Settlement.Village.TradeTaxAccumulated += tradeTax - totalDeducted;
         }
 
+        // Daily production income for every estate in this village. Trade-tax
+        // share alone (AccumulateTradeTax above) was anemic — for small
+        // estates the per-trip share rounded to a fraction of a denar, so a
+        // population-41 estate effectively earned nothing. Estates also have
+        // physical productive land (Farmland / Pastureland / Woodland), and
+        // the owner should derive income from working that land too.
+        //
+        // Per-day formula:
+        //   effectiveAcres = Farmland + Pastureland * 0.5 + Woodland * 0.15
+        //   workforceFactor = clamp((Pop + Slaves) / RequiredLaborForAcres, 0, 1)
+        //   gross           = effectiveAcres * workforceFactor * AcrePriceMultiplier
+        //   net             = gross * (1 - TaxRatio)
+        //
+        // RequiredLaborForAcres scales with the land mix; workforceFactor
+        // saturates at 1, so over-population doesn't increase yield (matching
+        // the existing WorkforceSaturation tooltip semantics).
+        // AcrePriceMultiplier is 0.4 — calibrated so a typical 100-acre,
+        // fully-staffed allodial estate yields ~40 denar/day, comparable to
+        // a workshop and roughly matching the "estates as a passive income
+        // stream" design intent in the wiki.
+        public void DailyProductionIncome()
+        {
+            try
+            {
+                if (Estates == null || Estates.Count == 0) return;
+                foreach (var estate in Estates)
+                {
+                    if (estate == null || estate.IsDisabled) continue;
+                    float farm = estate.Farmland;
+                    float pasture = estate.Pastureland;
+                    float wood = estate.Woodland;
+                    float effectiveAcres = farm + (pasture * 0.5f) + (wood * 0.15f);
+                    if (effectiveAcres <= 0f) continue;
+
+                    int totalLabor = estate.Population + estate.Slaves;
+                    if (totalLabor <= 0) continue;
+                    // Required-labor-per-acre is roughly 0.5 in vanilla land
+                    // economics. Saturation = totalLabor / (acres * 0.5).
+                    float requiredLabor = effectiveAcres * 0.5f;
+                    float workforceFactor = requiredLabor > 0f
+                        ? MathF.Clamp(totalLabor / requiredLabor, 0f, 1f)
+                        : 0f;
+                    if (workforceFactor <= 0f) continue;
+
+                    const float AcrePriceMultiplier = 0.4f;
+                    float keepRate = 1f - estate.TaxRatio.ResultNumber;
+                    if (keepRate < 0f) keepRate = 0f;
+                    float gross = effectiveAcres * workforceFactor * AcrePriceMultiplier;
+                    float net = gross * keepRate;
+                    int delta = MBRandom.RoundRandomized(net);
+                    if (delta > 0) estate.TaxAccumulated += delta;
+                }
+            }
+            catch { /* never throw out of a daily tick */ }
+        }
+
         public void InheritEstate(Estate estate, Hero newOwner = null)
         {
             if (newOwner != null)

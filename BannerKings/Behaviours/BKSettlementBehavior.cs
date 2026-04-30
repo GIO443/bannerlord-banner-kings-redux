@@ -174,6 +174,22 @@ namespace BannerKings.Behaviours
             TickVillage(settlement);
             HandleMarketGold(settlement);
             HandleIssues(settlement);
+
+            // Estates derive daily production income from their farmland /
+            // pastureland / woodland in addition to their share of villager
+            // trade tax. Trade-tax share alone was producing < 1 denar/day
+            // for low-population estates; production-based income gives
+            // owners a meaningful return on the up-front estate purchase
+            // cost. Villages only — castles and towns don't have estates.
+            if (settlement.IsVillage)
+            {
+                try
+                {
+                    var data = BannerKingsConfig.Instance.PopulationManager?.GetPopData(settlement);
+                    data?.EstateData?.DailyProductionIncome();
+                }
+                catch { /* never throw out of a daily tick */ }
+            }
         }
 
         private void KillBandits(Settlement settlement)
