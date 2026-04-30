@@ -60,6 +60,10 @@ local population either as Slaves or as Serfs depending on your toggle.
 
 ### 1. Set your defaults
 
+> **All three toggles are sticky per clan and survive save/load.** Set
+> them once on your first raid; you don't need to cycle them again
+> unless you want to change strategy.
+
 When you walk up to a hostile village (the `village_hostile_action`
 menu, the same one with "Raid the village" and "Loot the village"),
 three new lines appear above the raid options:
