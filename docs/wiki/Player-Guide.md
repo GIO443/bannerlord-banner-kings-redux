@@ -326,20 +326,19 @@ fresh-start case) and on every `HeroCreated` (covers notables,
 wanderers, and other mid-campaign heroes). Existing saves with
 Wisdom = 0 will pick up the value 2 on next load.
 
-**Q: Where is the Wisdom attribute? It's mentioned in tooltips but I
-can't find it.**
-Wisdom is hidden from the character-developer screen on purpose for
-now. v1.6.4.4 tried to expose it, but vanilla
-`EducationCampaignBehavior.CreateStage2` builds an internal
-`Dictionary<CharacterAttribute, …>` keyed by only the six vanilla
-attributes and then iterates `Attributes.All` looking up each one —
-so adding Wisdom to that list crashed every child's daily education
-tick with `KeyNotFoundException`. v1.6.4.13 reverted Wisdom to always
-be hidden from `Attributes.All` to stop the crash. Wisdom is still
-seeded on every hero (value 2) and BK code that reads it works
-correctly; only the UI-side exposure is gone. A future release will
-re-add Wisdom to the character UI via a UI-targeted mixin that
-doesn't go through `Attributes.All`.
+**Q: Where is the Wisdom attribute?**
+On the character-developer screen alongside the six vanilla
+attributes (Vigor / Control / Endurance / Cunning / Social /
+Intelligence). Wisdom is BK's 7th attribute and starts at 2 on
+every hero. As of v1.6.5.1 it shows in the UI again — earlier
+attempts to expose it via the global `Attributes.All` list caused
+vanilla `EducationCampaignBehavior.CreateStage2` to crash on every
+child's daily tick, so the patch was reverted in v1.6.4.13 and
+Wisdom went temporarily invisible. v1.6.5.1 instead injects the
+Wisdom tile directly into the character-developer screen via a
+Harmony postfix on `CharacterDeveloperHeroItemVM.InitializeCharacter`
+— that touches only the screen's per-instance attribute list, not
+the global `Attributes.All`, so vanilla education stays happy.
 
 ## Diplomacy & demands
 

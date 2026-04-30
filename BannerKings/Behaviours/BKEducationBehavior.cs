@@ -607,5 +607,74 @@ namespace BannerKings.Behaviours
                 }
             }
         }
+
+        // Re-add the Wisdom tile to the character-developer screen WITHOUT
+        // putting it back into Attributes.All (which would crash vanilla
+        // EducationCampaignBehavior.CreateStage2 — see AttributesPatch
+        // comment above). Vanilla CharacterDeveloperHeroItemVM.InitializeCharacter
+        // iterates Attributes.All and constructs a CharacterAttributeItemVM
+        // for each entry; that returns 6 with our patch in place. We
+        // postfix and append a 7th tile for Wisdom so it shows on the
+        // character screen alongside the vanilla six. The list this
+        // touches is a per-instance MBBindingList<CharacterAttributeItemVM>;
+        // injecting into it doesn't affect the global Attributes.All
+        // anywhere else in the game.
+        [HarmonyPatch(typeof(TaleWorlds.CampaignSystem.ViewModelCollection.CharacterDeveloper.CharacterDeveloperHeroItemVM))]
+        internal class CharacterDeveloperWisdomTilePatch
+        {
+            private static readonly System.Reflection.FieldInfo HeroField =
+                AccessTools.Field(typeof(TaleWorlds.CampaignSystem.ViewModelCollection.CharacterDeveloper.CharacterDeveloperHeroItemVM), "_hero");
+            private static readonly System.Reflection.FieldInfo AttrsField =
+                AccessTools.Field(typeof(TaleWorlds.CampaignSystem.ViewModelCollection.CharacterDeveloper.CharacterDeveloperHeroItemVM), "_attributes");
+            private static readonly System.Reflection.MethodInfo OnInspectMethod =
+                AccessTools.Method(typeof(TaleWorlds.CampaignSystem.ViewModelCollection.CharacterDeveloper.CharacterDeveloperHeroItemVM), "OnInspectAttribute");
+            private static readonly System.Reflection.MethodInfo OnAddPointMethod =
+                AccessTools.Method(typeof(TaleWorlds.CampaignSystem.ViewModelCollection.CharacterDeveloper.CharacterDeveloperHeroItemVM), "OnAddAttributePoint");
+
+            [HarmonyPostfix]
+            [HarmonyPatch("InitializeCharacter")]
+            private static void InitializeCharacterPostfix(
+                TaleWorlds.CampaignSystem.ViewModelCollection.CharacterDeveloper.CharacterDeveloperHeroItemVM __instance)
+            {
+                try
+                {
+                    var wisdom = BKAttributes.Instance?.Wisdom;
+                    if (wisdom == null) return;
+                    if (HeroField == null || AttrsField == null
+                        || OnInspectMethod == null || OnAddPointMethod == null) return;
+
+                    var hero = HeroField.GetValue(__instance) as Hero;
+                    if (hero == null) return;
+
+                    var attrs = AttrsField.GetValue(__instance)
+                        as MBBindingList<TaleWorlds.CampaignSystem.ViewModelCollection.CharacterDeveloper.CharacterAttributeItemVM>;
+                    if (attrs == null) return;
+
+                    foreach (var existing in attrs)
+                    {
+                        if (existing != null && existing.AttributeType == wisdom) return;
+                    }
+
+                    var inspect = (Action<TaleWorlds.CampaignSystem.ViewModelCollection.CharacterDeveloper.CharacterAttributeItemVM>)
+                        Delegate.CreateDelegate(
+                            typeof(Action<TaleWorlds.CampaignSystem.ViewModelCollection.CharacterDeveloper.CharacterAttributeItemVM>),
+                            __instance, OnInspectMethod);
+                    var addPoint = (Action<TaleWorlds.CampaignSystem.ViewModelCollection.CharacterDeveloper.CharacterAttributeItemVM>)
+                        Delegate.CreateDelegate(
+                            typeof(Action<TaleWorlds.CampaignSystem.ViewModelCollection.CharacterDeveloper.CharacterAttributeItemVM>),
+                            __instance, OnAddPointMethod);
+
+                    var wisdomVm = new TaleWorlds.CampaignSystem.ViewModelCollection.CharacterDeveloper.CharacterAttributeItemVM(
+                        hero, wisdom, __instance, inspect, addPoint);
+                    attrs.Add(wisdomVm);
+                }
+                catch
+                {
+                    // Never crash the character screen on a Wisdom-tile
+                    // injection failure — fall through with the vanilla
+                    // 6-attribute layout.
+                }
+            }
+        }
     }
 }
