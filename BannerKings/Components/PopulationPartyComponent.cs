@@ -378,8 +378,34 @@ namespace BannerKings.Components
             var target = TargetSettlement;
             if (target != null)
             {
+                // Arrival check #1: party is already INSIDE the target. This
+                // covers cases where the party reached the settlement (e.g.
+                // teleport, save/load with CurrentSettlement preserved) but
+                // the distance check below would never have fired because
+                // pathfind distance from inside-settlement isn't reliably 0.
+                if (MobileParty.CurrentSettlement == target)
+                {
+                    EnterSettlementAction.ApplyForParty(MobileParty, target);
+                    return;
+                }
+
+                // Arrival check #2: pathfind distance is at the gate.
+                // 1f was too tight in the wild — saves had ~200
+                // population parties sitting next to their target with
+                // pathfind distance hovering just above 1f forever.
+                // Bumping to 2f (pathfind distance is a coarse step
+                // count, not real units) lets them snap inside instead
+                // of orbiting the gate. Fall back to a straight-line
+                // proximity check if pathfind returned NaN/inf.
                 var distance = TaleWorlds.CampaignSystem.Campaign.Current.Models.MapDistanceModel.GetDistance(MobileParty, target, false, MobileParty.NavigationType.All, out _);
-                if (distance <= 1f)
+                if (distance <= 2f && distance >= 0f && !float.IsNaN(distance) && !float.IsInfinity(distance))
+                {
+                    EnterSettlementAction.ApplyForParty(MobileParty, target);
+                    return;
+                }
+                // Straight-line fallback for the NaN / infinity / pathfind-broken case.
+                if ((float.IsNaN(distance) || float.IsInfinity(distance) || distance < 0f)
+                    && MobileParty.GetPosition2D.Distance(target.GatePosition.ToVec2()) <= 3f)
                 {
                     EnterSettlementAction.ApplyForParty(MobileParty, target);
                     return;
@@ -402,6 +428,12 @@ namespace BannerKings.Components
                     if (!intermediateUnsafe) return;
                 }
 
+                // Re-issue the move every hourly tick so AI-disabled parties
+                // keep walking even if some other code path cleared their
+                // MobileParty.TargetSettlement. Without this, a cleared
+                // move target would leave the party stationary forever
+                // (we hold AI disabled by design, so vanilla AI doesn't
+                // re-issue movement on its own).
                 if (target.IsVillage)
                 {
                     if (target.Village.VillageState is Village.VillageStates.Looted or Village.VillageStates.BeingRaided)
