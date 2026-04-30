@@ -868,10 +868,23 @@ namespace BannerKings.Behaviours.Shipping
                 // missed the "land path exists, but sea is better" case
                 // and pinned caravans on the shore forever.
                 var graph = ShippingGraph.Instance;
-                if (!graph.Adjacency.ContainsKey(target))
+                // Villages aren't graph nodes (graph only has towns + castles).
+                // For a village target, route to the village's bound fief
+                // instead — once the party arrives there, vanilla AI walks
+                // them the rest of the way to the village by road.
+                Settlement graphTarget = target;
+                if (!graph.Adjacency.ContainsKey(graphTarget))
                 {
-                    LogRedirect(party, "target not in graph adjacency", target);
-                    return;
+                    if (graphTarget.IsVillage && graphTarget.Village?.Bound != null
+                        && graph.Adjacency.ContainsKey(graphTarget.Village.Bound))
+                    {
+                        graphTarget = graphTarget.Village.Bound;
+                    }
+                    else
+                    {
+                        LogRedirect(party, $"target not in graph adjacency (and no bound fief in graph)", target);
+                        return;
+                    }
                 }
 
                 Settlement entryNode = null;
@@ -880,7 +893,7 @@ namespace BannerKings.Behaviours.Shipping
                 foreach (var node in graph.Adjacency.Keys)
                 {
                     if (node == null) continue;
-                    if (node == target) continue;
+                    if (node == graphTarget) continue;
                     if (node.IsUnderSiege) continue;
                     if (node.MapFaction != null && node.MapFaction.IsAtWarWith(party.MapFaction)) continue;
                     float d = partyPos2D.Distance(node.GatePosition.ToVec2());
@@ -893,12 +906,12 @@ namespace BannerKings.Behaviours.Shipping
                 }
 
                 List<Settlement> path = Settings.BannerKingsSettings.Instance.AdaptiveShippingRisk
-                    ? (graph.GetAdaptivePath(entryNode, target, party.MapFaction)
-                       ?? graph.GetShortestPath(entryNode, target))
-                    : graph.GetShortestPath(entryNode, target);
+                    ? (graph.GetAdaptivePath(entryNode, graphTarget, party.MapFaction)
+                       ?? graph.GetShortestPath(entryNode, graphTarget))
+                    : graph.GetShortestPath(entryNode, graphTarget);
                 if (path == null || path.Count < 2)
                 {
-                    LogRedirect(party, $"no graph path from {entryNode.Name} to {target.Name}", target);
+                    LogRedirect(party, $"no graph path from {entryNode.Name} to {graphTarget.Name}", target);
                     return;
                 }
 
