@@ -2,10 +2,12 @@
 
 ← [Home](Home)
 
-How caravans, AI lord parties, and the player travel by sea under BK
-Redux. The shipping system was overhauled across the 1.5–1.6 lines into
-an explicit graph topology with adaptive risk weighting; this page is the
-HOW for living with that system.
+How caravans, AI lord parties, captive caravans, and the player travel
+across Calradia under BK Redux. The trade graph was overhauled across
+the 1.5–1.6 lines into an explicit topology with adaptive risk
+weighting; v1.6.3 unified it into a single graph covering both **sea**
+and **land** edges so non-port settlements participate too. This page
+is the HOW for living with that system.
 
 ## On this page
 
@@ -25,14 +27,27 @@ HOW for living with that system.
 Caravans and parties auto-board ships at known shipping lanes. Sea travel
 takes real time and is faster under seafaring perks (Drakkar Helmsman).
 
-The shipping topology is graph-driven: each port is a node, each
-intra-lane connection is an edge weighted by raw map distance.
-Cross-continent routes (Nord → Vlandia, Empire South → Aserai) chain
-through bridge ports — settlements that appear on more than one lane.
-Caravans book the *next hop* of the shortest path on each port arrival,
-re-evaluating trade scores at every intermediate port. This preserves
-the multi-port economy: a caravan shipping Hvalvik → Ostican will stop
-and trade at Sturgia central along the way.
+**The trade graph is one unified topology with two edge kinds:**
+
+- **Sea edges** — built from BK's `DefaultShippingLanes` (intra-lane
+  clique, one edge per port-pair sharing a lane). Cross-continent routes
+  chain through bridge ports that appear on more than one lane.
+- **Land edges** — built from k-nearest-neighbor adjacency between every
+  town, castle, and village, with vanilla pathfind validation pruning
+  false land bridges (so a Nord island doesn't get connected to the
+  mainland by raw straight-line distance). Edge weight is the actual
+  vanilla map-pathfind distance, so the graph weights match how a
+  caravan really walks.
+
+Both edge kinds use the same risk multiplier (war / siege / banditry /
+neutral). Diagonal sea+land paths emerge naturally — a captive caravan
+from inland Battania to a Vlandian fief might walk south, board a ship,
+and land on the Vlandian coast all in one graph path.
+
+Caravans book the *next hop* of the shortest path on each settlement
+arrival, re-evaluating trade scores at every intermediate stop. This
+preserves the multi-stop economy: a caravan shipping Hvalvik → Ostican
+will stop and trade at Sturgia central along the way.
 
 ## AI lord parties at sea
 

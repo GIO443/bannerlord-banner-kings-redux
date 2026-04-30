@@ -31,21 +31,33 @@ namespace BannerKings.Managers.Shipping
 
         public static void Invalidate() => _instance = null;
 
+        public enum EdgeKind
+        {
+            Sea,
+            Land
+        }
+
         public struct Edge
         {
             public Settlement To;
             public float Distance;
-            public ShippingLane Lane;
+            public ShippingLane Lane;     // null for land edges
+            public EdgeKind Kind;
         }
 
-        /// <summary>port → outgoing edges</summary>
+        /// <summary>settlement → outgoing edges (sea or land)</summary>
         public Dictionary<Settlement, List<Edge>> Adjacency { get; private set; } = new();
 
+        /// <summary>All settlement nodes in the graph.</summary>
         public IEnumerable<Settlement> Ports => Adjacency.Keys;
 
         public int PortCount => Adjacency.Count;
 
         public int EdgeCount => Adjacency.Values.Sum(list => list.Count) / 2;
+
+        public int SeaEdgeCount => Adjacency.Values.Sum(list => list.Count(e => e.Kind == EdgeKind.Sea)) / 2;
+
+        public int LandEdgeCount => Adjacency.Values.Sum(list => list.Count(e => e.Kind == EdgeKind.Land)) / 2;
 
         // ------------------------------------------------------------------
         // Adaptive risk weights
@@ -166,9 +178,24 @@ namespace BannerKings.Managers.Shipping
         // Build
         // ------------------------------------------------------------------
 
+        // Number of nearest neighbors connected per settlement for the land
+        // graph. K=6 empirically gives a fully-connected mainland on Calradia
+        // without enough false edges to matter. Edges that look like "land"
+        // by Vec2 distance but are actually across water (island ↔ mainland)
+        // get pruned via the map-distance ratio check below.
+        private const int LandKnnK = 6;
+
+        // If the ratio of vanilla map-pathfind distance / euclidean distance
+        // exceeds this, the two settlements are not actually land-reachable
+        // (e.g. island vs mainland) and the candidate land edge is dropped.
+        // 1.5 is permissive enough to allow legitimate winding road routes.
+        private const float LandPathfindRatioCap = 1.5f;
+
         private static ShippingGraph Build()
         {
             var g = new ShippingGraph();
+
+            // Sea edges — intra-lane clique, weighted by gate-to-gate distance.
             foreach (var lane in DefaultShippingLanes.Instance.All)
             {
                 if (lane?.Ports == null) continue;
@@ -187,11 +214,77 @@ namespace BannerKings.Managers.Shipping
                         {
                             To = b,
                             Distance = a.GatePosition.Distance(b.GatePosition),
-                            Lane = lane
+                            Lane = lane,
+                            Kind = EdgeKind.Sea
                         });
                     }
                 }
             }
+
+            // Land edges — KNN by euclidean distance, pruned by vanilla
+            // map-distance ratio so we don't accidentally land-bridge an
+            // island to the mainland. Covers towns, castles, villages.
+            var landNodes = new List<Settlement>();
+            try
+            {
+                foreach (var s in Settlement.All)
+                {
+                    if (s == null) continue;
+                    if (s.IsHideout) continue;
+                    if (!(s.IsTown || s.IsCastle || s.IsVillage)) continue;
+                    landNodes.Add(s);
+                }
+            }
+            catch { /* very early in load — Settlement.All not ready */ }
+
+            var mapDistanceModel = TaleWorlds.CampaignSystem.Campaign.Current?.Models?.MapDistanceModel;
+            foreach (var a in landNodes)
+            {
+                if (!g.Adjacency.ContainsKey(a)) g.Adjacency[a] = new List<Edge>();
+
+                // Compute distances to all other land nodes, take K nearest.
+                var nearest = new List<(Settlement Node, float Dist)>(landNodes.Count);
+                foreach (var b in landNodes)
+                {
+                    if (b == a) continue;
+                    float d = a.GatePosition.Distance(b.GatePosition);
+                    nearest.Add((b, d));
+                }
+                nearest.Sort((x, y) => x.Dist.CompareTo(y.Dist));
+
+                int added = 0;
+                for (int i = 0; i < nearest.Count && added < LandKnnK; i++)
+                {
+                    var (b, euclid) = nearest[i];
+                    if (euclid <= 0f) continue;
+
+                    // Prune false land edges using vanilla pathfind distance.
+                    // Skip the check if the model is unavailable or throws —
+                    // graceful degradation: better an extra edge than none.
+                    if (mapDistanceModel != null)
+                    {
+                        try
+                        {
+                            float pathDist = mapDistanceModel.GetDistance(a, b, false, false, TaleWorlds.CampaignSystem.Party.MobileParty.NavigationType.All);
+                            if (pathDist > 0f && pathDist / euclid > LandPathfindRatioCap) continue;
+                            // Use the actual pathfind distance so the graph
+                            // weights match how the caravan will really walk.
+                            if (pathDist > 0f) euclid = pathDist;
+                        }
+                        catch { /* fall through to euclidean */ }
+                    }
+
+                    g.Adjacency[a].Add(new Edge
+                    {
+                        To = b,
+                        Distance = euclid,
+                        Lane = null,
+                        Kind = EdgeKind.Land
+                    });
+                    added++;
+                }
+            }
+
             return g;
         }
 
@@ -396,7 +489,7 @@ namespace BannerKings.Managers.Shipping
         public string BuildReport()
         {
             var sb = new StringBuilder();
-            sb.AppendLine($"Shipping graph: {PortCount} ports, {EdgeCount} unique edges across {DefaultShippingLanes.Instance.All.Count()} lanes.");
+            sb.AppendLine($"Trade graph: {PortCount} settlement nodes, {EdgeCount} unique edges ({SeaEdgeCount} sea, {LandEdgeCount} land) across {DefaultShippingLanes.Instance.All.Count()} sea lanes.");
             sb.AppendLine();
 
             var components = GetConnectedComponents();

@@ -566,6 +566,15 @@ namespace BannerKings.Behaviours
 
                 if (component.IsRaidCaptiveCaravan)
                 {
+                    // Hop-by-hop graph routing: only absorb / destroy when we
+                    // actually arrive at the final destination. Intermediate
+                    // graph hops fall through and BKRaidCaptureBehavior's
+                    // hop-router (TickCaptiveRouting) sets the next hop.
+                    if (component.TargetSettlement != null && component.TargetSettlement != target)
+                    {
+                        return;
+                    }
+
                     // Group surviving prisoners by their original culture so the
                     // receiving fief credits the right CultureData buckets.
                     var byCulture = new Dictionary<CultureObject, int>();
@@ -593,22 +602,44 @@ namespace BannerKings.Behaviours
 
                     if (totalDelivered > 0 && component.CaptorHero != null)
                     {
-                        var capModel = new BannerKings.Models.BKModels.BKRaidCaptureModel();
-                        int payout = totalDelivered * (asSlaves
-                            ? capModel.SlavePayoutPerHead(target)
-                            : capModel.SerfPayoutPerHead(target));
-                        if (payout > 0)
+                        // No payout when delivering to your own clan's fief —
+                        // you'd be paying yourself for the slaves. The captives
+                        // still go into the population (slave/serf bucket bumped
+                        // above), so the long-term economic value via tax
+                        // revenue and population growth still applies. Players
+                        // who want instant gold should pick MostProfitable
+                        // (or any non-clan-owned destination).
+                        bool deliveringToOwnClan = target.OwnerClan != null
+                            && component.CaptorHero.Clan != null
+                            && target.OwnerClan == component.CaptorHero.Clan;
+
+                        if (!deliveringToOwnClan)
                         {
-                            GiveGoldAction.ApplyBetweenCharacters(null, component.CaptorHero, payout, false);
-                            if (component.CaptorHero == Hero.MainHero)
+                            var capModel = new BannerKings.Models.BKModels.BKRaidCaptureModel();
+                            int payout = totalDelivered * (asSlaves
+                                ? capModel.SlavePayoutPerHead(target)
+                                : capModel.SerfPayoutPerHead(target));
+                            if (payout > 0)
                             {
-                                InformationManager.DisplayMessage(new InformationMessage(
-                                    new TextObject("{=BKRC_PayoutMsg}{COUNT} captives delivered to {DEST}: {GOLD}{GOLD_ICON}")
-                                    .SetTextVariable("COUNT", totalDelivered)
-                                    .SetTextVariable("DEST", target.Name)
-                                    .SetTextVariable("GOLD", payout)
-                                    .ToString()));
+                                GiveGoldAction.ApplyBetweenCharacters(null, component.CaptorHero, payout, false);
+                                if (component.CaptorHero == Hero.MainHero)
+                                {
+                                    InformationManager.DisplayMessage(new InformationMessage(
+                                        new TextObject("{=BKRC_PayoutMsg}{COUNT} captives delivered to {DEST}: {GOLD}{GOLD_ICON}")
+                                        .SetTextVariable("COUNT", totalDelivered)
+                                        .SetTextVariable("DEST", target.Name)
+                                        .SetTextVariable("GOLD", payout)
+                                        .ToString()));
+                                }
                             }
+                        }
+                        else if (component.CaptorHero == Hero.MainHero)
+                        {
+                            InformationManager.DisplayMessage(new InformationMessage(
+                                new TextObject("{=BKRC_OwnedDeliveryMsg}{COUNT} captives delivered to {DEST} (your fief — no payout, population grows).")
+                                .SetTextVariable("COUNT", totalDelivered)
+                                .SetTextVariable("DEST", target.Name)
+                                .ToString()));
                         }
                     }
                 }

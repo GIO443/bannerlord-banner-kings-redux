@@ -28,6 +28,12 @@ namespace BannerKings.Behaviours.Raids
         {
             CampaignEvents.OnSessionLaunchedEvent.AddNonSerializedListener(this, OnSessionLaunched);
             CampaignEvents.RaidCompletedEvent.AddNonSerializedListener(this, OnRaidCompleted);
+            // Hop-by-hop graph routing for captive caravans. Fires after a
+            // captive caravan enters any settlement; if it's not the final
+            // target, redirect to the next graph hop. BKPartyBehavior's
+            // arrival absorb logic already short-circuits on intermediate
+            // entries, so the caravan stays alive until we hit the target.
+            CampaignEvents.AfterSettlementEntered.AddNonSerializedListener(this, AfterSettlementEntered_CaptiveRouter);
         }
 
         public override void SyncData(IDataStore dataStore)
@@ -299,8 +305,9 @@ namespace BannerKings.Behaviours.Raids
             {
                 var (count, tierCap) = model.EscortSpec(kMain);
                 LogRaid($"spawn main caravan: {settlement.Name} → {mainDest.Name}, escort {count}@T{tierCap}");
-                PopulationPartyComponent.CreateCaptiveCaravan(
+                var captive = PopulationPartyComponent.CreateCaptiveCaravan(
                     settlement, mainDest, mainCohort, leader, disposition, count, tierCap);
+                RouteCaptiveToFirstHop(captive, settlement, mainDest, leader);
             }
             else LogRaid($"no main caravan spawned (mainDest={(mainDest?.Name?.ToString() ?? "null")} mainCohort.Count={mainCohort.Count})");
 
@@ -316,9 +323,10 @@ namespace BannerKings.Behaviours.Raids
                 else
                 {
                     var (sCount, sTierCap) = model.EscortSpec(kSkim);
-                    PopulationPartyComponent.CreateCaptiveCaravan(
+                    var skimCaptive = PopulationPartyComponent.CreateCaptiveCaravan(
                         settlement, leader.Clan.HomeSettlement, skimCohort, leader,
                         CaptiveDisposition.Slaves, sCount, sTierCap);
+                    RouteCaptiveToFirstHop(skimCaptive, settlement, leader.Clan.HomeSettlement, leader);
                     LogRaid($"skim: secondary caravan {settlement.Name} → {leader.Clan.HomeSettlement.Name}, escort {sCount}@T{sTierCap}");
                 }
             }
@@ -343,6 +351,92 @@ namespace BannerKings.Behaviours.Raids
             {
                 ApplyUnlawfulPenalties(leader, kMain);
                 LogRaid("unlawful penalty applied");
+            }
+        }
+
+        // Sets a freshly-spawned captive caravan's initial move target to
+        // the first hop of the adaptive graph path from origin to final
+        // destination. Subsequent hops are picked by AfterSettlementEntered_CaptiveRouter
+        // as the caravan arrives at each intermediate settlement.
+        private void RouteCaptiveToFirstHop(MobileParty captive, Settlement origin, Settlement finalTarget, Hero leader)
+        {
+            if (captive == null || origin == null || finalTarget == null) return;
+            if (origin == finalTarget) return;
+            try
+            {
+                var graph = BannerKings.Managers.Shipping.ShippingGraph.Instance;
+                if (!graph.Adjacency.ContainsKey(origin) || !graph.Adjacency.ContainsKey(finalTarget))
+                {
+                    LogRaid($"captive caravan {captive.Name}: graph miss, vanilla pathfind to {finalTarget.Name}");
+                    return; // Already pointed at final target by CreateCaptiveCaravan.
+                }
+                var perspective = leader?.MapFaction ?? captive.MapFaction;
+                var path = graph.GetAdaptivePath(origin, finalTarget, perspective)
+                           ?? graph.GetShortestPath(origin, finalTarget);
+                if (path == null || path.Count < 2)
+                {
+                    LogRaid($"captive caravan {captive.Name}: no graph path, vanilla pathfind to {finalTarget.Name}");
+                    return;
+                }
+                var firstHop = path[1];
+                if (firstHop == finalTarget)
+                {
+                    LogRaid($"captive caravan {captive.Name}: direct route ({origin.Name} → {finalTarget.Name})");
+                    return; // Single hop — already pointed there.
+                }
+                captive.SetMoveGoToSettlement(firstHop, MobileParty.NavigationType.All, false);
+                LogRaid($"captive caravan {captive.Name}: hop chain {origin.Name} → {firstHop.Name} → … → {finalTarget.Name} ({path.Count - 1} hops total)");
+            }
+            catch
+            {
+                /* leave the caravan pointed at finalTarget if anything goes wrong */
+            }
+        }
+
+        // Hop-by-hop graph routing. Captive caravans were created with their
+        // first move target = path[1] of the adaptive graph path. When they
+        // arrive at that hop, this handler picks the next graph hop toward
+        // the final TargetSettlement. Falls back to direct travel if the
+        // graph can't produce a path (e.g. settlement not in the graph yet,
+        // or every adaptive route blocked by war).
+        private void AfterSettlementEntered_CaptiveRouter(MobileParty party, Settlement entered, Hero hero)
+        {
+            if (party == null || entered == null) return;
+            if (party.PartyComponent is not BannerKings.Components.PopulationPartyComponent ppc) return;
+            if (!ppc.IsRaidCaptiveCaravan) return;
+
+            var finalTarget = ppc.TargetSettlement;
+            if (finalTarget == null) return;
+            if (entered == finalTarget) return; // Arrival — handled in BKPartyBehavior.
+
+            try
+            {
+                var graph = BannerKings.Managers.Shipping.ShippingGraph.Instance;
+                if (!graph.Adjacency.ContainsKey(entered) || !graph.Adjacency.ContainsKey(finalTarget))
+                {
+                    // Outside the graph — let vanilla pathfind take it.
+                    party.SetMoveGoToSettlement(finalTarget, MobileParty.NavigationType.All, false);
+                    return;
+                }
+
+                var perspective = ppc.CaptorHero?.MapFaction ?? party.MapFaction;
+                var path = graph.GetAdaptivePath(entered, finalTarget, perspective)
+                           ?? graph.GetShortestPath(entered, finalTarget);
+                if (path == null || path.Count < 2)
+                {
+                    party.SetMoveGoToSettlement(finalTarget, MobileParty.NavigationType.All, false);
+                    return;
+                }
+
+                var nextHop = path[1];
+                LogRaid($"captive caravan {party.Name}: hop {entered.Name} → {nextHop.Name} (final: {finalTarget.Name})");
+                party.SetMoveGoToSettlement(nextHop, MobileParty.NavigationType.All, false);
+            }
+            catch
+            {
+                // Defensive: never throw out of an arrival event. Worst case
+                // the caravan continues toward its existing target via vanilla.
+                try { party.SetMoveGoToSettlement(finalTarget, MobileParty.NavigationType.All, false); } catch { }
             }
         }
 
@@ -396,15 +490,33 @@ namespace BannerKings.Behaviours.Raids
         private Settlement SelectDestination(MobileParty party, Clan capturingClan,
             RaidDestinationMode mode, int captiveCount, CaptiveDisposition disposition)
         {
+            // Fallback chain runs in escalating order: try the requested mode
+            // first, then the alternates, finally MostProfitable as a last
+            // resort. A clan with no kingdom and no fiefs (exiled lord, fresh
+            // mercenary band, stranded captor) has no NearestFriendly /
+            // NearestOwned answer; without the MostProfitable fallback the
+            // captives just dissolve, which is worse than a long caravan to
+            // the best market we can find.
+            Settlement pick;
             switch (mode)
             {
                 case RaidDestinationMode.NearestOwned:
-                    return NearestOwnedFief(party, capturingClan) ?? NearestFriendlyFief(party);
+                    pick = NearestOwnedFief(party, capturingClan)
+                           ?? NearestFriendlyFief(party)
+                           ?? MostProfitableFief(party, captiveCount, disposition);
+                    break;
                 case RaidDestinationMode.MostProfitable:
-                    return MostProfitableFief(party, captiveCount, disposition) ?? NearestFriendlyFief(party);
+                    pick = MostProfitableFief(party, captiveCount, disposition)
+                           ?? NearestFriendlyFief(party)
+                           ?? NearestOwnedFief(party, capturingClan);
+                    break;
                 default:
-                    return NearestFriendlyFief(party);
+                    pick = NearestFriendlyFief(party)
+                           ?? NearestOwnedFief(party, capturingClan)
+                           ?? MostProfitableFief(party, captiveCount, disposition);
+                    break;
             }
+            return pick;
         }
 
         private Settlement NearestOwnedFief(MobileParty party, Clan capturingClan)

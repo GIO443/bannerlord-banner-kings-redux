@@ -90,6 +90,12 @@ three new lines appear above the raid options:
 
 **AI clans always use Nearest Owned**, regardless of any saved policy. The destination toggle on the village menu only affects the player clan; AI raiders funnel captives back to their own demesne, not random allied fiefs.
 
+**Fallback chain (v1.6.3.0).** If the chosen mode finds no destination — e.g. an exiled lord or fresh mercenary band with no kingdom and no fiefs — the system tries the alternates and finally falls back to *Most Profitable* as a last resort. Captives never just dissolve.
+
+**No payout when delivering to your own clan's fief (v1.6.3.0).** The slaves still go into the receiving population (so you keep the long-term economic value via tax revenue and population growth), but you don't get an instant gold lump sum — you'd be paying yourself for the slaves you captured. Pick **Most Profitable** or any non-clan-owned destination if you want the gold.
+
+**Hop-by-hop graph routing (v1.6.3.0).** Captive caravans now route through the unified [trade graph](Shipping-and-Trade) — they walk hop by hop along risk-weighted edges, detouring around hostile coasts and sieged regions instead of vanilla pathfinding straight across. A captive caravan from inland Battania to a Vlandian fief might walk south, board a ship, and land on the Vlandian coast all in one graph path. This is what makes the destination toggle actually meaningful for non-port raids.
+
 ### 2. Run the raid
 
 Choose "Raid the village" as normal. When the raid completes, BK applies
