@@ -146,14 +146,24 @@ namespace BannerKings.Behaviours
                 return;
             }
 
+            // Cheap straight-line gate before the expensive pathfind call.
+            // Pathfind distance >= straight-line distance, so any hero party
+            // farther than 10 units in a straight line cannot match the
+            // <= 10f pathfind threshold below. This skips A* in the common
+            // case of "no bandit-hero anywhere near this party" — bandit
+            // hourly tick used to call GetDistance on every entry of the
+            // bandits dict per bandit party per hour.
+            const float MaxStraightSq = 10f * 10f;
+            var partyPos = party.GetPosition2D;
+
             foreach (var heroParty in bandits.Values)
             {
-                if (heroParty != null && heroParty.IsActive)
+                if (heroParty == null || !heroParty.IsActive) continue;
+                if (heroParty.GetPosition2D.DistanceSquared(partyPos) > MaxStraightSq) continue;
+
+                if (TaleWorlds.CampaignSystem.Campaign.Current.Models.MapDistanceModel.GetDistance(party, heroParty, MobileParty.NavigationType.All, out _) <= 10f)
                 {
-                    if (TaleWorlds.CampaignSystem.Campaign.Current.Models.MapDistanceModel.GetDistance(party, heroParty, MobileParty.NavigationType.All, out _) <= 10f)
-                    {
-                        SetFollow(heroParty, party);
-                    }
+                    SetFollow(heroParty, party);
                 }
             }
         }
