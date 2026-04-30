@@ -263,6 +263,26 @@ A typical shipping iteration loop: `test_setup` → `test_war Vlandia | Sturgia`
 → `shipping_risk_path town_V8 town_S2` (confirm the war redirects the route)
 → `test_clear_wars` (reset).
 
+**Raid capture system cheats (v1.6.2.1).** Same gating — cheats must
+be enabled in the launcher.
+
+- `bannerkings.test_raid_policy Take | Slaves` — set the player clan's
+  raid capture policy directly (cycles through the menu would also
+  work in-game, but this is faster from the console).
+- `bannerkings.test_raid_capture village_V1_1` — run the capture flow
+  on the named village as if MainParty just finished a successful raid
+  there. Skips the actual raid combat / village damage; you only see
+  the captive caravan side.
+- `bannerkings.test_dump_raid_state` — list the player policy, the
+  current settings (enable / fraction / skim / log), and every active
+  captive caravan with cargo breakdown by culture, target, captor.
+
+For verbose runtime logging without the cheats — toggle **MCM →
+Banner Kings → Slavery → Log Raid Capture Behavior**. With it on, every
+capture decision (project, split, disposition, cohort, spawn, payout)
+prints to both the in-game info panel and `Debug.Print`. Lines are
+prefixed `[BKRaid]` for grepping.
+
 **Quest-mandated overloaded fleets.** The War Sails Northern Crossing
 quest hands you ~190 troops on a fleet with ~50 crew capacity, which
 under vanilla NavalDLC's −74% over-crew speed penalty would floor you at

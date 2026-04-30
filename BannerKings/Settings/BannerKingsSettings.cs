@@ -268,5 +268,10 @@ namespace BannerKings.Settings
             HintText = "{=!}When the raid leader's culture differs from the employing kingdom's, this share of captives is skimmed for the captain's private profit. Independent mercenaries pocket the gold instantly; kingdom-affiliated foreign captains spawn a smaller secondary caravan to their clan home. Default: 20%.")]
         [SettingPropertyGroup("{=!}Slavery")]
         public float ForeignMercSkim { get; set; } = 0.2f;
+
+        [SettingProperty("{=!}Log Raid Capture Behavior", RequireRestart = false,
+            HintText = "{=!}Verbose in-game and Debug.Print logging of raid capture decisions: capture/skip, projected captives, culture cohort distribution, caravan spawn details, and arrival payouts. Useful when testing the raid system or debugging unexpected outcomes. Default: false.")]
+        [SettingPropertyGroup("{=!}Slavery")]
+        public bool LogRaidCaptureBehavior { get; set; } = false;
     }
 }

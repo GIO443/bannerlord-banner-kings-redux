@@ -140,6 +140,10 @@ namespace BannerKings.Behaviours.Raids
         // -----------------------------------------------------------------------
         // Raid completion: spawn captive caravan(s), apply unlawful penalties.
         // Source village damage is unchanged (vanilla raid handles it).
+        //
+        // The body of this handler is in ExecuteCapture so cheat commands can
+        // invoke the same logic on demand without manufacturing a fake
+        // RaidEventComponent.
         // -----------------------------------------------------------------------
         private void OnRaidCompleted(BattleSideEnum winnerSide, RaidEventComponent raidEvent)
         {
@@ -162,40 +166,73 @@ namespace BannerKings.Behaviours.Raids
             var village = settlement.Village;
             if (village == null) return;
 
+            ExecuteCapture(attackerParty, leader, capturingClan, village, fromCheat: false);
+        }
+
+        /// <summary>
+        /// Cheat-callable entry point. Runs the raid capture flow as if the
+        /// given party had just completed a successful raid on <paramref name="village"/>,
+        /// without going through the actual raid event. Used by
+        /// <c>bannerkings.test_raid_capture</c>.
+        /// </summary>
+        public string ForceCapture(MobileParty attackerParty, Village village)
+        {
+            if (attackerParty == null) return "ForceCapture: no attacker party.";
+            if (village == null) return "ForceCapture: no village.";
+            var leader = attackerParty.LeaderHero;
+            if (leader == null) return "ForceCapture: attacker has no leader hero.";
+            var capturingClan = attackerParty.ActualClan;
+            if (capturingClan == null) return "ForceCapture: attacker has no clan.";
+            ExecuteCapture(attackerParty, leader, capturingClan, village, fromCheat: true);
+            return $"ForceCapture: ran capture flow for {leader.Name} on {village.Name}.";
+        }
+
+        private void ExecuteCapture(MobileParty attackerParty, Hero leader, Clan capturingClan, Village village, bool fromCheat)
+        {
+            var settlement = village.Settlement;
+
             // Decide capture
             bool capture = capturingClan == Clan.PlayerClan
                 ? policyManager.Get(capturingClan).Mode == RaidCaptureMode.Take
                 : policyManager.ClanRealmAllowsSlavery(capturingClan);
+            LogRaid($"capture decision: clan={capturingClan.Name} village={village.Name} take={capture} (cheat={fromCheat})");
             if (!capture) return;
 
             int K = model.ProjectedCaptives(village);
+            LogRaid($"projected captives K={K} (serfs={(BannerKingsConfig.Instance.PopulationManager?.GetPopData(settlement)?.GetTypeCount(BannerKings.Managers.PopulationManager.PopType.Serfs) ?? -1)})");
             if (K <= 0) return;
 
             // Foreign-merc skim
             float skim = model.ForeignSkim(leader);
             int kSkim = (int)(K * skim);
             int kMain = K - kSkim;
+            LogRaid($"split: kMain={kMain} kSkim={kSkim} skim={skim:n2}");
 
             // Disposition
             var disposition = capturingClan == Clan.PlayerClan
                 ? policyManager.Get(capturingClan).Disposition
                 : (policyManager.ClanRealmAllowsSlavery(capturingClan) ? CaptiveDisposition.Slaves : CaptiveDisposition.Serfs);
+            LogRaid($"disposition={disposition}");
 
             // Build culture cohort (excluding raider's culture), distribute kMain
             var weights = model.CultureWeights(village, leader);
-            if (weights.Count == 0) return;
+            if (weights.Count == 0) { LogRaid("no culture weights — abort"); return; }
 
             var mainCohort = DistributeByWeights(weights, kMain);
             var skimCohort = kSkim > 0 ? DistributeByWeights(weights, kSkim) : null;
+            if (mainCohort.Count > 0)
+                LogRaid("main cohort: " + string.Join(", ", mainCohort.Select(p => $"{p.Key.StringId}:{p.Value}")));
 
             // Spawn main caravan to nearest friendly fief
             var mainDest = NearestFriendlyFief(attackerParty);
             if (mainDest != null && mainCohort.Count > 0)
             {
                 var (count, tierCap) = model.EscortSpec(kMain);
+                LogRaid($"spawn main caravan: {settlement.Name} → {mainDest.Name}, escort {count}@T{tierCap}");
                 PopulationPartyComponent.CreateCaptiveCaravan(
                     settlement, mainDest, mainCohort, leader, disposition, count, tierCap);
             }
+            else LogRaid($"no main caravan spawned (mainDest={(mainDest?.Name?.ToString() ?? "null")} mainCohort.Count={mainCohort.Count})");
 
             // Skim handling: independent merc → instant gold; kingdom-affiliated foreign merc → secondary caravan to clan home
             if (kSkim > 0 && skimCohort != null && skimCohort.Count > 0)
@@ -204,6 +241,7 @@ namespace BannerKings.Behaviours.Raids
                 {
                     int instant = kSkim * model.SlavePayoutPerHead(mainDest ?? settlement);
                     if (instant > 0) GiveGoldAction.ApplyBetweenCharacters(null, leader, instant, false);
+                    LogRaid($"skim: independent — paid {instant}g to {leader.Name}");
                 }
                 else
                 {
@@ -211,6 +249,7 @@ namespace BannerKings.Behaviours.Raids
                     PopulationPartyComponent.CreateCaptiveCaravan(
                         settlement, leader.Clan.HomeSettlement, skimCohort, leader,
                         CaptiveDisposition.Slaves, sCount, sTierCap);
+                    LogRaid($"skim: secondary caravan {settlement.Name} → {leader.Clan.HomeSettlement.Name}, escort {sCount}@T{sTierCap}");
                 }
             }
 
@@ -233,7 +272,17 @@ namespace BannerKings.Behaviours.Raids
                 && !policyManager.IsDispositionLegal(capturingClan, disposition))
             {
                 ApplyUnlawfulPenalties(leader, kMain);
+                LogRaid("unlawful penalty applied");
             }
+        }
+
+        private static void LogRaid(string line)
+        {
+            if (!BannerKingsSettings.Instance.LogRaidCaptureBehavior) return;
+            // Both surfaces — info panel for live observation, Debug.Print for
+            // post-hoc log digging. Prefix so the panel line is greppable.
+            InformationManager.DisplayMessage(new InformationMessage("[BKRaid] " + line));
+            try { TaleWorlds.Library.Debug.Print("[BKRaid] " + line); } catch { /* very early in load */ }
         }
 
         private List<KeyValuePair<CultureObject, int>> DistributeByWeights(

@@ -583,6 +583,14 @@ namespace BannerKings.Behaviours
                     bool asSlaves = component.Disposition == Behaviours.Raids.CaptiveDisposition.Slaves;
                     data.AbsorbCaptives(byCulture, asSlaves);
 
+                    if (BannerKings.Settings.BannerKingsSettings.Instance.LogRaidCaptureBehavior)
+                    {
+                        string cultures = byCulture.Count == 0 ? "(none)" : string.Join(", ", byCulture.Select(kv => $"{kv.Key.StringId}:{kv.Value}"));
+                        string line = $"[BKRaid] arrival at {target.Name}: delivered={totalDelivered} as {(asSlaves ? "slaves" : "serfs")} cultures={{{cultures}}}";
+                        InformationManager.DisplayMessage(new InformationMessage(line));
+                        try { TaleWorlds.Library.Debug.Print(line); } catch { }
+                    }
+
                     if (totalDelivered > 0 && component.CaptorHero != null)
                     {
                         var capModel = new BannerKings.Models.BKModels.BKRaidCaptureModel();

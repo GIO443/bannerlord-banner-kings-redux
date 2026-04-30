@@ -486,6 +486,109 @@ namespace BannerKings
             return sb.ToString();
         }
 
+        // -- Raid capture system test cheats (v1.6.2.0+) --
+
+        [CommandLineFunctionality.CommandLineArgumentFunction("test_raid_policy", "bannerkings")]
+        public static string TestRaidPolicy(List<string> strings)
+        {
+            if (!CampaignCheats.CheckCheatUsage(ref CampaignCheats.ErrorType)) return CampaignCheats.ErrorType;
+            if (strings == null || strings.Count == 0)
+                return "Format: bannerkings.test_raid_policy <Take|Leave> | <Slaves|Serfs>";
+
+            var parts = CampaignCheats.ConcatenateString(strings).Split('|');
+            if (parts.Length != 2) return "Format: bannerkings.test_raid_policy <Take|Leave> | <Slaves|Serfs>";
+
+            var modeToken = parts[0].Trim().ToLowerInvariant();
+            var dispToken = parts[1].Trim().ToLowerInvariant();
+            BannerKings.Behaviours.Raids.RaidCaptureMode mode;
+            BannerKings.Behaviours.Raids.CaptiveDisposition disposition;
+            if (modeToken == "take") mode = BannerKings.Behaviours.Raids.RaidCaptureMode.Take;
+            else if (modeToken == "leave") mode = BannerKings.Behaviours.Raids.RaidCaptureMode.Leave;
+            else return $"Unknown mode: {parts[0]} (expected Take or Leave)";
+            if (dispToken == "slaves") disposition = BannerKings.Behaviours.Raids.CaptiveDisposition.Slaves;
+            else if (dispToken == "serfs") disposition = BannerKings.Behaviours.Raids.CaptiveDisposition.Serfs;
+            else return $"Unknown disposition: {parts[1]} (expected Slaves or Serfs)";
+
+            var behavior = TaleWorlds.CampaignSystem.Campaign.Current
+                .GetCampaignBehavior<BannerKings.Behaviours.Raids.BKRaidCaptureBehavior>();
+            if (behavior == null) return "BKRaidCaptureBehavior not registered.";
+            behavior.Policies.Set(Clan.PlayerClan,
+                new BannerKings.Behaviours.Raids.RaidCapturePolicy(mode, disposition));
+            return $"Player raid policy: {mode} / {disposition}.";
+        }
+
+        [CommandLineFunctionality.CommandLineArgumentFunction("test_raid_capture", "bannerkings")]
+        public static string TestRaidCapture(List<string> strings)
+        {
+            if (!CampaignCheats.CheckCheatUsage(ref CampaignCheats.ErrorType)) return CampaignCheats.ErrorType;
+            if (strings == null || strings.Count == 0)
+                return "Format: bannerkings.test_raid_capture <villageIdOrName>";
+
+            var token = CampaignCheats.ConcatenateString(strings).Trim();
+            var s = FindSettlement(token);
+            if (s == null) return $"Settlement not found: {token}";
+            if (!s.IsVillage) return $"{s.Name} is not a village.";
+
+            var behavior = TaleWorlds.CampaignSystem.Campaign.Current
+                .GetCampaignBehavior<BannerKings.Behaviours.Raids.BKRaidCaptureBehavior>();
+            if (behavior == null) return "BKRaidCaptureBehavior not registered.";
+
+            // Run the capture flow as if MainParty just finished raiding the
+            // village. Source village damage is NOT applied — this is a debug
+            // shortcut to observe the captive caravan side of the system.
+            return behavior.ForceCapture(MobileParty.MainParty, s.Village);
+        }
+
+        [CommandLineFunctionality.CommandLineArgumentFunction("test_dump_raid_state", "bannerkings")]
+        public static string TestDumpRaidState(List<string> strings)
+        {
+            var sb = new StringBuilder();
+            try
+            {
+                var behavior = TaleWorlds.CampaignSystem.Campaign.Current
+                    .GetCampaignBehavior<BannerKings.Behaviours.Raids.BKRaidCaptureBehavior>();
+                if (behavior == null) return "BKRaidCaptureBehavior not registered.";
+
+                var policy = behavior.Policies.Get(Clan.PlayerClan);
+                bool slaverRealm = behavior.Policies.ClanRealmAllowsSlavery(Clan.PlayerClan);
+                sb.AppendLine($"Player policy: mode={policy.Mode} disposition={policy.Disposition} (slaver realm: {slaverRealm})");
+                sb.AppendLine($"Settings: enabled={Settings.BannerKingsSettings.Instance.EnableRaidCaptureSystem} " +
+                              $"fraction={Settings.BannerKingsSettings.Instance.RaidCaptureFraction:n2} " +
+                              $"foreignSkim={Settings.BannerKingsSettings.Instance.ForeignMercSkim:n2} " +
+                              $"log={Settings.BannerKingsSettings.Instance.LogRaidCaptureBehavior}");
+
+                int active = 0;
+                int shown = 0;
+                sb.AppendLine("Active captive caravans:");
+                foreach (var party in MobileParty.All)
+                {
+                    if (party?.PartyComponent is not BannerKings.Components.PopulationPartyComponent ppc) continue;
+                    if (!ppc.IsRaidCaptiveCaravan) continue;
+                    active++;
+                    if (shown >= 10) continue;
+                    int prisoners = 0;
+                    var byCulture = new Dictionary<string, int>();
+                    foreach (var e in party.PrisonRoster.GetTroopRoster())
+                    {
+                        if (e.Character == null || e.Character.IsHero) continue;
+                        prisoners += e.Number;
+                        var key = e.Character.Culture?.StringId ?? "?";
+                        byCulture[key] = (byCulture.TryGetValue(key, out var v) ? v : 0) + e.Number;
+                    }
+                    string at = party.CurrentSettlement?.Name?.ToString() ?? $"({party.Position.X:n0},{party.Position.Y:n0})";
+                    string tgt = ppc.TargetSettlement?.Name?.ToString() ?? "(no target)";
+                    string captor = ppc.CaptorHero?.Name?.ToString() ?? "?";
+                    string cult = byCulture.Count == 0 ? "(empty)" : string.Join(",", byCulture.Select(kv => $"{kv.Key}:{kv.Value}"));
+                    sb.AppendLine($"  {party.Name} @ {at} → {tgt} | {prisoners} captives ({ppc.Disposition}, {cult}), captor={captor}");
+                    shown++;
+                }
+                if (active == 0) sb.AppendLine("  (none)");
+                else if (active > shown) sb.AppendLine($"  … {active - shown} more");
+            }
+            catch (Exception ex) { sb.AppendLine("[dump_raid_state error: " + ex.Message + "]"); }
+            return sb.ToString();
+        }
+
         // ---- helpers ----
 
         private static Kingdom FindKingdom(string token)
