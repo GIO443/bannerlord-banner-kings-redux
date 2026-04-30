@@ -920,7 +920,15 @@ namespace BannerKings.Behaviours.Shipping
                 }
 
                 // First edge of the optimal route. Sea → redirect to
-                // entryNode (boarding port). Land → vanilla AI walks fine.
+                // entryNode (boarding port). Land → usually let vanilla
+                // walk, BUT if vanilla can't even pathfind from the party's
+                // current position to the entry node (party stuck on a
+                // coast or behind impassable terrain), force-redirect to
+                // the nearest sea-reachable port instead. That covers
+                // "Caravan of Khachin parked at (571, 605) targeting
+                // Khimli Castle" — graph says land path exists between
+                // settlements, but vanilla can't get the party off the
+                // coast to start that walk.
                 if (!graph.Adjacency.ContainsKey(path[0]))
                 {
                     LogRedirect(party, $"path[0]={path[0]?.Name} not in adjacency", target);
@@ -929,7 +937,53 @@ namespace BannerKings.Behaviours.Shipping
                 var firstEdge = graph.Adjacency[path[0]].FirstOrDefault(e => e.To == path[1]);
                 if (firstEdge.Kind != ShippingGraph.EdgeKind.Sea)
                 {
-                    LogRedirect(party, $"first edge {path[0]?.Name}→{path[1]?.Name} is land — letting vanilla walk", target);
+                    bool stuck = false;
+                    try
+                    {
+                        float landToEntry = TaleWorlds.CampaignSystem.Campaign.Current.Models.MapDistanceModel
+                            .GetDistance(party, entryNode, false, MobileParty.NavigationType.All, out _);
+                        if (float.IsNaN(landToEntry) || float.IsInfinity(landToEntry) || landToEntry < 0f || landToEntry > 1e6f)
+                            stuck = true;
+                    }
+                    catch { /* if pathfind throws, treat as not-stuck */ }
+
+                    if (!stuck)
+                    {
+                        LogRedirect(party, $"first edge {path[0]?.Name}→{path[1]?.Name} is land — letting vanilla walk", target);
+                        return;
+                    }
+
+                    // Stuck on coast: pick the closest sea-reachable port.
+                    Settlement seaFallback = null;
+                    float seaFallbackDist = float.MaxValue;
+                    foreach (var node in graph.Adjacency.Keys)
+                    {
+                        if (node == null || node == graphTarget) continue;
+                        if (node.IsUnderSiege) continue;
+                        if (node.MapFaction != null && node.MapFaction.IsAtWarWith(party.MapFaction)) continue;
+                        // Only ports — must have at least one sea edge.
+                        bool hasSea = false;
+                        foreach (var edge in graph.Adjacency[node])
+                        {
+                            if (edge.Kind == ShippingGraph.EdgeKind.Sea) { hasSea = true; break; }
+                        }
+                        if (!hasSea) continue;
+                        float d = partyPos2D.Distance(node.GatePosition.ToVec2());
+                        if (d < seaFallbackDist) { seaFallbackDist = d; seaFallback = node; }
+                    }
+                    if (seaFallback == null)
+                    {
+                        LogRedirect(party, $"stuck at coast (vanilla can't pathfind to {entryNode.Name}) but no sea-reachable port found", target);
+                        return;
+                    }
+                    if (party.TargetSettlement == seaFallback)
+                    {
+                        LogRedirect(party, $"already heading to sea fallback {seaFallback.Name}", target);
+                        return;
+                    }
+                    LogRedirect(party, $"STUCK at coast — REDIRECT to {seaFallback.Name} (vanilla pathfind to {entryNode.Name} returned Infinity)", target);
+                    party.SetMoveGoToSettlement(seaFallback, MobileParty.NavigationType.All, false);
+                    try { party.Ai?.DisableForHours(2); } catch { }
                     return;
                 }
 
