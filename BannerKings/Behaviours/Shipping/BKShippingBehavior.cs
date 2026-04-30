@@ -70,6 +70,7 @@ namespace BannerKings.Behaviours.Shipping
             // dict) and reactivates them so vanilla AI takes over.
             CampaignEvents.DailyTickEvent.AddNonSerializedListener(this, RescueOrphanedCaravans);
             CampaignEvents.DailyTickEvent.AddNonSerializedListener(this, RescueBoatsOnLand);
+            CampaignEvents.DailyTickEvent.AddNonSerializedListener(this, RescueLandPartiesOnWater);
             // Cleanup: remove destroyed parties from the sailing dict so
             // TickSailing doesn't try to FinishTravel on a dead party.
             CampaignEvents.MobilePartyDestroyed.AddNonSerializedListener(this, OnMobilePartyDestroyed);
@@ -125,6 +126,12 @@ namespace BannerKings.Behaviours.Shipping
                     // here — flip the at-sea flag off so they fall back
                     // into vanilla land mode and walk normally.
                     RescueBoatsOnLand();
+                    // Inverse rescue. v1.6.4.10's first cut of RescueBoatsOnLand
+                    // wrongly cleared IsCurrentlyAtSea on convoys at coastal
+                    // terrain, leaving them in land mode while physically over
+                    // open water. Flip those back to at-sea so NavalDLC can
+                    // resume managing them.
+                    RescueLandPartiesOnWater();
 
                     // Rescue caravans stuck in BK shipping limbo from older
                     // builds: IsActive=false with no entry in the sailing
@@ -666,11 +673,18 @@ namespace BannerKings.Behaviours.Shipping
 
         // Detects parties left in the "boat sprite on land terrain" state by
         // BK's pre-v1.6.4.9 port-redirect hijacking NavalDLC convoys. Flips
-        // IsCurrentlyAtSea off so they fall back into vanilla land mode.
+        // IsCurrentlyAtSea off only when the party's terrain face is
+        // *unambiguously land* — everything coastal / transitional
+        // (Beach, Bridge, Fording, Cliff, RuralArea, etc.) is left alone
+        // because that's where parties legitimately sit during the brief
+        // boarding / port-arrival window. The previous version inverted
+        // this test (rescued anything that wasn't strictly water) and
+        // wrongly cleared the at-sea flag on convoys docked at coastal
+        // ports, which then walked across the ocean in land mode.
+        //
         // Cheap to run: terrain lookup is one MapSceneWrapper call per
         // candidate, and we filter to parties already flagged at-sea before
-        // reading terrain so the sweep is bounded by the small number of
-        // at-sea parties on the map.
+        // reading terrain.
         private void RescueBoatsOnLand()
         {
             try
@@ -683,16 +697,20 @@ namespace BannerKings.Behaviours.Shipping
                     if (party == null) continue;
                     if (!party.IsCurrentlyAtSea) continue;
                     if (party == MobileParty.MainParty) continue;
+                    // At a settlement: definitely not the boat-on-land state
+                    // we're trying to fix. Leave NavalDLC's flag alone.
+                    if (party.CurrentSettlement != null) continue;
 
                     TerrainType terrain;
                     try { terrain = wrapper.GetFaceTerrainType(party.CurrentNavigationFace); }
                     catch { continue; }
 
-                    // Navigable-water terrains under which IsCurrentlyAtSea is
-                    // legitimate. Anything else (Plain, Forest, Mountain,
-                    // Beach, etc.) means the party is over land while flagged
-                    // at-sea — broken state, flip it off.
-                    if (IsNavigableSea(terrain)) continue;
+                    // Only rescue when the party is unambiguously on land.
+                    // Coastal / transition terrains (Beach, Bridge, Fording,
+                    // Cliff, RuralArea, Canyon, NonNavigableRiver, anything
+                    // we don't recognise) are skipped — being at-sea over
+                    // those is either legitimate or harmless.
+                    if (!IsClearlyLand(terrain)) continue;
 
                     try
                     {
@@ -707,13 +725,75 @@ namespace BannerKings.Behaviours.Shipping
             catch { /* never throw out of a daily tick or load handler */ }
         }
 
-        private static bool IsNavigableSea(TerrainType t)
+        private static bool IsClearlyLand(TerrainType t)
         {
-            return t == TerrainType.Water
-                || t == TerrainType.CoastalSea
-                || t == TerrainType.OpenSea
-                || t == TerrainType.Lake
-                || t == TerrainType.River;
+            // Strict allow-list of inland terrains. Anything outside this
+            // set (water, coastal, transitional, restriction zones) leaves
+            // the at-sea flag intact.
+            return t == TerrainType.Plain
+                || t == TerrainType.Forest
+                || t == TerrainType.Steppe
+                || t == TerrainType.Desert
+                || t == TerrainType.Snow
+                || t == TerrainType.Mountain
+                || t == TerrainType.Dune
+                || t == TerrainType.Swamp;
+        }
+
+        // Inverse of RescueBoatsOnLand. v1.6.4.10's rescue used a too-broad
+        // "not navigable water" test and de-flagged some legitimate at-sea
+        // convoys docked on coastal terrain. Those parties are now in land
+        // mode while physically over open water — observed as caravans
+        // "walking across the ocean from the land without going to a port."
+        //
+        // Flip them back: a party that is NOT at-sea, has naval navigation
+        // capability, is not in BK's sailing dict, is not at a settlement,
+        // and stands over navigable open water needs to be at sea for any
+        // pathfind to work.
+        private void RescueLandPartiesOnWater()
+        {
+            try
+            {
+                var wrapper = TaleWorlds.CampaignSystem.Campaign.Current?.MapSceneWrapper;
+                if (wrapper == null) return;
+
+                foreach (var party in MobileParty.All)
+                {
+                    if (party == null) continue;
+                    if (party.IsCurrentlyAtSea) continue;
+                    if (party == MobileParty.MainParty) continue;
+                    if (party.CurrentSettlement != null) continue;
+                    if (sailing.ContainsKey(party)) continue;
+
+                    bool naval;
+                    try { naval = party.HasNavalNavigationCapability; }
+                    catch { continue; }
+                    if (!naval) continue;
+
+                    TerrainType terrain;
+                    try { terrain = wrapper.GetFaceTerrainType(party.CurrentNavigationFace); }
+                    catch { continue; }
+
+                    // Only flip when unambiguously over open water — we don't
+                    // want to push a party at the coast back out to sea on
+                    // the wrong terrain face.
+                    if (terrain != TerrainType.Water
+                        && terrain != TerrainType.CoastalSea
+                        && terrain != TerrainType.OpenSea
+                        && terrain != TerrainType.Lake)
+                        continue;
+
+                    try
+                    {
+                        TaleWorlds.Library.Debug.Print(
+                            $"[BK] Land-on-water rescue: setting IsCurrentlyAtSea on {party.Name} (terrain={terrain})",
+                            color: TaleWorlds.Library.Debug.DebugColor.Yellow);
+                        party.IsCurrentlyAtSea = true;
+                    }
+                    catch { /* defensive */ }
+                }
+            }
+            catch { /* never throw out of a daily tick or load handler */ }
         }
 
         private void TickParty(MobileParty party)
