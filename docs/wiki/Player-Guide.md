@@ -328,15 +328,18 @@ Wisdom = 0 will pick up the value 2 on next load.
 
 **Q: Where is the Wisdom attribute? It's mentioned in tooltips but I
 can't find it.**
-*Was* a bug. BK registers a 7th attribute (Wisdom) for use with the
-learning model, but a Harmony patch on `Attributes.All` was hiding it
-from every UI screen — that patch existed to prevent vanilla character
-creation from crashing on the extra attribute, but it was applying
-post-game-load too. Now scoped to character-creation phase only:
-during creation Wisdom stays hidden (so vanilla doesn't crash), and
-once your campaign starts you should see Wisdom alongside the six
-vanilla attributes in the character developer screen and on hero
-pages. Each hero starts at Wisdom 2.
+Wisdom is hidden from the character-developer screen on purpose for
+now. v1.6.4.4 tried to expose it, but vanilla
+`EducationCampaignBehavior.CreateStage2` builds an internal
+`Dictionary<CharacterAttribute, …>` keyed by only the six vanilla
+attributes and then iterates `Attributes.All` looking up each one —
+so adding Wisdom to that list crashed every child's daily education
+tick with `KeyNotFoundException`. v1.6.4.13 reverted Wisdom to always
+be hidden from `Attributes.All` to stop the crash. Wisdom is still
+seeded on every hero (value 2) and BK code that reads it works
+correctly; only the UI-side exposure is gone. A future release will
+re-add Wisdom to the character UI via a UI-targeted mixin that
+doesn't go through `Attributes.All`.
 
 ## Diplomacy & demands
 

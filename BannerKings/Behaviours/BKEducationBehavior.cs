@@ -571,24 +571,28 @@ namespace BannerKings.Behaviours
         [HarmonyPatch(typeof(Attributes), "All", MethodType.Getter)]
         internal class AttributesPatch
         {
-            // Hides BK's Wisdom attribute from vanilla iterations of Attributes.All
-            // ONLY during character creation. CharacterCreationGainedPropertiesVM
-            // and similar VMs assume the 6 vanilla attributes only — exposing
-            // Wisdom there crashes stage activation through Activator.CreateInstance.
-            // Once the campaign is fully started (Campaign.Current.GameStarted),
-            // we let vanilla return the full list so character developer / encyclopedia
-            // / hero-properties screens render Wisdom alongside the other attributes.
-            // Must NEVER throw — wrapped in try/catch with a vanilla fallthrough.
+            // ALWAYS hides BK's Wisdom attribute from vanilla iterations of
+            // Attributes.All. v1.6.4.4 tried to expose Wisdom post-game-start
+            // (so the character developer screen would render it), but vanilla
+            // EducationCampaignBehavior.CreateStage2 builds two
+            // Dictionary<CharacterAttribute, ...> keyed by the 6 vanilla
+            // attributes only and then iterates Attributes.All doing
+            // dict[attribute] — adding Wisdom to that list crashed every
+            // child's daily education tick with KeyNotFoundException
+            // (observed in Better Exception Window crash dumps).
+            //
+            // Wisdom is still seeded into every hero's _characterAttributes
+            // dict by BKSkillBehavior, so BK code that reads
+            // hero.GetAttributeValue(Wisdom) works correctly. The UI
+            // exposure has to come from a separate, UI-targeted mixin —
+            // Wisdom should not appear in lists vanilla treats as canonical.
+            //
+            // Must NEVER throw — wrapped in try/catch with a vanilla
+            // fallthrough.
             private static bool Prefix(ref MBReadOnlyList<CharacterAttribute> __result)
             {
                 try
                 {
-                    var campaign = TaleWorlds.CampaignSystem.Campaign.Current;
-                    // Game started → return vanilla list (which already includes Wisdom
-                    // because BKAttributes.Initialize registered it). UI sees it.
-                    if (campaign != null && campaign.GameStarted) return true;
-
-                    // Pre-game-start (character creation, intro flow): hide Wisdom.
                     var all = BKAttributes.AllAttributes;
                     if (all == null) return true;
                     var wisdom = BKAttributes.Instance?.Wisdom;
