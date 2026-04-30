@@ -65,7 +65,13 @@ namespace BannerKings.Managers.Shipping
                 Settlement.All.First(x => x.StringId == "town_S4"),
                 Settlement.All.First(x => x.StringId == "town_EN2"),
                 Settlement.All.First(x => x.StringId == "village_EN4_2"),
-                Settlement.All.First(x => x.StringId == "village_S3_2")
+                Settlement.All.First(x => x.StringId == "village_S3_2"),
+                // town_S2 (Sturgia central, also on Junme) bridges Laconis ↔ Junme
+                // so a caravan that ships from Hvalvik via Laconis to S2 can then
+                // ship onward via Junme to Vlandia (town_V8 / Ostican). Without
+                // this shared port the northern shipping network dead-ended at
+                // Sturgia / Empire North with no chain to Vlandia.
+                Settlement.All.First(x => x.StringId == "town_S2")
             };
             // War Sails is optional; only bridge in the Nord port if the
             // settlement actually exists in this campaign.
