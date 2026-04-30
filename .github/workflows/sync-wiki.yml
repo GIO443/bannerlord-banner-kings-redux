@@ -1,12 +1,19 @@
-name: Sync wiki from docs/WIKI.md
+name: Sync wiki from docs/wiki/
 
-# Pushes docs/WIKI.md → the GitHub Wiki's Home page on every change.
+# Pushes docs/wiki/*.md → the GitHub Wiki on every change. The wiki is
+# a multi-page handbook split across topic groups (Home, Installing,
+# Getting-Started, Systems-Reference, Player-Guide, Shipping-and-Trade,
+# Slavery-and-Raiding, Troubleshooting). Each .md file in docs/wiki/
+# becomes a wiki page of the same name (Home.md → Home, etc.).
+#
 # The wiki is itself a git repo at <repo>.wiki.git; this job clones it,
-# copies the markdown in, and commits if the content changed.
+# replaces its contents with docs/wiki/*.md, and commits if anything
+# changed. Old pages that no longer exist in docs/wiki/ are deleted
+# from the wiki so renames and removals propagate cleanly.
 #
 # IMPORTANT: this is one-way (repo → wiki). Direct edits to the wiki
-# in the GitHub UI will be overwritten on the next docs/WIKI.md push.
-# If you want to change the wiki, edit docs/WIKI.md and push.
+# in the GitHub UI will be overwritten on the next docs/wiki/ push.
+# If you want to change the wiki, edit a file under docs/wiki/ and push.
 #
 # Prerequisite: the wiki must already exist on the repo (create one
 # manual page in the GitHub UI to initialize the .wiki.git repo). After
@@ -17,7 +24,7 @@ on:
     branches:
       - main
     paths:
-      - docs/WIKI.md
+      - docs/wiki/**
       - .github/workflows/sync-wiki.yml
   workflow_dispatch:
 
@@ -37,19 +44,24 @@ jobs:
         run: |
           git clone "https://x-access-token:${GITHUB_TOKEN}@github.com/${{ github.repository }}.wiki.git" wiki-repo
 
-      - name: Copy docs/WIKI.md to wiki Home page
+      - name: Mirror docs/wiki/ to wiki repo
         run: |
-          cp docs/WIKI.md wiki-repo/Home.md
+          # Wipe any existing .md pages in the wiki working tree so renames
+          # and removals propagate. Preserve .git/ and any non-.md files
+          # the wiki may keep (assets, sidebar, footer).
+          find wiki-repo -maxdepth 1 -type f -name '*.md' -delete
+          # Copy all docs/wiki/*.md to the wiki root.
+          cp docs/wiki/*.md wiki-repo/
 
       - name: Commit and push if changed
         working-directory: wiki-repo
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add Home.md
+          git add -A
           if git diff --cached --quiet; then
             echo "Wiki already up to date — no commit needed."
             exit 0
           fi
-          git commit -m "Sync from docs/WIKI.md @ ${{ github.sha }}"
+          git commit -m "Sync from docs/wiki/ @ ${{ github.sha }}"
           git push
