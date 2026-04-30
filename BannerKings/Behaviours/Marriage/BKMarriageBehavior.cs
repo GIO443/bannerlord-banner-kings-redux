@@ -86,6 +86,10 @@ namespace BannerKings.Behaviours.Marriage
                 KillCharacterAction.KillCharacterActionDetail detail,
                 bool showNotification) =>
             {
+                // Drop the victim from the BKMarriageModel scoring caches
+                // so we don't keep stale references.
+                BannerKings.Models.Vanilla.BKMarriageModel.OnHeroKilled(victim);
+
                 if (heroMarriages == null) heroMarriages = new Dictionary<Hero, HeroMarriage>();
                 foreach (HeroMarriage marriage in heroMarriages.Values)
                 {

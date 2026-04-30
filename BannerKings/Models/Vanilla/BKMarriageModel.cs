@@ -18,6 +18,42 @@ namespace BannerKings.Models.Vanilla
 {
     public class BKMarriageModel : MarriageModel
     {
+        // Per-day caches. Marriage scoring is called O(N²) in the
+        // hero-population during AI marriage consideration; without these,
+        // GetSpouseScore (title lookups, peerage queries, IsClanHeir which
+        // computes the full inheritance line) and IsClanHeir get hit
+        // millions of times per AI tick on large savegames. Refreshed
+        // when the day rolls over so newly-titled / newly-deceased heroes
+        // get re-scored on the next campaign day.
+        private static readonly Dictionary<Hero, (float score, int dayKey)> _spouseScoreCache
+            = new Dictionary<Hero, (float, int)>();
+        private static readonly Dictionary<Hero, (bool isHeir, int dayKey)> _isClanHeirCache
+            = new Dictionary<Hero, (bool, int)>();
+
+        private static int CurrentDayKey
+        {
+            get
+            {
+                try { return (int)CampaignTime.Now.ToDays; }
+                catch { return 0; }
+            }
+        }
+
+        public static void InvalidateMarriageCaches()
+        {
+            _spouseScoreCache.Clear();
+            _isClanHeirCache.Clear();
+        }
+
+        // Drop dead-hero entries from the caches so they don't leak across
+        // a long campaign. Called from BKMarriageBehavior.OnHeroKilled.
+        public static void OnHeroKilled(Hero victim)
+        {
+            if (victim == null) return;
+            _spouseScoreCache.Remove(victim);
+            _isClanHeirCache.Remove(victim);
+        }
+
         public override Clan GetClanAfterMarriage(Hero firstHero, Hero secondHero)
         {
             MarriageContract contract = Campaign.Current.GetCampaignBehavior<BKMarriageBehavior>().GetMarriageContract();
@@ -28,13 +64,32 @@ namespace BannerKings.Models.Vanilla
             return base.GetClanAfterMarriage(firstHero, secondHero);
         }
 
-        public override ExplainedNumber IsMarriageAdequate(Hero proposer, 
+        public override ExplainedNumber IsMarriageAdequate(Hero proposer,
             Hero secondHero,
-            bool isConsort = false, 
+            bool isConsort = false,
             bool explanations = false)
         {
             var result = new ExplainedNumber(0f, explanations);
             if (secondHero.Clan == null || proposer.Clan == null) return new ExplainedNumber(-10000f);
+
+            // Early-reject hot path. AI marriage consideration calls this
+            // function O(N×M) (every hero × every candidate) per tick.
+            // Without explanations requested, we can short-circuit on cheap
+            // disqualifications (already-married, captive, same-sex) before
+            // doing the expensive ancestor / religion / score work below.
+            // Saves seconds per AI tick on large savegames. When explanations
+            // ARE requested (UI showing the breakdown), fall through to the
+            // full path so each contributing line gets logged.
+            if (!explanations)
+            {
+                if (!isConsort && proposer.HasPrimarySpouse()) return new ExplainedNumber(-10000f);
+                if (secondHero.HasPrimarySpouse()) return new ExplainedNumber(-10000f);
+                if (proposer.IsFemale == secondHero.IsFemale) return new ExplainedNumber(-10000f);
+                if (!proposer.CanMarry()) return new ExplainedNumber(-10000f);
+                if (!secondHero.CanMarry()) return new ExplainedNumber(-10000f);
+                if (!base.IsClanSuitableForMarriage(proposer.Clan)) return new ExplainedNumber(-10000f);
+                if (!base.IsClanSuitableForMarriage(secondHero.Clan)) return new ExplainedNumber(-10000f);
+            }
 
             var proposerScore = GetSpouseScore(proposer).ResultNumber * 1.1f;
             var proposedScore = GetSpouseScore(secondHero);
@@ -193,11 +248,17 @@ namespace BannerKings.Models.Vanilla
             return false;
         }
 
-        private void CheckReligionSuitability(Religion religion, Religion otherReligion, ref ExplainedNumber result, 
+        private void CheckReligionSuitability(Religion religion, Religion otherReligion, ref ExplainedNumber result,
             Hero religionsHero, Hero otherHero)
         {
             int generations = religion.Faith.MarriageDoctrine.Consanguinity;
-            if (DiscoverAncestors(religionsHero, generations).Intersect(DiscoverAncestors(otherHero, generations)).Any())
+            // Fast consanguinity check. Old impl materialised two
+            // IEnumerable<Hero> via recursive yield-return, then ran
+            // LINQ Intersect over them — quadratic comparison with high
+            // enumerator overhead. HashSet collection from one side +
+            // membership probes from the other gives us linear-in-tree-size
+            // lookups with cheap GetHashCode equality on Hero references.
+            if (HasSharedAncestor(religionsHero, otherHero, generations))
             {
                 result.Add(-1000f, new TextObject("{=1d2DhozK}Spouses are too closely related."));
             }
@@ -214,10 +275,25 @@ namespace BannerKings.Models.Vanilla
 
         public override ExplainedNumber GetSpouseScore(Hero hero, bool explanations = false)
         {
+            // Per-hero cache with daily TTL when explanations aren't asked
+            // for. AI marriage consideration calls this O(N×M) per tick.
+            // The score components (clan tier, level, peerage, title,
+            // born-status, companion status, widow status, lordship skill)
+            // change at most once a day in practice; daily refresh is
+            // accurate enough for AI scoring. UI breakdowns request
+            // explanations=true and bypass the cache, so the visible
+            // tooltip stays exact.
+            if (!explanations && hero != null)
+            {
+                int day = CurrentDayKey;
+                if (_spouseScoreCache.TryGetValue(hero, out var cached) && cached.dayKey == day)
+                    return new ExplainedNumber(cached.score, false);
+            }
+
             var result = new ExplainedNumber(0f, explanations);
             result.LimitMin(hero.Level * 2f);
 
-            var clan = hero.Clan;            
+            var clan = hero.Clan;
             result.Add(clan.Tier * 100f, clan.Name);
             result.Add(hero.Level * 10f, GameTexts.FindText("str_level"));
 
@@ -276,6 +352,11 @@ namespace BannerKings.Models.Vanilla
                 result.AddFactor(BKSkillEffects.Instance.SpouseScore.GetSkillEffectValue(
                     hero.Clan.Leader.GetSkillValue(BKSkills.Instance.Lordship)) * 0.01f,
                     BKSkills.Instance.Lordship.Name);
+            }
+
+            if (!explanations && hero != null)
+            {
+                _spouseScoreCache[hero] = (result.ResultNumber, CurrentDayKey);
             }
 
             return result;
@@ -394,9 +475,31 @@ namespace BannerKings.Models.Vanilla
 
         public bool IsClanHeir(Hero hero)
         {
-            var sorted = BannerKingsConfig.Instance.TitleModel.CalculateInheritanceLine(hero.Clan);
-            if (sorted.IsEmpty()) return false;
-            else return sorted.First().Key == hero;
+            if (hero?.Clan == null) return false;
+
+            // Per-hero cache with daily TTL. CalculateInheritanceLine
+            // iterates the entire clan, fetches the highest title, and
+            // calls GetInheritanceHeirScore for every candidate. AI
+            // marriage consideration calls IsClanHeir 3× per pair
+            // evaluation (twice via GetSpouseScore, once in
+            // GetInfluenceCost), so on a 1000-hero campaign this was
+            // dominating tick time.
+            int day = CurrentDayKey;
+            if (_isClanHeirCache.TryGetValue(hero, out var cached) && cached.dayKey == day)
+                return cached.isHeir;
+
+            try
+            {
+                var sorted = BannerKingsConfig.Instance.TitleModel.CalculateInheritanceLine(hero.Clan);
+                bool isHeir = !sorted.IsEmpty() && sorted.First().Key == hero;
+                _isClanHeirCache[hero] = (isHeir, day);
+                return isHeir;
+            }
+            catch
+            {
+                _isClanHeirCache[hero] = (false, day);
+                return false;
+            }
         }
 
         private float GetPeerageScore(Peerage peerage)
@@ -433,6 +536,43 @@ namespace BannerKings.Models.Vanilla
             {
                 yield return item2;
             }
+        }
+
+        // Iterative HashSet probe replacement for the recursive
+        // DiscoverAncestors + LINQ Intersect pattern. Materialises one
+        // hero's ancestor set into a HashSet via a stack-based BFS,
+        // then walks the other hero's ancestors with early-out as
+        // soon as a match is found. Handles cycles defensively (a
+        // malformed family tree won't deadlock).
+        private static bool HasSharedAncestor(Hero a, Hero b, int generations)
+        {
+            if (a == null || b == null || generations < 0) return false;
+
+            var aSet = new HashSet<Hero>();
+            CollectAncestorsInto(a, generations, aSet);
+            if (aSet.Count == 0) return false;
+
+            // Now walk b's ancestor tree, early-out on first hit.
+            return ProbeAncestors(b, generations, aSet, new HashSet<Hero>());
+        }
+
+        private static void CollectAncestorsInto(Hero hero, int n, HashSet<Hero> set)
+        {
+            if (hero == null) return;
+            if (!set.Add(hero)) return; // cycle guard
+            if (n <= 0) return;
+            CollectAncestorsInto(hero.Mother, n - 1, set);
+            CollectAncestorsInto(hero.Father, n - 1, set);
+        }
+
+        private static bool ProbeAncestors(Hero hero, int n, HashSet<Hero> needles, HashSet<Hero> visited)
+        {
+            if (hero == null) return false;
+            if (!visited.Add(hero)) return false; // cycle guard
+            if (needles.Contains(hero)) return true;
+            if (n <= 0) return false;
+            return ProbeAncestors(hero.Mother, n - 1, needles, visited)
+                || ProbeAncestors(hero.Father, n - 1, needles, visited);
         }
     }
 }
