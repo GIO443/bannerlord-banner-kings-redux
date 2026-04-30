@@ -844,86 +844,62 @@ namespace BannerKings.Behaviours.Shipping
                 var target = party.TargetSettlement;
                 if (target == null) return;
 
-                // Only redirect if the original target sits on *some* shipping
-                // lane — that's the proxy for "the target is across water."
-                // We don't restrict the candidate ports to that same lane,
-                // though: cross-continent travel (Nord → Empire) requires
-                // hopping between distinct lanes, and the previous logic
-                // looked only inside the target's lane and so couldn't match
-                // a Nord port for an Empire-bound caravan. Once the party
-                // reaches ANY port, AfterSettlementEntered_Caravan / the AI
-                // lord shipping hook plans the next hop via the lane it's
-                // on, and the chain self-resolves.
-                if (!DefaultShippingLanes.Instance.GetSettlementLanes(target).Any()) return;
-
-                // Detect "no land path to target" — caravans / lord parties
-                // stranded on a coast trying to reach a target across the
-                // water. Vanilla MapDistanceModel.GetDistance with
-                // NavigationType.All returns +Infinity (or a sentinel huge
-                // value) when no land route exists. In that case any
-                // reachable port is acceptable as a redirect target — the
-                // 30%-closer gate would otherwise keep them stuck because
-                // the straight-line distance to the target is enormous.
-                bool noLandPath = false;
-                try
-                {
-                    float landPath = TaleWorlds.CampaignSystem.Campaign.Current.Models.MapDistanceModel
-                        .GetDistance(party, target, false, MobileParty.NavigationType.All, out _);
-                    if (float.IsNaN(landPath) || float.IsInfinity(landPath) || landPath < 0f || landPath > 1e6f)
-                        noLandPath = true;
-                }
-                catch { /* leave noLandPath = false; the 30% gate still applies */ }
-
-                // Find the closest port on any lane (other than the target
-                // itself) that is materially closer than the target.
-                Settlement bestPort = null;
-                float partyToTarget = party.GetPosition2D.Distance(target.GatePosition.ToVec2());
-                if (partyToTarget <= 1f) return;
-
-                // Default gate: redirect only when a port is materially
-                // closer than the target (>= 30%). Drop the gate entirely
-                // when vanilla can't pathfind to the target — any port
-                // reachable by sea beats sitting on a coast forever.
-                float bestDistance = noLandPath ? float.PositiveInfinity : partyToTarget * 0.7f;
+                // Graph-driven redirect. The unified shipping graph already
+                // weights every edge (sea + land) by distance × risk, so it
+                // naturally chooses the shortest viable route between any
+                // two settlements. Decision logic for a party out in the
+                // world:
+                //
+                //   1. Find the nearest graph node to the party's current
+                //      position. That's the entry point into the graph.
+                //   2. Compute the shortest (or risk-adaptive) path from
+                //      that entry node to the target.
+                //   3. If the first edge of that path is a SEA edge, the
+                //      optimal route boards a ship at the entry node —
+                //      redirect the party to walk to the entry node so
+                //      AfterSettlementEntered_Caravan can call SetTravel
+                //      on arrival. The boarding port == the entry node.
+                //   4. If the first edge is a LAND edge, the optimal
+                //      route walks first — let vanilla AI handle it; no
+                //      redirect.
+                //
+                // This replaces the older geometric heuristic
+                // (closest-port-that's-30%-closer-than-target) which
+                // missed the "land path exists, but sea is better" case
+                // and pinned caravans on the shore forever.
                 var graph = ShippingGraph.Instance;
-                foreach (var lane in DefaultShippingLanes.Instance.All)
+                if (!graph.Adjacency.ContainsKey(target)) return;
+
+                Settlement entryNode = null;
+                float entryDist = float.MaxValue;
+                var partyPos2D = party.GetPosition2D;
+                foreach (var node in graph.Adjacency.Keys)
                 {
-                    foreach (var port in lane.Ports)
-                    {
-                        if (port == target) continue;
-                        if (port.IsUnderSiege) continue;
-                        if (port.MapFaction != null && port.MapFaction.IsAtWarWith(party.MapFaction)) continue;
-
-                        // Cheap geometric filter FIRST. AdaptivePath is a
-                        // full Dijkstra per call (O(V²)), so running it on
-                        // ports that would lose the geometric race is a
-                        // serious per-hour-per-party perf hit. Only check
-                        // adaptive reachability for ports that are
-                        // candidates by raw distance.
-                        float d = party.GetPosition2D.Distance(port.GatePosition.ToVec2());
-                        if (d >= bestDistance) continue;
-
-                        if (Settings.BannerKingsSettings.Instance.AdaptiveShippingRisk)
-                        {
-                            try
-                            {
-                                if (graph.Adjacency.ContainsKey(port) && graph.Adjacency.ContainsKey(target))
-                                {
-                                    if (graph.GetAdaptivePath(port, target, party.MapFaction) == null) continue;
-                                }
-                            }
-                            catch { /* fall through to geometric check */ }
-                        }
-
-                        bestDistance = d;
-                        bestPort = port;
-                    }
+                    if (node == null) continue;
+                    if (node == target) continue;
+                    if (node.IsUnderSiege) continue;
+                    if (node.MapFaction != null && node.MapFaction.IsAtWarWith(party.MapFaction)) continue;
+                    float d = partyPos2D.Distance(node.GatePosition.ToVec2());
+                    if (d < entryDist) { entryDist = d; entryNode = node; }
                 }
+                if (entryNode == null) return;
 
-                if (bestPort == null) return;
-                if (party.TargetSettlement == bestPort) return;     // already redirected last tick
+                List<Settlement> path = Settings.BannerKingsSettings.Instance.AdaptiveShippingRisk
+                    ? (graph.GetAdaptivePath(entryNode, target, party.MapFaction)
+                       ?? graph.GetShortestPath(entryNode, target))
+                    : graph.GetShortestPath(entryNode, target);
+                if (path == null || path.Count < 2) return;
 
-                party.SetMoveGoToSettlement(bestPort, MobileParty.NavigationType.All, false);
+                // First edge of the optimal route. Sea → redirect to
+                // entryNode (boarding port). Land → vanilla AI walks fine.
+                if (!graph.Adjacency.ContainsKey(path[0])) return;
+                var firstEdge = graph.Adjacency[path[0]].FirstOrDefault(e => e.To == path[1]);
+                if (firstEdge.Kind != ShippingGraph.EdgeKind.Sea) return;
+
+                // Already heading there → no-op.
+                if (party.TargetSettlement == entryNode) return;
+
+                party.SetMoveGoToSettlement(entryNode, MobileParty.NavigationType.All, false);
             }
             catch
             {
