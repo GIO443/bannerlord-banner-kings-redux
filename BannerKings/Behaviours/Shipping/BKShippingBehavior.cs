@@ -408,31 +408,34 @@ namespace BannerKings.Behaviours.Shipping
             if (town == null) return;
             if (town.Settlement == settlement || party.CurrentSettlement == null) return;
 
-            // Decide *first* whether we're going to ship the caravan. If yes, take
-            // the BK shipping path entirely — do NOT also call SetMoveGoToSettlement
-            // toward the across-water target, because if SetTravel turns out not to
-            // fire (CanTravel false), the caravan would walk to the coast and stick.
-            ShippingLane connectingLane = null;
-            foreach (ShippingLane lane in lanes)
+            // Graph-aware shipping decision. The destination doesn't have to be
+            // on the SAME lane as the caravan's current port any more — it just
+            // has to be reachable through the connected component of the
+            // shipping graph. The caravan ships to the FIRST port on the
+            // shortest path; on arrival at that port, AfterSettlementEntered
+            // fires again, ThinkNextDestination re-evaluates trade scores, and
+            // the next hop (which may or may not still be the original target)
+            // is booked. Per-port re-evaluation preserves intermediate-port
+            // trading and lets caravans reroute when conditions change.
+            //
+            // If the destination is NOT graph-reachable (target isn't a port,
+            // or it's on a different connected component), fall through to
+            // vanilla land pathfinding.
+            if (!sailing.ContainsKey(party))
             {
-                if (lane.Ports.Contains(town.Settlement))
+                var graph = ShippingGraph.Instance;
+                if (graph.AreConnected(settlement, town.Settlement))
                 {
-                    connectingLane = lane;
-                    break;
+                    var path = graph.GetShortestPath(settlement, town.Settlement);
+                    if (path != null && path.Count >= 2)
+                    {
+                        // path[0] is the current settlement, path[1] is the next hop.
+                        // For a single-lane direct trip path[1] == final target.
+                        var nextPort = path[1];
+                        SetTravel(party, nextPort);
+                        return;
+                    }
                 }
-            }
-
-            if (connectingLane != null && !sailing.ContainsKey(party))
-            {
-                // Across-water destination — caravan needs the ship. Don't gate
-                // this on CanTravel's gold check: stranding the caravan on the
-                // coast (which is what happened when CanTravel returned false but
-                // SetMoveGoToSettlement already pointed across the water) is
-                // worse than an unaffordable trade-gold deduction. The fare comes
-                // out of PartyTradeGold, which can go negative without breaking
-                // the caravan.
-                SetTravel(party, town.Settlement);
-                return;
             }
 
             // Land-reachable destination — let vanilla pathfinding handle it.
