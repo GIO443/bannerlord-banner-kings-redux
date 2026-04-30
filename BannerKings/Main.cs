@@ -170,7 +170,13 @@ namespace BannerKings
             if (!ModCompat.ImprovedGarrisons)
                 campaignStarter.AddModel(new BKGarrisonModel());
             campaignStarter.AddModel(new BKPartyWageModel());
-            campaignStarter.AddModel(BannerKingsConfig.Instance.SmithingModel);
+            // BK's smithing overhaul (smelting yield caps, custom stamina costs,
+            // armor crafting UI mode, botching, hourly smithing fee) is opt-out
+            // via the MCM "BK Smithing System" toggle. When disabled, vanilla
+            // DefaultSmithingModel runs unmodified — players who only want the
+            // rest of BK without the crafting changes can flip this off.
+            if (BannerKingsSettings.Instance.BKSmithingEnabled)
+                campaignStarter.AddModel(BannerKingsConfig.Instance.SmithingModel);
             campaignStarter.AddModel(new BKPartyConsumptionModel());
             campaignStarter.AddModel(BannerKingsConfig.Instance.LearningModel);
             campaignStarter.AddModel(BannerKingsConfig.Instance.KingdomDecisionModel);

@@ -358,6 +358,19 @@ namespace BannerKings.UI.Extensions
         [DataSourceMethod]
         public void ExecuteSwitchToArmor()
         {
+            // BK Smithing System is gated by an MCM toggle. With the toggle off,
+            // the BK smithing model isn't registered and the armor mode would
+            // try to drive item construction through a model that no longer
+            // owns the calculations — refuse to enter armor mode and surface
+            // a one-line note so the player understands why the tab is inert.
+            if (!BannerKingsSettings.Instance.BKSmithingEnabled)
+            {
+                InformationManager.DisplayMessage(new InformationMessage(
+                    new TextObject("{=!}BK Smithing is disabled in MCM (Banner Kings → Balancing → BK Smithing System). Vanilla weapon crafting / smelting / refinement still work normally.").ToString(),
+                    Color.FromUint(Utils.TextHelper.COLOR_LIGHT_YELLOW)));
+                return;
+            }
+
             crafting.IsInSmeltingMode = false;
             crafting.IsInCraftingMode = false;
             crafting.IsInRefinementMode = false;
@@ -372,7 +385,12 @@ namespace BannerKings.UI.Extensions
         public void CloseWithWait()
         {
             crafting.ExecuteCancel();
-            if (spentStamina != 0f && BannerKingsSettings.Instance.CraftingWaitingTime)
+            // The wait menu is part of the BK smithing overhaul — only fire it
+            // when the BK smithing system is on. Otherwise vanilla crafting
+            // would still pay the per-hour smith fee from BKSettlementActions.
+            if (spentStamina != 0f
+                && BannerKingsSettings.Instance.BKSmithingEnabled
+                && BannerKingsSettings.Instance.CraftingWaitingTime)
             {
                 TaleWorlds.CampaignSystem.Campaign.Current.GetCampaignBehavior<BKSettlementActions>().StartCraftingMenu(GetSpentHours());
             }

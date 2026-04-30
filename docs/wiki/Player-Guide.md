@@ -287,6 +287,38 @@ language/book reading was also rescaled (50/day → 10/day, 2000 on
 completion → 500). Existing high skills won't be reset; only future
 gains use the corrected curve.
 
+**Q: How do I turn off BK's smithing changes and go back to vanilla
+smithing?**
+**MCM → Banner Kings → Balancing → BK Smithing System** — flip it off
+and restart. With the toggle off, vanilla `DefaultSmithingModel` runs
+unmodified: no smelting yield caps (a dagger gives full vanilla iron
+yield), no extra stamina cost on one/two-handed weapons, the BK
+"Armor" tab in the smithy is inert (clicking it shows a one-line note
+in the log), and the per-hour smithing fee is skipped. Vanilla weapon
+crafting / smelting / refinement work normally. The Crafting Waiting
+Time setting is also implicitly off when BK Smithing is off.
+
+What BK Smithing does when on (default):
+
+- **Smelting yield caps** — dagger / throwing-axe / crossbow gives at
+  most 1 metal, one-handed weapons up to 2, two-handed up to 3.
+  Designed to make smelting feel like recovering material rather than
+  printing it.
+- **Stamina cost adjustments** — two-handed weapons cost +50% stamina,
+  one-handed +20%; daggers and other small weapons unchanged. Stamina
+  cost is also clamped to a min of 15 and max equal to your max
+  crafting stamina.
+- **Armor crafting tab** — a fourth tab next to Smelting / Refinement /
+  Smithing lets you craft armor, shields, ammunition from materials
+  (iron ingots for plate/chain, leather/linen for soft armor). Each
+  item has a difficulty, a stamina cost, a botch chance based on your
+  Crafting skill, and may roll a quality modifier with the Artisan
+  Craftsman perk.
+- **Hourly smith fee** — when Crafting Waiting Time is also on, leaving
+  the smithy triggers a wait menu that ticks campaign hours and
+  charges a per-hour fee (base 50 denarii, scaled by town prosperity
+  and clan tier, reduced 15% by the Artisan Smith perk).
+
 **Q: Where is the Wisdom attribute? It's mentioned in tooltips but I
 can't find it.**
 *Was* a bug. BK registers a 7th attribute (Wisdom) for use with the
