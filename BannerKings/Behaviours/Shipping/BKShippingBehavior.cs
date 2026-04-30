@@ -856,13 +856,35 @@ namespace BannerKings.Behaviours.Shipping
                 // on, and the chain self-resolves.
                 if (!DefaultShippingLanes.Instance.GetSettlementLanes(target).Any()) return;
 
+                // Detect "no land path to target" — caravans / lord parties
+                // stranded on a coast trying to reach a target across the
+                // water. Vanilla MapDistanceModel.GetDistance with
+                // NavigationType.All returns +Infinity (or a sentinel huge
+                // value) when no land route exists. In that case any
+                // reachable port is acceptable as a redirect target — the
+                // 30%-closer gate would otherwise keep them stuck because
+                // the straight-line distance to the target is enormous.
+                bool noLandPath = false;
+                try
+                {
+                    float landPath = TaleWorlds.CampaignSystem.Campaign.Current.Models.MapDistanceModel
+                        .GetDistance(party, target, false, MobileParty.NavigationType.All, out _);
+                    if (float.IsNaN(landPath) || float.IsInfinity(landPath) || landPath < 0f || landPath > 1e6f)
+                        noLandPath = true;
+                }
+                catch { /* leave noLandPath = false; the 30% gate still applies */ }
+
                 // Find the closest port on any lane (other than the target
                 // itself) that is materially closer than the target.
                 Settlement bestPort = null;
                 float partyToTarget = party.GetPosition2D.Distance(target.GatePosition.ToVec2());
                 if (partyToTarget <= 1f) return;
 
-                float bestDistance = partyToTarget * 0.7f;          // require >=30% closer than target
+                // Default gate: redirect only when a port is materially
+                // closer than the target (>= 30%). Drop the gate entirely
+                // when vanilla can't pathfind to the target — any port
+                // reachable by sea beats sitting on a coast forever.
+                float bestDistance = noLandPath ? float.PositiveInfinity : partyToTarget * 0.7f;
                 var graph = ShippingGraph.Instance;
                 foreach (var lane in DefaultShippingLanes.Instance.All)
                 {
