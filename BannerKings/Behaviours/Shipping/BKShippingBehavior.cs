@@ -377,11 +377,12 @@ namespace BannerKings.Behaviours.Shipping
                 if (lordTarget == null || lordTarget == settlement) return;
                 if (!lordTarget.HasPort) return;
 
-                bool laneConnects = false;
-                foreach (var lane in DefaultShippingLanes.Instance.GetSettlementLanes(settlement))
-                {
-                    if (lane.Ports.Contains(lordTarget)) { laneConnects = true; break; }
-                }
+                // Connect via the unified shipping graph — covers single-lane
+                // routes AND cross-continent multi-lane routes via bridge
+                // ports. Earlier code only sailed when settlement and target
+                // shared a single lane, leaving Nord-lord-to-Vlandia routes
+                // (Norden → Laconis → Junme → Western) walking on land.
+                bool laneConnects = ShippingGraph.Instance.AreConnected(settlement, lordTarget);
                 if (!laneConnects) return;
 
                 try
@@ -423,23 +424,19 @@ namespace BannerKings.Behaviours.Shipping
             if (party.LeaderHero.Clan == Clan.PlayerClan) return;
             if (party.Army != null && party.Army.LeaderParty != party) return;
 
-            // Stay at sea when the lord is en route to a further port that
-            // shares a lane with the current one. Without this, the
-            // sequence is: arrive at intermediate port → disembark → lord
-            // branch immediately re-embarks → wasteful round-trip every
-            // hop. Just refresh the move target instead.
+            // Stay at sea when the lord is en route to a further port
+            // reachable via the unified shipping graph (single-lane OR
+            // multi-lane bridge route). Without this, the sequence is:
+            // arrive at intermediate port → disembark → lord branch
+            // immediately re-embarks → wasteful round-trip every hop.
+            // Just refresh the move target instead.
             var lordTarget = party.TargetSettlement;
-            if (lordTarget != null && lordTarget != settlement && lordTarget.HasPort)
+            if (lordTarget != null && lordTarget != settlement && lordTarget.HasPort
+                && ShippingGraph.Instance.AreConnected(settlement, lordTarget))
             {
-                foreach (var lane in DefaultShippingLanes.Instance.GetSettlementLanes(settlement))
-                {
-                    if (lane.Ports.Contains(lordTarget))
-                    {
-                        try { party.SetMoveGoToSettlement(lordTarget, MobileParty.NavigationType.All, false); }
-                        catch { /* defensive */ }
-                        return;
-                    }
-                }
+                try { party.SetMoveGoToSettlement(lordTarget, MobileParty.NavigationType.All, false); }
+                catch { /* defensive */ }
+                return;
             }
 
             try
@@ -616,6 +613,13 @@ namespace BannerKings.Behaviours.Shipping
         // is the "stuck on coast forever" pattern that the load-time rescue
         // can't address while a save is live. Reactivates them so vanilla
         // AI can drive them again.
+        //
+        // Hands-off rule: never touch parties currently at sea. NavalDLC
+        // owns at-sea state for its convoys; reactivating one mid-ocean
+        // could interact badly with its naval AI. The BK-shipping-limbo
+        // signature we want to fix is *land-side* parties stuck at gates
+        // or ports, which is what the load-time rescue's original intent
+        // was — just running daily so it works for live sessions too.
         private void RescueOrphanedCaravans()
         {
             try
@@ -624,26 +628,18 @@ namespace BannerKings.Behaviours.Shipping
                 {
                     if (caravan == null) continue;
                     if (caravan.IsActive) continue;
+                    if (caravan.IsCurrentlyAtSea) continue;     // NavalDLC's domain
                     if (sailing.ContainsKey(caravan)) continue; // legitimately mid-voyage
                     if (caravan == MobileParty.MainParty) continue;
 
                     try
                     {
                         TaleWorlds.Library.Debug.Print(
-                            $"[BK] Orphan rescue: reactivating inactive caravan {caravan.Name} not in sailing dict",
+                            $"[BK] Orphan rescue: reactivating inactive caravan {caravan.Name} (not in sailing dict, not at sea)",
                             color: TaleWorlds.Library.Debug.DebugColor.Yellow);
                         caravan.IsActive = true;
                         caravan.Ai?.EnableAi();
                         caravan.IsVisible = true;
-                        // Clear at-sea limbo if vanilla NavalDLC isn't
-                        // tracking them either. Side note: we DON'T do this
-                        // for parties NavalDLC owns — we just nudged the
-                        // wrong toggle there. Only orphan-rescue parties
-                        // that have no naval AI to fall back on.
-                        if (caravan.IsCurrentlyAtSea && !caravan.HasNavalNavigationCapability)
-                        {
-                            try { caravan.IsCurrentlyAtSea = false; } catch { }
-                        }
                     }
                     catch { /* defensive */ }
                 }
