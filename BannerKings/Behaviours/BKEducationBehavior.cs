@@ -616,16 +616,19 @@ namespace BannerKings.Behaviours
         // for each entry; that returns 6 with our patch in place. We
         // postfix and append a 7th tile for Wisdom so it shows on the
         // character screen alongside the vanilla six. The list this
-        // touches is a per-instance MBBindingList<CharacterAttributeItemVM>;
-        // injecting into it doesn't affect the global Attributes.All
-        // anywhere else in the game.
+        // touches is a per-instance MBBindingList<CharacterAttributeItemVM>
+        // (the public Attributes property on the VM); injecting into it
+        // doesn't affect the global Attributes.All anywhere else in the
+        // game.
         [HarmonyPatch(typeof(TaleWorlds.CampaignSystem.ViewModelCollection.CharacterDeveloper.CharacterDeveloperHeroItemVM))]
         internal class CharacterDeveloperWisdomTilePatch
         {
-            private static readonly System.Reflection.FieldInfo HeroField =
-                AccessTools.Field(typeof(TaleWorlds.CampaignSystem.ViewModelCollection.CharacterDeveloper.CharacterDeveloperHeroItemVM), "_hero");
-            private static readonly System.Reflection.FieldInfo AttrsField =
-                AccessTools.Field(typeof(TaleWorlds.CampaignSystem.ViewModelCollection.CharacterDeveloper.CharacterDeveloperHeroItemVM), "_attributes");
+            // OnInspectAttribute / OnAddAttributePoint are private instance
+            // methods on the VM. Cached at type-load to avoid per-call
+            // reflection. Hero and Attributes are public auto-properties,
+            // accessed directly off __instance — earlier versions of this
+            // patch tried to read non-existent _hero / _attributes fields
+            // and silently bailed.
             private static readonly System.Reflection.MethodInfo OnInspectMethod =
                 AccessTools.Method(typeof(TaleWorlds.CampaignSystem.ViewModelCollection.CharacterDeveloper.CharacterDeveloperHeroItemVM), "OnInspectAttribute");
             private static readonly System.Reflection.MethodInfo OnAddPointMethod =
@@ -640,14 +643,12 @@ namespace BannerKings.Behaviours
                 {
                     var wisdom = BKAttributes.Instance?.Wisdom;
                     if (wisdom == null) return;
-                    if (HeroField == null || AttrsField == null
-                        || OnInspectMethod == null || OnAddPointMethod == null) return;
+                    if (OnInspectMethod == null || OnAddPointMethod == null) return;
 
-                    var hero = HeroField.GetValue(__instance) as Hero;
+                    var hero = __instance.Hero;
                     if (hero == null) return;
 
-                    var attrs = AttrsField.GetValue(__instance)
-                        as MBBindingList<TaleWorlds.CampaignSystem.ViewModelCollection.CharacterDeveloper.CharacterAttributeItemVM>;
+                    var attrs = __instance.Attributes;
                     if (attrs == null) return;
 
                     foreach (var existing in attrs)
