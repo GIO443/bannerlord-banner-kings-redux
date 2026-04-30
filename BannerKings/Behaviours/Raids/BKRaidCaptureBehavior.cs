@@ -54,11 +54,17 @@ namespace BannerKings.Behaviours.Raids
                 CycleDisposition,
                 false, 2);
 
+            starter.AddGameMenuOption("village_hostile_action", "bk_raid_destination_toggle",
+                "{=BKRC_DestTglLabel}Destination: {BK_CAP_DEST}",
+                DestinationToggleCondition,
+                CycleDestination,
+                false, 3);
+
             starter.AddGameMenuOption("village_hostile_action", "bk_raid_capture_preview",
                 "{=BKRC_PreviewLabel}Estimated captives: ~{BK_CAP_PREVIEW}",
                 PreviewCondition,
                 _ => GameMenu.SwitchToMenu("village_hostile_action"),
-                false, 3);
+                false, 4);
         }
 
         private bool FeatureEnabled() => BannerKingsSettings.Instance.EnableRaidCaptureSystem;
@@ -99,6 +105,61 @@ namespace BannerKings.Behaviours.Raids
             }
             args.optionLeaveType = GameMenuOption.LeaveType.Submenu;
             return true;
+        }
+
+        private bool DestinationToggleCondition(MenuCallbackArgs args)
+        {
+            if (!FeatureEnabled()) return false;
+            var settlement = Settlement.CurrentSettlement;
+            if (settlement == null || !settlement.IsVillage) return false;
+
+            var policy = policyManager.Get(Clan.PlayerClan);
+            if (policy.Mode != RaidCaptureMode.Take) return false;
+
+            string destText;
+            switch (policy.Destination)
+            {
+                case RaidDestinationMode.NearestOwned:
+                    destText = "Nearest Owned";
+                    break;
+                case RaidDestinationMode.MostProfitable:
+                    destText = "Most Profitable";
+                    break;
+                default:
+                    destText = "Nearest Friendly";
+                    break;
+            }
+            MBTextManager.SetTextVariable("BK_CAP_DEST", new TextObject(destText));
+
+            if (policy.Destination == RaidDestinationMode.NearestOwned && (Clan.PlayerClan?.Fiefs?.Count ?? 0) == 0)
+            {
+                args.Tooltip = new TextObject("{=BKRC_NoOwnedFief}You don't own any fiefs — the caravan will fall back to Nearest Friendly.");
+            }
+            else if (policy.Destination == RaidDestinationMode.MostProfitable)
+            {
+                args.Tooltip = new TextObject("{=BKRC_MostProfitTip}Picks the friendly fief with the best (payout − weighted travel) score. Routes can be long and cross hostile coasts; the caravan is interceptable.");
+            }
+            args.optionLeaveType = GameMenuOption.LeaveType.Submenu;
+            return true;
+        }
+
+        private void CycleDestination(MenuCallbackArgs args)
+        {
+            var policy = policyManager.Get(Clan.PlayerClan);
+            switch (policy.Destination)
+            {
+                case RaidDestinationMode.NearestFriendly:
+                    policy.Destination = RaidDestinationMode.NearestOwned;
+                    break;
+                case RaidDestinationMode.NearestOwned:
+                    policy.Destination = RaidDestinationMode.MostProfitable;
+                    break;
+                default:
+                    policy.Destination = RaidDestinationMode.NearestFriendly;
+                    break;
+            }
+            policyManager.Set(Clan.PlayerClan, policy);
+            GameMenu.SwitchToMenu("village_hostile_action");
         }
 
         private bool PreviewCondition(MenuCallbackArgs args)
@@ -223,8 +284,17 @@ namespace BannerKings.Behaviours.Raids
             if (mainCohort.Count > 0)
                 LogRaid("main cohort: " + string.Join(", ", mainCohort.Select(p => $"{p.Key.StringId}:{p.Value}")));
 
-            // Spawn main caravan to nearest friendly fief
-            var mainDest = NearestFriendlyFief(attackerParty);
+            // Pick destination per policy. AI clans always use NearestOwned —
+            // funnels captives back to their demesne, not random allied fiefs.
+            // Player clans honour the per-clan policy toggle on the village menu.
+            RaidDestinationMode destMode;
+            if (capturingClan == Clan.PlayerClan)
+                destMode = policyManager.Get(capturingClan).Destination;
+            else
+                destMode = RaidDestinationMode.NearestOwned;
+            LogRaid($"destination mode={destMode}");
+
+            var mainDest = SelectDestination(attackerParty, capturingClan, destMode, kMain, disposition);
             if (mainDest != null && mainCohort.Count > 0)
             {
                 var (count, tierCap) = model.EscortSpec(kMain);
@@ -321,6 +391,92 @@ namespace BannerKings.Behaviours.Raids
                 if (!found) result.Add(new KeyValuePair<CultureObject, int>(largest, remainder));
             }
             return result;
+        }
+
+        private Settlement SelectDestination(MobileParty party, Clan capturingClan,
+            RaidDestinationMode mode, int captiveCount, CaptiveDisposition disposition)
+        {
+            switch (mode)
+            {
+                case RaidDestinationMode.NearestOwned:
+                    return NearestOwnedFief(party, capturingClan) ?? NearestFriendlyFief(party);
+                case RaidDestinationMode.MostProfitable:
+                    return MostProfitableFief(party, captiveCount, disposition) ?? NearestFriendlyFief(party);
+                default:
+                    return NearestFriendlyFief(party);
+            }
+        }
+
+        private Settlement NearestOwnedFief(MobileParty party, Clan capturingClan)
+        {
+            if (party == null || capturingClan?.Fiefs == null || capturingClan.Fiefs.Count == 0) return null;
+            Settlement best = null;
+            float bestDist = float.MaxValue;
+            foreach (var town in capturingClan.Fiefs)
+            {
+                var s = town?.Settlement;
+                if (s == null) continue;
+                if (s.IsUnderSiege) continue;
+                float d = Campaign.Current.Models.MapDistanceModel.GetDistance(party, s, false, MobileParty.NavigationType.All, out _);
+                if (d < bestDist) { bestDist = d; best = s; }
+            }
+            return best;
+        }
+
+        private Settlement MostProfitableFief(MobileParty party, int captiveCount, CaptiveDisposition disposition)
+        {
+            if (party == null || captiveCount <= 0) return null;
+            var faction = party.MapFaction;
+            if (faction == null) return null;
+
+            // Score = expected payout − (graph_weighted_distance × travelCostFactor).
+            // Travel cost factor approximates ~2 gold per map unit at the
+            // graph's adaptive distance — captures the "long routes through
+            // hostile waters cost more" signal already baked into the graph.
+            const float TravelCostFactor = 2f;
+            const float SearchRadius = 600f;          // generous cap; Calradia's diameter is ~700u
+            var graph = BannerKings.Managers.Shipping.ShippingGraph.Instance;
+
+            Settlement best = null;
+            float bestScore = float.MinValue;
+            float partyDist;
+
+            foreach (var s in Settlement.All)
+            {
+                if (!(s.IsTown || s.IsCastle)) continue;
+                if (s.IsUnderSiege) continue;
+                if (s.MapFaction == null) continue;
+                if (s.MapFaction.IsAtWarWith(faction)) continue;
+                // Friendly = same faction OR same clan map-faction (covers
+                // independent player-clan ownership during early game).
+                if (s.MapFaction != faction && s.MapFaction != party.LeaderHero?.Clan?.MapFaction) continue;
+
+                partyDist = party.GetPosition2D.Distance(s.GatePosition.ToVec2());
+                if (partyDist > SearchRadius) continue;
+
+                int payoutPerHead = disposition == CaptiveDisposition.Slaves
+                    ? model.SlavePayoutPerHead(s)
+                    : model.SerfPayoutPerHead(s);
+                if (payoutPerHead <= 0) continue;
+
+                // Use the adaptive shipping graph if both endpoints are
+                // ports; otherwise fall back to straight-line ground
+                // distance (caravan walks land segments at vanilla speed).
+                float travelDist = partyDist;
+                if (graph.Adjacency.ContainsKey(s) && party.CurrentSettlement != null && graph.Adjacency.ContainsKey(party.CurrentSettlement))
+                {
+                    float adaptive = graph.GetAdaptiveDistance(party.CurrentSettlement, s, faction);
+                    if (adaptive > 0f) travelDist = adaptive;
+                }
+
+                float score = (captiveCount * payoutPerHead) - (travelDist * TravelCostFactor);
+                if (score > bestScore)
+                {
+                    bestScore = score;
+                    best = s;
+                }
+            }
+            return best;
         }
 
         private Settlement NearestFriendlyFief(MobileParty party)

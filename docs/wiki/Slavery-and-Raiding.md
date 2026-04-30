@@ -69,9 +69,22 @@ three new lines appear above the raid options:
 - `Disposition: Slaves` / `Disposition: Serfs` — only shown if Captives
   is set to Take. Sticky per clan. Default Slaves under slavery realms,
   Serfs otherwise.
+- `Destination: …` — only shown if Captives is set to Take. Cycles
+  through the three destination strategies. Sticky per clan. Default
+  Nearest Friendly.
 - `Estimated captives: ~N` — read-only preview computed from village
   serf population. Helps you decide whether the raid is worth setting up
   for capture.
+
+**Destination modes (v1.6.2.2).**
+
+| Mode | How the caravan picks its target |
+|---|---|
+| **Nearest Friendly** *(default)* | Closest non-sieged town/castle in your faction or your clan's faction. Cheapest in time, lowest payout ceiling. |
+| **Nearest Owned** | Closest fief your *clan* owns. Funnels captives into your demesne — useful for populating a frontier estate. Falls back to Nearest Friendly when your clan owns no fiefs. |
+| **Most Profitable** | Scores every reachable friendly fief by `(payout-per-head × surviving-captives) − (graph-weighted-distance × travel-cost)` and picks the max within a 600-unit search radius. Uses the [adaptive shipping graph](Shipping-and-Trade#adaptive-shipping-costs-v161) so war zones and bandit coasts are auto-discounted. Can produce long, interceptable caravans through hostile waters — that's the trade. |
+
+**AI clans always use Nearest Owned**, regardless of any saved policy. The destination toggle on the village menu only affects the player clan; AI raiders funnel captives back to their own demesne, not random allied fiefs.
 
 ### 2. Run the raid
 
@@ -184,9 +197,11 @@ Cheats must be enabled in the launcher.
 
 **Test cheats** (v1.6.2.1):
 
-- `bannerkings.test_raid_policy Take | Slaves` — set the player clan's
-  raid capture policy directly (cycling through the village menu also
-  works in-game; this is faster from the console).
+- `bannerkings.test_raid_policy Take | Slaves [| MostProfitable]` — set
+  the player clan's raid capture policy directly (cycling through the
+  village menu also works in-game; this is faster from the console).
+  Optional 3rd arg sets the destination mode: `NearestFriendly`,
+  `NearestOwned`, or `MostProfitable`.
 - `bannerkings.test_raid_capture village_V1_1` — run the capture flow
   on the named village as if MainParty just finished a successful raid
   there. Skips the actual raid combat / village damage; you only see

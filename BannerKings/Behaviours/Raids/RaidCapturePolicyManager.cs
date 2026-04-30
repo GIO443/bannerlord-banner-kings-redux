@@ -74,7 +74,8 @@ namespace BannerKings.Behaviours.Raids
             bool slaver = ClanRealmAllowsSlavery(clan);
             return new RaidCapturePolicy(
                 RaidCaptureMode.Take,
-                slaver ? CaptiveDisposition.Slaves : CaptiveDisposition.Serfs);
+                slaver ? CaptiveDisposition.Slaves : CaptiveDisposition.Serfs,
+                RaidDestinationMode.NearestFriendly);
         }
     }
 }

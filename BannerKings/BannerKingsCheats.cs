@@ -493,10 +493,11 @@ namespace BannerKings
         {
             if (!CampaignCheats.CheckCheatUsage(ref CampaignCheats.ErrorType)) return CampaignCheats.ErrorType;
             if (strings == null || strings.Count == 0)
-                return "Format: bannerkings.test_raid_policy <Take|Leave> | <Slaves|Serfs>";
+                return "Format: bannerkings.test_raid_policy <Take|Leave> | <Slaves|Serfs> [| <NearestFriendly|NearestOwned|MostProfitable>]";
 
             var parts = CampaignCheats.ConcatenateString(strings).Split('|');
-            if (parts.Length != 2) return "Format: bannerkings.test_raid_policy <Take|Leave> | <Slaves|Serfs>";
+            if (parts.Length != 2 && parts.Length != 3)
+                return "Format: bannerkings.test_raid_policy <Take|Leave> | <Slaves|Serfs> [| <NearestFriendly|NearestOwned|MostProfitable>]";
 
             var modeToken = parts[0].Trim().ToLowerInvariant();
             var dispToken = parts[1].Trim().ToLowerInvariant();
@@ -509,12 +510,22 @@ namespace BannerKings
             else if (dispToken == "serfs") disposition = BannerKings.Behaviours.Raids.CaptiveDisposition.Serfs;
             else return $"Unknown disposition: {parts[1]} (expected Slaves or Serfs)";
 
+            BannerKings.Behaviours.Raids.RaidDestinationMode dest = BannerKings.Behaviours.Raids.RaidDestinationMode.NearestFriendly;
+            if (parts.Length == 3)
+            {
+                var destToken = parts[2].Trim().Replace(" ", "").ToLowerInvariant();
+                if (destToken == "nearestfriendly" || destToken == "friendly") dest = BannerKings.Behaviours.Raids.RaidDestinationMode.NearestFriendly;
+                else if (destToken == "nearestowned" || destToken == "owned") dest = BannerKings.Behaviours.Raids.RaidDestinationMode.NearestOwned;
+                else if (destToken == "mostprofitable" || destToken == "profit") dest = BannerKings.Behaviours.Raids.RaidDestinationMode.MostProfitable;
+                else return $"Unknown destination: {parts[2]} (expected NearestFriendly, NearestOwned, or MostProfitable)";
+            }
+
             var behavior = TaleWorlds.CampaignSystem.Campaign.Current
                 .GetCampaignBehavior<BannerKings.Behaviours.Raids.BKRaidCaptureBehavior>();
             if (behavior == null) return "BKRaidCaptureBehavior not registered.";
             behavior.Policies.Set(Clan.PlayerClan,
-                new BannerKings.Behaviours.Raids.RaidCapturePolicy(mode, disposition));
-            return $"Player raid policy: {mode} / {disposition}.";
+                new BannerKings.Behaviours.Raids.RaidCapturePolicy(mode, disposition, dest));
+            return $"Player raid policy: {mode} / {disposition} / {dest}.";
         }
 
         [CommandLineFunctionality.CommandLineArgumentFunction("test_raid_capture", "bannerkings")]
@@ -551,7 +562,7 @@ namespace BannerKings
 
                 var policy = behavior.Policies.Get(Clan.PlayerClan);
                 bool slaverRealm = behavior.Policies.ClanRealmAllowsSlavery(Clan.PlayerClan);
-                sb.AppendLine($"Player policy: mode={policy.Mode} disposition={policy.Disposition} (slaver realm: {slaverRealm})");
+                sb.AppendLine($"Player policy: mode={policy.Mode} disposition={policy.Disposition} destination={policy.Destination} (slaver realm: {slaverRealm})");
                 sb.AppendLine($"Settings: enabled={Settings.BannerKingsSettings.Instance.EnableRaidCaptureSystem} " +
                               $"fraction={Settings.BannerKingsSettings.Instance.RaidCaptureFraction:n2} " +
                               $"foreignSkim={Settings.BannerKingsSettings.Instance.ForeignMercSkim:n2} " +
