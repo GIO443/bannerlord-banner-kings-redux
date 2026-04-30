@@ -99,11 +99,19 @@ namespace BannerKings.Behaviours
             if (hero == null) return;
 
             var charAttrs = (PropertyOwner<CharacterAttribute>)Hero_CharacterAttributes.GetValue(hero);
-            if (!charAttrs.HasProperty(BKAttributes.Instance.Wisdom))
+            var attrsDic = (Dictionary<CharacterAttribute, int>)PropertyOwnerAttribute_Attributes.GetValue(charAttrs);
+            // Floor Wisdom at 2 — covers three cases:
+            //   1. Wisdom missing entirely     → add with value 2.
+            //   2. Wisdom present with value 0 → bump to 2 (older saves
+            //      saved Wisdom=0 before v1.6.4.8 introduced seeding, or
+            //      vanilla PropertyOwner.GetPropertyValue auto-inserted 0
+            //      during a TryGetValue-style read).
+            //   3. Wisdom present with value > 0 → leave alone (player /
+            //      gameplay-earned bonus from the Theology Religious
+            //      Teachings perk on a parent).
+            if (!attrsDic.TryGetValue(BKAttributes.Instance.Wisdom, out int wisdomValue) || wisdomValue < 2)
             {
-                var attrsDic = (Dictionary<CharacterAttribute, int>)PropertyOwnerAttribute_Attributes.GetValue(charAttrs);
-                if (!attrsDic.ContainsKey(BKAttributes.Instance.Wisdom))
-                    attrsDic.Add(BKAttributes.Instance.Wisdom, 2);
+                attrsDic[BKAttributes.Instance.Wisdom] = 2;
             }
 
             var charSkills = (PropertyOwner<SkillObject>)Hero_HeroSkills.GetValue(hero);

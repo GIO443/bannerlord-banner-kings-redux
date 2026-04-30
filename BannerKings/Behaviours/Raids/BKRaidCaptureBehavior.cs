@@ -614,15 +614,68 @@ namespace BannerKings.Behaviours.Raids
 
                 int captiveCount = 0;
                 int stuck = 0;
+                int emptyDestroyed = 0;
                 sb.AppendLine($"--- Daily watchdog @ {now} ---");
 
-                // Captive caravans first — primary suspect for the user's report.
+                // Empty-captive guard: captive caravans with prisoners=0
+                // are useless — they were spawned by the raid pipeline but
+                // either started with an empty cohort or had their roster
+                // drained somewhere downstream. Destroy them so they don't
+                // pile up at origins forever and clutter dumps. Iterate
+                // into a list first so we can mutate MobileParty.All
+                // safely via DestroyPartyAction below.
+                List<MobileParty> emptyCaptives = null;
+                List<MobileParty> liveCaptives = null;
                 foreach (var party in MobileParty.All)
                 {
                     if (party?.PartyComponent is not BannerKings.Components.PopulationPartyComponent ppc) continue;
                     if (!ppc.IsRaidCaptiveCaravan) continue;
                     captiveCount++;
-                    if (DescribeAndCheckStuck(party, ppc, sb, now)) stuck++;
+
+                    int prisoners = 0;
+                    try
+                    {
+                        foreach (var e in party.PrisonRoster.GetTroopRoster())
+                        {
+                            if (e.Character != null && !e.Character.IsHero) prisoners += e.Number;
+                        }
+                    }
+                    catch { /* fall through; prisoners stays 0 */ }
+
+                    if (prisoners == 0)
+                    {
+                        emptyCaptives ??= new List<MobileParty>();
+                        emptyCaptives.Add(party);
+                    }
+                    else
+                    {
+                        liveCaptives ??= new List<MobileParty>();
+                        liveCaptives.Add(party);
+                    }
+                }
+                if (emptyCaptives != null)
+                {
+                    foreach (var party in emptyCaptives)
+                    {
+                        try
+                        {
+                            sb.AppendLine($"  empty-captive guard: destroying {party.Name} @ {(party.CurrentSettlement?.Name?.ToString() ?? party.GetPosition2D.ToString())} (prisoners=0)");
+                            DestroyPartyAction.Apply(null, party);
+                            emptyDestroyed++;
+                        }
+                        catch (Exception ex)
+                        {
+                            sb.AppendLine($"  empty-captive guard: failed to destroy {party?.Name}: {ex.GetType().Name}: {ex.Message}");
+                        }
+                    }
+                }
+                if (liveCaptives != null)
+                {
+                    foreach (var party in liveCaptives)
+                    {
+                        var ppc = (BannerKings.Components.PopulationPartyComponent)party.PartyComponent;
+                        if (DescribeAndCheckStuck(party, ppc, sb, now)) stuck++;
+                    }
                 }
 
                 // Regular trade caravans — track only ones that look idle.
@@ -633,7 +686,7 @@ namespace BannerKings.Behaviours.Raids
                     if (DescribeAndCheckStuck(party, null, sb, now)) regCheck++;
                 }
 
-                sb.AppendLine($"Summary: {captiveCount} captive caravans tracked, {stuck} flagged stuck; {regCheck} trade caravans flagged stuck.");
+                sb.AppendLine($"Summary: {captiveCount} captive caravans tracked, {emptyDestroyed} destroyed (empty roster), {stuck} flagged stuck; {regCheck} trade caravans flagged stuck.");
                 BannerKingsCheats.AppendDiagnosticLine("caravan_watchdog.txt", sb.ToString());
             }
             catch (Exception ex)
