@@ -24,11 +24,28 @@ namespace BannerKings.Components
         public override TextObject Name => new TextObject("{=NzSOneTv}Estate Retinue from {ORIGIN}")
             .SetTextVariable("ORIGIN", HomeSettlement.Name);
 
+        // Estate retinues belong to the estate OWNER, not the village's
+        // owner clan. Without this override, an estate purchased in a
+        // foreign village had its retinue owned by the village's lord —
+        // which could be hostile to the player. Clicking 'Retinue' from
+        // the estate UI opened combat against your own retinue.
+        public override TaleWorlds.CampaignSystem.Hero PartyOwner
+        {
+            get
+            {
+                if (Estate?.Owner != null) return Estate.Owner;
+                return base.PartyOwner;
+            }
+        }
+
         public override Banner GetDefaultComponentBanner() => base.GetDefaultComponentBanner();
 
         private static MobileParty CreateParty(string id, Estate estate, Settlement origin)
         {
             var party = MobileParty.CreateParty(id, new EstateComponent(origin, estate));
+            // Faction = estate owner's clan, not the village's owner.
+            // Retinue should fight FOR the player, not against them.
+            if (estate?.Owner?.Clan != null) party.ActualClan = estate.Owner.Clan;
             party.SetPartyUsedByQuest(true);
             party.Party.SetVisualAsDirty();
             party.Ai.SetInitiative(0.5f, 1f, float.MaxValue);

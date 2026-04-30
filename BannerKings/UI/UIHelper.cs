@@ -378,39 +378,112 @@ namespace BannerKings.UI
 
         public static void ShowEstateTransferScreen(Managers.Populations.Estates.Estate estate)
         {
-            var count = estate.Slaves;
-            var stlmtSlaves = new TroopRoster(null);
-            stlmtSlaves.AddToCounts(CharacterObject.All.FirstOrDefault(x => x.StringId == "looter"), count);
-
-            // PartyScreenManager removed in 1.3.x
-            /*
-            PartyScreenHelper.OpenScreenAsLoot(TroopRoster.CreateDummyTroopRoster(), stlmtSlaves,
-                Settlement.CurrentSettlement.Name, 0,
-                delegate (PartyBase _, TroopRoster _, TroopRoster leftPrisonRoster,
-                    PartyBase _, TroopRoster _, TroopRoster rightPrisonRoster,
-                    bool _)
+            // Vanilla 1.3.x removed PartyScreenHelper.OpenScreenAsLoot, which
+            // the original BK estate slave-transfer UI depended on. Rather
+            // than rebuild a bespoke party-screen interaction, surface a
+            // simple inquiry that lets the player move regular (non-hero)
+            // prisoners between their main party's prison roster and the
+            // estate's slave count. Hero prisoners are never transferred.
+            int estateSlaves = estate.Slaves;
+            int partyPrisoners = 0;
+            try
+            {
+                foreach (var elem in MobileParty.MainParty.PrisonRoster.GetTroopRoster())
                 {
-                    if (leftPrisonRoster.TotalHeroes > 0)
+                    if (elem.Character != null && !elem.Character.IsHero) partyPrisoners += elem.Number;
+                }
+            }
+            catch { /* defensive */ }
+
+            var status = new TextObject("{=BKEstateSlaves_Status}Your party has {PARTY} prisoners. The estate currently holds {ESTATE} slaves.")
+                .SetTextVariable("PARTY", partyPrisoners)
+                .SetTextVariable("ESTATE", estateSlaves)
+                .ToString();
+
+            var elements = new List<InquiryElement>();
+            if (partyPrisoners > 0)
+            {
+                elements.Add(new InquiryElement("transfer_to_estate",
+                    new TextObject("{=BKEstateSlaves_TransferToEstate}Transfer all party prisoners to the estate ({COUNT})")
+                        .SetTextVariable("COUNT", partyPrisoners)
+                        .ToString(),
+                    null));
+            }
+            if (estateSlaves > 0)
+            {
+                elements.Add(new InquiryElement("transfer_to_party",
+                    new TextObject("{=BKEstateSlaves_TransferToParty}Take all estate slaves into your party ({COUNT})")
+                        .SetTextVariable("COUNT", estateSlaves)
+                        .ToString(),
+                    null));
+            }
+
+            if (elements.Count == 0)
+            {
+                InformationManager.DisplayMessage(new InformationMessage(status));
+                return;
+            }
+
+            MBInformationManager.ShowMultiSelectionInquiry(new MultiSelectionInquiryData(
+                new TextObject("{=BKEstateSlaves_Title}Estate Slaves").ToString(),
+                status,
+                elements,
+                true,
+                1,
+                1,
+                GameTexts.FindText("str_accept").ToString(),
+                GameTexts.FindText("str_cancel").ToString(),
+                delegate (List<InquiryElement> selected)
+                {
+                    if (selected == null || selected.Count == 0) return;
+                    var choice = selected[0].Identifier as string;
+                    try
                     {
-                        var heroes = new List<CharacterObject>();
-                        foreach (var element in leftPrisonRoster.GetTroopRoster())
+                        if (choice == "transfer_to_estate")
                         {
-                            if (element.Character.IsHero)
+                            int moved = 0;
+                            var roster = MobileParty.MainParty.PrisonRoster;
+                            // Snapshot first; can't safely mutate during iteration.
+                            var snapshot = new List<TroopRosterElement>(roster.GetTroopRoster());
+                            foreach (var elem in snapshot)
                             {
-                                heroes.Add(element.Character);
+                                if (elem.Character == null || elem.Character.IsHero) continue;
+                                if (elem.Number <= 0) continue;
+                                roster.AddToCounts(elem.Character, -elem.Number);
+                                moved += elem.Number;
+                            }
+                            if (moved > 0)
+                            {
+                                estate.AddSlaves(moved);
+                                InformationManager.DisplayMessage(new InformationMessage(
+                                    new TextObject("{=BKEstateSlaves_MovedToEstate}Transferred {N} prisoners to the estate as slaves.")
+                                        .SetTextVariable("N", moved).ToString()));
                             }
                         }
-
-                        foreach (var hero in heroes)
+                        else if (choice == "transfer_to_party")
                         {
-                            leftPrisonRoster.RemoveTroop(hero);
-                            rightPrisonRoster.AddToCounts(hero, 1);
+                            int moved = estate.Slaves;
+                            if (moved > 0)
+                            {
+                                var looter = CharacterObject.All.FirstOrDefault(x => x.StringId == "looter");
+                                if (looter != null)
+                                {
+                                    MobileParty.MainParty.PrisonRoster.AddToCounts(looter, moved);
+                                    estate.AddSlaves(-moved);
+                                    InformationManager.DisplayMessage(new InformationMessage(
+                                        new TextObject("{=BKEstateSlaves_MovedToParty}Took {N} slaves from the estate into your prison roster.")
+                                            .SetTextVariable("N", moved).ToString()));
+                                }
+                            }
                         }
                     }
-
-                    estate.AddSlaves(leftPrisonRoster.TotalRegulars - count);
-                });
-            */
+                    catch (System.Exception ex)
+                    {
+                        InformationManager.DisplayMessage(new InformationMessage(
+                            "Estate slave transfer failed: " + ex.GetType().Name + ": " + ex.Message));
+                    }
+                },
+                null));
         }
 
         public static void ShowSlaveDonationScreen(Hero notable)
