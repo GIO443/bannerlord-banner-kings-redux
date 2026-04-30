@@ -315,6 +315,17 @@ What BK Smithing does when on:
   charges a per-hour fee (base 50 denarii, scaled by town prosperity
   and clan tier, reduced 15% by the Artisan Smith perk).
 
+**Q: My Wisdom attribute starts at 0 on a new game — bug?**
+*Was* a bug. The seeder that writes Wisdom = 2 into every hero's
+attribute dict only fired on `OnGameLoadedEvent`, which doesn't run on
+fresh new games — it only fires when you load a save. So on a brand-
+new sandbox, your starting hero (and every other world hero) had no
+Wisdom entry until the first save/reload. Fixed in v1.6.4.8: the
+seeder now also runs on `OnCharacterCreationIsOverEvent` (covers the
+fresh-start case) and on every `HeroCreated` (covers notables,
+wanderers, and other mid-campaign heroes). Existing saves with
+Wisdom = 0 will pick up the value 2 on next load.
+
 **Q: Where is the Wisdom attribute? It's mentioned in tooltips but I
 can't find it.**
 *Was* a bug. BK registers a 7th attribute (Wisdom) for use with the
