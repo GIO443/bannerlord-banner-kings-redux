@@ -468,12 +468,14 @@ namespace BannerKings.Behaviours.Shipping
 
         private void TickParty(MobileParty party)
         {
-            // AI lord proactive port redirect — when an AI lord party has a
+            // Proactive port redirect — when an AI lord party or caravan has a
             // target settlement on a shipping lane, and the nearest connecting
             // port is much closer than the target itself, redirect to the port.
-            // The party will reach the port, then Step A's AfterSettlementEntered
-            // hook auto-boards them. Without this, AI lords often pathfind
-            // straight toward a cross-water target and get stuck on the coast.
+            // The party will reach the port, then AfterSettlementEntered's
+            // shipping hook auto-boards them. Without this, vanilla AI often
+            // pathfinds straight toward a cross-water target and the party gets
+            // stuck on the coast indefinitely (Nord caravan → Osican was the
+            // motivating report).
             RedirectAIToShippingPort(party);
         }
 
@@ -482,8 +484,16 @@ namespace BannerKings.Behaviours.Shipping
             try
             {
                 if (party == null || party == MobileParty.MainParty) return;
-                if (!party.IsLordParty || party.LeaderHero == null) return;
-                if (party.LeaderHero.Clan == null || party.LeaderHero.Clan == Clan.PlayerClan) return;
+                if (party.LeaderHero == null) return;
+
+                // Two redirect cohorts: AI lord parties (not the player's own
+                // clan — they pilot themselves) and caravans (any clan, since
+                // the player doesn't directly steer caravans either way).
+                bool isAILord = party.IsLordParty
+                    && party.LeaderHero.Clan != null
+                    && party.LeaderHero.Clan != Clan.PlayerClan;
+                bool isCaravan = party.IsCaravan;
+                if (!isAILord && !isCaravan) return;
 
                 // For armies, redirect only the leader; sub-parties follow via
                 // Army linkage. Skipping armies entirely would strand cross-water
