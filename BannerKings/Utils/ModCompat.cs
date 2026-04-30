@@ -44,6 +44,16 @@ namespace BannerKings.Utils
         public const string AIInfluenceId = "AIInfluence";
         public const string AIInfluenceAsm = "AIInfluence";
 
+        // Realm of Thrones — total conversion replacing Calradia with Westeros.
+        // BK doesn't ship ROT-specific data; a separate compat patch mod is
+        // expected to register ROT lifestyles, titles, lanes, etc. via BK's
+        // DefaultTypeInitializer<> registries. This flag is here so BK code
+        // can yield Calradia-only behaviour when ROT is loaded if needed
+        // (rare — most BK code uses Settlement/Culture lookups by reference,
+        // not by hardcoded StringId).
+        public const string RealmOfThronesId = "realmofthrones.core";
+        public const string RealmOfThronesAsm = "ROT";
+
         private static readonly ConcurrentDictionary<string, bool> _cache = new();
 
         private static MethodInfo _getModulesMethod;
@@ -88,6 +98,10 @@ namespace BannerKings.Utils
         /// <summary>True if AI Influence (AI Diplomacy) is loaded.</summary>
         public static bool AIInfluence
             => IsLoaded(AIInfluenceId, AIInfluenceAsm);
+
+        /// <summary>True if the Realm of Thrones total-conversion module is loaded.</summary>
+        public static bool RealmOfThrones
+            => IsLoaded(RealmOfThronesId, RealmOfThronesAsm);
 
         // ----- internals -----
 
