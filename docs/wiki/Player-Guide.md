@@ -336,8 +336,7 @@ post-game-load too. Now scoped to character-creation phase only:
 during creation Wisdom stays hidden (so vanilla doesn't crash), and
 once your campaign starts you should see Wisdom alongside the six
 vanilla attributes in the character developer screen and on hero
-pages. Each hero starts at Wisdom 2; bonus points come from the
-Theology *Religious Teachings* perk on a parent.
+pages. Each hero starts at Wisdom 2.
 
 ## Diplomacy & demands
 

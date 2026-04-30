@@ -44,6 +44,17 @@
   language-rate skill effect off the rails) plus an unsafe rate path.
   Per-tick fluency gain is now hard-capped at 5%, so even with the worst
   rate inputs a language can't finish in fewer than ~20 in-game days.
+- **"How do I use the Religion / Theology system?"** You don't.
+  Religions, faiths, piety, doctrines, preachers, and the Theology
+  skill effects are **not functional** in Banner Kings — Redux. The
+  upstream system was deeply broken when the 1.3.x port landed and
+  has been left dormant pending a future rewrite; the encyclopedia
+  pages, council Philosopher tasks, and any tooltips referencing
+  faiths or piety should be treated as inert. Your character can
+  level Theology as a skill, but its bonuses won't fire reliably and
+  there is no working in-game way to convert a settlement, install a
+  preacher, or perform a rite. If you see a religion popup, ignore
+  it. If a quest references piety, the quest is stuck — abandon it.
 - **"My new game crashes during loading"** — almost always a non-BK mod's
   Harmony patch failing (e.g., GovernorsHandleIssues against newer
   Bannerlord builds). Install **Better Exception Window** if you haven't
