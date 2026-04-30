@@ -96,6 +96,25 @@ three new lines appear above the raid options:
 
 **Hop-by-hop graph routing (v1.6.3.0).** Captive caravans now route through the unified [trade graph](Shipping-and-Trade) — they walk hop by hop along risk-weighted edges, detouring around hostile coasts and sieged regions instead of vanilla pathfinding straight across. A captive caravan from inland Battania to a Vlandian fief might walk south, board a ship, and land on the Vlandian coast all in one graph path. This is what makes the destination toggle actually meaningful for non-port raids.
 
+**Village anchoring (v1.6.3.1).** The graph contains only towns and castles, not villages. When a raid completes at a village (which is always the case), the captive caravan first walks to the *nearest safe* graph fief — closest by distance, weighted by risk so a hostile-bordered fief loses to a slightly farther peaceful one and sieged fiefs are skipped. Once it reaches that anchor, normal graph hops take over. This preserves risk-aware routing for the full journey instead of dropping to vanilla pathfind for the whole trip.
+
+**Captive count (v1.6.3.1).** Two limiters, whichever is lower:
+
+- **Village pool**: serfs × 10% × *Raid Capture Fraction* (MCM, default 40%) — so a 1,000-serf village offers up to 40 captives.
+- **Party carry**: `(troops − 5) × 0.5` with a floor of 5 — a 30-troop war band carries 12, a 100-troop army carries 47, 200 troops hits the cap.
+
+Hard cap 150 per raid. Multi-party raids (armies, multiple clans on the same village) **pool their carry capacity** — the game sums troops across every party on the attacker side, so a coordinated army of three 50-troop parties has a 72 carry cap, not 22.
+
+**Most Profitable scoring (v1.6.3.1).** Multiplicative decay rather than flat penalty:
+
+```
+score = (captives × payout/head) × distanceDecay × safetyDecay
+distanceDecay = 1 / (1 + dist / 100)
+safetyDecay = 1 / riskMultiplier
+```
+
+A close peaceful fief beats a distant high-payout one unless the payout differential is genuinely large. War zones, sieges, and bandit-heavy approaches reduce the score proportional to risk.
+
 ### 2. Run the raid
 
 Choose "Raid the village" as normal. When the raid completes, BK applies

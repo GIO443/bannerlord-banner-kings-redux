@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using BannerKings.Managers.Populations;
 using BannerKings.Settings;
 using TaleWorlds.CampaignSystem;
+using TaleWorlds.CampaignSystem.Party;
 using TaleWorlds.CampaignSystem.Settlements;
 using TaleWorlds.Core;
 using TaleWorlds.Library;
@@ -11,10 +12,32 @@ namespace BannerKings.Models.BKModels
 {
     public class BKRaidCaptureModel
     {
-        public const int CaptiveCapPerRaid = 80;
-        private const float DisplacedFractionOfSerfs = 0.01f;
+        // Hard cap per raid. Limits worst-case demographic shifts and keeps
+        // escort spawns reasonable.
+        public const int CaptiveCapPerRaid = 150;
 
-        public int ProjectedCaptives(Village village)
+        // Fraction of village serfs available as raid-displaceable pool.
+        // Higher than the historical 1% so party size becomes the realistic
+        // limiter for most raids; 10% × 40% MCM = 4% of serfs effective,
+        // floored by the party-carry cap below.
+        private const float DisplacedFractionOfSerfs = 0.10f;
+
+        // Captives per troop the raiding party can realistically herd back
+        // home. A 30-troop war band carries ~12; a 100-troop army carries ~47;
+        // a 200-troop army hits the cap.
+        private const float CaptivesPerTroop = 0.5f;
+
+        // Floor below which a raid still produces something — even a five-man
+        // band shouldn't return empty-handed if the village has population.
+        private const int MinCarryFloor = 5;
+
+        // Computes captive count given a raid pool (village serfs) and a
+        // total attacker troop count. The troop count should sum across
+        // every party in the raiding map-event side so coordinated multi-
+        // party raids (armies, multiple clan parties on the same village)
+        // properly pool their carry capacity instead of each being measured
+        // by the single leader-party's roster.
+        public int ProjectedCaptives(Village village, int totalAttackerTroops)
         {
             if (village == null) return 0;
             var data = BannerKingsConfig.Instance.PopulationManager?.GetPopData(village.Settlement);
@@ -23,9 +46,40 @@ namespace BannerKings.Models.BKModels
             int serfs = data.GetTypeCount(PopType.Serfs);
             if (serfs <= 0) return 0;
 
-            float displaced = serfs * DisplacedFractionOfSerfs;
-            int captives = (int)(displaced * BannerKingsSettings.Instance.RaidCaptureFraction);
+            // Pool from village population — serfs displaceable × MCM capture fraction.
+            int serfPool = (int)(serfs * DisplacedFractionOfSerfs * BannerKingsSettings.Instance.RaidCaptureFraction);
+
+            // Carry cap. Excludes the first 5 troops (hero + small entourage
+            // that isn't herding captives). Across an army, "first 5" still
+            // applies once — the entourage overhead doesn't scale with
+            // every sub-party.
+            int partyCap = MathF.Max(MinCarryFloor, (int)((totalAttackerTroops - 5) * CaptivesPerTroop));
+
+            int captives = MathF.Min(serfPool, partyCap);
             return MBMath.ClampInt(captives, 0, CaptiveCapPerRaid);
+        }
+
+        // Back-compat overload for the village-menu preview where the
+        // eventual raid composition isn't known. Estimates with the player's
+        // main party — including any attached parties for army-level raids.
+        public int ProjectedCaptives(Village village)
+        {
+            int troops = 0;
+            try
+            {
+                var p = MobileParty.MainParty;
+                if (p != null)
+                {
+                    troops = p.MemberRoster?.TotalManCount ?? 0;
+                    if (p.Army != null && p.Army.LeaderParty == p)
+                    {
+                        foreach (var ap in p.AttachedParties)
+                            troops += ap?.MemberRoster?.TotalManCount ?? 0;
+                    }
+                }
+            }
+            catch { troops = 0; }
+            return ProjectedCaptives(village, troops);
         }
 
         public Dictionary<CultureObject, float> CultureWeights(Village village, Hero raidLeader)

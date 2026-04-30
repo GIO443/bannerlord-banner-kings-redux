@@ -228,6 +228,26 @@ namespace BannerKings
             {
             }
 
+            // SettlementTax null-guard — silences the 1.3.x NRE storm in
+            // DefaultSettlementTaxModel.GetVillageTaxRatio that fires hundreds
+            // of times per hourly tick during heavy caravan/raid activity.
+            // Same install pattern as the GameTexts guard.
+            try
+            {
+                var harmony = new Harmony("BannerKings.SettlementTax");
+                var target = BannerKings.Patches.SettlementTaxModelNullGuardPatch.TargetMethod();
+                var prefix = AccessTools.Method(
+                    typeof(BannerKings.Patches.SettlementTaxModelNullGuardPatch),
+                    nameof(BannerKings.Patches.SettlementTaxModelNullGuardPatch.Prefix));
+                if (target != null && prefix != null)
+                {
+                    harmony.Patch(target, prefix: new HarmonyMethod(prefix));
+                }
+            }
+            catch
+            {
+            }
+
             // PatchAll is DEFERRED to OnBeforeInitialModuleScreenSetAsRoot.
             // Reason: PatchAll triggers static cctor of every patched vanilla type.
             // In 1.3.x several of those cctors (DefaultClanFinanceModel, CampaignUIHelper,

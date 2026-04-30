@@ -495,6 +495,12 @@ namespace BannerKings.Behaviours
             {
                 return;
             }
+            // Caravan fees route through Town.TradeTaxAccumulated. With the
+            // unified land+sea trade graph caravans can now arrive at villages
+            // mid-route; they have no Town so dereferencing it crashes the
+            // hourly tick. Skip the fee bookkeeping for non-town arrivals —
+            // the village still gets visited normally; we just don't bill.
+            if (target?.Town == null) return;
 
             int fee = data.EconomicData.CaravanFee(party);
             if (fee > 0)

@@ -233,7 +233,32 @@ namespace BannerKings.Behaviours.Raids
             var village = settlement.Village;
             if (village == null) return;
 
-            ExecuteCapture(attackerParty, leader, capturingClan, village, fromCheat: false);
+            // Sum troop counts across every party on the attacker side so
+            // multi-party raids (armies, multiple clans coordinating) pool
+            // their carry capacity. Use the leader's MemberRoster as a
+            // fallback when the side enumeration isn't available.
+            int totalAttackerTroops = SumAttackerSideTroops(raidEvent.MapEvent.AttackerSide, attackerParty);
+            ExecuteCapture(attackerParty, leader, capturingClan, village, totalAttackerTroops, fromCheat: false);
+        }
+
+        private static int SumAttackerSideTroops(MapEventSide side, MobileParty fallbackLeader)
+        {
+            int total = 0;
+            try
+            {
+                if (side?.Parties != null)
+                {
+                    foreach (var ps in side.Parties)
+                    {
+                        var mp = ps?.Party?.MobileParty;
+                        if (mp != null) total += mp.MemberRoster?.TotalManCount ?? 0;
+                    }
+                }
+            }
+            catch { /* fall through */ }
+            if (total <= 0 && fallbackLeader != null)
+                total = fallbackLeader.MemberRoster?.TotalManCount ?? 0;
+            return total;
         }
 
         /// <summary>
@@ -250,11 +275,19 @@ namespace BannerKings.Behaviours.Raids
             if (leader == null) return "ForceCapture: attacker has no leader hero.";
             var capturingClan = attackerParty.ActualClan;
             if (capturingClan == null) return "ForceCapture: attacker has no clan.";
-            ExecuteCapture(attackerParty, leader, capturingClan, village, fromCheat: true);
+            // Cheat path doesn't have a real MapEvent, so use the party's own
+            // troops + any AttachedParties (army leader case).
+            int totalTroops = attackerParty.MemberRoster?.TotalManCount ?? 0;
+            if (attackerParty.Army != null && attackerParty.Army.LeaderParty == attackerParty)
+            {
+                foreach (var ap in attackerParty.AttachedParties)
+                    totalTroops += ap?.MemberRoster?.TotalManCount ?? 0;
+            }
+            ExecuteCapture(attackerParty, leader, capturingClan, village, totalTroops, fromCheat: true);
             return $"ForceCapture: ran capture flow for {leader.Name} on {village.Name}.";
         }
 
-        private void ExecuteCapture(MobileParty attackerParty, Hero leader, Clan capturingClan, Village village, bool fromCheat)
+        private void ExecuteCapture(MobileParty attackerParty, Hero leader, Clan capturingClan, Village village, int totalAttackerTroops, bool fromCheat)
         {
             var settlement = village.Settlement;
 
@@ -265,8 +298,8 @@ namespace BannerKings.Behaviours.Raids
             LogRaid($"capture decision: clan={capturingClan.Name} village={village.Name} take={capture} (cheat={fromCheat})");
             if (!capture) return;
 
-            int K = model.ProjectedCaptives(village);
-            LogRaid($"projected captives K={K} (serfs={(BannerKingsConfig.Instance.PopulationManager?.GetPopData(settlement)?.GetTypeCount(BannerKings.Managers.PopulationManager.PopType.Serfs) ?? -1)})");
+            int K = model.ProjectedCaptives(village, totalAttackerTroops);
+            LogRaid($"projection: K={K} (attackerTroops={totalAttackerTroops}, serfs={(BannerKingsConfig.Instance.PopulationManager?.GetPopData(settlement)?.GetTypeCount(BannerKings.Managers.PopulationManager.PopType.Serfs) ?? -1)})");
             if (K <= 0) return;
 
             // Foreign-merc skim
@@ -358,6 +391,13 @@ namespace BannerKings.Behaviours.Raids
         // the first hop of the adaptive graph path from origin to final
         // destination. Subsequent hops are picked by AfterSettlementEntered_CaptiveRouter
         // as the caravan arrives at each intermediate settlement.
+        //
+        // When origin isn't in the graph (typical: a raided VILLAGE — villages
+        // aren't graph nodes), the caravan first walks to the nearest graph
+        // fief via vanilla pathfind. On arrival there, the router fires
+        // again on a real graph node and proceeds via graph hops. This
+        // preserves risk-aware routing for long captive journeys (e.g.
+        // MostProfitable shipping captives across hostile territory).
         private void RouteCaptiveToFirstHop(MobileParty captive, Settlement origin, Settlement finalTarget, Hero leader)
         {
             if (captive == null || origin == null || finalTarget == null) return;
@@ -365,10 +405,23 @@ namespace BannerKings.Behaviours.Raids
             try
             {
                 var graph = BannerKings.Managers.Shipping.ShippingGraph.Instance;
-                if (!graph.Adjacency.ContainsKey(origin) || !graph.Adjacency.ContainsKey(finalTarget))
+                if (!graph.Adjacency.ContainsKey(origin))
                 {
-                    LogRaid($"captive caravan {captive.Name}: graph miss, vanilla pathfind to {finalTarget.Name}");
-                    return; // Already pointed at final target by CreateCaptiveCaravan.
+                    var perspectiveAnchor = leader?.MapFaction ?? captive.MapFaction;
+                    var anchor = FindNearestGraphFief(origin, graph, perspectiveAnchor);
+                    if (anchor != null && anchor != finalTarget)
+                    {
+                        captive.SetMoveGoToSettlement(anchor, MobileParty.NavigationType.All, false);
+                        LogRaid($"captive caravan {captive.Name}: village origin {origin.Name} — walking to safe anchor {anchor.Name} (final: {finalTarget.Name})");
+                        return;
+                    }
+                    LogRaid($"captive caravan {captive.Name}: no graph anchor near {origin.Name}, vanilla pathfind to {finalTarget.Name}");
+                    return;
+                }
+                if (!graph.Adjacency.ContainsKey(finalTarget))
+                {
+                    LogRaid($"captive caravan {captive.Name}: target {finalTarget.Name} not in graph, vanilla pathfind");
+                    return;
                 }
                 var perspective = leader?.MapFaction ?? captive.MapFaction;
                 var path = graph.GetAdaptivePath(origin, finalTarget, perspective)
@@ -393,6 +446,56 @@ namespace BannerKings.Behaviours.Raids
             }
         }
 
+        // Closest *safe* graph node (town or castle) to a non-graph
+        // settlement. Used to anchor village-origin routes onto the graph
+        // so risk-aware hop routing kicks in once the caravan reaches the
+        // anchor.
+        //
+        // Safety filtering — when a perspective faction is passed:
+        //   - skip nodes at war with it (unreachable for cargo intake)
+        //   - skip sieged nodes (closed for business)
+        //   - rank surviving candidates by distance × risk multiplier so a
+        //     close-but-bandit-heavy fief loses to a slightly farther
+        //     peaceful one
+        // When perspective is null, falls back to raw distance.
+        private static Settlement FindNearestGraphFief(Settlement origin, BannerKings.Managers.Shipping.ShippingGraph graph, IFaction perspective = null)
+        {
+            if (origin == null || graph == null) return null;
+            Settlement best = null;
+            float bestScore = float.MaxValue;
+            float bestRawFallback = float.MaxValue;
+            Settlement rawFallback = null;
+
+            foreach (var node in graph.Adjacency.Keys)
+            {
+                if (node == null) continue;
+                float d = origin.GatePosition.Distance(node.GatePosition);
+
+                // Last-ditch fallback: track raw closest in case ALL nodes
+                // are filtered out (every fief at war / sieged). Better to
+                // produce a caravan than dissolve the captives.
+                if (d < bestRawFallback) { bestRawFallback = d; rawFallback = node; }
+
+                if (perspective != null)
+                {
+                    if (node.IsUnderSiege) continue;
+                    if (node.MapFaction != null && node.MapFaction != perspective && node.MapFaction.IsAtWarWith(perspective)) continue;
+                }
+
+                float risk = 1f;
+                if (perspective != null)
+                {
+                    risk = graph.GetEdgeRiskMultiplier(origin, node, perspective);
+                    if (float.IsPositiveInfinity(risk)) continue;
+                    if (risk < 1f) risk = 1f;
+                }
+
+                float score = d * risk;
+                if (score < bestScore) { bestScore = score; best = node; }
+            }
+            return best ?? rawFallback;
+        }
+
         // Hop-by-hop graph routing. Captive caravans were created with their
         // first move target = path[1] of the adaptive graph path. When they
         // arrive at that hop, this handler picks the next graph hop toward
@@ -412,9 +515,26 @@ namespace BannerKings.Behaviours.Raids
             try
             {
                 var graph = BannerKings.Managers.Shipping.ShippingGraph.Instance;
-                if (!graph.Adjacency.ContainsKey(entered) || !graph.Adjacency.ContainsKey(finalTarget))
+                // If the caravan stopped at a village (not in graph), anchor
+                // onto the graph by walking to the nearest fief, then resume
+                // graph hops on next arrival. Without this, a long captive
+                // journey that vanilla pathfind routes through a village
+                // would lose graph awareness for the remaining legs.
+                if (!graph.Adjacency.ContainsKey(entered))
                 {
-                    // Outside the graph — let vanilla pathfind take it.
+                    var perspectiveStop = ppc.CaptorHero?.MapFaction ?? party.MapFaction;
+                    var anchor = FindNearestGraphFief(entered, graph, perspectiveStop);
+                    if (anchor != null && anchor != finalTarget)
+                    {
+                        party.SetMoveGoToSettlement(anchor, MobileParty.NavigationType.All, false);
+                        LogRaid($"captive caravan {party.Name}: village stop {entered.Name} — anchoring to safe {anchor.Name}");
+                        return;
+                    }
+                    party.SetMoveGoToSettlement(finalTarget, MobileParty.NavigationType.All, false);
+                    return;
+                }
+                if (!graph.Adjacency.ContainsKey(finalTarget))
+                {
                     party.SetMoveGoToSettlement(finalTarget, MobileParty.NavigationType.All, false);
                     return;
                 }
@@ -443,10 +563,13 @@ namespace BannerKings.Behaviours.Raids
         private static void LogRaid(string line)
         {
             if (!BannerKingsSettings.Instance.LogRaidCaptureBehavior) return;
-            // Both surfaces — info panel for live observation, Debug.Print for
-            // post-hoc log digging. Prefix so the panel line is greppable.
+            // Three surfaces — info panel for live observation, Debug.Print
+            // for post-hoc log digging, and an append-only file (BK_raid_log.txt
+            // in the user's BK ModLogs directory) so the trace is readable
+            // while the game is still running. Prefix so panel lines are greppable.
             InformationManager.DisplayMessage(new InformationMessage("[BKRaid] " + line));
             try { TaleWorlds.Library.Debug.Print("[BKRaid] " + line); } catch { /* very early in load */ }
+            try { BannerKingsCheats.AppendDiagnosticLine("raid_log.txt", line); } catch { }
         }
 
         private List<KeyValuePair<CultureObject, int>> DistributeByWeights(
@@ -545,9 +668,26 @@ namespace BannerKings.Behaviours.Raids
             // Travel cost factor approximates ~2 gold per map unit at the
             // graph's adaptive distance — captures the "long routes through
             // hostile waters cost more" signal already baked into the graph.
-            const float TravelCostFactor = 2f;
-            const float SearchRadius = 600f;          // generous cap; Calradia's diameter is ~700u
+            // Multiplicative decay: closer + safer wins unless payout
+            // differential is genuinely large. A 50u route keeps ~67% of
+            // base revenue; 300u keeps ~25%. Risk-1.5 routes keep ~67%
+            // of revenue; risk-2.0 keep 50%.
+            const float DistanceDecayScale = 100f;     // half-revenue at this distance
+            const float SearchRadius = 600f;
             var graph = BannerKings.Managers.Shipping.ShippingGraph.Instance;
+
+            // Anchor the origin to a graph node so adaptive distance and
+            // risk multiplier are computable from the graph perspective
+            // even when the raid started in a village (not a graph node).
+            Settlement origin = party.CurrentSettlement;
+            Settlement anchor = (origin != null && graph.Adjacency.ContainsKey(origin))
+                ? origin
+                : FindNearestGraphFief(origin, graph, faction);
+            float prefixDist = 0f;
+            if (anchor != null && origin != null && origin != anchor)
+            {
+                prefixDist = origin.GatePosition.Distance(anchor.GatePosition);
+            }
 
             Settlement best = null;
             float bestScore = float.MinValue;
@@ -571,17 +711,30 @@ namespace BannerKings.Behaviours.Raids
                     : model.SerfPayoutPerHead(s);
                 if (payoutPerHead <= 0) continue;
 
-                // Use the adaptive shipping graph if both endpoints are
-                // ports; otherwise fall back to straight-line ground
-                // distance (caravan walks land segments at vanilla speed).
+                // Travel = (village → anchor straight-line prefix) + (anchor →
+                // destination adaptive distance). Prefix is 0 when origin
+                // is already a graph node.
                 float travelDist = partyDist;
-                if (graph.Adjacency.ContainsKey(s) && party.CurrentSettlement != null && graph.Adjacency.ContainsKey(party.CurrentSettlement))
+                if (anchor != null && graph.Adjacency.ContainsKey(s) && graph.Adjacency.ContainsKey(anchor))
                 {
-                    float adaptive = graph.GetAdaptiveDistance(party.CurrentSettlement, s, faction);
-                    if (adaptive > 0f) travelDist = adaptive;
+                    float adaptive = graph.GetAdaptiveDistance(anchor, s, faction);
+                    if (adaptive > 0f) travelDist = prefixDist + adaptive;
                 }
 
-                float score = (captiveCount * payoutPerHead) - (travelDist * TravelCostFactor);
+                // Sample the risk multiplier on the final hop into this
+                // destination — captures the local danger profile (sieges,
+                // bandit hideouts near the receiving fief, neutral-but-
+                // tense ownership). Anchor→s edge if available, else
+                // village→s for non-graph anchors.
+                float riskMult = 1f;
+                if (anchor != null) riskMult = graph.GetEdgeRiskMultiplier(anchor, s, faction);
+                if (float.IsPositiveInfinity(riskMult) || riskMult < 1f) riskMult = 1f;
+
+                float baseRevenue = captiveCount * payoutPerHead;
+                float distanceDecay = 1f / (1f + travelDist / DistanceDecayScale);
+                float safetyDecay = 1f / riskMult;
+                float score = baseRevenue * distanceDecay * safetyDecay;
+
                 if (score > bestScore)
                 {
                     bestScore = score;

@@ -5,6 +5,7 @@ using BannerKings.Managers.Court;
 using BannerKings.Behaviours.Mercenary;
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Text;
 using TaleWorlds.CampaignSystem;
@@ -138,14 +139,73 @@ namespace BannerKings
             return "Claims finished.";
         }
 
+        // Sanity-check cheat: no game-state access, no graph build, no settings
+        // queries. Just writes a file and returns a short string. If you can
+        // run `bannerkings.ping` and find BK_ping.txt on disk, the cheat
+        // namespace and dispatch is healthy and any other cheat's failure is
+        // inside that cheat's body, not the framework.
+        [CommandLineFunctionality.CommandLineArgumentFunction("ping", "bannerkings")]
+        public static string Ping(List<string> strings)
+        {
+            TouchFile("ping.txt", "ping invoked");
+            string msg = "bannerkings.ping ran. Wrote BK_ping.txt to ModLogs (or TEMP fallback).";
+            try { InformationManager.DisplayMessage(new InformationMessage(msg, Color.FromUint(0xFF00FF80))); } catch { }
+            return msg;
+        }
+
         // Diagnostic for the BK shipping topology — connected components, bridge
         // ports, average shortest path, diameter. Useful when designing or
         // debugging the ShippingLane data in DefaultShippingLanes.cs.
+        //
+        // Output is large; the in-game console echo seems to mishandle multi-
+        // line strings (visible jolt with no display). To get a reliable read,
+        // we ALSO write the full report to a file in the BK module folder and
+        // surface the path via InformationManager. Console return remains a
+        // short summary so something appears regardless.
         [CommandLineFunctionality.CommandLineArgumentFunction("shipping_topology", "bannerkings")]
         public static string ShippingTopology(List<string> strings)
         {
-            BannerKings.Managers.Shipping.ShippingGraph.Invalidate();
-            return BannerKings.Managers.Shipping.ShippingGraph.Instance.BuildReport();
+            try
+            {
+                BannerKings.Managers.Shipping.ShippingGraph.Invalidate();
+                var graph = BannerKings.Managers.Shipping.ShippingGraph.Instance;
+                var report = graph.BuildReport();
+                WriteDiagnosticFile("shipping_topology.txt", report);
+                string summary = "shipping_topology: " + graph.PortCount + " nodes, " + graph.SeaEdgeCount + " sea, " + graph.LandEdgeCount + " land. " + LastWriteResult;
+                InformationManager.DisplayMessage(new InformationMessage(summary, Color.FromUint(0xFFFFD700)));
+                return summary;
+            }
+            catch (Exception ex)
+            {
+                string err = "shipping_topology failed: " + ex.GetType().Name + ": " + ex.Message;
+                InformationManager.DisplayMessage(new InformationMessage(err, Color.FromUint(0xFFFF4040)));
+                return err + "\n" + ex.StackTrace;
+            }
+        }
+
+        // Write a one-shot proof-of-life file. Tries multiple locations and
+        // never throws, so callers can use it as the very first operation in
+        // a cheat without any setup.
+        private static void TouchFile(string filename, string text)
+        {
+            string stamp = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss");
+            string body = $"[{stamp}] {text}{Environment.NewLine}";
+            string[] candidates = {
+                Path.Combine(DiagnosticDir, "BK_" + filename),
+                Path.Combine(Path.GetTempPath(), "BK_" + filename),
+                Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "BK_" + filename)
+            };
+            foreach (var c in candidates)
+            {
+                try
+                {
+                    string dir = Path.GetDirectoryName(c);
+                    if (!Directory.Exists(dir)) Directory.CreateDirectory(dir);
+                    File.AppendAllText(c, body);
+                    return;
+                }
+                catch { /* try next candidate */ }
+            }
         }
 
         // Shortest path between two ports by StringId. Format:
@@ -153,19 +213,34 @@ namespace BannerKings
         [CommandLineFunctionality.CommandLineArgumentFunction("shipping_path", "bannerkings")]
         public static string ShippingPath(List<string> strings)
         {
-            if (strings == null || strings.Count < 2)
-                return "Format: bannerkings.shipping_path <fromStringId> <toStringId>";
-            var from = Settlement.Find(strings[0]);
-            var to = Settlement.Find(strings[1]);
-            if (from == null) return $"Settlement not found: {strings[0]}";
-            if (to == null) return $"Settlement not found: {strings[1]}";
+            try
+            {
+                if (strings == null || strings.Count < 2)
+                    return "Format: bannerkings.shipping_path <fromStringId> <toStringId>";
+                var from = Settlement.Find(strings[0]);
+                var to = Settlement.Find(strings[1]);
+                if (from == null) return $"Settlement not found: {strings[0]}";
+                if (to == null) return $"Settlement not found: {strings[1]}";
 
-            var graph = BannerKings.Managers.Shipping.ShippingGraph.Instance;
-            var path = graph.GetShortestPath(from, to);
-            if (path == null) return $"No path from {from.Name} to {to.Name} (different connected components or non-port settlements).";
-            float totalDistance = graph.GetShortestDistance(from, to);
-            return $"{path.Count - 1} hops, {totalDistance:n1} map units total: " +
-                   string.Join(" → ", path.Select(s => s.Name?.ToString() ?? s.StringId));
+                var graph = BannerKings.Managers.Shipping.ShippingGraph.Instance;
+                var path = graph.GetShortestPath(from, to);
+                if (path == null) return $"No path from {from.Name} to {to.Name} (different connected components or non-port settlements).";
+                float totalDistance = graph.GetShortestDistance(from, to);
+                string fullReport = $"Static shortest path from {from.Name} to {to.Name}\n" +
+                                    $"  hops: {path.Count - 1}\n" +
+                                    $"  total distance: {totalDistance:n1} map units\n" +
+                                    $"  route: " + string.Join(" → ", path.Select(s => s.Name?.ToString() ?? s.StringId));
+                WriteDiagnosticFile("shipping_path.txt", fullReport);
+                string summary = $"shipping_path: {path.Count - 1} hops, {totalDistance:n0}u. → BK_shipping_path.txt";
+                InformationManager.DisplayMessage(new InformationMessage(summary, Color.FromUint(0xFFFFD700)));
+                return summary;
+            }
+            catch (Exception ex)
+            {
+                string err = "shipping_path failed: " + ex.GetType().Name + ": " + ex.Message;
+                InformationManager.DisplayMessage(new InformationMessage(err, Color.FromUint(0xFFFF4040)));
+                return err;
+            }
         }
 
         // Adaptive (risk-weighted) path between two ports from the player
@@ -206,7 +281,11 @@ namespace BannerKings
             }
 
             string perspectiveStr = perspective?.Name?.ToString() ?? "(no faction)";
-            return $"Routes from {from.Name} to {to.Name} (perspective: {perspectiveStr}):\n{rawLine}\n{adaptiveLine}";
+            string fullReport = $"Routes from {from.Name} to {to.Name} (perspective: {perspectiveStr})\n{rawLine}\n{adaptiveLine}";
+            WriteDiagnosticFile("shipping_risk_path.txt", fullReport);
+            string summary = $"shipping_risk_path: {from.Name?.ToString() ?? from.StringId} → {to.Name?.ToString() ?? to.StringId}. → BK_shipping_risk_path.txt";
+            InformationManager.DisplayMessage(new InformationMessage(summary, Color.FromUint(0xFFFFD700)));
+            return summary;
         }
 
         [CommandLineFunctionality.CommandLineArgumentFunction("give_player_full_peerage", "bannerkings")]
@@ -483,7 +562,14 @@ namespace BannerKings
                 if (idx >= 0) sb.Append(report.Substring(idx));
             }
             catch (Exception ex) { sb.AppendLine("[dump_state error: " + ex.Message + "]"); }
-            return sb.ToString();
+
+            // Mirror the multi-line dump to a file — see ShippingTopology
+            // for why (in-game console doesn't reliably echo multi-line).
+            string full = sb.ToString();
+            WriteDiagnosticFile("test_dump_state.txt", full);
+            string summary = "test_dump_state: written to test_dump_state.txt (BK module folder).";
+            InformationManager.DisplayMessage(new InformationMessage(summary, Color.FromUint(0xFFFFD700)));
+            return summary;
         }
 
         // -- Raid capture system test cheats (v1.6.2.0+) --
@@ -597,7 +683,11 @@ namespace BannerKings
                 else if (active > shown) sb.AppendLine($"  … {active - shown} more");
             }
             catch (Exception ex) { sb.AppendLine("[dump_raid_state error: " + ex.Message + "]"); }
-            return sb.ToString();
+            string full = sb.ToString();
+            WriteDiagnosticFile("test_dump_raid_state.txt", full);
+            string summary = "test_dump_raid_state: written to BK_test_dump_raid_state.txt.";
+            InformationManager.DisplayMessage(new InformationMessage(summary, Color.FromUint(0xFFFFD700)));
+            return summary;
         }
 
         // ---- helpers ----
@@ -615,6 +705,67 @@ namespace BannerKings
             var byId = Settlement.Find(token);
             if (byId != null) return byId;
             return Settlement.All.FirstOrDefault(s => s.Name != null && s.Name.ToString().Equals(token, StringComparison.OrdinalIgnoreCase));
+        }
+
+        // Mirror cheat output to files in the user's BK ModLogs directory so
+        // that diagnostic reports (which the in-game console can't reliably
+        // echo for multi-line strings) are persistently readable while the
+        // game is running. Files are named BK_<diagname>.txt and overwritten
+        // on each cheat invocation.
+        public static readonly string DiagnosticDir = Path.Combine(
+            Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments),
+            "Mount and Blade II Bannerlord", "Configs", "ModLogs");
+
+        public static string LastWriteResult = "(no diagnostic file written yet)";
+
+        // Try writing to the BK ModLogs dir; on any failure fall through to
+        // the system temp dir (which is universally writable). LastWriteResult
+        // captures the path actually written or the error so the cheat caller
+        // can surface it via toast.
+        public static string WriteDiagnosticFile(string filename, string content)
+        {
+            string stamp = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss");
+            string text = $"[{stamp}]\n{content}";
+
+            // Primary candidate: under user's Documents.
+            try
+            {
+                if (!Directory.Exists(DiagnosticDir)) Directory.CreateDirectory(DiagnosticDir);
+                string fullPath = Path.Combine(DiagnosticDir, "BK_" + filename);
+                File.WriteAllText(fullPath, text);
+                LastWriteResult = "wrote " + fullPath;
+                return fullPath;
+            }
+            catch (Exception ex)
+            {
+                LastWriteResult = $"primary FAILED ({ex.GetType().Name}: {ex.Message}); path was {DiagnosticDir}";
+            }
+
+            // Fallback: %TEMP% — always writable, easy for the user to find.
+            try
+            {
+                string tempPath = Path.Combine(Path.GetTempPath(), "BK_" + filename);
+                File.WriteAllText(tempPath, text);
+                LastWriteResult += " | TEMP fallback wrote " + tempPath;
+                return tempPath;
+            }
+            catch (Exception ex2)
+            {
+                LastWriteResult += $" | TEMP FAILED ({ex2.GetType().Name}: {ex2.Message})";
+                return null;
+            }
+        }
+
+        public static void AppendDiagnosticLine(string filename, string line)
+        {
+            try
+            {
+                if (!Directory.Exists(DiagnosticDir)) Directory.CreateDirectory(DiagnosticDir);
+                string stamp = DateTime.Now.ToString("HH:mm:ss");
+                File.AppendAllText(Path.Combine(DiagnosticDir, "BK_" + filename),
+                    $"[{stamp}] {line}{Environment.NewLine}");
+            }
+            catch { }
         }
     }
 }

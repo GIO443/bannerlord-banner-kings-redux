@@ -461,15 +461,28 @@ namespace BannerKings.Behaviours.Shipping
                     if (path != null && path.Count >= 2)
                     {
                         // path[0] is the current settlement, path[1] is the next hop.
-                        // For a single-lane direct trip path[1] == final target.
+                        // The unified graph mixes Sea and Land edges; SetTravel is
+                        // BK's ship-travel API and only makes sense for Sea hops.
+                        // If the first edge is Land, fall through to vanilla
+                        // pathfinding so the caravan walks to its target by road
+                        // (vanilla will pick its own route — the graph's intent
+                        // for this caravan was just to recommend a sea bridge).
                         var nextPort = path[1];
-                        SetTravel(party, nextPort);
-                        return;
+                        var firstEdge = graph.Adjacency[settlement].FirstOrDefault(e => e.To == nextPort);
+                        // Also require nextPort to be a Town (BK's CalculateArrival
+                        // and CalculatePrice assume the destination is a fief; a
+                        // village node has no Town and would crash AddCaravanFees
+                        // on arrival).
+                        if (firstEdge.Kind == ShippingGraph.EdgeKind.Sea && nextPort?.Town != null)
+                        {
+                            SetTravel(party, nextPort);
+                            return;
+                        }
                     }
                 }
             }
 
-            // Land-reachable destination — let vanilla pathfinding handle it.
+            // Land-reachable destination (or first hop is Land) — let vanilla pathfinding handle it.
             party.SetMoveGoToSettlement(town.Settlement, MobileParty.NavigationType.All, false);
         }
 

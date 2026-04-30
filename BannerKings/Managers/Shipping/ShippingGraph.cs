@@ -179,51 +179,84 @@ namespace BannerKings.Managers.Shipping
         // ------------------------------------------------------------------
 
         // Number of nearest neighbors connected per settlement for the land
-        // graph. K=6 empirically gives a fully-connected mainland on Calradia
-        // without enough false edges to matter. Edges that look like "land"
-        // by Vec2 distance but are actually across water (island ↔ mainland)
-        // get pruned via the map-distance ratio check below.
-        private const int LandKnnK = 6;
+        // graph. K=3 keeps node degree (after symmetrization) modest while
+        // still providing enough redundancy for Dijkstra to detour around
+        // war/siege/banditry. Combined with the max-distance cap below,
+        // islands self-isolate into their own components.
+        private const int LandKnnK = 3;
 
-        // If the ratio of vanilla map-pathfind distance / euclidean distance
-        // exceeds this, the two settlements are not actually land-reachable
-        // (e.g. island vs mainland) and the candidate land edge is dropped.
-        // 1.5 is permissive enough to allow legitimate winding road routes.
-        private const float LandPathfindRatioCap = 1.5f;
+        // Maximum euclidean distance for a land edge. Pairs farther apart
+        // are dropped — keeps islands from being bridged to the mainland by
+        // straight-line proximity, and bounds graph density. Calradia is
+        // ~700u across; settlements average ~50u between neighbors, so 75u
+        // is just above the typical KNN distance.
+        private const float LandMaxEdgeDistance = 75f;
+
+        // Greedy nearest-neighbor traversal: start at the first non-null
+        // port, then repeatedly append the closest remaining port. This
+        // produces a roughly geographically-sensible chain even when the
+        // lane's declared port order isn't sorted by position.
+        private static List<Settlement> OrderLanePortsAsChain(IList<Settlement> ports)
+        {
+            var remaining = new List<Settlement>();
+            foreach (var p in ports) if (p != null) remaining.Add(p);
+            var chain = new List<Settlement>();
+            if (remaining.Count == 0) return chain;
+            chain.Add(remaining[0]);
+            remaining.RemoveAt(0);
+            while (remaining.Count > 0)
+            {
+                var last = chain[chain.Count - 1];
+                int bestIdx = 0;
+                float bestDist = float.MaxValue;
+                for (int i = 0; i < remaining.Count; i++)
+                {
+                    float d = last.GatePosition.Distance(remaining[i].GatePosition);
+                    if (d < bestDist) { bestDist = d; bestIdx = i; }
+                }
+                chain.Add(remaining[bestIdx]);
+                remaining.RemoveAt(bestIdx);
+            }
+            return chain;
+        }
 
         private static ShippingGraph Build()
         {
             var g = new ShippingGraph();
 
-            // Sea edges — intra-lane clique, weighted by gate-to-gate distance.
+            // Sea edges — chain (not clique) via greedy nearest-neighbor
+            // traversal. Each lane becomes a sequence of N-1 edges between
+            // adjacent ports rather than N*(N-1)/2 edges between every pair.
+            // Multi-port routes still resolve via Dijkstra; the chain just
+            // makes them explicit hops (which matches how ships actually
+            // sail port-to-port).
             foreach (var lane in DefaultShippingLanes.Instance.All)
             {
-                if (lane?.Ports == null) continue;
-                var ports = lane.Ports;
-                for (int i = 0; i < ports.Count; i++)
+                if (lane?.Ports == null || lane.Ports.Count < 2) continue;
+                var ordered = OrderLanePortsAsChain(lane.Ports);
+                for (int i = 0; i < ordered.Count; i++)
                 {
-                    var a = ports[i];
+                    var a = ordered[i];
                     if (a == null) continue;
                     if (!g.Adjacency.ContainsKey(a)) g.Adjacency[a] = new List<Edge>();
-                    for (int j = 0; j < ports.Count; j++)
-                    {
-                        if (i == j) continue;
-                        var b = ports[j];
-                        if (b == null) continue;
-                        g.Adjacency[a].Add(new Edge
-                        {
-                            To = b,
-                            Distance = a.GatePosition.Distance(b.GatePosition),
-                            Lane = lane,
-                            Kind = EdgeKind.Sea
-                        });
-                    }
+                }
+                for (int i = 0; i + 1 < ordered.Count; i++)
+                {
+                    var a = ordered[i];
+                    var b = ordered[i + 1];
+                    if (a == null || b == null) continue;
+                    float d = a.GatePosition.Distance(b.GatePosition);
+                    g.Adjacency[a].Add(new Edge { To = b, Distance = d, Lane = lane, Kind = EdgeKind.Sea });
+                    g.Adjacency[b].Add(new Edge { To = a, Distance = d, Lane = lane, Kind = EdgeKind.Sea });
                 }
             }
 
-            // Land edges — KNN by euclidean distance, pruned by vanilla
-            // map-distance ratio so we don't accidentally land-bridge an
-            // island to the mainland. Covers towns, castles, villages.
+            // Land edges — KNN by euclidean distance between fiefs only
+            // (towns + castles, no villages). Villages aren't valid graph
+            // nodes: they have no Town and break BK's caravan-fee bookkeeping
+            // on arrival. Captive caravans walking through villages use
+            // vanilla pathfinding between graph hops — the graph models
+            // fief-level routing intent, not road-level traversal.
             var landNodes = new List<Settlement>();
             try
             {
@@ -231,58 +264,56 @@ namespace BannerKings.Managers.Shipping
                 {
                     if (s == null) continue;
                     if (s.IsHideout) continue;
-                    if (!(s.IsTown || s.IsCastle || s.IsVillage)) continue;
+                    if (!(s.IsTown || s.IsCastle)) continue;
                     landNodes.Add(s);
                 }
             }
             catch { /* very early in load — Settlement.All not ready */ }
 
-            var mapDistanceModel = TaleWorlds.CampaignSystem.Campaign.Current?.Models?.MapDistanceModel;
+            // Land edges use raw euclidean distance with a max-distance cap.
+            // Earlier versions ran a vanilla MapDistanceModel pathfind per
+            // candidate to validate land-reachability, but that scaled to
+            // ~900 real pathfind calls on a Calradia-sized map and froze the
+            // game for several seconds on first build. The cap-based approach
+            // produces near-identical topology (islands self-isolate beyond
+            // the cap distance) at zero pathfind cost.
             foreach (var a in landNodes)
             {
-                if (!g.Adjacency.ContainsKey(a)) g.Adjacency[a] = new List<Edge>();
-
-                // Compute distances to all other land nodes, take K nearest.
-                var nearest = new List<(Settlement Node, float Dist)>(landNodes.Count);
-                foreach (var b in landNodes)
+                try
                 {
-                    if (b == a) continue;
-                    float d = a.GatePosition.Distance(b.GatePosition);
-                    nearest.Add((b, d));
-                }
-                nearest.Sort((x, y) => x.Dist.CompareTo(y.Dist));
+                    if (!g.Adjacency.ContainsKey(a)) g.Adjacency[a] = new List<Edge>();
 
-                int added = 0;
-                for (int i = 0; i < nearest.Count && added < LandKnnK; i++)
-                {
-                    var (b, euclid) = nearest[i];
-                    if (euclid <= 0f) continue;
-
-                    // Prune false land edges using vanilla pathfind distance.
-                    // Skip the check if the model is unavailable or throws —
-                    // graceful degradation: better an extra edge than none.
-                    if (mapDistanceModel != null)
+                    var nearest = new List<(Settlement Node, float Dist)>(landNodes.Count);
+                    foreach (var b in landNodes)
                     {
+                        if (b == a) continue;
                         try
                         {
-                            float pathDist = mapDistanceModel.GetDistance(a, b, false, false, TaleWorlds.CampaignSystem.Party.MobileParty.NavigationType.All);
-                            if (pathDist > 0f && pathDist / euclid > LandPathfindRatioCap) continue;
-                            // Use the actual pathfind distance so the graph
-                            // weights match how the caravan will really walk.
-                            if (pathDist > 0f) euclid = pathDist;
+                            float d = a.GatePosition.Distance(b.GatePosition);
+                            if (d > LandMaxEdgeDistance) continue;
+                            nearest.Add((b, d));
                         }
-                        catch { /* fall through to euclidean */ }
+                        catch { /* skip this candidate */ }
                     }
+                    nearest.Sort((x, y) => x.Dist.CompareTo(y.Dist));
 
-                    g.Adjacency[a].Add(new Edge
+                    int added = 0;
+                    for (int i = 0; i < nearest.Count && added < LandKnnK; i++)
                     {
-                        To = b,
-                        Distance = euclid,
-                        Lane = null,
-                        Kind = EdgeKind.Land
-                    });
-                    added++;
+                        var (b, euclid) = nearest[i];
+                        if (euclid <= 0f) continue;
+
+                        g.Adjacency[a].Add(new Edge
+                        {
+                            To = b,
+                            Distance = euclid,
+                            Lane = null,
+                            Kind = EdgeKind.Land
+                        });
+                        added++;
+                    }
                 }
+                catch { /* skip this source — partial graph still useful */ }
             }
 
             return g;
@@ -514,35 +545,47 @@ namespace BannerKings.Managers.Shipping
             sb.AppendLine();
 
             // Diameter and average shortest path within the largest component.
+            // Sampled, not exhaustive: a 150-node graph would need ~11k Dijkstra
+            // calls if we walked every pair, which freezes the campaign for
+            // tens of seconds. Sample a fixed number of pair queries instead;
+            // gives a useful diameter estimate at <0.1s cost.
             var largest = components.OrderByDescending(c => c.Count).FirstOrDefault();
             if (largest != null && largest.Count > 1)
             {
+                const int MaxSampledPairs = 200;
+                var ports = largest.ToList();
+                int totalPairs = ports.Count * (ports.Count - 1) / 2;
+                bool sampling = totalPairs > MaxSampledPairs;
+
                 float maxDist = 0f;
                 Settlement maxFrom = null, maxTo = null;
                 float totalDist = 0f;
-                int pairs = 0;
-                var ports = largest.ToList();
-                for (int i = 0; i < ports.Count; i++)
+                int sampled = 0;
+                var rng = new System.Random(12345); // deterministic
+                int target = sampling ? MaxSampledPairs : totalPairs;
+                int attempts = 0;
+                while (sampled < target && attempts < target * 4)
                 {
-                    for (int j = i + 1; j < ports.Count; j++)
+                    attempts++;
+                    int i = rng.Next(ports.Count);
+                    int j = rng.Next(ports.Count);
+                    if (i == j) continue;
+                    float d = GetShortestDistance(ports[i], ports[j]);
+                    if (d < 0) continue;
+                    totalDist += d;
+                    sampled++;
+                    if (d > maxDist)
                     {
-                        float d = GetShortestDistance(ports[i], ports[j]);
-                        if (d < 0) continue;
-                        totalDist += d;
-                        pairs++;
-                        if (d > maxDist)
-                        {
-                            maxDist = d;
-                            maxFrom = ports[i];
-                            maxTo = ports[j];
-                        }
+                        maxDist = d;
+                        maxFrom = ports[i];
+                        maxTo = ports[j];
                     }
                 }
-                if (pairs > 0)
+                if (sampled > 0)
                 {
-                    sb.AppendLine($"Largest component ({largest.Count} ports):");
-                    sb.AppendLine($"  Average shortest path: {totalDist / pairs:n1} map units");
-                    sb.AppendLine($"  Diameter: {maxDist:n1} map units ({maxFrom?.Name} ↔ {maxTo?.Name})");
+                    sb.AppendLine($"Largest component ({largest.Count} ports{(sampling ? $", {sampled} pairs sampled" : "")}):");
+                    sb.AppendLine($"  Average shortest path: {totalDist / sampled:n1} map units");
+                    sb.AppendLine($"  Diameter (observed): {maxDist:n1} map units ({maxFrom?.Name} ↔ {maxTo?.Name})");
                 }
             }
             sb.AppendLine();
