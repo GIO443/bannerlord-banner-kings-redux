@@ -4,6 +4,7 @@ using System.Linq;
 using TaleWorlds.CampaignSystem;
 using TaleWorlds.CampaignSystem.Settlements;
 using TaleWorlds.Core;
+using TaleWorlds.Library;
 using TaleWorlds.SaveSystem;
 
 namespace BannerKings.Managers.Populations.Estates
@@ -33,8 +34,18 @@ namespace BannerKings.Managers.Populations.Estates
                     continue;
                 }
 
-                var result = (int)(tradeTax * (BannerKingsConfig.Instance.EstatesModel.GetEstateWorkforceProportion(estate, data) * 
-                    (1f - estate.TaxRatio.ResultNumber)));
+                // Probabilistic rounding instead of int-cast truncation. For
+                // small estates (low population, low workforce proportion)
+                // the share-of-tax calculation produces fractional values
+                // like 0.5, which (int) cast was always rounding DOWN to 0
+                // — so the estate accumulated literally zero income from
+                // every villager trip. RoundRandomized averages out
+                // correctly over many tax events: 0.5 has 50% chance of
+                // becoming 1, 0.2 has 20% chance, etc. Over a campaign,
+                // expected income matches the true fractional share.
+                float share = tradeTax * (BannerKingsConfig.Instance.EstatesModel.GetEstateWorkforceProportion(estate, data)
+                    * (1f - estate.TaxRatio.ResultNumber));
+                int result = MBRandom.RoundRandomized(share);
                 totalDeducted += result;
                 estate.TaxAccumulated += result;
             }
