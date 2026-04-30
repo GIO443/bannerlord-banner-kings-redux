@@ -1,0 +1,55 @@
+name: Sync wiki from docs/WIKI.md
+
+# Pushes docs/WIKI.md → the GitHub Wiki's Home page on every change.
+# The wiki is itself a git repo at <repo>.wiki.git; this job clones it,
+# copies the markdown in, and commits if the content changed.
+#
+# IMPORTANT: this is one-way (repo → wiki). Direct edits to the wiki
+# in the GitHub UI will be overwritten on the next docs/WIKI.md push.
+# If you want to change the wiki, edit docs/WIKI.md and push.
+#
+# Prerequisite: the wiki must already exist on the repo (create one
+# manual page in the GitHub UI to initialize the .wiki.git repo). After
+# that, this workflow keeps it in sync.
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - docs/WIKI.md
+      - .github/workflows/sync-wiki.yml
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout main repo
+        uses: actions/checkout@v4
+
+      - name: Clone wiki repo
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          git clone "https://x-access-token:${GITHUB_TOKEN}@github.com/${{ github.repository }}.wiki.git" wiki-repo
+
+      - name: Copy docs/WIKI.md to wiki Home page
+        run: |
+          cp docs/WIKI.md wiki-repo/Home.md
+
+      - name: Commit and push if changed
+        working-directory: wiki-repo
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add Home.md
+          if git diff --cached --quiet; then
+            echo "Wiki already up to date — no commit needed."
+            exit 0
+          fi
+          git commit -m "Sync from docs/WIKI.md @ ${{ github.sha }}"
+          git push
