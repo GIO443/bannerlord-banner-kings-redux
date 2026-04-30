@@ -15,6 +15,7 @@ namespace BannerKings.Utils
         public static uint COLOR_LIGHT_RED = 13582400;
         public static uint COLOR_LIGHT_YELLOW = 16246615;
 
+        public static string GOLD_ICON = "<img src=\"General\\Icons\\Coin@2x\" extend=\"8\">";
         public static string INFLUENCE_ICON = "<img src=\"General\\Icons\\Influence@2x\" extend=\"7\">";
         public static string PIETY_ICON = "<img src=\"SPGeneral\\MapOverlay\\Settlement\\icon_morale_big\" extend=\"7\">";
         public static string MORALE_ICON = "<img src=\"General\\Icons\\Morale@2x\" extend=\"7\">";

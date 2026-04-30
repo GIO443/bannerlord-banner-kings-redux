@@ -44,5 +44,14 @@ namespace BannerKings.Managers.Goals
         public abstract void ShowInquiry();
         public abstract void ApplyGoal();
         public abstract void DoAiDecision();
+
+        /// <summary>
+        /// Returns a short human-readable cost summary (gold + influence + renown
+        /// reward etc.), or null if the goal has no costs to surface. Used by the
+        /// Decisions menu to extend the per-entry tooltip so players can see what
+        /// a goal will charge them *before* clicking through to the inquiry.
+        /// Default implementation returns null (no cost line).
+        /// </summary>
+        public virtual TextObject GetCostsHint() => null;
     }
 }

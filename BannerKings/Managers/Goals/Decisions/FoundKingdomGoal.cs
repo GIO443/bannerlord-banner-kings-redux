@@ -115,5 +115,18 @@ namespace BannerKings.Managers.Goals.Decisions
         {
 
         }
+
+        public override TextObject GetCostsHint()
+        {
+            var hero = GetFulfiller();
+            if (hero?.Clan?.Kingdom == null) return null;
+            var action = BannerKingsConfig.Instance.TitleModel.GetFoundKingdom(hero.Clan.Kingdom, hero);
+            return new TextObject("{=!}Costs: {GOLD}{GOLD_ICON}, {INFLUENCE}{INFLUENCE_ICON}\nRenown reward: +{RENOWN}")
+                .SetTextVariable("GOLD", $"{(int)action.Gold:n0}")
+                .SetTextVariable("GOLD_ICON", BannerKings.Utils.TextHelper.GOLD_ICON)
+                .SetTextVariable("INFLUENCE", (int)action.Influence)
+                .SetTextVariable("INFLUENCE_ICON", BannerKings.Utils.TextHelper.INFLUENCE_ICON)
+                .SetTextVariable("RENOWN", action.Renown);
+        }
     }
 }

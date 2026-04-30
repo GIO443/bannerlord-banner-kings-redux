@@ -200,6 +200,18 @@ namespace BannerKings.Managers.Goals.Decisions
             //ApplyGoal();
         }
 
+        public override TextObject GetCostsHint()
+        {
+            var hero = GetFulfiller();
+            if (hero == null) return null;
+            var (gold, influence) = GetCosts(hero);
+            return new TextObject("{=!}Costs: {GOLD}{GOLD_ICON}, {INFLUENCE}{INFLUENCE_ICON}\nRenown reward: +100")
+                .SetTextVariable("GOLD", $"{(int)gold:n0}")
+                .SetTextVariable("GOLD_ICON", BannerKings.Utils.TextHelper.GOLD_ICON)
+                .SetTextVariable("INFLUENCE", (int)influence)
+                .SetTextVariable("INFLUENCE_ICON", BannerKings.Utils.TextHelper.INFLUENCE_ICON);
+        }
+
         private static (float Gold, float Influence) GetCosts(Hero hero)
         {
             return

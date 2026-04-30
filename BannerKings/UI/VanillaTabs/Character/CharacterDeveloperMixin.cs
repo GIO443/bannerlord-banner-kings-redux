@@ -153,6 +153,16 @@ namespace BannerKings.UI.VanillaTabs.Character
                     var enabled = goal.IsFulfilled(out var reasons);
                     var hint = $"{goal.Description}";
 
+                    var costsHint = goal.GetCostsHint();
+                    if (costsHint != null)
+                    {
+                        var costsText = costsHint.ToString();
+                        if (!string.IsNullOrEmpty(costsText))
+                        {
+                            hint += Environment.NewLine + Environment.NewLine + costsText;
+                        }
+                    }
+
                     if (!enabled)
                     {
                         hint = reasons.Aggregate(hint, (current, reason) => current + Environment.NewLine + reason);

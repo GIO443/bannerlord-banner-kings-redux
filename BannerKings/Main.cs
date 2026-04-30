@@ -76,6 +76,15 @@ namespace BannerKings
                 Xtender.Enable();
             }
 
+            // Register the {GOLD_ICON} global text variable so any TextObject in BK
+            // strings ("...{GOLD}{GOLD_ICON}...") renders the coin icon instead of
+            // the literal "{GOLD_ICON}" placeholder. Many BK consumers expect this
+            // variable to be set globally; previously only a couple of dialog
+            // paths did it inline, which left building-completion messages,
+            // gentry-buy offers, mercenary contracts, smithy fees, etc. showing
+            // the raw placeholder.
+            GameTexts.SetVariable("GOLD_ICON", BannerKings.Utils.TextHelper.GOLD_ICON);
+
             campaignStarter.AddBehavior(new BKManagerBehavior());
             campaignStarter.AddBehavior(new BKEducationBehavior());
             campaignStarter.AddBehavior(new BKSettlementActions());
