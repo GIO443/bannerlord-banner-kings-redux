@@ -89,73 +89,14 @@ namespace BannerKings.Behaviours
      
     }
 
-    namespace Patches
-    {
-        // Disabled: this Prefix returned false to skip vanilla
-        // ItemRoster.AddToCounts(ItemObject, int), replacing it with a
-        // sort-by-modifier "sell cheapest first" strategy. That bypassed
-        // vanilla's change-notification chain and stalled the inventory
-        // UI's transfer-display refresh until the screen was reset. The
-        // smart-sell behavior is nice-to-have; the inventory UI isn't.
-        // Re-enable only as a Postfix that *adds* sorting after vanilla
-        // runs, never as a skipping Prefix.
-        // [HarmonyPatch(typeof(ItemRoster), "AddToCounts", new Type[] { typeof(ItemObject), typeof(int) })]
-        internal class MarketPatch
-        {
-            private static bool Prefix(ItemRoster __instance, ItemObject item, int number, ref int __result)
-            {
-                if (number < 0)
-                {
-
-                    var unmodifiedElement = new EquipmentElement(item, null);
-                    var index = __instance.FindIndexOfElement(unmodifiedElement);
-                    if (index >= 0)
-                    {
-                        var itemRosterElement = __instance.GetElementCopyAtIndex(index);
-                        var result = Math.Min(-number, itemRosterElement.Amount);
-                        __instance.AddToCounts(unmodifiedElement, -result);
-                        number += result;
-                    }
-
-                    var list = __instance.Where(x => x.EquipmentElement.Item == item).ToList();
-                    list.Sort((x, y) =>
-                    {
-                        float xValue = 1f;
-                        float yValue = 1f;
-                        var xModifier = x.EquipmentElement.ItemModifier;
-                        if (xModifier != null)
-                        {
-                            xValue = xModifier.PriceMultiplier;
-                        }
-
-                        var yModifer = y.EquipmentElement.ItemModifier;
-                        if (yModifer != null)
-                        {
-                            yValue = yModifer.PriceMultiplier;
-                        }
-
-
-                        return xValue.CompareTo(yValue);
-                    });
-
-                    foreach (var element in list)
-                    {
-                        if (number == 0)
-                        {
-                            break;
-                        }
-
-                        var result = Math.Min(-number, element.Amount);
-                        __instance.AddToCounts(element.EquipmentElement, -result);
-                        number += result;
-                    }
-
-                    return false;
-                }
-
-
-                return true;
-            }
-        }
-    }
+    // Note: a previous "MarketPatch" Prefix on ItemRoster.AddToCounts in
+    // namespace BannerKings.Behaviours.Patches was deleted (was disabled
+    // with the [HarmonyPatch] attribute commented out, but still showed
+    // up in firstchance exception logs every campaign load — Harmony was
+    // somehow finding the bare Prefix method). The patched behaviour
+    // ("sell cheapest item-modifier first") bypassed vanilla's change
+    // notification chain and stalled the inventory UI's transfer-display
+    // refresh until the screen was reset, so it's not worth resurrecting.
+    // If the smart-sell idea is wanted again, implement as a Postfix that
+    // sorts after vanilla writes, never as a skipping Prefix.
 }

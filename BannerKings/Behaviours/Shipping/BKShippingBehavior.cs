@@ -724,14 +724,16 @@ namespace BannerKings.Behaviours.Shipping
                         if (port == target) continue;
                         if (port.IsUnderSiege) continue;
                         if (port.MapFaction != null && port.MapFaction.IsAtWarWith(party.MapFaction)) continue;
-                        // Prefer ports that have a usable adaptive route to
-                        // the target — no point redirecting to a Sturgian
-                        // port if every path from it crosses ports at war
-                        // with the caravan. If the graph can't answer
-                        // (port not in graph yet, transient state), accept
-                        // the candidate on geometric grounds. Skipped when
-                        // the adaptive shipping toggle is off — geometric
-                        // closeness is the only filter then.
+
+                        // Cheap geometric filter FIRST. AdaptivePath is a
+                        // full Dijkstra per call (O(V²)), so running it on
+                        // ports that would lose the geometric race is a
+                        // serious per-hour-per-party perf hit. Only check
+                        // adaptive reachability for ports that are
+                        // candidates by raw distance.
+                        float d = party.GetPosition2D.Distance(port.GatePosition.ToVec2());
+                        if (d >= bestDistance) continue;
+
                         if (Settings.BannerKingsSettings.Instance.AdaptiveShippingRisk)
                         {
                             try
@@ -743,12 +745,9 @@ namespace BannerKings.Behaviours.Shipping
                             }
                             catch { /* fall through to geometric check */ }
                         }
-                        float d = party.GetPosition2D.Distance(port.GatePosition.ToVec2());
-                        if (d < bestDistance)
-                        {
-                            bestDistance = d;
-                            bestPort = port;
-                        }
+
+                        bestDistance = d;
+                        bestPort = port;
                     }
                 }
 
