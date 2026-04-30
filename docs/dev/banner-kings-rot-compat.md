@@ -11,11 +11,146 @@ that depends on both BK and ROT, registers ROT-specific content into BK's
 extension points, and harmony-patches around the few BK code paths that
 hardcode Calradian StringIds.
 
+## ⚠️ Target the 1.5.x branch, not main
+
+**Build and test against
+[`release/1.5.x`](https://github.com/GIO443/bannerlord-banner-kings-redux/tree/release/1.5.x)
+(latest tagged release: [v1.5.8.0](https://github.com/GIO443/bannerlord-banner-kings-redux/releases/tag/v1.5.8.0)).**
+
+The 1.6.x line (head: `main`) is currently iterating fast — graph-driven
+shipping, adaptive risk weighting, raid capture, captive caravans,
+hop-by-hop routing — and you'd be chasing a moving target. The 1.5.x
+maintenance branch has stable, predictable shipping-lane semantics and
+no raid capture system, so a compat patch built against it stays valid.
+Bug fixes that don't depend on graph or raid-capture code are
+cherry-picked from main to 1.5.x, so you'll get safety updates without
+gameplay-shape changes.
+
+If the 1.6.x systems eventually stabilise and the patch author wants to
+forward-port, that's a follow-up — but ROT compat against 1.5.x first
+is the right scope.
+
 > Maintainer note for the BK side: the items called out as "BK should fix"
 > below are crashes-on-init that any patch mod will trip over. We're happy
-> to take small null-guard PRs that don't change Calradia behaviour. Items
-> called out as "Patch mod authors a)" or "Patch mod registers" are work
-> the patch is expected to do — BK isn't going to ship ROT data.
+> to take small null-guard PRs against the **`release/1.5.x` branch**
+> that don't change Calradia behaviour. Items called out as "Patch mod
+> registers" are work the patch is expected to do — BK isn't going to
+> ship ROT data.
+
+---
+
+## ⚖️ Legal & licensing — read this first
+
+Before writing a single line of code, decide what your patch mod **is**
+in IP terms. The path that's clearly defensible:
+
+> **Your patch mod is a standalone module** that you author from scratch,
+> ship under your own license, and host on your own Nexus / GitHub. It
+> calls Banner Kings's and Realm of Thrones's **public C# APIs** and
+> references their data **by StringId**. It does **not** include any
+> file from either upstream — no DLLs, no XML, no assets, no ported
+> source.
+
+That's the architecture this whole document assumes. If you stay inside
+those lines, you own your patch outright and neither upstream has a
+claim on it. If you stray over those lines, things get fuzzy fast.
+
+### Do
+
+- **Write all code from scratch.** Reference BK types
+  (`DefaultLifestyles`, `ShippingLane`, `Hero`, `Settlement`, etc.) by
+  their public surface. That's normal cross-mod consumption, same as
+  any mod that depends on Harmony, ButterLib, or MCM.
+- **Author your own XML data.** Your `titles.xml` should declare *your
+  own* ROT-flavored kingdoms with *your own* names, descriptions, and
+  ID assignments. The schema is BK's, but the contents are yours.
+- **Distribute your build artifact only** — your DLL, your XMLs, your
+  assets. The end user installs BK and ROT separately; your module
+  *depends on* them but does not bundle them.
+- **Publish under an explicit license** that you control. MIT, BSD,
+  Apache, or "All Rights Reserved with personal-use exception" all
+  work. Pick one and put it in `LICENSE.md` at your repo root. Make
+  it clear *your* code is *your* IP.
+- **Credit both upstreams in your README.** Something like *"Requires
+  Banner Kings — Redux ([link]) and Realm of Thrones ([link]). All
+  credit for the underlying systems and Westeros/Calradia content
+  belongs to those projects."* Linking is normal; embedding is not.
+- **Add a takedown clause** matching the spirit of BK Redux's:
+  > "If the maintainers of Banner Kings or Realm of Thrones request
+  > this patch be taken down, for any reason and at any time, it
+  > will be removed immediately, without question, without delay,
+  > and without argument."
+  >
+  > Cheap to write, demonstrates good faith, gives you cover if the
+  > relationship sours.
+
+### Don't
+
+- **Don't fork either project.** No `git clone bannerlord-banner-kings &&
+  rename` and ship-as-yours. That's how the BK Redux maintainer ended up
+  on shaky ground (working in good faith, but without explicit
+  permission). Your patch should be its own repo from line 1.
+- **Don't redistribute BK or ROT files** in your release zip. No copying
+  their `BannerKings.dll`, no shipping their textures, no embedding
+  their XML. The launcher resolves dependencies from the user's
+  installed modules.
+- **Don't copy BK's `titles.xml` verbatim** and edit Calradian content
+  out. Author your own XML from scratch. The schema is the schema; the
+  data is yours. (This matters because BK's title hierarchy is
+  R-Vaccari's creative work; *replicating it with names changed* is a
+  derivative work in a way that *writing parallel ROT data* isn't.)
+- **Don't copy BK source files** into your codebase, even with
+  modifications. If you need a method that's not exposed publicly
+  (e.g. a private `BK.MakeLane` factory), open an issue or PR on BK
+  to make it public — don't reimplement by copying.
+- **Don't reuse ROT's textures, scripts, or XML.** If you need
+  ROT-specific names or assets, reference them by ID — at runtime ROT
+  resolves them from its own files, not yours.
+- **Don't post your patch on the BK or ROT Nexus pages.** It's *your*
+  mod. Host it on your own page, link to the upstreams as
+  prerequisites.
+
+### Grey areas to call out
+
+- **Identifying ROT factions, settlements, characters by StringId**:
+  fine. StringIds are functional identifiers, not creative content.
+  Your code says `MBObjectManager.Instance.GetObject<CultureObject>("westeros_north")`
+  — that's a runtime reference, not an embedded asset.
+- **Naming your kingdoms after Westeros houses in your XML**: arguably
+  uses ROT's lore. The cleanest approach is to use generic descriptive
+  names (`{=...}House of the North`) rather than franchise names, OR
+  get explicit permission from the ROT maintainers before publishing.
+  When in doubt, ask the ROT discord/repo before shipping.
+- **Reproducing BK's UI layouts**: your patch shouldn't need to. BK's
+  UI reads from BK's data, which reads from your registered content.
+  No UI cloning required.
+
+### Suggested LICENSE.md skeleton
+
+```
+Copyright (c) <year> <your name>.
+
+This patch module — including all C# source files, XML data files,
+assets, and documentation in this repository — is licensed under
+<MIT / BSD-3 / Apache-2.0 / your choice>. See the SPDX header in each
+file.
+
+This module is a compatibility patch. It depends on but does NOT
+include or redistribute:
+
+- Banner Kings (R-Vaccari and contributors), maintained as
+  Banner Kings — Redux at <link>. All credit for Banner Kings
+  systems and Calradia content belongs to that project.
+- Realm of Thrones (<author>), at <link>. All credit for the
+  Westeros conversion and lore belongs to that project.
+
+If the maintainers of either upstream project request this patch be
+taken down, it will be removed immediately, without argument.
+```
+
+A clean LICENSE plus a README that links to (not embeds) both upstreams
+puts your patch in clear IP territory. You own your code; they own
+theirs; users assemble all three at install time.
 
 ---
 
@@ -60,13 +195,18 @@ settlements visible via `MBObjectManager`.
 
 ```xml
 <DependedModuleMetadatas>
-    <DependedModuleMetadata id="BannerKings.Redux" order="LoadBeforeThis" />
+    <DependedModuleMetadata id="BannerKings.Redux" order="LoadBeforeThis" version="v1.5.8.0" />
     <DependedModuleMetadata id="realmofthrones.core" order="LoadBeforeThis" />
 </DependedModuleMetadatas>
 ```
 
-Use whichever ROT module id is canonical (the crash log we saw used
-`realmofthrones.core`).
+The pinned BK version (`v1.5.8.0` or whatever the latest 1.5.x release
+tag is) tells the BUTR launcher to refuse to enable the patch against
+incompatible BK versions. Update the pin when 1.5.x cherry-picks ship
+and you've re-tested.
+
+Use whichever ROT module id is canonical (the crash log we observed
+used `realmofthrones.core`).
 
 ---
 
@@ -366,34 +506,43 @@ playable Tier-2 patch.
 
 ## 9. Testing checklist
 
-Once your patch mod is buildable:
+Once your patch mod is buildable on a 1.5.x base:
 
 1. **Game starts without crashing.** That's the ROT init NRE we were
-   seeing in our earlier crash report. If BK's `DefaultShippingLanes.Initialize`
-   still fires unmodified, you'll see `InvalidOperationException: Sequence
-   contains no matching element`.
+   seeing. If BK's `DefaultShippingLanes.Initialize` still fires
+   unmodified, you'll see `InvalidOperationException: Sequence contains
+   no matching element`.
 2. **Open the BK kingdom screen.** Should show your ROT kingdoms with
    the titles, dynasties, succession laws you declared in `titles.xml`.
 3. **Walk into a ROT settlement.** BK menu options should appear. If
    you see "BK menu is empty," your culture-keyed registrations
    (`DefaultLifestyles`, `DefaultDemesneLaws`) didn't fire — check
-   `OnGameStart` ordering and that `_registered` flag works.
+   `OnGameStart` ordering and that the `_registered` flag works.
 4. **Try the lifestyle picker.** Should show ROT-culture lifestyles for
    ROT-cultured heroes.
 5. **Run `bannerkings.shipping_topology`** in the console (cheats on).
    You should see your ROT lanes in the report. If lane count is 0, your
-   `AddObject` didn't run or the timing was wrong.
-6. **Test a raid via `bannerkings.test_raid_capture <ROT village id>`** —
-   captive caravan should spawn and walk to a ROT fief.
-7. **Wait an in-game day.** `BK_caravan_watchdog.txt` should appear in
-   the user's `Configs/ModLogs/` and contain caravan-state lines.
-8. **Force a war via `bannerkings.test_war <kingdomA> | <kingdomB>`** —
-   shipping graph adaptive routing should kick in.
-9. **Run `bannerkings.shipping_risk_path <fromId> <toId>`** with two
-   ROT settlements — should produce a path through your registered lanes.
+   `AddObject` didn't run or the timing was wrong. (1.5.x's topology
+   report covers connected components, bridge ports, and diameter; it
+   doesn't include the adaptive risk surface — that's a 1.6.x feature.)
+6. **Run `bannerkings.shipping_path <fromId> <toId>`** between two of
+   your ROT ports — should produce a path through your registered lanes.
+7. **Confirm a vassalage / kingdom interaction.** Talk to a ROT ruler,
+   get the BK "join your service" dialog option, accept a county.
+8. **Trigger an in-game succession.** Use `bannerkings.give_title` to
+   transfer a title, then kill the holder via vanilla cheat
+   (`campaign.give_xp 1000`-style or kill via combat). The BK title
+   should re-inherit per the contract you declared in `titles.xml`.
 
 If steps 1-3 work, you have a Tier-1 patch (doesn't crash, BK exists).
-Steps 4-9 confirm Tier-2 functionality.
+Steps 4-8 confirm Tier-2 functionality.
+
+The 1.6.x raid capture system, captive caravans, adaptive shipping
+risk, and the `dump_caravans` watchdog **don't exist on 1.5.x** so
+none of those tests apply to a 1.5.x-targeted patch. If the patch
+is later forward-ported to 1.6.x, see `main` for the additional
+checks (raid capture flow, captive caravan hop routing, adaptive
+risk pathfinding under war state).
 
 ---
 
@@ -451,21 +600,42 @@ Campaign start: `DefaultStartOptions`.
 (There are ~30 more under `Managers/`, `Education/`, `Religions/`,
 `Estates/` — the grep is the source of truth.)
 
-## Appendix B: cheat-driven testing
+## Appendix B: cheats available on 1.5.x
 
 Cheats must be enabled in the launcher (`engine_config.txt`:
-`cheat_mode = 1`). Useful for patch development:
+`cheat_mode = 1`). The full set on `release/1.5.x`:
 
 | Cheat | Purpose |
 |---|---|
-| `bannerkings.ping` | Sanity-check that BK cheats are dispatching at all |
-| `bannerkings.shipping_topology` | Dumps the trade graph (sea + land edges, components, bridge ports) to `BK_shipping_topology.txt` |
-| `bannerkings.test_setup` | Player setup: 500k gold, 1k renown, full peerage |
-| `bannerkings.test_war <kingdomA> \| <kingdomB>` | Force-declare war between two kingdoms |
-| `bannerkings.test_raid_capture <villageId>` | Run the BK raid capture flow on a village without combat |
-| `bannerkings.test_dump_raid_state` | Snapshot of player raid policy + active captive caravans |
-| `bannerkings.dump_caravans` | Snapshot of every caravan-style party with stuck-detection fields |
+| `bannerkings.give_title <Title> \| <Hero>` | Transfer a title to a hero, useful for testing succession |
+| `bannerkings.start_rebellion <settlement>` | Start a rebellion event at the named settlement |
+| `bannerkings.add_piety <amount>` | Adds piety to MainHero (religion stack) |
+| `bannerkings.add_career_points` | Adds mercenary career points |
+| `bannerkings.finish_claims` | Resolves all open title claims |
+| `bannerkings.shipping_topology` | Connected components, bridge ports, average shortest path, diameter — useful for verifying your registered lanes |
+| `bannerkings.shipping_path <fromId> <toId>` | Shortest path between two ports through registered lanes |
+| `bannerkings.give_player_full_peerage` | Sets player clan's peerage to Full Peer |
+| `bannerkings.spawn_bandit_hero` | Spawns a BK bandit-hero clan (useful for testing bandit faction integration) |
+| `bannerkings.advance_era <culture_id>` | Advances the innovation era for a culture |
 
-All long output gets mirrored to `BK_<cheat>.txt` under
-`Documents/Mount and Blade II Bannerlord/Configs/ModLogs/` so you can
-read it while the game is running.
+The output of long-running cheats appears in the in-game console echo
+and (on later 1.5.x patch revisions) is mirrored to
+`BK_<cheat>.txt` under `Documents/Mount and Blade II Bannerlord/Configs/ModLogs/`.
+If your local console echo doesn't show multi-line output cleanly,
+look for the file there.
+
+Cheats added in 1.6.x and **not present on 1.5.x**:
+
+`bannerkings.ping`, `bannerkings.test_setup`, `bannerkings.test_war`,
+`bannerkings.test_peace`, `bannerkings.test_clear_wars`,
+`bannerkings.test_spawn_caravan`, `bannerkings.test_relocate_caravan`,
+`bannerkings.test_dump_state`, `bannerkings.test_raid_policy`,
+`bannerkings.test_raid_capture`, `bannerkings.test_dump_raid_state`,
+`bannerkings.shipping_risk_path`, `bannerkings.dump_caravans`.
+
+If you want any of these for diagnostic convenience, the simplest path
+is to copy the relevant cheat methods from `main`'s
+`BannerKings/BannerKingsCheats.cs` into your patch mod's own static
+class — they're standalone and don't depend on 1.6.x-only systems
+unless their name says they do (the `test_raid_*` and `dump_caravans`
+ones do).
