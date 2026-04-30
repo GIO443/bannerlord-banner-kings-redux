@@ -327,12 +327,40 @@ namespace BannerKings.Behaviours
                 return;
             }
 
-            party.Ai.DisableAi();
             var bkComponent = (BannerKingsComponent)party.PartyComponent;
             if (bkComponent.HomeSettlement == null)
             {
                 DestroyPartyAction.Apply(null, party);
                 return;
+            }
+
+            // AI gating per component type. PopulationPartyComponent and
+            // BanditHeroComponent are MOVERS — they have an active travel
+            // target (slave caravan to its destination, traveller to its
+            // home, bandit-hero to raid / rob target) and need vanilla AI
+            // to actually execute the SetMoveGoToSettlement movement.
+            // Without AI, the move target was set every tick but the
+            // engine never walked the party — the symptom in the wild
+            // was hundreds of "Travellers from X" piling up at their
+            // origin's gate position with prisoners=N, never delivering.
+            //
+            // Other BK components (Estate / Retinue / Garrison / Militia
+            // / FreeCompany) are HOLDERS — they're meant to stay near
+            // their home and only react to specific triggers. Those
+            // keep the disabled-AI behaviour they had before so they
+            // don't spontaneously wander.
+            bool isMover = party.PartyComponent is BannerKings.Components.PopulationPartyComponent
+                || party.PartyComponent is BannerKings.Components.BanditHeroComponent;
+            if (!isMover)
+            {
+                party.Ai.DisableAi();
+            }
+            else if (party.Ai != null && party.Ai.IsDisabled)
+            {
+                // Existing save state — these were created with AI off
+                // by previous BK builds. Flip it back so the engine
+                // actually moves them along their already-set target.
+                party.Ai.EnableAi();
             }
 
             bkComponent.TickHourly();

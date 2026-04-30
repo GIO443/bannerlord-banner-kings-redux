@@ -72,6 +72,20 @@ namespace BannerKings.Components
                     template = "{=cCzJ9Nk6}Slave Caravan from {ORIGIN}";
                 else if (Trading)
                     template = "{=ds9BcMxr}Traders from {ORIGIN}";
+                // Population transfers (resettlement of free populations) carry
+                // a non-None PopulationType. Distinguishing these from
+                // unflagged travellers gives the dump and the in-game UI a
+                // readable name instead of lumping everything as "Travellers".
+                else if (PopulationType == PopType.Serfs)
+                    template = "{=BKPop_SerfsName}Serfs from {ORIGIN}";
+                else if (PopulationType == PopType.Craftsmen)
+                    template = "{=BKPop_CraftsmenName}Craftsmen from {ORIGIN}";
+                else if (PopulationType == PopType.Nobles)
+                    template = "{=BKPop_NoblesName}Nobles from {ORIGIN}";
+                else if (PopulationType == PopType.Slaves)
+                    template = "{=BKPop_SlavesName}Slaves from {ORIGIN}";
+                else if (PopulationType == PopType.Tenants)
+                    template = "{=BKPop_TenantsName}Tenants from {ORIGIN}";
                 else
                     template = "{=BKPop_TravellersName}Travellers from {ORIGIN}";
 
@@ -109,7 +123,11 @@ namespace BannerKings.Components
             party.Ai.SetInitiative(0f, 1f, float.MaxValue);
             party.ShouldJoinPlayerBattles = false;
             party.Aggressiveness = 0f;
-            party.Ai.DisableAi();
+            // AI stays ENABLED for population parties — they're movers
+            // (slave caravan / traveller / trader) and the engine needs
+            // active AI to actually walk them to their target. Aggressiveness=0
+            // and ShouldJoinPlayerBattles=false keep them from being
+            // sidetracked into combat.
             party.SetMoveGoToSettlement(target, MobileParty.NavigationType.All, false);
             return party;
         }
@@ -150,7 +168,8 @@ namespace BannerKings.Components
             party.Ai.SetInitiative(0f, 1f, float.MaxValue);
             party.ShouldJoinPlayerBattles = false;
             party.Aggressiveness = 0f;
-            party.Ai.DisableAi();
+            // AI stays ENABLED — captive caravans need to move to their
+            // delivery target. See CreateParty above for rationale.
 
             var memberRoster = new TroopRoster(party.Party);
             var prisonerRoster = new TroopRoster(party.Party);
