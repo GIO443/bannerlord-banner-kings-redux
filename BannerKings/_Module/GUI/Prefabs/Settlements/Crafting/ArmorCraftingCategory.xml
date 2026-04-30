@@ -132,7 +132,7 @@
 																		<ImageIdentifierWidget DataSource="{Visual}" DoNotAcceptEvents="true" WidthSizePolicy="Fixed"
 																			HeightSizePolicy="Fixed" SuggestedWidth="112" SuggestedHeight="51" HorizontalAlignment="Center"
 																			VerticalAlignment="Top" MarginTop="3" AdditionalArgs="@AdditionalArgs" ImageId="@Id"
-																			ImageTypeCode="@ImageTypeCode" LoadingIconWidget="LoadingIconWidget">
+																			TextureProviderName="@TextureProviderName" LoadingIconWidget="LoadingIconWidget">
 																			<Children>
 																				<Standard.CircleLoadingWidget HorizontalAlignment="Center" VerticalAlignment="Center"
 																					Id="LoadingIconWidget" />

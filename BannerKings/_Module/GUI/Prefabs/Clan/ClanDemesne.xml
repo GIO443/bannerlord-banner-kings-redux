@@ -40,7 +40,7 @@
 																<ImageIdentifierWidget Id="ElementImage" DataSource="{ImageIdentifier}" WidthSizePolicy="StretchToParent"
 																					   HeightSizePolicy="StretchToParent" HorizontalAlignment="Center" MarginLeft="3"
 																					   MarginRight="3" MarginTop="3" MarginBottom="3" AdditionalArgs="@AdditionalArgs"
-																					   ImageId="@Id" ImageTypeCode="@ImageTypeCode" />
+																					   ImageId="@Id" TextureProviderName="@TextureProviderName" />
 																<HintWidget DataSource="{Hint}" WidthSizePolicy="StretchToParent" HeightSizePolicy="StretchToParent"
 																			Command.HoverBegin="ExecuteBeginHint" Command.HoverEnd="ExecuteEndHint" />
 
@@ -63,7 +63,7 @@
 																<ImageIdentifierWidget Id="ElementImage" DataSource="{ImageIdentifier}" WidthSizePolicy="StretchToParent"
 																					   HeightSizePolicy="StretchToParent" HorizontalAlignment="Center" MarginLeft="3"
 																					   MarginRight="3" MarginTop="3" MarginBottom="3" AdditionalArgs="@AdditionalArgs"
-																					   ImageId="@Id" ImageTypeCode="@ImageTypeCode" />
+																					   ImageId="@Id" TextureProviderName="@TextureProviderName" />
 																<HintWidget DataSource="{Hint}" WidthSizePolicy="StretchToParent" HeightSizePolicy="StretchToParent"
 																			Command.HoverBegin="ExecuteBeginHint" Command.HoverEnd="ExecuteEndHint" />
 
@@ -89,7 +89,7 @@
 												<ImageIdentifierWidget Id="ElementImage" DataSource="{ImageIdentifier}" WidthSizePolicy="StretchToParent"
 																	   HeightSizePolicy="StretchToParent" HorizontalAlignment="Center" MarginLeft="3"
 																	   MarginRight="3" MarginTop="3" MarginBottom="3" AdditionalArgs="@AdditionalArgs"
-																	   ImageId="@Id" ImageTypeCode="@ImageTypeCode" />
+																	   ImageId="@Id" TextureProviderName="@TextureProviderName" />
 												<HintWidget DataSource="{Hint}" WidthSizePolicy="StretchToParent" HeightSizePolicy="StretchToParent"
 															Command.HoverBegin="ExecuteBeginHint" Command.HoverEnd="ExecuteEndHint" />
 

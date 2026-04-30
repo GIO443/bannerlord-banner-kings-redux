@@ -30,9 +30,9 @@
 																<ButtonWidget DoNotPassEventsToChildren="true" WidthSizePolicy="Fixed" HeightSizePolicy="Fixed" SuggestedWidth="170" SuggestedHeight="130" HorizontalAlignment="Center" VerticalAlignment="Center" Sprite="leader_slot_9" Command.Click="ExecuteLink" Command.HoverBegin="ExecuteBeginHint" Command.HoverEnd="ExecuteEndHint">
 																	<Children>
 																		<!--Hero Clan Banner-->
-																		<!--<MaskedTextureWidget DataSource="{ClanBanner_9}" WidthSizePolicy="Fixed" HeightSizePolicy="Fixed" SuggestedWidth="!Banner.Width.Scaled" SuggestedHeight="!Banner.Height.Scaled" HorizontalAlignment="Right" VerticalAlignment="Top" PositionYOffset="15" Brush="Flat.Tuple.Banner.Small.Hero" AdditionalArgs="@AdditionalArgs" ImageId="@Id" ImageTypeCode="@ImageTypeCode" IsDisabled="true" OverlayTextureScale="2.2" />-->
+																		<!--<MaskedTextureWidget DataSource="{ClanBanner_9}" WidthSizePolicy="Fixed" HeightSizePolicy="Fixed" SuggestedWidth="!Banner.Width.Scaled" SuggestedHeight="!Banner.Height.Scaled" HorizontalAlignment="Right" VerticalAlignment="Top" PositionYOffset="15" Brush="Flat.Tuple.Banner.Small.Hero" AdditionalArgs="@AdditionalArgs" ImageId="@Id" TextureProviderName="@TextureProviderName" IsDisabled="true" OverlayTextureScale="2.2" />-->
 
-																		<ImageIdentifierWidget DataSource="{GuildMaster}" WidthSizePolicy="StretchToParent" HeightSizePolicy="StretchToParent" SuggestedHeight="100" MarginLeft="17" MarginRight="18" MarginTop="17" MarginBottom="18" AdditionalArgs="@AdditionalArgs" ImageId="@Id" ImageTypeCode="@ImageTypeCode" />
+																		<ImageIdentifierWidget DataSource="{GuildMaster}" WidthSizePolicy="StretchToParent" HeightSizePolicy="StretchToParent" SuggestedHeight="100" MarginLeft="17" MarginRight="18" MarginTop="17" MarginBottom="18" AdditionalArgs="@AdditionalArgs" ImageId="@Id" TextureProviderName="@TextureProviderName" />
 																	</Children>
 																</ButtonWidget>
 

@@ -63,7 +63,7 @@
 																					<ImageIdentifierWidget DataSource="{ImageIdentifier}" WidthSizePolicy="Fixed" HorizontalAlignment="Right"
 																					   HeightSizePolicy="Fixed" SuggestedWidth="170" SuggestedHeight="130"
 																					   MarginRight="18" MarginTop="17" MarginBottom="18" AdditionalArgs="@AdditionalArgs"
-																					   ImageId="@Id" ImageTypeCode="@ImageTypeCode" />
+																					   ImageId="@Id" TextureProviderName="@TextureProviderName" />
 																				</Children>
 																			  </Widget>
 

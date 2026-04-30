@@ -149,7 +149,7 @@
 																<ImageIdentifierWidget Id="ElementImage" DataSource="{ImageIdentifier}" WidthSizePolicy="StretchToParent"
 																					   HeightSizePolicy="StretchToParent" HorizontalAlignment="Center" MarginLeft="3"
 																					   MarginRight="3" MarginTop="3" MarginBottom="3" AdditionalArgs="@AdditionalArgs"
-																					   ImageId="@Id" ImageTypeCode="@ImageTypeCode" />
+																					   ImageId="@Id" TextureProviderName="@TextureProviderName" />
 																<TextWidget WidthSizePolicy="Fixed" HeightSizePolicy="Fixed" SuggestedWidth="250" SuggestedHeight="30"
 																			HorizontalAlignment="Center" VerticalAlignment="Bottom" PositionYOffset="40"
 																			Brush="Encyclopedia.SubPage.Element.Name.Text" Brush.FontSize="25" Text="@NameText" />
@@ -223,7 +223,7 @@
 																<ImageIdentifierWidget Id="ElementImage" DataSource="{ImageIdentifier}" WidthSizePolicy="StretchToParent"
 																					   HeightSizePolicy="StretchToParent" HorizontalAlignment="Center" MarginLeft="3"
 																					   MarginRight="3" MarginTop="3" MarginBottom="3" AdditionalArgs="@AdditionalArgs"
-																					   ImageId="@Id" ImageTypeCode="@ImageTypeCode" />
+																					   ImageId="@Id" TextureProviderName="@TextureProviderName" />
 																<TextWidget WidthSizePolicy="Fixed" HeightSizePolicy="Fixed" SuggestedWidth="250" SuggestedHeight="30"
 																			HorizontalAlignment="Center" VerticalAlignment="Bottom" PositionYOffset="40"
 																			Brush="Encyclopedia.SubPage.Element.Name.Text" Brush.FontSize="25" Text="@NameText" />

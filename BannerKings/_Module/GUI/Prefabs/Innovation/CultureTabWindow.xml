@@ -31,7 +31,7 @@
 												<Standard.DropdownWithHorizontalControl Parameter.SelectorDataSource="{Selector}" MarginTop="10" 
 																								HorizontalAlignment="Center" IsEnabled="@Enabled"/>
 
-												<MaskedTextureWidget DataSource="{Banner}" ImageId="@Id" AdditionalArgs="@AdditionalArgs" ImageTypeCode="@ImageTypeCode" WidthSizePolicy="Fixed" HeightSizePolicy="Fixed" SuggestedWidth="283" SuggestedHeight="458" HorizontalAlignment="Center" Brush="Encyclopedia.Faction.Banner" OverlayTextureScale="1.5"/>
+												<MaskedTextureWidget DataSource="{Banner}" ImageId="@Id" AdditionalArgs="@AdditionalArgs" TextureProviderName="@TextureProviderName" WidthSizePolicy="Fixed" HeightSizePolicy="Fixed" SuggestedWidth="283" SuggestedHeight="458" HorizontalAlignment="Center" Brush="Encyclopedia.Faction.Banner" OverlayTextureScale="1.5"/>
 												<RichTextWidget WidthSizePolicy="StretchToParent" HeightSizePolicy="CoverChildren" MarginLeft="50" MarginRight="50" Brush="Encyclopedia.SubPage.Title.Text" Brush.TextHorizontalAlignment="Center" Text="@Name" />
 
 												<ButtonWidget IsEnabled="true" DoNotPassEventsToChildren="true" WidthSizePolicy="StretchToParent" HeightSizePolicy="Fixed" SuggestedHeight="40" 

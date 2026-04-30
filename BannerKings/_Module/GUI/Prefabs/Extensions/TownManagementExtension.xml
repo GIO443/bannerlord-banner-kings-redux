@@ -51,7 +51,7 @@
 																			<Children>
 																				<ListPanel WidthSizePolicy="CoverChildren" HeightSizePolicy="CoverChildren" StackLayout.LayoutMethod="VerticalBottomToTop">
 																					<Children>
-																						<ImageIdentifierWidget DataSource="{Visual}" WidthSizePolicy="Fixed" HeightSizePolicy="Fixed" SuggestedWidth="85" SuggestedHeight="45" HorizontalAlignment="Center" AdditionalArgs="@AdditionalArgs" ImageId="@Id" ImageTypeCode="@ImageTypeCode"/>
+																						<ImageIdentifierWidget DataSource="{Visual}" WidthSizePolicy="Fixed" HeightSizePolicy="Fixed" SuggestedWidth="85" SuggestedHeight="45" HorizontalAlignment="Center" AdditionalArgs="@AdditionalArgs" ImageId="@Id" TextureProviderName="@TextureProviderName"/>
 																						<Widget WidthSizePolicy="Fixed" HeightSizePolicy="Fixed" SuggestedWidth="90" SuggestedHeight="24" VerticalAlignment="Bottom" Sprite="Crafting\number_background" Color="#EFAB6BFF" >
 																							<Children>
 																								<TextWidget WidthSizePolicy="CoverChildren" HeightSizePolicy="CoverChildren" Brush="Refinement.Amount.Text" HorizontalAlignment="Center" VerticalAlignment="Center" MarginTop="5" IntText="@ResourceAmount" />

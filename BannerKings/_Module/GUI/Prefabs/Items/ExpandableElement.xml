@@ -33,7 +33,7 @@
 									<Children>
 										<ImageIdentifierWidget DataSource="{Visual}" WidthSizePolicy="StretchToParent"
 										                       HeightSizePolicy="StretchToParent" AdditionalArgs="@AdditionalArgs" ImageId="@Id"
-										                       ImageTypeCode="@ImageTypeCode" OverlayTextureScale="!ScaleFactor" MarginRight="3"
+										                       TextureProviderName="@TextureProviderName" OverlayTextureScale="!ScaleFactor" MarginRight="3"
 										                       MarginLeft="3" MarginBottom="3" MarginTop="3" />
 										<HintWidget DataSource="{ReligionHint}" WidthSizePolicy="StretchToParent" HeightSizePolicy="StretchToParent"
 										            Command.HoverBegin="ExecuteBeginHint" Command.HoverEnd="ExecuteEndHint" IsDisabled="true" />

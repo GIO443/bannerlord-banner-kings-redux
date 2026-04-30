@@ -28,7 +28,7 @@
           <Children>
 
             <!--Faction1 Banner>
-            <MaskedTextureWidget DataSource="{Faction1Visual}" WidthSizePolicy="Fixed" HeightSizePolicy="Fixed" SuggestedWidth="!Banner.Width.Scaled" SuggestedHeight="!Banner.Height.Scaled" HorizontalAlignment="Left" VerticalAlignment="Top" MarginLeft="9" Brush="Flat.Tuple.Banner.Small" AdditionalArgs="@AdditionalArgs" ImageId="@Id" ImageTypeCode="@ImageTypeCode" IsDisabled="true" OverlayTextureScale="2.5" PositionYOffset="-1"/-->
+            <MaskedTextureWidget DataSource="{Faction1Visual}" WidthSizePolicy="Fixed" HeightSizePolicy="Fixed" SuggestedWidth="!Banner.Width.Scaled" SuggestedHeight="!Banner.Height.Scaled" HorizontalAlignment="Left" VerticalAlignment="Top" MarginLeft="9" Brush="Flat.Tuple.Banner.Small" AdditionalArgs="@AdditionalArgs" ImageId="@Id" TextureProviderName="@TextureProviderName" IsDisabled="true" OverlayTextureScale="2.5" PositionYOffset="-1"/-->
 
             <!--Faction 1 Name>
             <RichTextWidget DoNotAcceptEvents="true" WidthSizePolicy="StretchToParent" HeightSizePolicy="CoverChildren" VerticalAlignment="Center" Brush="ArmyManagement.Army.Tuple.Name" IsEnabled="false" Text="@Faction1Name" /-->
@@ -43,9 +43,9 @@
                     <ButtonWidget DataSource="{Leader}" WidthSizePolicy="Fixed" HeightSizePolicy="Fixed" SuggestedWidth="112" SuggestedHeight="81" VerticalAlignment="Center" Command.Click="ExecuteLink">
                       <Children>
                         <!--Settlement Owner Clan Banner-->
-                        <MaskedTextureWidget DataSource="{..\ClanBanner}" WidthSizePolicy="Fixed" HeightSizePolicy="Fixed" SuggestedWidth="!Banner.Width.Scaled" SuggestedHeight="!Banner.Height.Scaled" HorizontalAlignment="Right" VerticalAlignment="Top" PositionYOffset="-4" Brush="Flat.Tuple.Banner.Small.Hero" AdditionalArgs="@AdditionalArgs" ImageId="@Id" ImageTypeCode="@ImageTypeCode" IsDisabled="true" OverlayTextureScale="2.2" />
+                        <MaskedTextureWidget DataSource="{..\ClanBanner}" WidthSizePolicy="Fixed" HeightSizePolicy="Fixed" SuggestedWidth="!Banner.Width.Scaled" SuggestedHeight="!Banner.Height.Scaled" HorizontalAlignment="Right" VerticalAlignment="Top" PositionYOffset="-4" Brush="Flat.Tuple.Banner.Small.Hero" AdditionalArgs="@AdditionalArgs" ImageId="@Id" TextureProviderName="@TextureProviderName" IsDisabled="true" OverlayTextureScale="2.2" />
 
-                        <ImageIdentifierWidget DataSource="{ImageIdentifier}" DoNotAcceptEvents="true" WidthSizePolicy="Fixed" HeightSizePolicy="Fixed" SuggestedWidth="100" SuggestedHeight="74" HorizontalAlignment="Center" VerticalAlignment="Center" AdditionalArgs="@AdditionalArgs" ImageId="@Id" ImageTypeCode="@ImageTypeCode" />
+                        <ImageIdentifierWidget DataSource="{ImageIdentifier}" DoNotAcceptEvents="true" WidthSizePolicy="Fixed" HeightSizePolicy="Fixed" SuggestedWidth="100" SuggestedHeight="74" HorizontalAlignment="Center" VerticalAlignment="Center" AdditionalArgs="@AdditionalArgs" ImageId="@Id" TextureProviderName="@TextureProviderName" />
                         <HintWidget WidthSizePolicy="StretchToParent" HeightSizePolicy="StretchToParent" Command.HoverBegin="ExecuteBeginHint" Command.HoverEnd="ExecuteEndHint" IsEnabled="false" />
                       </Children>
                     </ButtonWidget>

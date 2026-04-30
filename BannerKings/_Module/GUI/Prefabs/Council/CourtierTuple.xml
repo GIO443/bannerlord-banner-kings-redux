@@ -37,11 +37,11 @@
 										SuggestedWidth="!Banner.Width.Scaled" SuggestedHeight="!Banner.Height.Scaled"
 										HorizontalAlignment="Right" VerticalAlignment="Top" PositionYOffset="-2"
 										Brush="Flat.Tuple.Banner.Small.Hero" AdditionalArgs="@AdditionalArgs" ImageId="@Id"
-										ImageTypeCode="@ImageTypeCode" OverlayTextureScale="2.2" />
+										TextureProviderName="@TextureProviderName" OverlayTextureScale="2.2" />
 									<ImageIdentifierWidget DataSource="{Visual}" WidthSizePolicy="StretchToParent"
 										HeightSizePolicy="StretchToParent" MarginLeft="5" MarginRight="5" MarginTop="5"
 										MarginBottom="5" AdditionalArgs="@AdditionalArgs" ImageId="@Id"
-										ImageTypeCode="@ImageTypeCode" />
+										TextureProviderName="@TextureProviderName" />
 								</Children>
 							</ButtonWidget>
 						</Children>
