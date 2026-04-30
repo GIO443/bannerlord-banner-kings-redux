@@ -669,6 +669,7 @@ namespace BannerKings.Behaviours.Shipping
         {
             if (party == null) return;
             if (sailing.ContainsKey(party)) sailing.Remove(party);
+            if (stuckTracker.ContainsKey(party)) stuckTracker.Remove(party);
         }
 
         // Detects parties left in the "boat sprite on land terrain" state by
@@ -1012,6 +1013,21 @@ namespace BannerKings.Behaviours.Shipping
                         LogRedirect(party, $"already heading to sea fallback {seaFallback.Name}", target);
                         return;
                     }
+
+                    // Long-stuck escape hatch. Some coastal positions are on
+                    // impassable terrain — vanilla pathfind from there to
+                    // ANY settlement returns Infinity. SetMoveGoToSettlement
+                    // doesn't help because there's no walkable route off the
+                    // tile. Track the party's last seen position; if it
+                    // hasn't moved meaningfully across multiple stuck ticks,
+                    // hard-teleport to the seaFallback's gate so it can
+                    // resume normal play. Invasive, but the alternative is
+                    // the caravan sitting there forever.
+                    if (TryTeleportIfHopelesslyStuck(party, seaFallback, target))
+                    {
+                        return;
+                    }
+
                     LogRedirect(party, $"STUCK at coast — REDIRECT to {seaFallback.Name} (vanilla pathfind to {entryNode.Name} returned Infinity)", target);
                     party.SetMoveGoToSettlement(seaFallback, MobileParty.NavigationType.All, false);
                     try { party.Ai?.DisableForHours(2); } catch { }
@@ -1037,6 +1053,70 @@ namespace BannerKings.Behaviours.Shipping
                 try { LogRedirect(party, $"redirect threw {ex.GetType().Name}: {ex.Message}", null); } catch { }
                 // Defensive: never throw out of an hourly tick. AI parties getting
                 // weird targets from other mods should not crash BK.
+            }
+        }
+
+        // Per-party stuck tracker for the teleport escape hatch. Records
+        // the party's last-observed position and how many consecutive stuck
+        // ticks we've seen. Cleared on MobilePartyDestroyed so we don't
+        // leak entries.
+        private readonly Dictionary<MobileParty, (Vec2 lastPos, int stuckTicks)> stuckTracker
+            = new Dictionary<MobileParty, (Vec2, int)>();
+
+        // True if the party hasn't moved meaningfully (≥0.5 units) from its
+        // last-recorded position across `threshold` consecutive stuck ticks.
+        // When true, hard-teleport the party to the fallback port's gate.
+        // Resets the tracker entry on success so future stuck states get
+        // their own threshold.
+        private bool TryTeleportIfHopelesslyStuck(MobileParty party, Settlement seaFallback, Settlement target)
+        {
+            try
+            {
+                if (party == null || seaFallback == null) return false;
+                const int Threshold = 4;
+                const float MoveEpsilon = 0.5f;
+
+                var pos = party.GetPosition2D;
+                if (!stuckTracker.TryGetValue(party, out var entry))
+                {
+                    stuckTracker[party] = (pos, 1);
+                    return false;
+                }
+
+                if (entry.lastPos.Distance(pos) >= MoveEpsilon)
+                {
+                    // Party moved — reset.
+                    stuckTracker[party] = (pos, 1);
+                    return false;
+                }
+
+                int newStuck = entry.stuckTicks + 1;
+                if (newStuck < Threshold)
+                {
+                    stuckTracker[party] = (pos, newStuck);
+                    return false;
+                }
+
+                // Threshold reached. Hard-teleport.
+                try
+                {
+                    var oldPos = pos;
+                    party.Position = seaFallback.GatePosition;
+                    party.Party.UpdateVisibilityAndInspected(party.Position);
+                    LogRedirect(party, $"HOPELESSLY STUCK at ({oldPos.X:0.0},{oldPos.Y:0.0}) for {newStuck}+ ticks — TELEPORTED to {seaFallback.Name}", target);
+                    stuckTracker.Remove(party);
+                    return true;
+                }
+                catch (Exception ex)
+                {
+                    LogRedirect(party, $"teleport failed: {ex.GetType().Name}: {ex.Message}", target);
+                    stuckTracker.Remove(party);
+                    return false;
+                }
+            }
+            catch
+            {
+                return false;
             }
         }
 
