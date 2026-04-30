@@ -287,18 +287,14 @@ language/book reading was also rescaled (50/day → 10/day, 2000 on
 completion → 500). Existing high skills won't be reset; only future
 gains use the corrected curve.
 
-**Q: How do I turn off BK's smithing changes and go back to vanilla
-smithing?**
-**MCM → Banner Kings → Balancing → BK Smithing System** — flip it off
-and restart. With the toggle off, vanilla `DefaultSmithingModel` runs
-unmodified: no smelting yield caps (a dagger gives full vanilla iron
-yield), no extra stamina cost on one/two-handed weapons, the BK
-"Armor" tab in the smithy is inert (clicking it shows a one-line note
-in the log), and the per-hour smithing fee is skipped. Vanilla weapon
-crafting / smelting / refinement work normally. The Crafting Waiting
-Time setting is also implicitly off when BK Smithing is off.
+**Q: I want BK's smithing overhaul. How do I turn it on?**
+**MCM → Banner Kings → Balancing → BK Smithing System → on, then
+restart.** It defaults to **off** as of v1.6.4.7 — vanilla
+`DefaultSmithingModel` runs unmodified out of the box. With the toggle
+on, BK's smelting caps, stamina inflation, armor crafting tab, and
+hourly smith fee all apply.
 
-What BK Smithing does when on (default):
+What BK Smithing does when on:
 
 - **Smelting yield caps** — dagger / throwing-axe / crossbow gives at
   most 1 metal, one-handed weapons up to 2, two-handed up to 3.

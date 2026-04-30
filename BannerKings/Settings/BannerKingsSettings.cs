@@ -140,9 +140,9 @@ namespace BannerKings.Settings
         [SettingPropertyGroup("{=P8UecnYf}Balancing")]
         public float KnightClanCreationSpeed { get; set; } = 1f;
 
-        [SettingProperty("BK Smithing System", RequireRestart = true, HintText = "Enables BK's smithing overhaul: custom smelting yield caps (a dagger gives at most 1 metal, two-handers up to 3), higher stamina costs on one/two-handed weapons (+20%/+50%), the BK armor crafting tab (craft armor / shields / ammo from materials), botching chance, and the per-hour smithing fee in towns. When OFF, vanilla DefaultSmithingModel runs unmodified — no smelting cap, no armor tab, no botch, no smithing fee. The wait-time gate (next setting) still applies on top of vanilla mode if you want it. Default: true.")]
+        [SettingProperty("BK Smithing System", RequireRestart = true, HintText = "Enables BK's smithing overhaul: custom smelting yield caps (a dagger gives at most 1 metal, two-handers up to 3), higher stamina costs on one/two-handed weapons (+20%/+50%), the BK armor crafting tab (craft armor / shields / ammo from materials), botching chance, and the per-hour smithing fee in towns. When OFF (default), vanilla DefaultSmithingModel runs unmodified — no smelting cap, no armor tab, no botch, no smithing fee. The wait-time gate (next setting) still applies on top of vanilla mode if you want it. Default: false.")]
         [SettingPropertyGroup("{=P8UecnYf}Balancing")]
-        public bool BKSmithingEnabled { get; set; } = true;
+        public bool BKSmithingEnabled { get; set; } = false;
 
         [SettingProperty("{=DZyyJXRn}Crafting Waiting Time", RequireRestart = false, HintText = "{=pSX0rWGt}When doing any type of work in the smithy, you'll be forced to wait an amount of time correspondent to how much energy was used, as well as pay for that time. Represents a more realistic approach to crafting. Default: true.")]
         [SettingPropertyGroup("{=P8UecnYf}Balancing")]
