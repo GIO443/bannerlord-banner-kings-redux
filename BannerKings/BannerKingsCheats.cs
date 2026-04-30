@@ -605,8 +605,68 @@ namespace BannerKings
                 }
                 if (regularCount == 0) sb.AppendLine("  (none)");
 
+                // Slave caravans, traveller parties, and any other BK
+                // PopulationPartyComponent parties that aren't raid-captives
+                // (those are in the first section). These are the parties
+                // most likely to show up "nameless and doing nothing"
+                // outside a town if their stringName field deserialised
+                // null or their AI got stuck — they're not in
+                // MobileParty.AllCaravanParties so the trade-caravan loop
+                // above misses them.
+                int popCount = 0;
+                int banditCount = 0;
+                int otherBKCount = 0;
+                int unnamedCount = 0;
+                sb.AppendLine();
+                sb.AppendLine("BK population parties (slave caravans / travellers / other PopulationPartyComponent):");
+                foreach (var party in MobileParty.All)
+                {
+                    if (party?.PartyComponent is not BannerKings.Components.PopulationPartyComponent ppc2) continue;
+                    if (ppc2.IsRaidCaptiveCaravan) continue; // already listed above
+                    popCount++;
+                    AppendCaravanLine(sb, party, ppc2);
+                }
+                if (popCount == 0) sb.AppendLine("  (none)");
+
+                sb.AppendLine();
+                sb.AppendLine("BK bandit-hero parties:");
+                foreach (var party in MobileParty.All)
+                {
+                    if (party?.PartyComponent is not BannerKings.Components.BanditHeroComponent) continue;
+                    banditCount++;
+                    AppendCaravanLine(sb, party, null);
+                }
+                if (banditCount == 0) sb.AppendLine("  (none)");
+
+                sb.AppendLine();
+                sb.AppendLine("Other BK component parties (militia / garrison / free company / retinue / etc.):");
+                foreach (var party in MobileParty.All)
+                {
+                    var comp = party?.PartyComponent;
+                    if (comp == null) continue;
+                    if (comp is BannerKings.Components.PopulationPartyComponent) continue;
+                    if (comp is BannerKings.Components.BanditHeroComponent) continue;
+                    if (comp is not BannerKings.Components.BannerKingsComponent) continue;
+                    otherBKCount++;
+                    AppendCaravanLine(sb, party, null);
+                }
+                if (otherBKCount == 0) sb.AppendLine("  (none)");
+
+                sb.AppendLine();
+                sb.AppendLine("Nameless or empty-named parties (any component, any class):");
+                foreach (var party in MobileParty.All)
+                {
+                    if (party == null) continue;
+                    string n = null;
+                    try { n = party.Name?.ToString(); } catch { }
+                    if (!string.IsNullOrWhiteSpace(n)) continue;
+                    unnamedCount++;
+                    AppendCaravanLine(sb, party, null);
+                }
+                if (unnamedCount == 0) sb.AppendLine("  (none)");
+
                 WriteDiagnosticFile("dump_caravans.txt", sb.ToString());
-                string summary = $"dump_caravans: {captiveCount} captive, {regularCount} trade. {LastWriteResult}";
+                string summary = $"dump_caravans: {captiveCount} captive, {regularCount} trade, {popCount} pop, {banditCount} bandit, {otherBKCount} other-BK, {unnamedCount} nameless. {LastWriteResult}";
                 InformationManager.DisplayMessage(new InformationMessage(summary, Color.FromUint(0xFFFFD700)));
                 return summary;
             }
@@ -652,7 +712,16 @@ namespace BannerKings
                 }
                 catch { /* defensive */ }
 
-                sb.AppendLine($"  {party.Name} @ {current} → moveTo={moveTarget}; finalDest={finalDest}; " +
+                string componentTag = party.PartyComponent?.GetType().Name ?? "(null component)";
+                string homeTag = "-";
+                try { if (party.PartyComponent is BannerKings.Components.BannerKingsComponent bkc) homeTag = bkc.HomeSettlement?.Name?.ToString() ?? "-"; }
+                catch { }
+                string nameRendered;
+                try { nameRendered = party.Name?.ToString() ?? "(null name)"; }
+                catch (Exception ex) { nameRendered = $"(name threw: {ex.GetType().Name})"; }
+                if (string.IsNullOrWhiteSpace(nameRendered)) nameRendered = "(empty name)";
+
+                sb.AppendLine($"  {nameRendered} [{componentTag}, home={homeTag}] @ {current} → moveTo={moveTarget}; finalDest={finalDest}; " +
                               $"troops={troops}; prisoners={prisoners}; IsActive={party.IsActive}; " +
                               $"AtSea={party.IsCurrentlyAtSea}; AiDisabled={party.Ai?.IsDisabled}; captor={captor}; {travelInfo}");
             }
