@@ -52,6 +52,23 @@ namespace BannerKings.Components
 
         [SaveableProperty(9)] public Hero CaptorHero { get; private set; }
 
+        // Captive caravans are owned by the raid leader's clan, not the
+        // raided settlement's owner. The base PartyOwner getter resolves
+        // to HomeSettlement.OwnerClan.Leader, where Home == origin (the
+        // raided village) — that made captive caravans hostile to the
+        // player who raided them. Override so the captor's clan owns
+        // the caravan; ActualClan is also set explicitly at spawn time
+        // in CreateCaptiveCaravan so MapFaction resolves correctly.
+        public override Hero PartyOwner
+        {
+            get
+            {
+                if (IsRaidCaptiveCaravan && CaptorHero != null)
+                    return CaptorHero;
+                return base.PartyOwner;
+            }
+        }
+
         // Override so the rendered name is derived from component flags
         // rather than the saved stringName field. Saves written by older
         // BK builds occasionally come back with stringName=null and the
@@ -163,6 +180,10 @@ namespace BannerKings.Components
 
             var party = MobileParty.CreateParty("captivecaravan_" + origin.Name + "_" + target.Name,
                 new PopulationPartyComponent(target, origin, nameTpl, disposition, captor));
+            // Faction = captor's clan (NOT the raided origin's owner). Without
+            // this, MapFaction defaults to the raided settlement's owner and
+            // the caravan ends up hostile to the player who created it.
+            if (captor?.Clan != null) party.ActualClan = captor.Clan;
             party.SetPartyUsedByQuest(true);
             party.Party.SetVisualAsDirty();
             party.Ai.SetInitiative(0f, 1f, float.MaxValue);
