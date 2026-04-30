@@ -21,8 +21,21 @@ namespace BannerKings.Components
         [SaveableField(12)] private Settlement robbingTarget;
         [SaveableField(13)] private CampaignTime lastDecision;
 
-        protected internal BanditHeroComponent(Hideout hideout, Hero leader) : base(hideout, false, null)
+        protected internal BanditHeroComponent(Hideout hideout, Hero leader, PartyTemplateObject template)
+            : base(hideout, false, new BanditPartyComponent.InitializationArgs(
+                leader?.Clan,
+                template,
+                hideout?.Settlement?.GatePosition ?? default))
         {
+            // 1.3.x's BanditPartyComponent ctor takes an InitializationArgs
+            // struct (Clan, PartyTemplateObject, CampaignVec2). The vanilla
+            // WarPartyComponent.OnInitialize fires inside MobileParty.CreateParty
+            // and reads those fields to set up banner / faction visuals /
+            // initial position. BK was passing null, which NREs on every
+            // weekly bandit-hero spawn — visible in errorlog.txt as
+            // recurring "Exception in BKBanditBehavior class" entries.
+            // Building a real InitializationArgs from the leader's clan,
+            // the spawn template, and the hideout's gate position fixes it.
             this.leader = leader;
             lastDecision = CampaignTime.Never;
         }
@@ -227,7 +240,7 @@ namespace BannerKings.Components
 
             leader.ChangeHeroGold(10000);
             var party = MobileParty.CreateParty(id,
-                new BanditHeroComponent(origin, leader));
+                new BanditHeroComponent(origin, leader, template));
             party.ActualClan = leader.Clan;
 
             BannerKingsComponent.GiveFood(ref party);
