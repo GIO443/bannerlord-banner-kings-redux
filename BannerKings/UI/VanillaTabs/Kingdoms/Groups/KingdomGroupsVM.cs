@@ -30,6 +30,7 @@ namespace BannerKings.UI.VanillaTabs.Kingdoms.Groups
                 }
 
                 InterestGroupsCountText = $"({InterestGroups.Count.ToString()})";
+                RadicalGroupsCountText = $"({RadicalGroups.Count.ToString()})";
                 if (CurrentGroup == null && InterestGroups.Count > 0)
                 {
                     SetGroup(InterestGroups.First());

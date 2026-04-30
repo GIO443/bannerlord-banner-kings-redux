@@ -76,14 +76,21 @@ namespace BannerKings
                 Xtender.Enable();
             }
 
-            // Register the {GOLD_ICON} global text variable so any TextObject in BK
-            // strings ("...{GOLD}{GOLD_ICON}...") renders the coin icon instead of
-            // the literal "{GOLD_ICON}" placeholder. Many BK consumers expect this
-            // variable to be set globally; previously only a couple of dialog
-            // paths did it inline, which left building-completion messages,
-            // gentry-buy offers, mercenary contracts, smithy fees, etc. showing
-            // the raw placeholder.
+            // Register the BK icon placeholders globally so any TextObject in BK
+            // strings ("...{GOLD}{GOLD_ICON}...") renders the icon instead of
+            // the literal "{GOLD_ICON}" placeholder. Many BK consumers expect
+            // these set globally; previously only a couple of dialog paths did
+            // it inline, which left building-completion messages, gentry-buy
+            // offers, mercenary contracts, smithy fees, military-aid duty
+            // payouts, council-position swap requests, merge-army inquiry list
+            // entries, etc. showing the raw placeholder.
             GameTexts.SetVariable("GOLD_ICON", BannerKings.Utils.TextHelper.GOLD_ICON);
+            GameTexts.SetVariable("INFLUENCE_ICON", BannerKings.Utils.TextHelper.INFLUENCE_ICON);
+            GameTexts.SetVariable("PIETY_ICON", BannerKings.Utils.TextHelper.PIETY_ICON);
+            GameTexts.SetVariable("MORALE_ICON", BannerKings.Utils.TextHelper.MORALE_ICON);
+            GameTexts.SetVariable("FOOD_ICON", BannerKings.Utils.TextHelper.FOOD_ICON);
+            GameTexts.SetVariable("PARTY_ICON", BannerKings.Utils.TextHelper.PARTY_ICON);
+            GameTexts.SetVariable("SPEED_ICON", BannerKings.Utils.TextHelper.SPEED_ICON);
 
             campaignStarter.AddBehavior(new BKManagerBehavior());
             campaignStarter.AddBehavior(new BKEducationBehavior());
