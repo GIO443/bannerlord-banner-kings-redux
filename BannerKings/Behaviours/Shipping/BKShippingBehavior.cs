@@ -868,7 +868,11 @@ namespace BannerKings.Behaviours.Shipping
                 // missed the "land path exists, but sea is better" case
                 // and pinned caravans on the shore forever.
                 var graph = ShippingGraph.Instance;
-                if (!graph.Adjacency.ContainsKey(target)) return;
+                if (!graph.Adjacency.ContainsKey(target))
+                {
+                    LogRedirect(party, "target not in graph adjacency", target);
+                    return;
+                }
 
                 Settlement entryNode = null;
                 float entryDist = float.MaxValue;
@@ -882,30 +886,79 @@ namespace BannerKings.Behaviours.Shipping
                     float d = partyPos2D.Distance(node.GatePosition.ToVec2());
                     if (d < entryDist) { entryDist = d; entryNode = node; }
                 }
-                if (entryNode == null) return;
+                if (entryNode == null)
+                {
+                    LogRedirect(party, "no valid entry node (all hostile/sieged?)", target);
+                    return;
+                }
 
                 List<Settlement> path = Settings.BannerKingsSettings.Instance.AdaptiveShippingRisk
                     ? (graph.GetAdaptivePath(entryNode, target, party.MapFaction)
                        ?? graph.GetShortestPath(entryNode, target))
                     : graph.GetShortestPath(entryNode, target);
-                if (path == null || path.Count < 2) return;
+                if (path == null || path.Count < 2)
+                {
+                    LogRedirect(party, $"no graph path from {entryNode.Name} to {target.Name}", target);
+                    return;
+                }
 
                 // First edge of the optimal route. Sea → redirect to
                 // entryNode (boarding port). Land → vanilla AI walks fine.
-                if (!graph.Adjacency.ContainsKey(path[0])) return;
+                if (!graph.Adjacency.ContainsKey(path[0]))
+                {
+                    LogRedirect(party, $"path[0]={path[0]?.Name} not in adjacency", target);
+                    return;
+                }
                 var firstEdge = graph.Adjacency[path[0]].FirstOrDefault(e => e.To == path[1]);
-                if (firstEdge.Kind != ShippingGraph.EdgeKind.Sea) return;
+                if (firstEdge.Kind != ShippingGraph.EdgeKind.Sea)
+                {
+                    LogRedirect(party, $"first edge {path[0]?.Name}→{path[1]?.Name} is land — letting vanilla walk", target);
+                    return;
+                }
 
                 // Already heading there → no-op.
-                if (party.TargetSettlement == entryNode) return;
+                if (party.TargetSettlement == entryNode)
+                {
+                    LogRedirect(party, $"already heading to {entryNode.Name} (boarding port)", target);
+                    return;
+                }
 
+                LogRedirect(party, $"REDIRECT to {entryNode.Name} (boarding for sea hop {path[0]?.Name}→{path[1]?.Name})", target);
                 party.SetMoveGoToSettlement(entryNode, MobileParty.NavigationType.All, false);
+                // Disable vanilla AI for a couple of hours so vanilla CaravanAi
+                // doesn't immediately re-target the original destination and
+                // keep the caravan oscillating between port and target.
+                try { party.Ai?.DisableForHours(2); } catch { }
             }
-            catch
+            catch (Exception ex)
             {
+                try { LogRedirect(party, $"redirect threw {ex.GetType().Name}: {ex.Message}", null); } catch { }
                 // Defensive: never throw out of an hourly tick. AI parties getting
                 // weird targets from other mods should not crash BK.
             }
+        }
+
+        // Append-only redirect-decision log. Mirrors RedirectAIToShippingPort
+        // outcomes to BK_redirect.txt so we can diagnose why a particular
+        // caravan didn't get pushed to a port. Cheap (single string format
+        // per call); fires from a per-party hourly tick on the gating paths.
+        private static void LogRedirect(MobileParty party, string note, Settlement target)
+        {
+            try
+            {
+                if (party == null) return;
+                string pos;
+                try
+                {
+                    if (party.CurrentSettlement != null) pos = party.CurrentSettlement.Name?.ToString() ?? "?";
+                    else { var p = party.GetPosition2D; pos = $"({p.X:0.0},{p.Y:0.0})"; }
+                }
+                catch { pos = "?"; }
+                string targetName = target?.Name?.ToString() ?? "?";
+                string line = $"{TaleWorlds.CampaignSystem.CampaignTime.Now}  {party.Name} @ {pos} → {targetName}: {note}";
+                BannerKings.BannerKingsCheats.AppendDiagnosticLine("redirect.txt", line);
+            }
+            catch { /* never throw out of a logger */ }
         }
     }
 }

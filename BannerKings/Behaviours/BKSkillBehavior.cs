@@ -18,6 +18,14 @@ namespace BannerKings.Behaviours
         private static readonly FieldInfo Hero_HeroSkills = AccessTools.Field(typeof(Hero), "_heroSkills");
         private static readonly FieldInfo PropertyOwnerAttribute_Attributes = AccessTools.Field(typeof(PropertyOwner<CharacterAttribute>), "_attributes");
         private static readonly FieldInfo PropertyOwnerSkill_Attributes = AccessTools.Field(typeof(PropertyOwner<SkillObject>), "_attributes");
+        // Hero.SetAttributeValueInternal is the canonical setter — clamps via
+        // CharacterDevelopmentModel.MaxAttribute and writes through the
+        // PropertyOwner. Mutating the underlying dict directly via reflection
+        // bypassed both the clamp AND any caching the property layer might
+        // do, which appeared in the field as Wisdom showing 0 even after
+        // the seeder added 2 to the dict.
+        private static readonly MethodInfo Hero_SetAttributeValueInternal =
+            AccessTools.Method(typeof(Hero), "SetAttributeValueInternal");
 
         public override void RegisterEvents()
         {
@@ -98,20 +106,46 @@ namespace BannerKings.Behaviours
         {
             if (hero == null) return;
 
-            var charAttrs = (PropertyOwner<CharacterAttribute>)Hero_CharacterAttributes.GetValue(hero);
-            var attrsDic = (Dictionary<CharacterAttribute, int>)PropertyOwnerAttribute_Attributes.GetValue(charAttrs);
             // Floor Wisdom at 2 — covers three cases:
-            //   1. Wisdom missing entirely     → add with value 2.
+            //   1. Wisdom missing entirely     → write 2.
             //   2. Wisdom present with value 0 → bump to 2 (older saves
-            //      saved Wisdom=0 before v1.6.4.8 introduced seeding, or
+            //      had Wisdom=0 before v1.6.4.8 introduced seeding, or
             //      vanilla PropertyOwner.GetPropertyValue auto-inserted 0
-            //      during a TryGetValue-style read).
+            //      during a TryGetValue-style read on a missing key —
+            //      and the previous seeder's "skip if HasProperty" rule
+            //      then saw it as registered and never overwrote).
             //   3. Wisdom present with value > 0 → leave alone (player /
             //      gameplay-earned bonus from the Theology Religious
             //      Teachings perk on a parent).
-            if (!attrsDic.TryGetValue(BKAttributes.Instance.Wisdom, out int wisdomValue) || wisdomValue < 2)
+            //
+            // Use Hero.SetAttributeValueInternal (the canonical path) instead
+            // of mutating the dict via reflection — that route was visible
+            // to GetAttributeValue but somehow not to the character-developer
+            // VM, which kept showing 0. The canonical setter goes through
+            // PropertyOwner.SetPropertyValue with the proper clamp.
+            try
             {
-                attrsDic[BKAttributes.Instance.Wisdom] = 2;
+                var current = hero.GetAttributeValue(BKAttributes.Instance.Wisdom);
+                if (current < 2 && Hero_SetAttributeValueInternal != null)
+                {
+                    Hero_SetAttributeValueInternal.Invoke(hero, new object[] { BKAttributes.Instance.Wisdom, 2 });
+                }
+            }
+            catch
+            {
+                // Reflection invocation can throw on unexpected internal
+                // changes between game versions. Fall back to the
+                // dict-mutation path so we still seed something.
+                try
+                {
+                    var charAttrs = (PropertyOwner<CharacterAttribute>)Hero_CharacterAttributes.GetValue(hero);
+                    var attrsDic = (Dictionary<CharacterAttribute, int>)PropertyOwnerAttribute_Attributes.GetValue(charAttrs);
+                    if (!attrsDic.TryGetValue(BKAttributes.Instance.Wisdom, out int v) || v < 2)
+                    {
+                        attrsDic[BKAttributes.Instance.Wisdom] = 2;
+                    }
+                }
+                catch { /* defensive */ }
             }
 
             var charSkills = (PropertyOwner<SkillObject>)Hero_HeroSkills.GetValue(hero);
