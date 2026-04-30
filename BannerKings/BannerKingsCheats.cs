@@ -133,6 +133,36 @@ namespace BannerKings
             return "Claims finished.";
         }
 
+        // Diagnostic for the BK shipping topology — connected components, bridge
+        // ports, average shortest path, diameter. Useful when designing or
+        // debugging the ShippingLane data in DefaultShippingLanes.cs.
+        [CommandLineFunctionality.CommandLineArgumentFunction("shipping_topology", "bannerkings")]
+        public static string ShippingTopology(List<string> strings)
+        {
+            BannerKings.Managers.Shipping.ShippingGraph.Invalidate();
+            return BannerKings.Managers.Shipping.ShippingGraph.Instance.BuildReport();
+        }
+
+        // Shortest path between two ports by StringId. Format:
+        //   bannerkings.shipping_path town_N1 town_V8
+        [CommandLineFunctionality.CommandLineArgumentFunction("shipping_path", "bannerkings")]
+        public static string ShippingPath(List<string> strings)
+        {
+            if (strings == null || strings.Count < 2)
+                return "Format: bannerkings.shipping_path <fromStringId> <toStringId>";
+            var from = Settlement.Find(strings[0]);
+            var to = Settlement.Find(strings[1]);
+            if (from == null) return $"Settlement not found: {strings[0]}";
+            if (to == null) return $"Settlement not found: {strings[1]}";
+
+            var graph = BannerKings.Managers.Shipping.ShippingGraph.Instance;
+            var path = graph.GetShortestPath(from, to);
+            if (path == null) return $"No path from {from.Name} to {to.Name} (different connected components or non-port settlements).";
+            float totalDistance = graph.GetShortestDistance(from, to);
+            return $"{path.Count - 1} hops, {totalDistance:n1} map units total: " +
+                   string.Join(" → ", path.Select(s => s.Name?.ToString() ?? s.StringId));
+        }
+
         [CommandLineFunctionality.CommandLineArgumentFunction("give_player_full_peerage", "bannerkings")]
         public static string GrantPeerage(List<string> strings)
         {
