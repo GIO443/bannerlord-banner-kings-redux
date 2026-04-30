@@ -917,6 +917,43 @@ decision (Nordic Thrall Law overrides the gate).
 Enact the *Manumission* demesne law. It drives slave demand to zero, and
 the population balance code converts excess slaves to serfs over time.
 
+**Q: How does the new raid capture system work? (v1.6.2)**
+When you raid a village, the *village_hostile_action* menu now shows
+two extra toggles:
+- **Captives: Take / Leave** — sticky per clan. Default Take.
+- **Disposition: Slaves / Serfs** — only shown when Take is on. Slaves
+  routes captives into the slave bucket of the receiving fief; Serfs
+  resettles them as free peasants. Default depends on your realm:
+  slaver realms (Nord with Thrall Law, Aserai, or any clan with the
+  Enslavement criminal policy at home) auto-pick Slaves; everyone else
+  auto-picks Serfs.
+
+A successful raid spawns a captive caravan that marches to your
+nearest friendly town/castle and arrives several days later. Captives
+are weighted by the source village's *cultural composition* (excluding
+your own culture), so a Vlandian raiding a Battanian village brings
+Battanian captives — not Vlandian ones. On arrival the receiving fief
+gets the bodies (slaves or serfs) and you get paid per head; serf
+payouts are 55% of slave payouts, capped by the slave-price model.
+Captive count = 1% of source village serfs × your "Raid Capture
+Fraction" (MCM, default 40%), max 80 per raid.
+
+If your raid leader is a foreigner relative to your kingdom (e.g. a
+mercenary captain), part of the captives gets skimmed for their
+private profit (default 20%, MCM-tunable). Independent mercs pocket
+the gold instantly; kingdom-affiliated foreign captains spawn a
+secondary smaller caravan to *their* clan home.
+
+Picking **Slaves** under a non-slavery realm draws -2 relation per
+10 captives with your kingdom leader and -1 influence per 10. The
+"UNLAWFUL" tooltip on the disposition line warns you. Slave price
+still applies — it's just personally costly.
+
+Disable the entire system via MCM → Banner Kings → Slavery →
+*Raid Capture System* if you want pre-1.6.2 raid behaviour back. The
+existing slave-caravan / Enslavement criminal policy / Manumission
+flow is unchanged either way.
+
 ---
 
 ## 9. Edge cases & frequent confusions

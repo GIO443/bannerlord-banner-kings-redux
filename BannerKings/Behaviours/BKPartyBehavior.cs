@@ -564,7 +564,47 @@ namespace BannerKings.Behaviours
                     }
                 }
 
-                if (component.SlaveCaravan)
+                if (component.IsRaidCaptiveCaravan)
+                {
+                    // Group surviving prisoners by their original culture so the
+                    // receiving fief credits the right CultureData buckets.
+                    var byCulture = new Dictionary<CultureObject, int>();
+                    int totalDelivered = 0;
+                    foreach (var elem in party.PrisonRoster.GetTroopRoster())
+                    {
+                        if (elem.Character == null || elem.Character.IsHero || elem.Number <= 0) continue;
+                        var culture = elem.Character.Culture;
+                        if (culture == null) continue;
+                        if (byCulture.ContainsKey(culture)) byCulture[culture] += elem.Number;
+                        else byCulture[culture] = elem.Number;
+                        totalDelivered += elem.Number;
+                    }
+
+                    bool asSlaves = component.Disposition == Behaviours.Raids.CaptiveDisposition.Slaves;
+                    data.AbsorbCaptives(byCulture, asSlaves);
+
+                    if (totalDelivered > 0 && component.CaptorHero != null)
+                    {
+                        var capModel = new BannerKings.Models.BKModels.BKRaidCaptureModel();
+                        int payout = totalDelivered * (asSlaves
+                            ? capModel.SlavePayoutPerHead(target)
+                            : capModel.SerfPayoutPerHead(target));
+                        if (payout > 0)
+                        {
+                            GiveGoldAction.ApplyBetweenCharacters(null, component.CaptorHero, payout, false);
+                            if (component.CaptorHero == Hero.MainHero)
+                            {
+                                InformationManager.DisplayMessage(new InformationMessage(
+                                    new TextObject("{=BKRC_PayoutMsg}{COUNT} captives delivered to {DEST}: {GOLD}{GOLD_ICON}")
+                                    .SetTextVariable("COUNT", totalDelivered)
+                                    .SetTextVariable("DEST", target.Name)
+                                    .SetTextVariable("GOLD", payout)
+                                    .ToString()));
+                            }
+                        }
+                    }
+                }
+                else if (component.SlaveCaravan)
                 {
                     var slaves = Utils.Helpers.GetRosterCount(party.PrisonRoster);
                     data.UpdatePopType(PopType.Slaves, slaves);

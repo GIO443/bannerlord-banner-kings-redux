@@ -1,5 +1,6 @@
 ﻿using BannerKings.Behaviours;
 using BannerKings.Behaviours.Criminality;
+using BannerKings.Behaviours.Raids;
 using BannerKings.Behaviours.Diplomacy;
 using BannerKings.Behaviours.Feasts;
 using BannerKings.Behaviours.Marriage;
@@ -133,6 +134,7 @@ namespace BannerKings
             campaignStarter.AddBehavior(new BKCaravansBehavior());
             campaignStarter.AddBehavior(new BKMercenaryCompanyBehavior());
             campaignStarter.AddBehavior(new BKAIVisitSettlementBehavior());
+            campaignStarter.AddBehavior(new BKRaidCaptureBehavior());
             //campaignStarter.RemoveBehavior(campaignStarter.CampaignBehaviors.First(x => x.GetType() == typeof(CaravansCampaignBehavior)));
 
 

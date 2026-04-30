@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using BannerKings.Behaviours.Raids;
 using TaleWorlds.CampaignSystem;
 using TaleWorlds.CampaignSystem.Actions;
 using TaleWorlds.CampaignSystem.Extensions;
@@ -25,6 +26,18 @@ namespace BannerKings.Components
             Trading = trading;
         }
 
+        public PopulationPartyComponent(Settlement target, Settlement origin, string name,
+            CaptiveDisposition disposition, Hero captor) : base(origin, name)
+        {
+            TargetSettlement = target;
+            SlaveCaravan = false;
+            PopulationType = PopType.None;
+            Trading = false;
+            IsRaidCaptiveCaravan = true;
+            Disposition = disposition;
+            CaptorHero = captor;
+        }
+
         [SaveableProperty(3)] public Settlement TargetSettlement { get; protected set; }
 
         [SaveableProperty(4)] public bool SlaveCaravan { get; private set; }
@@ -32,6 +45,12 @@ namespace BannerKings.Components
         [SaveableProperty(5)] public PopType PopulationType { get; private set; }
 
         [SaveableProperty(6)] public bool Trading { get; private set; }
+
+        [SaveableProperty(7)] public bool IsRaidCaptiveCaravan { get; private set; }
+
+        [SaveableProperty(8)] public CaptiveDisposition Disposition { get; private set; }
+
+        [SaveableProperty(9)] public Hero CaptorHero { get; private set; }
 
         public override Banner GetDefaultComponentBanner() => base.GetDefaultComponentBanner();
 
@@ -68,15 +87,102 @@ namespace BannerKings.Components
 
         public static void CreateSlaveCaravan(Settlement origin, Settlement target, int slaves)
         {
-            var caravan = CreateParty("slavecaravan_" + origin.Name, origin, 
-                true, 
-                target, 
-                "{=cCzJ9Nk6}Slave Caravan from {ORIGIN}", 
+            var caravan = CreateParty("slavecaravan_" + origin.Name, origin,
+                true,
+                target,
+                "{=cCzJ9Nk6}Slave Caravan from {ORIGIN}",
                 PopType.None);
             caravan.AddPrisoner(CharacterObject.All.FirstOrDefault(x => x.StringId == "looter"), slaves);
             caravan.InitializeMobilePartyAtPosition(origin.Culture.EliteCaravanPartyTemplates.GetRandomElement(), origin.GatePosition);
             GiveMounts(ref caravan);
             GiveFood(ref caravan);
+        }
+
+        // Spawns a raid-capture caravan: small culture-typed escort, prisoner
+        // roster filled with villager_<culture> per cohort entry. Disposition
+        // and captor are persisted on the component so caravan-arrival logic
+        // routes to the right population bucket and pays the right hero.
+        public static MobileParty CreateCaptiveCaravan(
+            Settlement origin, Settlement target,
+            IEnumerable<KeyValuePair<CultureObject, int>> captivesByCulture,
+            Hero captor, CaptiveDisposition disposition,
+            int escortCount, int escortTierCap)
+        {
+            if (origin == null || target == null) return null;
+
+            var nameTpl = disposition == CaptiveDisposition.Slaves
+                ? "{=BKRC_SlaveCaravan}Slave Caravan from {ORIGIN}"
+                : "{=BKRC_SerfCaravan}Resettlement Caravan from {ORIGIN}";
+
+            var party = MobileParty.CreateParty("captivecaravan_" + origin.Name + "_" + target.Name,
+                new PopulationPartyComponent(target, origin, nameTpl, disposition, captor));
+            party.SetPartyUsedByQuest(true);
+            party.Party.SetVisualAsDirty();
+            party.Ai.SetInitiative(0f, 1f, float.MaxValue);
+            party.ShouldJoinPlayerBattles = false;
+            party.Aggressiveness = 0f;
+            party.Ai.DisableAi();
+
+            var memberRoster = new TroopRoster(party.Party);
+            var prisonerRoster = new TroopRoster(party.Party);
+
+            // Escort: cap-tier troops sourced from origin culture's militia template.
+            var militia = origin.Culture?.MilitiaPartyTemplate;
+            int remaining = escortCount;
+            if (militia != null)
+            {
+                foreach (var stack in militia.Stacks)
+                {
+                    if (stack.Character == null) continue;
+                    if (stack.Character.Tier > escortTierCap) continue;
+                    int n = Math.Min(remaining, GetCountToAdd(escortCount, stack.Character.Tier, stack.Character.IsRanged));
+                    if (n <= 0) continue;
+                    memberRoster.AddToCounts(stack.Character, n);
+                    remaining -= n;
+                    if (remaining <= 0) break;
+                }
+            }
+            if (memberRoster.TotalManCount == 0)
+            {
+                CharacterObject fallback = null;
+                if (militia != null)
+                {
+                    foreach (var stack in militia.Stacks)
+                    {
+                        if (stack.Character != null && stack.Character.Tier <= escortTierCap)
+                        {
+                            fallback = stack.Character;
+                            break;
+                        }
+                    }
+                }
+                if (fallback == null) fallback = CharacterObject.All.FirstOrDefault(x => x.StringId == "looter");
+                if (fallback != null) memberRoster.AddToCounts(fallback, escortCount);
+            }
+
+            // Captives: villager_<culture> per cohort entry; falls back to
+            // origin culture's villager, then looter, if a culture has no template.
+            foreach (var pair in captivesByCulture)
+            {
+                if (pair.Key == null || pair.Value <= 0) continue;
+                var villager = MBObjectManager.Instance.GetObjectTypeList<CharacterObject>()
+                    .FirstOrDefault(x => x.StringId == "villager_" + pair.Key.StringId);
+                if (villager == null && origin.Culture != null)
+                {
+                    villager = MBObjectManager.Instance.GetObjectTypeList<CharacterObject>()
+                        .FirstOrDefault(x => x.StringId == "villager_" + origin.Culture.StringId);
+                }
+                if (villager == null)
+                {
+                    villager = CharacterObject.All.FirstOrDefault(x => x.StringId == "looter");
+                }
+                if (villager != null) prisonerRoster.AddToCounts(villager, pair.Value);
+            }
+
+            party.InitializeMobilePartyAroundPosition(memberRoster, prisonerRoster, origin.GatePosition, 1f);
+            party.SetMoveGoToSettlement(target, MobileParty.NavigationType.All, false);
+            GiveFood(ref party);
+            return party;
         }
 
         public static MobileParty CreateTravellerParty(string id, Settlement origin, Settlement target, string name, int count,

@@ -5,6 +5,7 @@ using BannerKings.Behaviours.Diplomacy.Groups;
 using BannerKings.Behaviours.Diplomacy.Groups.Demands;
 using BannerKings.Behaviours.Diplomacy.Wars;
 using BannerKings.Behaviours.Feasts;
+using BannerKings.Behaviours.Raids;
 using BannerKings.Behaviours.Marriage;
 using BannerKings.Behaviours.PartyNeeds;
 using BannerKings.Behaviours.Mercenary;
@@ -226,6 +227,11 @@ namespace BannerKings
             AddClassDefinition(typeof(MercenaryPrivilege), 1001);
             AddClassDefinition(typeof(CustomTroop), 1002);
             AddClassDefinition(typeof(CustomTroopPreset), 1003);
+
+            AddClassDefinition(typeof(RaidCapturePolicy), 1100);
+            AddClassDefinition(typeof(RaidCapturePolicyManager), 1101);
+            AddEnumDefinition(typeof(RaidCaptureMode), 1102);
+            AddEnumDefinition(typeof(CaptiveDisposition), 1103);
         }
 
         protected override void DefineContainerDefinitions()
@@ -302,6 +308,8 @@ namespace BannerKings
             ConstructContainerDefinition(typeof(Dictionary<MobileParty, BKCaravansBehavior.PlayerInteraction>));
             ConstructContainerDefinition(typeof(List<BKCaravansBehavior.TradeActionLog>));
             ConstructContainerDefinition(typeof(Dictionary<MobileParty, List<BKCaravansBehavior.TradeActionLog>>));
+
+            ConstructContainerDefinition(typeof(Dictionary<Clan, RaidCapturePolicy>));
         }
     }
 }

@@ -301,6 +301,32 @@ namespace BannerKings.Managers.Populations
 
         public void UpdatePopFromSoldiers(CharacterObject character, int count) => MilitaryData.AddManpowerFromSoldiers(this, count, character);    
 
+        // Absorbs raid-capture caravan arrivals as either Slaves or Serfs while
+        // preserving each captive's original culture in CultureData. The
+        // CultureData side renormalizes assimilation immediately and bumps
+        // acceptance proportionally so the next daily tick does not erase the
+        // shift. Source village damage is handled entirely by vanilla raid
+        // mechanics; this method only affects the receiving fief.
+        public void AbsorbCaptives(IEnumerable<KeyValuePair<CultureObject, int>> captivesByCulture,
+            bool asSlaves)
+        {
+            if (captivesByCulture == null) return;
+            var bucket = asSlaves ? PopType.Slaves : PopType.Serfs;
+            int totalBefore = TotalPop;
+            int runningTotal = totalBefore;
+
+            foreach (var pair in captivesByCulture)
+            {
+                if (pair.Key == null || pair.Value <= 0) continue;
+                UpdatePopType(bucket, pair.Value);
+                if (cultureData != null)
+                {
+                    cultureData.AbsorbForeignCohort(pair.Key, pair.Value, runningTotal);
+                }
+                runningTotal += pair.Value;
+            }
+        }
+
         public void UpdatePopType(PopType type, int count, bool stateSlaves = false)
         {
             if (type != PopType.None)

@@ -253,5 +253,20 @@ namespace BannerKings.Settings
             HintText = "{=!}Affects the Charm experience gain from relationship changes. By default, Charm is too easy to gain. Vanilla is 100%. Default: 50%.")]
         [SettingPropertyGroup("{=!}Diplomacy")]
         public float CharmXpMultiplier { get; set; } = 0.5f;
+
+        [SettingProperty("{=!}Raid Capture System", RequireRestart = false,
+            HintText = "{=!}Enable the new raid capture system: village raids produce captives that ship to the nearest friendly fief and arrive as Slaves (slaver realms) or Serfs (resettlement). Captives keep their original culture. Source village damage is unchanged. When OFF, only the existing BK slavery system runs (Enslavement criminal policy + slave caravans). Default: true.")]
+        [SettingPropertyGroup("{=!}Slavery")]
+        public bool EnableRaidCaptureSystem { get; set; } = true;
+
+        [SettingPropertyFloatingInteger("{=!}Raid Capture Fraction", minValue: 0f, maxValue: 1f, "#0%", RequireRestart = false,
+            HintText = "{=!}Share of raid-displaced population captured by the raiding party. Higher values produce larger caravans. Source village damage is unchanged regardless. Default: 40%.")]
+        [SettingPropertyGroup("{=!}Slavery")]
+        public float RaidCaptureFraction { get; set; } = 0.4f;
+
+        [SettingPropertyFloatingInteger("{=!}Foreign Mercenary Skim", minValue: 0f, maxValue: 0.5f, "#0%", RequireRestart = false,
+            HintText = "{=!}When the raid leader's culture differs from the employing kingdom's, this share of captives is skimmed for the captain's private profit. Independent mercenaries pocket the gold instantly; kingdom-affiliated foreign captains spawn a smaller secondary caravan to their clan home. Default: 20%.")]
+        [SettingPropertyGroup("{=!}Slavery")]
+        public float ForeignMercSkim { get; set; } = 0.2f;
     }
 }

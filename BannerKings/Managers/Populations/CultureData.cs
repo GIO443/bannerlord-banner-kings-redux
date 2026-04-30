@@ -5,6 +5,7 @@ using System.Linq;
 using TaleWorlds.CampaignSystem;
 using TaleWorlds.CampaignSystem.Settlements;
 using TaleWorlds.Core;
+using TaleWorlds.Library;
 using TaleWorlds.SaveSystem;
 
 namespace BannerKings.Managers.Populations
@@ -110,6 +111,61 @@ namespace BannerKings.Managers.Populations
             {
                 dataClass.Acceptance = acceptance;
                 dataClass.Assimilation = assim;
+            }
+        }
+
+        // Renormalize-on-insert for an arriving foreign cohort.
+        //
+        // Why both assimilation rewrite AND acceptance bump:
+        // CultureDataClass.Tick recomputes assimilation from the weight model on
+        // every daily tick, so a raw assimilation write decays in one day. The
+        // acceptance bump persists and feeds the weight model's Acceptance*50
+        // term, so the next-tick recompute lands at a similarly-shifted state.
+        // The immediate renormalize gives the visible "natives shrink on arrival"
+        // effect; the acceptance bump is what makes the cultural imprint durable.
+        public void AbsorbForeignCohort(CultureObject culture, int captiveCount, int existingTotalPop)
+        {
+            if (culture == null || captiveCount <= 0) return;
+
+            int totalAfter = MathF.Max(1, existingTotalPop + captiveCount);
+            float arrivalFraction = (float)captiveCount / totalAfter;
+            arrivalFraction = MBMath.ClampFloat(arrivalFraction, 0f, 1f);
+            float scale = 1f - arrivalFraction;
+
+            // Step 1: renormalize existing assimilation downward to make room.
+            foreach (var data in cultures)
+            {
+                if (data.Culture == culture) continue;
+                data.Assimilation = data.Assimilation * scale;
+            }
+
+            // Step 2: insert or grow the imported culture's assimilation share.
+            CultureDataClass imported = null;
+            foreach (var data in cultures)
+            {
+                if (data.Culture == culture) { imported = data; break; }
+            }
+            if (imported == null)
+            {
+                cultures.Add(new CultureDataClass(culture, arrivalFraction, 0.20f));
+            }
+            else
+            {
+                imported.Assimilation = imported.Assimilation * scale + arrivalFraction;
+            }
+
+            // Step 3: bump acceptance so the next-tick weight recompute carries
+            // the shift forward instead of erasing it. Small per-caravan bump,
+            // capped well below dominant-culture levels.
+            CultureDataClass importedAfter = null;
+            foreach (var data in cultures)
+            {
+                if (data.Culture == culture) { importedAfter = data; break; }
+            }
+            if (importedAfter != null)
+            {
+                float bump = MathF.Min(0.05f, arrivalFraction);
+                importedAfter.Acceptance = MathF.Min(0.60f, importedAfter.Acceptance + bump);
             }
         }
 
