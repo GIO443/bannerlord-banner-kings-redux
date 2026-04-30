@@ -65,6 +65,13 @@ own naval AI and are left alone. Earlier builds disembarked everything
 on port arrival, which left convoys in land mode while still
 geometrically on water and stranded them on the coast.
 
+**No more disembark+immediately-reembark cycle (v1.6.4.0).** When an
+AI lord at sea entered an intermediate port whose lane reached its
+target, the previous logic disembarked them, then the lord branch
+immediately re-embarked them — a wasteful round-trip on every
+intermediate port that could produce visible flicker. Now stays at
+sea and just refreshes the move target.
+
 ## Caravan auto-board and ticker
 
 Caravan and player sea travel uses Banner Kings' own ticker (a
@@ -72,6 +79,22 @@ behaviour-level hourly check rather than a per-party tick). This means
 caravans that suspend themselves mid-voyage still get re-checked every
 hour and arrive on schedule — earlier builds lost the per-party tick once
 the caravan deactivated, and the caravan would sit on the coast forever.
+
+**NavalDLC convoys are now hands-off (v1.6.4.0).** Earlier builds
+treated NavalDLC convoys (`IsCaravan=true`, already at sea via
+NavalDLC's own AI) as candidates for BK's ship-travel system, which
+deactivated them mid-ocean and left them frozen. BK now skips any
+party that's already at sea — NavalDLC keeps managing its own
+convoys. The signature in `dump_caravans` to look for if you suspect a
+stuck convoy: `IsActive=False / AtSea=True / AiDisabled=True / BKTracked=false`.
+
+**Mid-session orphan rescue (v1.6.4.0).** A daily tick scans for
+caravans with the BK shipping-limbo signature (inactive, AI disabled,
+not in BK's sailing dict) and reactivates them. Previously the rescue
+only ran on save load, so a caravan that went stuck during a session
+stayed stuck until next save/load. Save-load itself no longer
+cancels in-progress voyages either — the load-time rescue now skips
+caravans legitimately tracked in the sailing dict.
 
 ## Adaptive shipping costs (v1.6.1)
 

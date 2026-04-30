@@ -98,6 +98,8 @@ three new lines appear above the raid options:
 
 **Village anchoring (v1.6.3.1).** The graph contains only towns and castles, not villages. When a raid completes at a village (which is always the case), the captive caravan first walks to the *nearest safe* graph fief — closest by distance, weighted by risk so a hostile-bordered fief loses to a slightly farther peaceful one and sieged fiefs are skipped. Once it reaches that anchor, normal graph hops take over. This preserves risk-aware routing for the full journey instead of dropping to vanilla pathfind for the whole trip.
 
+**Hop routing actually works now (v1.6.4.0).** Two latent bugs were defeating the hop chain on v1.6.3.x: the population-party hourly tick clobbered the router's intermediate move-target on every tick (sending captive caravans straight to the final destination via vanilla pathfind), and AI-disabled captive caravans never left intermediate settlements after entering them (`SetMoveGoToSettlement` alone doesn't trigger leave for AI-disabled parties). Both fixed — captive caravans now visibly hop through graph nodes, and the destination toggle (Most Profitable, etc.) is actually meaningful.
+
 **Captive count (v1.6.3.1).** Two limiters, whichever is lower:
 
 - **Village pool**: serfs × 10% × *Raid Capture Fraction* (MCM, default 40%) — so a 1,000-serf village offers up to 40 captives.
