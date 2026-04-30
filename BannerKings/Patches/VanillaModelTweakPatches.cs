@@ -1284,20 +1284,17 @@ namespace BannerKings.Patches
             }
         }
 
-        // --- BKLearningModel (kept for AlternateLeveling XP curve + helpers) -------------
-        [HarmonyPatch(typeof(DefaultCharacterDevelopmentModel))]
-        internal static class BKLearningTweakPatches
-        {
-            [HarmonyPostfix]
-            [HarmonyPatch(nameof(DefaultCharacterDevelopmentModel.CalculateLearningRate), new[] {
-                typeof(IReadOnlyPropertyOwner<CharacterAttribute>), typeof(int), typeof(int),
-                typeof(SkillObject), typeof(bool)
-            })]
-            private static void CalculateLearningRatePostfix(ref ExplainedNumber __result)
-            {
-                __result.LimitMin(0.05f);
-            }
-        }
+        // --- BKLearningModel (formerly clamped vanilla learning rate to >= 0.05) ---------
+        // The LimitMin(0.05) postfix was removed. It survived from an old AlternateLeveling
+        // experiment and kept every skill on every hero gaining at least 5% of base XP
+        // forever — past the learning limit, vanilla normally tapers learning rate toward
+        // zero, but the floor short-circuited that decay. Combined with BK's per-day XP
+        // grants (lifestyle ticks, council philosopher, language/book reading), that
+        // floor produced visibly runaway skill leveling in late campaigns. Removing it
+        // restores vanilla decay on every skill the player isn't actively training.
+        // BK's own CalculateLearningRate(Hero, ...) helper still uses LimitMin internally
+        // for its custom learning-curve callers; removing the global postfix doesn't
+        // affect those paths.
 
         // --- BKProsperityModel (kept for CalculateProsperityChange) ----------------------
         [HarmonyPatch(typeof(DefaultSettlementProsperityModel))]

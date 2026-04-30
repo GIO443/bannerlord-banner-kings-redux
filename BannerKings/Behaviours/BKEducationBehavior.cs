@@ -162,7 +162,12 @@ namespace BannerKings.Behaviours
                         var councilMember = council.GetCouncilPosition(DefaultCouncilPositions.Instance.Philosopher);
                         if (councilMember != null && councilMember.Member != null)
                         {
-                            var skill = 5 * councilMember.Competence.ResultNumber;
+                            // Daily Scholarship XP from a court philosopher.
+                            // Capped at 15 XP/day so a competence-stacked
+                            // philosopher (high relations, perks, traits)
+                            // can't push every clan member's Scholarship to
+                            // the cap purely from the council bonus.
+                            var skill = MathF.Min(15f, 5f * councilMember.Competence.ResultNumber);
                             hero.AddSkillXp(BKSkills.Instance.Scholarship, (int)skill);
                         }
                     }
@@ -566,17 +571,26 @@ namespace BannerKings.Behaviours
         [HarmonyPatch(typeof(Attributes), "All", MethodType.Getter)]
         internal class AttributesPatch
         {
-            // Hides BK's Wisdom attribute from vanilla iterations of Attributes.All.
-            // Must NEVER throw — this getter is called from inside vanilla VM
-            // constructors (e.g., CharacterCreationGainedPropertiesVM .ctor), and a
-            // throw here propagates up through Activator.CreateInstance as a
-            // TargetInvocationException that crashes character-creation stage activation.
+            // Hides BK's Wisdom attribute from vanilla iterations of Attributes.All
+            // ONLY during character creation. CharacterCreationGainedPropertiesVM
+            // and similar VMs assume the 6 vanilla attributes only — exposing
+            // Wisdom there crashes stage activation through Activator.CreateInstance.
+            // Once the campaign is fully started (Campaign.Current.GameStarted),
+            // we let vanilla return the full list so character developer / encyclopedia
+            // / hero-properties screens render Wisdom alongside the other attributes.
+            // Must NEVER throw — wrapped in try/catch with a vanilla fallthrough.
             private static bool Prefix(ref MBReadOnlyList<CharacterAttribute> __result)
             {
                 try
                 {
+                    var campaign = TaleWorlds.CampaignSystem.Campaign.Current;
+                    // Game started → return vanilla list (which already includes Wisdom
+                    // because BKAttributes.Initialize registered it). UI sees it.
+                    if (campaign != null && campaign.GameStarted) return true;
+
+                    // Pre-game-start (character creation, intro flow): hide Wisdom.
                     var all = BKAttributes.AllAttributes;
-                    if (all == null) return true; // fall through to vanilla
+                    if (all == null) return true;
                     var wisdom = BKAttributes.Instance?.Wisdom;
                     var list = new List<CharacterAttribute>(all);
                     if (wisdom != null) list.Remove(wisdom);
@@ -585,7 +599,7 @@ namespace BannerKings.Behaviours
                 }
                 catch
                 {
-                    return true; // any failure -> let vanilla return its own list
+                    return true;
                 }
             }
         }

@@ -275,6 +275,31 @@ then any unmet-requirement reasons last. If they appear cut off, that's
 vanilla truncating long disabled-entry tooltips; the bonus block is always
 the first thing in the string so it survives the truncation.
 
+**Q: My skills are leveling way too fast — bug?**
+*Was* a bug. A leftover Harmony postfix from an old AlternateLeveling
+experiment was clamping every vanilla skill's learning rate to a 5%
+floor — the value vanilla normally tapers toward zero past your skill's
+learning limit. With the floor in place, every skill kept gaining 5% of
+base XP forever, so combat skills, social skills, everything kept
+ticking past their natural caps. Removed in v1.6.4.4. Skills past their
+learning limit now decay normally, and the per-day Scholarship XP from
+language/book reading was also rescaled (50/day → 10/day, 2000 on
+completion → 500). Existing high skills won't be reset; only future
+gains use the corrected curve.
+
+**Q: Where is the Wisdom attribute? It's mentioned in tooltips but I
+can't find it.**
+*Was* a bug. BK registers a 7th attribute (Wisdom) for use with the
+learning model, but a Harmony patch on `Attributes.All` was hiding it
+from every UI screen — that patch existed to prevent vanilla character
+creation from crashing on the extra attribute, but it was applying
+post-game-load too. Now scoped to character-creation phase only:
+during creation Wisdom stays hidden (so vanilla doesn't crash), and
+once your campaign starts you should see Wisdom alongside the six
+vanilla attributes in the character developer screen and on hero
+pages. Each hero starts at Wisdom 2; bonus points come from the
+Theology *Religious Teachings* perk on a parent.
+
 ## Diplomacy & demands
 
 **Q: An interest group is demanding something — what happens if I refuse?**

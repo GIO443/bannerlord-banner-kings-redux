@@ -236,17 +236,25 @@ namespace BannerKings.Managers.Education
                             .ToString()));
                 }
 
-                hero.AddSkillXp(BKSkills.Instance.Scholarship, 2000);
+                // Completion bonuses scaled down from 2000 → 500: with the
+                // universal learning-rate floor removed, vanilla decay caps how
+                // quickly the bonus can actually translate into skill levels,
+                // but 500 still gives a noticeable jump for finishing a language.
+                hero.AddSkillXp(BKSkills.Instance.Scholarship, 500);
 
                 Religion religion = BannerKingsConfig.Instance.ReligionsManager.GetHeroReligion(hero);
                 if (religion != null && religion.HasDoctrine(DefaultDoctrines.Instance.Esotericism))
                 {
                     BannerKingsConfig.Instance.ReligionsManager.AddPiety(hero, 100, true);
-                    hero.AddSkillXp(BKSkills.Instance.Theology, 500);
+                    hero.AddSkillXp(BKSkills.Instance.Theology, 150);
                 }
             }
 
-            hero.AddSkillXp(BKSkills.Instance.Scholarship, 50);
+            // Daily fluency-progress XP scaled down from 50 → 10: a hero
+            // actively learning across multiple languages and reading a book
+            // simultaneously was banking 100+ Scholarship XP/day from these
+            // ticks alone, which compounded over a year-long campaign.
+            hero.AddSkillXp(BKSkills.Instance.Scholarship, 10);
         }
 
         public void GainBookReading(BookType book, float rate)
@@ -269,17 +277,17 @@ namespace BannerKings.Managers.Education
                             .ToString()));
                 }
 
-                hero.AddSkillXp(BKSkills.Instance.Scholarship, 2000);
+                hero.AddSkillXp(BKSkills.Instance.Scholarship, 500);
 
                 Religion religion = BannerKingsConfig.Instance.ReligionsManager.GetHeroReligion(hero);
                 if (religion != null && religion.HasDoctrine(DefaultDoctrines.Instance.Esotericism))
                 {
                     BannerKingsConfig.Instance.ReligionsManager.AddPiety(hero, 100, true);
-                    hero.AddSkillXp(BKSkills.Instance.Theology, 500);
+                    hero.AddSkillXp(BKSkills.Instance.Theology, 150);
                 }
             }
 
-            hero.AddSkillXp(BKSkills.Instance.Scholarship, 50);
+            hero.AddSkillXp(BKSkills.Instance.Scholarship, 10);
         }
 
         public float ResearchProgress
@@ -296,8 +304,8 @@ namespace BannerKings.Managers.Education
         public void GainResearch(float progress)
         {
             Research.AddProgress(progress);
-            hero.AddSkillXp(BKSkills.Instance.Scholarship, 50);
-            hero.AddSkillXp(Research.ResearchSkill, 25);
+            hero.AddSkillXp(BKSkills.Instance.Scholarship, 10);
+            hero.AddSkillXp(Research.ResearchSkill, 5);
         }
 
         public void SetResearch(Innovation i)
