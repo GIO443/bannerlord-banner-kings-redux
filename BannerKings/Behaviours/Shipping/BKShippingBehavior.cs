@@ -69,6 +69,7 @@ namespace BannerKings.Behaviours.Shipping
             // limbo signature (IsActive=false / Ai disabled / not in sailing
             // dict) and reactivates them so vanilla AI takes over.
             CampaignEvents.DailyTickEvent.AddNonSerializedListener(this, RescueOrphanedCaravans);
+            CampaignEvents.DailyTickEvent.AddNonSerializedListener(this, RescueBoatsOnLand);
             // Cleanup: remove destroyed parties from the sailing dict so
             // TickSailing doesn't try to FinishTravel on a dead party.
             CampaignEvents.MobilePartyDestroyed.AddNonSerializedListener(this, OnMobilePartyDestroyed);
@@ -115,6 +116,16 @@ namespace BannerKings.Behaviours.Shipping
             CampaignEvents.OnGameLoadFinishedEvent.AddNonSerializedListener(this,
                 () =>
                 {
+                    // Boat-on-land rescue. v1.6.4.9 fixed the *source* (BK's
+                    // hourly port-redirect was hijacking at-sea NavalDLC
+                    // convoys with NavigationType.All), but parties that
+                    // accumulated the bad state on prior versions stay
+                    // wrong on load: IsCurrentlyAtSea=true with their
+                    // physical position over land terrain. Sweep them
+                    // here — flip the at-sea flag off so they fall back
+                    // into vanilla land mode and walk normally.
+                    RescueBoatsOnLand();
+
                     // Rescue caravans stuck in BK shipping limbo from older
                     // builds: IsActive=false with no entry in the sailing
                     // dict (no path to FinishTravel, no TickSailing pickup).
@@ -651,6 +662,58 @@ namespace BannerKings.Behaviours.Shipping
         {
             if (party == null) return;
             if (sailing.ContainsKey(party)) sailing.Remove(party);
+        }
+
+        // Detects parties left in the "boat sprite on land terrain" state by
+        // BK's pre-v1.6.4.9 port-redirect hijacking NavalDLC convoys. Flips
+        // IsCurrentlyAtSea off so they fall back into vanilla land mode.
+        // Cheap to run: terrain lookup is one MapSceneWrapper call per
+        // candidate, and we filter to parties already flagged at-sea before
+        // reading terrain so the sweep is bounded by the small number of
+        // at-sea parties on the map.
+        private void RescueBoatsOnLand()
+        {
+            try
+            {
+                var wrapper = TaleWorlds.CampaignSystem.Campaign.Current?.MapSceneWrapper;
+                if (wrapper == null) return;
+
+                foreach (var party in MobileParty.All)
+                {
+                    if (party == null) continue;
+                    if (!party.IsCurrentlyAtSea) continue;
+                    if (party == MobileParty.MainParty) continue;
+
+                    TerrainType terrain;
+                    try { terrain = wrapper.GetFaceTerrainType(party.CurrentNavigationFace); }
+                    catch { continue; }
+
+                    // Navigable-water terrains under which IsCurrentlyAtSea is
+                    // legitimate. Anything else (Plain, Forest, Mountain,
+                    // Beach, etc.) means the party is over land while flagged
+                    // at-sea — broken state, flip it off.
+                    if (IsNavigableSea(terrain)) continue;
+
+                    try
+                    {
+                        TaleWorlds.Library.Debug.Print(
+                            $"[BK] Boat-on-land rescue: clearing IsCurrentlyAtSea on {party.Name} (terrain={terrain})",
+                            color: TaleWorlds.Library.Debug.DebugColor.Yellow);
+                        party.IsCurrentlyAtSea = false;
+                    }
+                    catch { /* defensive */ }
+                }
+            }
+            catch { /* never throw out of a daily tick or load handler */ }
+        }
+
+        private static bool IsNavigableSea(TerrainType t)
+        {
+            return t == TerrainType.Water
+                || t == TerrainType.CoastalSea
+                || t == TerrainType.OpenSea
+                || t == TerrainType.Lake
+                || t == TerrainType.River;
         }
 
         private void TickParty(MobileParty party)
