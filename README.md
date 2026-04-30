@@ -4,9 +4,14 @@
 
 ## 📥 Download
 
-Grab the latest release zip from the GitHub Releases page:
+Two parallel release lines are maintained — pick whichever fits your taste:
 
-### **➡️ [github.com/GIO443/bannerlord-banner-kings-redux/releases/latest](https://github.com/GIO443/bannerlord-banner-kings-redux/releases/latest)**
+| Line | What's different | Latest |
+|---|---|---|
+| **🟢 1.6.x** *(recommended)* | Graph-driven caravan shipping + adaptive risk weighting (war / siege / banditry adjusts routes and freight prices in real time). | [Latest 1.6.x release](https://github.com/GIO443/bannerlord-banner-kings-redux/releases/latest) |
+| **🔵 1.5.x** *(stable maintenance)* | Original lane-overlap shipping — single-lane heuristic, no risk weighting. Predictable, unchanged trade flow. | [v1.5.8.0](https://github.com/GIO443/bannerlord-banner-kings-redux/releases/tag/v1.5.8.0) (branch [`release/1.5.x`](https://github.com/GIO443/bannerlord-banner-kings-redux/tree/release/1.5.x)) |
+
+Bug fixes that don't depend on the graph migration land on **both** lines. The full release list is on the [Releases page](https://github.com/GIO443/bannerlord-banner-kings-redux/releases).
 
 The release zip is the same packaged build the Nexus page used to host —
 extract it into your Bannerlord install (see *Installing* below). The
