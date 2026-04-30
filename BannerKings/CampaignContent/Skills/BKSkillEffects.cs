@@ -29,11 +29,17 @@ namespace BannerKings.CampaignContent.Skills
 
         public override void Initialize()
         {
-            DefaultSkillEffects.CharmRelationBonus.Initialize(new TextObject("{=c5dsio8Q}Relation increase with NPCs +{a0}%"),
-                DefaultSkills.Charm,
-                PartyRole.Personal,
-                0.2f,
-                EffectIncrementType.AddFactor);
+            // Skill-effect rates use AddFactor where the displayed bonus is
+            // (rate × skillLevel × 100)%. Vanilla skill effects use rates of
+            // ~0.005 per level, which gives ~50% bonus at skill 100. The values
+            // below were originally 0.1–0.2 — that produces 1000–2000% at
+            // skill 100 (and was visibly broken in tooltips, e.g. +615%
+            // production efficiency at Smithing 41). Rates rebalanced to a
+            // scale where a focused skill at 100 grants ~30–50% bonus, in
+            // line with vanilla skill effects.
+            //
+            // CharmRelationBonus is a vanilla skill effect — we do NOT
+            // re-initialize it; vanilla's own rate stands.
 
             PietyGain = Game.Current.ObjectManager.RegisterPresumedObject(new SkillEffect("PietyGain"));
             PietyGain.Initialize(new TextObject("{=3MDmvuVf}Daily piety gain: +{a0}"),
@@ -46,63 +52,63 @@ namespace BannerKings.CampaignContent.Skills
             FaithPresence.Initialize(new TextObject("{=vTyRD6cM}Faith presence in fiefs: +{a0}%"),
                 BKSkills.Instance.Theology,
                 PartyRole.Governor,
-                0.1f,
+                0.003f,
                 EffectIncrementType.AddFactor);
 
             SpouseScore = Game.Current.ObjectManager.RegisterPresumedObject(new SkillEffect("SpouseScore"));
             SpouseScore.Initialize(new TextObject("{=Jh0vPbET}Spouse score improvement (half for other clan members): +{a0}%"),
                 BKSkills.Instance.Lordship,
                 PartyRole.Personal,
-                0.1f,
+                0.003f,
                 EffectIncrementType.AddFactor);
 
             Legitimacy = Game.Current.ObjectManager.RegisterPresumedObject(new SkillEffect("Legitimacy"));
             Legitimacy.Initialize(new TextObject("{=Ojp1qZdC}Legitimacy (as ruler): +{a0}%"),
                 BKSkills.Instance.Lordship,
                 PartyRole.Personal,
-                0.1f,
+                0.003f,
                 EffectIncrementType.AddFactor);
 
             DemesneLimit = Game.Current.ObjectManager.RegisterPresumedObject(new SkillEffect("DemesneLimit"));
             DemesneLimit.Initialize(new TextObject("{=yEbrBMJC}Demesne limit: +{a0}%"),
                 BKSkills.Instance.Lordship,
                 PartyRole.ClanLeader,
-                0.1f,
+                0.003f,
                 EffectIncrementType.AddFactor);
 
             VassalLimit = Game.Current.ObjectManager.RegisterPresumedObject(new SkillEffect("VassalLimit"));
             VassalLimit.Initialize(new TextObject("{=UkiSUHE6}Vassal limit: +{a0}%"),
                 BKSkills.Instance.Lordship,
                 PartyRole.ClanLeader,
-                0.1f,
+                0.003f,
                 EffectIncrementType.AddFactor);
 
             LanguageSpeed = Game.Current.ObjectManager.RegisterPresumedObject(new SkillEffect("LanguageSpeed"));
             LanguageSpeed.Initialize(new TextObject("{=7oP8Hj7c}Language learning speed: +{a0}%"),
                 BKSkills.Instance.Scholarship,
                 PartyRole.Personal,
-                0.15f,
+                0.005f,
                 EffectIncrementType.AddFactor);
 
             ReadingSpeed = Game.Current.ObjectManager.RegisterPresumedObject(new SkillEffect("ReadingSpeed"));
             ReadingSpeed.Initialize(new TextObject("{=GuYLFezW}Book reading speed: +{a0}%"),
                 BKSkills.Instance.Scholarship,
                 PartyRole.Personal,
-                0.2f,
+                0.005f,
                 EffectIncrementType.AddFactor);
 
             LifestyleSpeed = Game.Current.ObjectManager.RegisterPresumedObject(new SkillEffect("LifestyleSpeed"));
             LifestyleSpeed.Initialize(new TextObject("{=zwd8fwK7}Lifestyle progress speed: +{a0}%"),
                 BKSkills.Instance.Scholarship,
                 PartyRole.Personal,
-                0.15f,
+                0.005f,
                 EffectIncrementType.AddFactor);
 
             ResearchSpeed = Game.Current.ObjectManager.RegisterPresumedObject(new SkillEffect("ResearchSpeed"));
             ResearchSpeed.Initialize(new TextObject("{=Zyao3x8F}Personal research progress: +{a0}"),
                 BKSkills.Instance.Scholarship,
                 PartyRole.Personal,
-                0.0333f,
+                0.005f,
                 EffectIncrementType.Add);
         }
 
@@ -112,21 +118,21 @@ namespace BannerKings.CampaignContent.Skills
             ProductionEfficiency.Initialize(new TextObject("{=ft4CKf5O}Fief production efficiency: +{a0}%"),
                 DefaultSkills.Crafting,
                 PartyRole.Governor,
-                0.15f,
+                0.005f,
                 EffectIncrementType.AddFactor);
 
             ProductionQuality = Game.Current.ObjectManager.RegisterPresumedObject(new SkillEffect("ProductionQuality"));
             ProductionQuality.Initialize(new TextObject("{=H8jSy770}Fief production quality: +{a0}%"),
                 DefaultSkills.Crafting,
                 PartyRole.Governor,
-                0.085f,
+                0.003f,
                 EffectIncrementType.AddFactor);
 
             SupplyEfficiency = Game.Current.ObjectManager.RegisterPresumedObject(new SkillEffect("SupplyEfficiency"));
             SupplyEfficiency.Initialize(new TextObject("{=!}Party supply necessity: {a0}%"),
                 DefaultSkills.Steward,
                 PartyRole.Quartermaster,
-                -0.15f,
+                -0.003f,
                 EffectIncrementType.AddFactor);
 
             Stability = Game.Current.ObjectManager.RegisterPresumedObject(new SkillEffect("Stability"));
@@ -140,7 +146,7 @@ namespace BannerKings.CampaignContent.Skills
             TradePower.Initialize(new TextObject("{=vSqWjxNU}Fief trade power: +{a0}%"),
                 DefaultSkills.Trade,
                 PartyRole.Governor,
-                0.12f,
+                0.004f,
                 EffectIncrementType.AddFactor);
         }
     }

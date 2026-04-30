@@ -3,6 +3,7 @@ using BannerKings.Behaviours.Diplomacy.Groups;
 using BannerKings.Behaviours.Diplomacy.Groups.Demands;
 using BannerKings.Behaviours.Diplomacy.Wars;
 using BannerKings.Extensions;
+using BannerKings.Utils;
 using System.Collections.Generic;
 using System.Linq;
 using TaleWorlds.CampaignSystem;
@@ -400,15 +401,31 @@ namespace BannerKings.Behaviours.Diplomacy
                 pair.Value.Update();
             }
 
-            RunWeekly(() =>
+            // Skip BK's truce/alliance/trade-pact AI proposals when a
+            // cooperator mod owns diplomacy. The cooperator drives those
+            // through its own pipeline; BK firing here on top produced
+            // duplicate "lords have settled on a truce..." log lines and
+            // duplicate inquiries when the player was on the receiving end.
+            if (!ModCompat.DiplomacyMod && !ModCompat.AIInfluence)
             {
-                ConsiderAIDiplomacy();
-            },
-            GetType().Name);
+                RunWeekly(() =>
+                {
+                    ConsiderAIDiplomacy();
+                },
+                GetType().Name);
+            }
         }
 
         private void TickKingdoms()
         {
+            // When a cooperator mod owns the diplomacy decision surface
+            // (Diplomacy or AIInfluence), BK steps out of the war/alliance
+            // proposal loop entirely — running both produces duplicate
+            // BKDeclareWarDecisions and parallel log spam. Per-kingdom
+            // objective flags and elimination cleanup still run; only the
+            // weekly proposal call is gated.
+            bool delegateDiplomacy = ModCompat.DiplomacyMod || ModCompat.AIInfluence;
+
             foreach (Kingdom kingdom in Kingdom.All)
             {
                 if (kingdom == Clan.PlayerClan.MapFaction) continue;
@@ -422,7 +439,7 @@ namespace BannerKings.Behaviours.Diplomacy
 
                 float strength = kingdom.CurrentTotalStrength;
                 int fiefs = kingdom.Fiefs.Count;
-                
+
                 float highestStrength = 0f;
                 foreach (Kingdom k in FactionHelper.GetEnemyKingdoms(kingdom))
                 {
@@ -440,9 +457,12 @@ namespace BannerKings.Behaviours.Diplomacy
                     party.MobileParty.SetPartyObjective(objective);
                 }
 
-                RunWeekly(() => ConsiderWars(kingdom),
-                    GetType().Name,
-                    false);
+                if (!delegateDiplomacy)
+                {
+                    RunWeekly(() => ConsiderWars(kingdom),
+                        GetType().Name,
+                        false);
+                }
             }
         }
 
