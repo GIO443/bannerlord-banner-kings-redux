@@ -969,13 +969,29 @@ namespace BannerKings.Behaviours.Shipping
                 var firstEdge = graph.Adjacency[path[0]].FirstOrDefault(e => e.To == path[1]);
                 if (firstEdge.Kind != ShippingGraph.EdgeKind.Sea)
                 {
+                    // Probe BOTH the entry node AND the actual target. Vanilla
+                    // CaravanAi sets the move target to the ORIGINAL destination,
+                    // not the graph entry node — so even if entryNode is
+                    // reachable by land from current position, the caravan
+                    // can still sit forever if the original target isn't
+                    // reachable. That's Khachin at (571.3, 605.6) targeting
+                    // Khimli Castle: Mazhadan Castle is reachable, Khimli
+                    // Castle is not, vanilla AI keeps trying Khimli Castle
+                    // and failing. Treat as stuck if either probe returns
+                    // unreachable.
                     bool stuck = false;
                     try
                     {
-                        float landToEntry = TaleWorlds.CampaignSystem.Campaign.Current.Models.MapDistanceModel
-                            .GetDistance(party, entryNode, false, MobileParty.NavigationType.All, out _);
+                        var distModel = TaleWorlds.CampaignSystem.Campaign.Current.Models.MapDistanceModel;
+                        float landToEntry = distModel.GetDistance(party, entryNode, false, MobileParty.NavigationType.All, out _);
                         if (float.IsNaN(landToEntry) || float.IsInfinity(landToEntry) || landToEntry < 0f || landToEntry > 1e6f)
                             stuck = true;
+                        if (!stuck && target != entryNode)
+                        {
+                            float landToTarget = distModel.GetDistance(party, target, false, MobileParty.NavigationType.All, out _);
+                            if (float.IsNaN(landToTarget) || float.IsInfinity(landToTarget) || landToTarget < 0f || landToTarget > 1e6f)
+                                stuck = true;
+                        }
                     }
                     catch { /* if pathfind throws, treat as not-stuck */ }
 
