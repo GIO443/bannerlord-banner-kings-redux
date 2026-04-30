@@ -814,15 +814,19 @@ namespace BannerKings.Behaviours.Shipping
             try
             {
                 if (party == null || party == MobileParty.MainParty) return;
-                if (party.LeaderHero == null) return;
 
                 // Two redirect cohorts: AI lord parties (not the player's own
                 // clan — they pilot themselves) and caravans (any clan, since
                 // the player doesn't directly steer caravans either way).
+                // Caravans don't require a LeaderHero check because the
+                // owning merchant might be in a town/captured/dead while
+                // the caravan continues to operate. AI lords DO require a
+                // LeaderHero so we can do the player-clan check.
+                bool isCaravan = party.IsCaravan;
                 bool isAILord = party.IsLordParty
+                    && party.LeaderHero != null
                     && party.LeaderHero.Clan != null
                     && party.LeaderHero.Clan != Clan.PlayerClan;
-                bool isCaravan = party.IsCaravan;
                 if (!isAILord && !isCaravan) return;
 
                 // For armies, redirect only the leader; sub-parties follow via
