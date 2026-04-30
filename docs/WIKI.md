@@ -195,6 +195,40 @@ caravans that suspend themselves mid-voyage still get re-checked every
 hour and arrive on schedule — earlier builds lost the per-party tick once
 the caravan deactivated, and the caravan would sit on the coast forever.
 
+**Adaptive shipping costs (v1.6.1).** Routes are graph-aware *and* react
+to the current world state. Each shipping edge is weighted by raw map
+distance × a risk multiplier that combines:
+
+- **Hostile port owners** — if either endpoint of an edge is owned by a
+  faction at war with the cargo's owner, the edge is unusable for that
+  caravan. Routing automatically detours around it. This is why a
+  Vlandian caravan suddenly takes a longer route through neutral ports
+  when Vlandia declares war on Sturgia.
+- **Sieged ports** — +60% per sieged endpoint. Caravans avoid sieged
+  ports when alternative paths exist; freight prices through sieged
+  zones go up sharply.
+- **Bandit pressure** — +5% per active hideout within ~60 map units of
+  either endpoint, capped at +50% combined. Coasts crawling with bandit
+  hideouts cost more to ship through.
+- **Soft neutral penalty** — +5% per "foreign but peaceful" endpoint, so
+  same-faction routes are preferred when otherwise equal.
+
+Caravans pick their next hop using this weighted shortest path, falling
+back to the static shortest path only if every adaptive route is fully
+blocked (every connecting port at war). Player freight prices use the
+same weighted distance — sailing into a war zone costs more.
+
+Diagnose the live state in-game with these console commands:
+
+- `bannerkings.shipping_topology` — connected components, bridge ports,
+  diameter, **and current risk hotspots** (edges with multiplier > 1.10).
+- `bannerkings.shipping_path <fromId> <toId>` — static shortest path
+  ignoring risk.
+- `bannerkings.shipping_risk_path <fromId> <toId>` — side-by-side
+  comparison of the static route vs the adaptive route a player-faction
+  caravan would actually take given the current world state. Use this
+  when a caravan is taking a surprising path.
+
 **Quest-mandated overloaded fleets.** The War Sails Northern Crossing
 quest hands you ~190 troops on a fleet with ~50 crew capacity, which
 under vanilla NavalDLC's −74% over-crew speed penalty would floor you at
@@ -682,6 +716,20 @@ Unboard via the caravan menu in that port.
 **Q: Why is my ship taking forever?**
 Travel time is distance / 75, faster under the Drakkar Helmsman perk.
 Cross-Calradia trips take 4–6 days.
+
+**Q: Why did the freight cost just jump?**
+Adaptive shipping pricing (v1.6.1+). Freight cost is graph distance ×
+risk multiplier. Sieged endpoint = +60%. Bandits crawling the coast
+near either port = up to +50%. Foreign-owned port = +5%. A war zone
+on your route can land you at almost double the previous fare. Run
+`bannerkings.shipping_risk_path <fromId> <toId>` in the console to see
+exactly which hops the price came from.
+
+**Q: Why did my caravan take the long way around?**
+Same system. If the direct path crosses a port owned by a faction at
+war with you, that edge is closed and the caravan reroutes. Bandit-
+heavy coasts are also avoided when a comparable alternative exists.
+The route stabilises once the war ends or the bandit hideouts clear.
 
 **Q: Why am I crawling at speed 1 with the War Sails quest fleet?**
 You shouldn't be on Redux. Vanilla NavalDLC penalises overloaded fleets

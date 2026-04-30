@@ -172,11 +172,25 @@ namespace BannerKings.Behaviours.Shipping
 
         public int CalculatePrice(Settlement settlement, MobileParty party)
         {
-            float result = 0f;
+            // Risk-weighted freight price. Crews charge more to sail through
+            // war zones, sieged ports, and bandit-infested coasts. Falls back
+            // to raw straight-line distance when the destination isn't on the
+            // shipping graph (e.g. embarking from a non-port menu) so the
+            // player path can never be priced as "unreachable".
             float distance = party.CurrentSettlement.GatePosition.Distance(settlement.GatePosition);
-            result += distance;
+            try
+            {
+                var graph = ShippingGraph.Instance;
+                var perspective = party.MapFaction;
+                float adaptive = graph.GetAdaptiveDistance(party.CurrentSettlement, settlement, perspective);
+                if (adaptive > 0f) distance = adaptive;
+            }
+            catch
+            {
+                // Defensive: fall through to raw distance on any graph hiccup.
+            }
 
-            return MBRandom.RoundRandomized(result);
+            return MBRandom.RoundRandomized(distance);
         }
 
         public CampaignTime CalculateArrival(Settlement settlement, MobileParty party)
@@ -426,7 +440,16 @@ namespace BannerKings.Behaviours.Shipping
                 var graph = ShippingGraph.Instance;
                 if (graph.AreConnected(settlement, town.Settlement))
                 {
-                    var path = graph.GetShortestPath(settlement, town.Settlement);
+                    // Adaptive path — Dijkstra over distance × risk, with the
+                    // caravan's faction as routing perspective. Prunes hostile
+                    // ports outright, weights sieged / bandit-heavy edges high.
+                    // Falls back to raw shortest path if every adaptive route
+                    // is blocked (e.g. all bridge ports owned by a faction at
+                    // war with the caravan) so the trade network doesn't
+                    // collapse during widespread wars.
+                    var perspective = party.MapFaction;
+                    var path = graph.GetAdaptivePath(settlement, town.Settlement, perspective)
+                               ?? graph.GetShortestPath(settlement, town.Settlement);
                     if (path != null && path.Count >= 2)
                     {
                         // path[0] is the current settlement, path[1] is the next hop.
@@ -528,6 +551,7 @@ namespace BannerKings.Behaviours.Shipping
                 if (partyToTarget <= 1f) return;
 
                 float bestDistance = partyToTarget * 0.7f;          // require >=30% closer than target
+                var graph = ShippingGraph.Instance;
                 foreach (var lane in DefaultShippingLanes.Instance.All)
                 {
                     foreach (var port in lane.Ports)
@@ -535,6 +559,20 @@ namespace BannerKings.Behaviours.Shipping
                         if (port == target) continue;
                         if (port.IsUnderSiege) continue;
                         if (port.MapFaction != null && port.MapFaction.IsAtWarWith(party.MapFaction)) continue;
+                        // Prefer ports that have a usable adaptive route to
+                        // the target — no point redirecting to a Sturgian
+                        // port if every path from it crosses ports at war
+                        // with the caravan. If the graph can't answer
+                        // (port not in graph yet, transient state), accept
+                        // the candidate on geometric grounds.
+                        try
+                        {
+                            if (graph.Adjacency.ContainsKey(port) && graph.Adjacency.ContainsKey(target))
+                            {
+                                if (graph.GetAdaptivePath(port, target, party.MapFaction) == null) continue;
+                            }
+                        }
+                        catch { /* fall through to geometric check */ }
                         float d = party.GetPosition2D.Distance(port.GatePosition.ToVec2());
                         if (d < bestDistance)
                         {

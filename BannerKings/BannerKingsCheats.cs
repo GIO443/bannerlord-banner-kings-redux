@@ -163,6 +163,47 @@ namespace BannerKings
                    string.Join(" → ", path.Select(s => s.Name?.ToString() ?? s.StringId));
         }
 
+        // Adaptive (risk-weighted) path between two ports from the player
+        // clan's perspective. Compares the static topological path with the
+        // route a player-faction caravan would actually take right now.
+        // Format:
+        //   bannerkings.shipping_risk_path town_N1 town_V8
+        [CommandLineFunctionality.CommandLineArgumentFunction("shipping_risk_path", "bannerkings")]
+        public static string ShippingRiskPath(List<string> strings)
+        {
+            if (strings == null || strings.Count < 2)
+                return "Format: bannerkings.shipping_risk_path <fromStringId> <toStringId>";
+            var from = Settlement.Find(strings[0]);
+            var to = Settlement.Find(strings[1]);
+            if (from == null) return $"Settlement not found: {strings[0]}";
+            if (to == null) return $"Settlement not found: {strings[1]}";
+
+            var graph = BannerKings.Managers.Shipping.ShippingGraph.Instance;
+            var perspective = Clan.PlayerClan?.MapFaction;
+            var raw = graph.GetShortestPath(from, to);
+            var adaptive = graph.GetAdaptivePath(from, to, perspective);
+
+            string rawLine = raw == null
+                ? "  raw:      (no path — different components)"
+                : $"  raw:      {raw.Count - 1} hops, {graph.GetShortestDistance(from, to):n1}u — " +
+                  string.Join(" → ", raw.Select(s => s.Name?.ToString() ?? s.StringId));
+
+            string adaptiveLine;
+            if (adaptive == null)
+            {
+                adaptiveLine = "  adaptive: (no usable path under current war/siege state)";
+            }
+            else
+            {
+                float adaptiveDist = graph.GetAdaptiveDistance(from, to, perspective);
+                adaptiveLine = $"  adaptive: {adaptive.Count - 1} hops, {adaptiveDist:n1}u — " +
+                               string.Join(" → ", adaptive.Select(s => s.Name?.ToString() ?? s.StringId));
+            }
+
+            string perspectiveStr = perspective?.Name?.ToString() ?? "(no faction)";
+            return $"Routes from {from.Name} to {to.Name} (perspective: {perspectiveStr}):\n{rawLine}\n{adaptiveLine}";
+        }
+
         [CommandLineFunctionality.CommandLineArgumentFunction("give_player_full_peerage", "bannerkings")]
         public static string GrantPeerage(List<string> strings)
         {
