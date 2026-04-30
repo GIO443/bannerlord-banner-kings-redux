@@ -16,6 +16,14 @@ namespace BannerKings.Components
 
         [SaveableProperty(1001)] public AiBehavior behavior { get; set; }
 
+        // Override so the displayed name doesn't depend on the saved
+        // stringName field — older saves come back with stringName=null,
+        // which used to render as an empty TextObject. Hardcoding the
+        // template here makes the name independent of save state.
+        public override TaleWorlds.Localization.TextObject Name =>
+            new TaleWorlds.Localization.TextObject("{=9JxzuH5a}Retinue from {ORIGIN}")
+                .SetTextVariable("ORIGIN", HomeSettlement?.Name?.ToString() ?? string.Empty);
+
         public override Banner GetDefaultComponentBanner() => base.GetDefaultComponentBanner();
 
         public static string GetId(Settlement origin) => $"bk_retinue_{origin.Name}";

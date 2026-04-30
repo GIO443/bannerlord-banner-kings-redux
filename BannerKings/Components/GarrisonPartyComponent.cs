@@ -22,6 +22,13 @@ namespace BannerKings.Components
 
         [SaveableProperty(4)] public int HoursPatrolled { get; private set; }
 
+        // Override so the rendered name doesn't depend on the saved
+        // stringName field; older saves come back with stringName=null
+        // and the base property would render empty.
+        public override TaleWorlds.Localization.TextObject Name =>
+            new TaleWorlds.Localization.TextObject("{=BKGarrison_PatrolName}Patrol from {ORIGIN}")
+                .SetTextVariable("ORIGIN", HomeSettlement?.Name?.ToString() ?? string.Empty);
+
         public override Banner GetDefaultComponentBanner() => base.GetDefaultComponentBanner();
 
         public static MobileParty CreateParty(Settlement origin)

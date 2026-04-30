@@ -27,7 +27,27 @@ namespace BannerKings.Components
         [SaveableProperty(2)] private string stringName { get; set; }
         public override Hero PartyOwner => HomeSettlement.OwnerClan.Leader;
 
-        public override TextObject Name => new TextObject(stringName).SetTextVariable("ORIGIN", Home.Name);
+        // Saves written by older builds occasionally come back with
+        // stringName == null on PopulationPartyComponent / RetinueComponent
+        // / GarrisonPartyComponent — observed in the wild as hundreds of
+        // unnamed BK parties (slave caravans, retinues, garrison patrols)
+        // sitting near their home settlement. new TextObject(null) renders
+        // as empty, which is what the UI reported. Fall back to a generic
+        // "Banner Kings party from {ORIGIN}" template so saves with the
+        // null field still display a readable name. EstateComponent
+        // already overrides Name with its own template and is unaffected;
+        // the other subclasses pick this fix up via the base property.
+        public override TextObject Name
+        {
+            get
+            {
+                var template = !string.IsNullOrEmpty(stringName)
+                    ? stringName
+                    : "{=BKComp_GenericName}Banner Kings party from {ORIGIN}";
+                var origin = Home?.Name?.ToString() ?? string.Empty;
+                return new TextObject(template).SetTextVariable("ORIGIN", origin);
+            }
+        }
 
         public override Settlement HomeSettlement => Home;
 

@@ -52,6 +52,35 @@ namespace BannerKings.Components
 
         [SaveableProperty(9)] public Hero CaptorHero { get; private set; }
 
+        // Override so the rendered name is derived from component flags
+        // rather than the saved stringName field. Saves written by older
+        // BK builds occasionally come back with stringName=null and the
+        // base property would render empty — observed as ~200 "no name"
+        // PopulationPartyComponent parties sitting near their home
+        // settlements with AI disabled. Picking the template from flags
+        // makes the name independent of save state.
+        public override TaleWorlds.Localization.TextObject Name
+        {
+            get
+            {
+                string template;
+                if (IsRaidCaptiveCaravan)
+                    template = Disposition == CaptiveDisposition.Slaves
+                        ? "{=BKRC_SlaveCaravan}Slave Caravan from {ORIGIN}"
+                        : "{=BKRC_SerfCaravan}Resettlement Caravan from {ORIGIN}";
+                else if (SlaveCaravan)
+                    template = "{=cCzJ9Nk6}Slave Caravan from {ORIGIN}";
+                else if (Trading)
+                    template = "{=ds9BcMxr}Traders from {ORIGIN}";
+                else
+                    template = "{=BKPop_TravellersName}Travellers from {ORIGIN}";
+
+                var origin = HomeSettlement?.Name?.ToString() ?? string.Empty;
+                return new TaleWorlds.Localization.TextObject(template)
+                    .SetTextVariable("ORIGIN", origin);
+            }
+        }
+
         public override Banner GetDefaultComponentBanner() => base.GetDefaultComponentBanner();
 
         private static IEnumerable<CraftingMaterials> Materials
