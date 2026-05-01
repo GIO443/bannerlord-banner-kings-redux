@@ -28,8 +28,19 @@
 - **"Council Marshal didn't reduce wages"** — the reduction is
   multiplicative; other modifiers (custom troop, mercenary status) can
   dominate. Check the wage tooltip breakdown in the party UI.
-- **"Estate showing zero income"** — daily ticks accumulate but income posts
-  weekly. Or the estate has no tenants — check the estate panel.
+- **"Estate showing zero income"** — first check the visit panel. v1.6.8.0
+  surfaces an explicit **Income Blocked** reason when payout is short-
+  circuiting (war with the village's faction, BK title manager not
+  loaded, owner→estate registry desync). The **Pending Balance** row
+  shows whether the estate is earning into `TaxAccumulated` while
+  blocked. If no blocker is shown and gold still isn't moving, run
+  `bannerkings.dump_estate_finance` (cheats enabled) — it writes
+  `BK_dump_estate_finance.txt` showing the active `ClanFinanceModel`
+  class. ImprovedGarrisons replaces it with `GarrisonCostModel`,
+  which used to silently bypass the BK estate-income hook; v1.6.8.0
+  added a `BKEstateIncomeBehavior` daily-tick backstop so payout
+  flows regardless of which finance model is active. If you're on
+  v1.6.7.x or earlier and see this, upgrade.
 - **"Can't change demesne law"** — locked behind a contract-change cooldown
   (≈ 1 in-game year) and minimum loyalty / authority gates.
 - **"Skills level too fast in Banner Kings"** — older builds shipped

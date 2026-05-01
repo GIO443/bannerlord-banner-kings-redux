@@ -108,13 +108,49 @@ party that's already at sea — NavalDLC keeps managing its own
 convoys. The signature in `dump_caravans` to look for if you suspect a
 stuck convoy: `IsActive=False / AtSea=True / AiDisabled=True / BKTracked=false`.
 
-**Mid-session orphan rescue (v1.6.4.0).** A daily tick scans for
-caravans with the BK shipping-limbo signature (inactive, AI disabled,
-not in BK's sailing dict) and reactivates them. Previously the rescue
-only ran on save load, so a caravan that went stuck during a session
-stayed stuck until next save/load. Save-load itself no longer
-cancels in-progress voyages either — the load-time rescue now skips
-caravans legitimately tracked in the sailing dict.
+**Unified rescue sweep (v1.6.8.0).** A single daily-tick sweep (also
+runs on save load) walks `MobileParty.All` once and applies every
+known broken-state fix in one pass. Replaces three separate rescue
+methods that each handled one signature in isolation. Five broken
+states the sweep now catches:
+
+- BK shipping limbo: `IsActive=false`, not in the sailing dict,
+  no path back to `FinishTravel`. Reactivates and re-enables AI.
+- AI-disabled NavalDLC convoy not BK-tracked: legacy state from
+  pre-v1.6.4.0 builds that hijacked at-sea convoys into BK's
+  ship-travel flow. Re-enables AI so NavalDLC's own AI takes over.
+- At-sea over non-water terrain (boat on land): clears the at-sea
+  flag. Test inverted from the previous "must be clearly land" allow-
+  list, which missed coastal/transitional terrain (Beach, RuralArea,
+  Bridge, Fording) where most pre-v1.6.4.9 strandings actually
+  happened.
+- Land mode over open water (a naval-capable party walking through
+  the sea): re-flags at sea so NavalDLC pathfinding works.
+- Legacy slave caravan with no live move target: destroyed (v1.6.7.0
+  removed the AI-town slave-export flow that spawned these).
+
+The sweep is gated to `IsCaravan || IsLordParty` parties before any
+expensive checks (`HasNavalNavigationCapability`, terrain queries).
+Without that gate, the sweep itself caused 10-second daily-tick
+freezes on campaigns with 5000+ parties.
+
+**Siege-end caravan release (v1.6.8.0).** When a siege starts, BK
+puts every caravan inside the besieged settlement on hold so they
+don't try to walk out through siege lines. The pre-v1.6.8.0 code
+never released that hold; caravans pinned at siege start stayed
+pinned forever after the siege resolved. Now `OnSiegeEventEnded`
+flags `Ai.RethinkAtNextHourlyTick = true` on every released caravan
+so vanilla CaravanAi picks a fresh destination.
+
+**TickSailing orphan cleanup removed (v1.6.8.0).** A guard branch
+that evicted parties from the sailing dict on
+`(IsActive==false && PartyComponent==null)` was firing on legitimate
+in-flight caravans (every BK-shipped caravan is `IsActive=false` by
+SetTravel) when `PartyComponent` transiently read null. That was the
+root cause of the recurring `IsActive=False, AiDisabled=True,
+BKTracked=false` zombie state. `OnMobilePartyDestroyed` already
+handles real destruction, so the cleanup branch wasn't doing useful
+work — only causing harm.
 
 ## Adaptive shipping costs (v1.6.1)
 

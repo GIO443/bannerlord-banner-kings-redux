@@ -251,14 +251,40 @@ owner gets paid 80% of the accumulated total each daily tick.
    income, but adds up at high-volume villages.
 
 **Q: My estate makes 0 income, what gives?**
-Quick checklist: estate population > 0 (estates with no tenants
-generate nothing), estate has acres > 0, estate isn't disabled (only
-happens if `Owner == null`), parent fief isn't under a tax policy
-that zeros the share. If all those check out, give it 2-3 in-game
-days — a fresh-purchased estate needs population to ramp before
-production hits a meaningful daily denar count. Below ~population
-20 the per-day yield is sub-1-denar and may show as 0 on the panel
-even though it's accumulating fractionally.
+First, check the visit panel — if there's an **Income Blocked**
+reason at the top of the Clan → Other → estate row (or in the
+Daily Income tooltip), that's why. Three cases the system surfaces
+explicitly:
+
+- *"at war with X"* — your owner faction is at war with the village's
+  faction; the daily payout skips the estate. Resolves itself when
+  the war ends.
+- *"BK title manager not loaded"* — `BannerKingsConfig.TitleManager`
+  is null on this save, which gates the estate-finance hook in
+  `BKClanFinanceModel`. Indicates a save-load order issue or a
+  partial-load campaign.
+- *"estate not registered to its owner — try save/reload to resync"* —
+  `Estate.Owner` is set but the population manager's owner→estates
+  dictionary doesn't contain it. A save+reload usually rebuilds the
+  dict.
+
+While blocked, the **Pending Balance** row keeps climbing — when the
+block resolves, the next clan-finance daily tick drains 80% of it
+and pays you in one lump sum.
+
+If no blocker is named and income is still zero, run
+`bannerkings.dump_estate_finance` in the console — it writes
+`BK_dump_estate_finance.txt` showing the active `ClanFinanceModel`
+class. If it's not `BKClanFinanceModel` (because ImprovedGarrisons
+or another mod replaced it), v1.6.8.0+ catches that case via a
+backstop daily-tick payout in `BKEstateIncomeBehavior`. Older
+versions silently piled up `TaxAccumulated` without paying.
+
+If still nothing checks out, give it 2-3 in-game days — a fresh-
+purchased estate needs population to ramp before production hits a
+meaningful daily denar count. Below ~population 20 the per-day
+yield is sub-1-denar and may show as 0 on the panel even though
+it's accumulating fractionally.
 
 **Q: Can I make the estate clear new land while still earning income?**
 Yes — just leave it on the **Production** task. Workers up to 100%
@@ -278,16 +304,24 @@ the lord 15% and you 85%; high policy 30/70; exemption 0/100 (lord
 gets nothing via a different mechanism). Allodial is the most
 profitable tenure for the estate owner.
 
-**Q: What does the estate panel show now (v1.6.6.0+)?**
-The "Daily Income (est.)" line at the top is the steady-state payout
-you should see per day from the production tick. Last actual paid
-income shows next to it (the *secondary* number on the same line).
-"Workforce Saturation" now includes a status label — e.g. "120%
-(surplus → clearing land)" — so it's obvious whether you're
-under-staffed, balanced, or over-saturated. "Acreage Growth"
-appears only when actively growing, with the source (Production
-surplus vs Land Expansion task). Same data shown in the per-estate
-row of the clan finance income panel.
+**Q: What does the estate panel show now (v1.6.8.0+)?**
+- **Daily Income (est.)** — steady-state payout you should see per
+  day from the production tick. Last actual paid income shows next
+  to it (the *secondary* number on the same line). Forces to 0 when
+  blocked, with the blocker reason shown at the top of the tooltip.
+- **Pending Balance** — `TaxAccumulated`, the gold sitting in the
+  estate waiting for the next clan-finance tick to drain 80% of it.
+  Useful when income is blocked: the balance climbs visibly so you
+  know the estate is *earning*, just not *paying*.
+- **Workforce Saturation** with a status label — e.g. "120%
+  (surplus → clearing land)" — so it's obvious whether you're
+  under-staffed, balanced, or over-saturated.
+- **Acreage Growth** appears only when actively growing, with the
+  source named (Production surplus vs Land Expansion task).
+
+Same data is mirrored in the per-estate row of the clan finance
+income panel; an extra "Income Blocked" entry appears at the top of
+that row when the blocker is active.
 
 **Q: I clicked Retinue and ended up fighting it.**
 *Was* a bug — fixed in v1.6.6.0. The retinue's faction was being
