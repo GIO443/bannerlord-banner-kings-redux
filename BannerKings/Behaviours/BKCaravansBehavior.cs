@@ -68,17 +68,45 @@ namespace BannerKings.Behaviours
             CampaignEvents.MapEventEnded.AddNonSerializedListener(this, new Action<MapEvent>(OnMapEventEnded));
             CampaignEvents.OnLootDistributedToPartyEvent.AddNonSerializedListener(this, new Action<PartyBase, PartyBase, ItemRoster>(OnLootCaravanParties));
             CampaignEvents.OnSiegeEventStartedEvent.AddNonSerializedListener(this, new Action<SiegeEvent>(OnSiegeEventStarted));
+            CampaignEvents.OnSiegeEventEndedEvent.AddNonSerializedListener(this, new Action<SiegeEvent>(OnSiegeEventEnded));
         }
+
+        // Caravans we put on hold at siege start, so we can release them on
+        // siege end. Without this set, the SetMoveModeHold call below would
+        // be a one-way state mutation: vanilla never releases it on its own
+        // and our caravans would sit pinned in the (no-longer-besieged)
+        // settlement forever, the source of "caravan stuck in town doing
+        // nothing" reports after a siege resolved.
+        // Non-serialized — saves load with vanilla siege state intact, and
+        // any caravan that needs re-thinking will get it on the next
+        // hourly tick from BKCaravansBehavior.HourlyTickParty.
+        private readonly HashSet<MobileParty> _siegeHeldCaravans = new HashSet<MobileParty>();
 
         private void OnSiegeEventStarted(SiegeEvent siegeEvent)
         {
+            if (siegeEvent?.BesiegedSettlement == null) return;
             for (int i = 0; i < siegeEvent.BesiegedSettlement.Parties.Count; i++)
             {
-                if (siegeEvent.BesiegedSettlement.Parties[i].IsCaravan)
-                {
-                    siegeEvent.BesiegedSettlement.Parties[i].SetMoveModeHold();
-                }
+                var p = siegeEvent.BesiegedSettlement.Parties[i];
+                if (p == null || !p.IsCaravan) continue;
+                p.SetMoveModeHold();
+                _siegeHeldCaravans.Add(p);
             }
+        }
+
+        private void OnSiegeEventEnded(SiegeEvent siegeEvent)
+        {
+            if (_siegeHeldCaravans.Count == 0) return;
+            // Release every caravan we held, regardless of which siege ended —
+            // a caravan held by an earlier siege that somehow outlived it
+            // shouldn't be left pinned. RethinkAtNextHourlyTick wakes
+            // vanilla CaravanAi to pick a fresh destination.
+            foreach (var p in _siegeHeldCaravans)
+            {
+                if (p == null) continue;
+                try { if (p.Ai != null) p.Ai.RethinkAtNextHourlyTick = true; } catch { /* defensive */ }
+            }
+            _siegeHeldCaravans.Clear();
         }
 
         private void OnLootCaravanParties(PartyBase winnerParty, PartyBase defeatedParty, ItemRoster lootedItems)
@@ -638,6 +666,13 @@ namespace BannerKings.Behaviours
             if (_tradeRumorTakenCaravans.ContainsKey(mobileParty))
             {
                 _tradeRumorTakenCaravans.Remove(mobileParty);
+            }
+            // Was missing — _lootedCaravans accumulated dead-party keys
+            // forever in long campaigns. The other per-caravan dicts above
+            // were already cleaned here; this one slipped through.
+            if (_lootedCaravans.ContainsKey(mobileParty))
+            {
+                _lootedCaravans.Remove(mobileParty);
             }
         }
 

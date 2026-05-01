@@ -63,14 +63,16 @@ namespace BannerKings.Behaviours.Shipping
             CampaignEvents.AfterSettlementEntered.AddNonSerializedListener(this, AfterSettlementEntered);
             CampaignEvents.HourlyTickPartyEvent.AddNonSerializedListener(this, TickParty);
             CampaignEvents.HourlyTickEvent.AddNonSerializedListener(this, TickSailing);
-            // Mid-session orphan-rescue. The OnGameLoadFinishedEvent rescue
-            // covers loaded saves but not parties that go stuck DURING a
-            // session. Daily tick scans for caravans with the BK shipping-
-            // limbo signature (IsActive=false / Ai disabled / not in sailing
-            // dict) and reactivates them so vanilla AI takes over.
-            CampaignEvents.DailyTickEvent.AddNonSerializedListener(this, RescueOrphanedCaravans);
-            CampaignEvents.DailyTickEvent.AddNonSerializedListener(this, RescueBoatsOnLand);
-            CampaignEvents.DailyTickEvent.AddNonSerializedListener(this, RescueLandPartiesOnWater);
+            // Single combined daily rescue sweep. Each of the three legacy
+            // rescues handled one signature — RescueOrphanedCaravans for
+            // shipping-limbo, RescueBoatsOnLand for over-land at-sea
+            // flagging, RescueLandPartiesOnWater for the inverse. They
+            // ran sequentially and each rebuilt its own iteration loop,
+            // so a caravan that fit two signatures could be touched twice
+            // with conflicting fixes. UnifiedRescueSweep walks
+            // MobileParty.All once and applies every applicable fix to
+            // each party in a single pass.
+            CampaignEvents.DailyTickEvent.AddNonSerializedListener(this, UnifiedRescueSweep);
             // Cleanup: remove destroyed parties from the sailing dict so
             // TickSailing doesn't try to FinishTravel on a dead party.
             CampaignEvents.MobilePartyDestroyed.AddNonSerializedListener(this, OnMobilePartyDestroyed);
@@ -115,61 +117,7 @@ namespace BannerKings.Behaviours.Shipping
                 });
 
             CampaignEvents.OnGameLoadFinishedEvent.AddNonSerializedListener(this,
-                () =>
-                {
-                    // Boat-on-land rescue. v1.6.4.9 fixed the *source* (BK's
-                    // hourly port-redirect was hijacking at-sea NavalDLC
-                    // convoys with NavigationType.All), but parties that
-                    // accumulated the bad state on prior versions stay
-                    // wrong on load: IsCurrentlyAtSea=true with their
-                    // physical position over land terrain. Sweep them
-                    // here — flip the at-sea flag off so they fall back
-                    // into vanilla land mode and walk normally.
-                    RescueBoatsOnLand();
-                    // Inverse rescue. v1.6.4.10's first cut of RescueBoatsOnLand
-                    // wrongly cleared IsCurrentlyAtSea on convoys at coastal
-                    // terrain, leaving them in land mode while physically over
-                    // open water. Flip those back to at-sea so NavalDLC can
-                    // resume managing them.
-                    RescueLandPartiesOnWater();
-
-                    // Rescue caravans stuck in BK shipping limbo from older
-                    // builds: IsActive=false with no entry in the sailing
-                    // dict (no path to FinishTravel, no TickSailing pickup).
-                    // CRITICAL: skip caravans that ARE in the sailing dict —
-                    // those are legitimately mid-voyage from a save made
-                    // during a sea trip, and TickSailing will reactivate
-                    // them when their arrival timer fires. Earlier versions
-                    // force-rescued ALL inactive caravans on load, which
-                    // cancelled every in-progress voyage on save/load.
-                    List<MobileParty> stuck = null;
-                    foreach (var caravan in MobileParty.AllCaravanParties)
-                    {
-                        if (caravan == null) continue;
-                        try { caravan.Party.UpdateVisibilityAndInspected(caravan.Position); } catch { }
-                        if (caravan.IsActive) continue;
-                        if (sailing.ContainsKey(caravan)) continue; // legitimately mid-voyage
-                        stuck ??= new List<MobileParty>();
-                        stuck.Add(caravan);
-                    }
-                    if (stuck != null)
-                    {
-                        foreach (var party in stuck)
-                        {
-                            try
-                            {
-                                party.IsActive = true;
-                                party.Ai?.EnableAi();
-                                party.IsVisible = true;
-                                party.Party.UpdateVisibilityAndInspected(party.Position);
-                            }
-                            catch
-                            {
-                                // Defensive: never crash on load.
-                            }
-                        }
-                    }
-                });
+                () => UnifiedRescueSweep());
         }
 
         public override void SyncData(IDataStore dataStore)
@@ -568,19 +516,19 @@ namespace BannerKings.Behaviours.Shipping
         {
             if (sailing.Count == 0) return;
             List<Travel> finished = null;
-            List<MobileParty> orphans = null;   // dict keys we want to drop without finishing
             foreach (var pair in sailing)
             {
+                // The earlier orphan-cleanup branch dropped parties on
+                // (IsActive==false && PartyComponent==null), which fires on
+                // every in-flight BK-shipped caravan because SetTravel sets
+                // IsActive=false. Any transient null PartyComponent read
+                // wrongly evicted a live caravan, leaving it permanently
+                // `IsActive=False, AiDisabled=True, BKTracked=false`.
+                // OnMobilePartyDestroyed handles real destruction, and
+                // FinishTravel's catch block handles arrival-time errors
+                // — there's no scenario where TickSailing should be
+                // dropping entries on its own.
                 if (pair.Key == null) continue;
-                // Guard against destroyed / removed parties slipping through
-                // the dict (e.g. older saves before OnMobilePartyDestroyed
-                // cleanup was wired in).
-                if (pair.Key.IsActive == false && pair.Key.PartyComponent == null)
-                {
-                    orphans ??= new List<MobileParty>();
-                    orphans.Add(pair.Key);
-                    continue;
-                }
                 if (pair.Key == MobileParty.MainParty) continue; // main party uses the wait menu
                 Travel travel = pair.Value;
                 if (travel.Arrival.IsPast || travel.Arrival.IsNow)
@@ -588,10 +536,6 @@ namespace BannerKings.Behaviours.Shipping
                     finished ??= new List<Travel>();
                     finished.Add(travel);
                 }
-            }
-            if (orphans != null)
-            {
-                foreach (var key in orphans) sailing.Remove(key);
             }
             if (finished == null) return;
             foreach (var travel in finished)
@@ -638,33 +582,6 @@ namespace BannerKings.Behaviours.Shipping
         // signature we want to fix is *land-side* parties stuck at gates
         // or ports, which is what the load-time rescue's original intent
         // was — just running daily so it works for live sessions too.
-        private void RescueOrphanedCaravans()
-        {
-            try
-            {
-                foreach (var caravan in MobileParty.AllCaravanParties)
-                {
-                    if (caravan == null) continue;
-                    if (caravan.IsActive) continue;
-                    if (caravan.IsCurrentlyAtSea) continue;     // NavalDLC's domain
-                    if (sailing.ContainsKey(caravan)) continue; // legitimately mid-voyage
-                    if (caravan == MobileParty.MainParty) continue;
-
-                    try
-                    {
-                        TaleWorlds.Library.Debug.Print(
-                            $"[BK] Orphan rescue: reactivating inactive caravan {caravan.Name} (not in sailing dict, not at sea)",
-                            color: TaleWorlds.Library.Debug.DebugColor.Yellow);
-                        caravan.IsActive = true;
-                        caravan.Ai?.EnableAi();
-                        caravan.IsVisible = true;
-                    }
-                    catch { /* defensive */ }
-                }
-            }
-            catch { /* never throw out of a daily tick */ }
-        }
-
         private void OnMobilePartyDestroyed(MobileParty party, PartyBase destroyer)
         {
             if (party == null) return;
@@ -672,65 +589,185 @@ namespace BannerKings.Behaviours.Shipping
             if (stuckTracker.ContainsKey(party)) stuckTracker.Remove(party);
         }
 
-        // Detects parties left in the "boat sprite on land terrain" state by
-        // BK's pre-v1.6.4.9 port-redirect hijacking NavalDLC convoys. Flips
-        // IsCurrentlyAtSea off only when the party's terrain face is
-        // *unambiguously land* — everything coastal / transitional
-        // (Beach, Bridge, Fording, Cliff, RuralArea, etc.) is left alone
-        // because that's where parties legitimately sit during the brief
-        // boarding / port-arrival window. The previous version inverted
-        // this test (rescued anything that wasn't strictly water) and
-        // wrongly cleared the at-sea flag on convoys docked at coastal
-        // ports, which then walked across the ocean in land mode.
+        // Single combined rescue pass. Runs on save load and once per day.
+        // Walks MobileParty.All exactly once and applies every relevant
+        // signature fix to each party.
         //
-        // Cheap to run: terrain lookup is one MapSceneWrapper call per
-        // candidate, and we filter to parties already flagged at-sea before
-        // reading terrain.
-        private void RescueBoatsOnLand()
+        // Signatures handled:
+        //
+        //   A. BK shipping limbo
+        //      - IsCaravan && !IsActive && not in sailing dict
+        //      - Cause: SetTravel called, party orphaned out of the dict
+        //        before FinishTravel.
+        //      - Fix: IsActive=true, EnableAi, IsVisible=true.
+        //
+        //   B. AI-disabled caravan not BK-tracked
+        //      - IsCaravan && Ai.IsDisabled && not in sailing dict
+        //      - Cause: pre-v1.6.4.0 BK hijacked NavalDLC convoys into its
+        //        ship-travel system; v1.6.4.0 stopped doing it but legacy
+        //        parties stay AiDisabled because BK no longer touches them.
+        //      - Fix: EnableAi (NavalDLC's own AI takes over, or vanilla
+        //        caravan AI if on land).
+        //
+        //   C. Boat on land
+        //      - IsCurrentlyAtSea && terrain is unambiguously inland
+        //        (Plain/Forest/Steppe/Desert/Snow/Mountain/Dune/Swamp)
+        //      - Cause: pre-v1.6.4.9 port-redirect set NavigationType.All
+        //        on at-sea convoys, which gave the land pathfinder a target.
+        //      - Fix: IsCurrentlyAtSea=false.
+        //
+        //   D. Land mode over open water
+        //      - !IsCurrentlyAtSea && naval-capable && over Water/CoastalSea/
+        //        OpenSea/Lake terrain && not in BK's sailing dict
+        //      - Cause: an earlier version of (C) was too aggressive and
+        //        cleared the at-sea flag at coastal ports; those convoys
+        //        ended up land-mode but physically over deep water.
+        //      - Fix: IsCurrentlyAtSea=true.
+        //
+        //   E. Legacy slave caravan with no live move target
+        //      - PopulationPartyComponent && SlaveCaravan && no move target
+        //      - Cause: pre-v1.6.7.0 decision_slaves_export AI-town flow
+        //        spawned these; the new raid system doesn't refresh them.
+        //      - Fix: DestroyPartyAction.
+        //
+        // Each fix is per-step try/catch so a single throwing step can't
+        // leave a party half-rescued.
+        private void UnifiedRescueSweep()
         {
             try
             {
                 var wrapper = TaleWorlds.CampaignSystem.Campaign.Current?.MapSceneWrapper;
-                if (wrapper == null) return;
+                List<MobileParty> staleSlaveCaravans = null;
 
                 foreach (var party in MobileParty.All)
                 {
                     if (party == null) continue;
-                    if (!party.IsCurrentlyAtSea) continue;
                     if (party == MobileParty.MainParty) continue;
-                    // At a settlement: definitely not the boat-on-land state
-                    // we're trying to fix. Leave NavalDLC's flag alone.
-                    if (party.CurrentSettlement != null) continue;
 
-                    TerrainType terrain;
-                    try { terrain = wrapper.GetFaceTerrainType(party.CurrentNavigationFace); }
-                    catch { continue; }
+                    bool inSailingDict = sailing.ContainsKey(party);
 
-                    // Only rescue when the party is unambiguously on land.
-                    // Coastal / transition terrains (Beach, Bridge, Fording,
-                    // Cliff, RuralArea, Canyon, NonNavigableRiver, anything
-                    // we don't recognise) are skipped — being at-sea over
-                    // those is either legitimate or harmless.
-                    if (!IsClearlyLand(terrain)) continue;
-
-                    try
+                    // Caravan-only signatures (A & B).
+                    if (party.IsCaravan && !inSailingDict)
                     {
-                        TaleWorlds.Library.Debug.Print(
-                            $"[BK] Boat-on-land rescue: clearing IsCurrentlyAtSea on {party.Name} (terrain={terrain})",
-                            color: TaleWorlds.Library.Debug.DebugColor.Yellow);
-                        party.IsCurrentlyAtSea = false;
+                        bool fixedA = !party.IsActive;
+                        bool fixedB = party.Ai != null && party.Ai.IsDisabled;
+                        if (fixedA || fixedB)
+                        {
+                            LogRescue(party, $"reactivating (IsActive={party.IsActive}, AiDisabled={party.Ai?.IsDisabled}, AtSea={party.IsCurrentlyAtSea})");
+                            try { party.IsActive = true; } catch { }
+                            try { party.Ai?.EnableAi(); } catch { }
+                            try { party.IsVisible = true; } catch { }
+                            try { party.Party.UpdateVisibilityAndInspected(party.Position); } catch { }
+                        }
                     }
-                    catch { /* defensive */ }
+
+                    // Terrain-based signatures (C & D). Skip if at a
+                    // settlement — the brief boarding / port-arrival
+                    // window legitimately straddles modes.
+                    //
+                    // Pre-filters in priority order to avoid expensive
+                    // checks on the 5000+ irrelevant parties (bandits,
+                    // peasants, looters, militia):
+                    //   1. Skip if party type can't ever match (bandit
+                    //      components etc. aren't naval candidates).
+                    //   2. For signature C, IsCurrentlyAtSea is the only
+                    //      gate.
+                    //   3. For signature D, HasNavalNavigationCapability
+                    //      iterates the troop roster — only call it for
+                    //      parties already filtered to lord/caravan types.
+                    bool isShippableType = party.IsCaravan || party.IsLordParty;
+                    if (wrapper != null
+                        && party.CurrentSettlement == null
+                        && isShippableType)
+                    {
+                        bool isCandidateC = party.IsCurrentlyAtSea;
+                        bool isCandidateD = false;
+                        if (!party.IsCurrentlyAtSea && !inSailingDict)
+                        {
+                            try { isCandidateD = party.HasNavalNavigationCapability; }
+                            catch { isCandidateD = false; }
+                        }
+                        if (isCandidateC || isCandidateD)
+                        {
+                            TerrainType terrain;
+                            bool gotTerrain;
+                            try
+                            {
+                                terrain = wrapper.GetFaceTerrainType(party.CurrentNavigationFace);
+                                gotTerrain = true;
+                            }
+                            catch { terrain = default; gotTerrain = false; }
+
+                            if (gotTerrain)
+                            {
+                                // C — at-sea but not over water: clear flag.
+                                // Inverted from the old "clearly land" allow-
+                                // list (which missed coastal/transitional
+                                // terrain like Beach, RuralArea, Bridge,
+                                // Fording — exactly where the pre-v1.6.4.9
+                                // hijack stranded NavalDLC convoys).
+                                if (isCandidateC && !IsOpenWater(terrain))
+                                {
+                                    LogRescue(party, $"clearing IsCurrentlyAtSea (at-sea over non-water {terrain})");
+                                    try { party.IsCurrentlyAtSea = false; } catch { }
+                                }
+                                // D — land-mode over open water: re-flag at sea.
+                                else if (isCandidateD && IsOpenWater(terrain))
+                                {
+                                    LogRescue(party, $"setting IsCurrentlyAtSea (land mode over {terrain})");
+                                    try { party.IsCurrentlyAtSea = true; } catch { }
+                                }
+                            }
+                        }
+                    }
+
+                    // E — legacy slave caravan with no live move target.
+                    if (party.PartyComponent is BannerKings.Components.PopulationPartyComponent ppc
+                        && ppc.SlaveCaravan
+                        && (party.TargetSettlement == null || party.TargetSettlement != ppc.TargetSettlement))
+                    {
+                        staleSlaveCaravans ??= new List<MobileParty>();
+                        staleSlaveCaravans.Add(party);
+                    }
+                }
+
+                if (staleSlaveCaravans != null)
+                {
+                    foreach (var party in staleSlaveCaravans)
+                    {
+                        LogRescue(party, "destroying legacy slave caravan (no live move target)");
+                        try { DestroyPartyAction.Apply(null, party); } catch { }
+                    }
                 }
             }
             catch { /* never throw out of a daily tick or load handler */ }
         }
 
+        private static void LogRescue(MobileParty party, string message)
+        {
+            string name = "?";
+            // BanditPartyComponent.get_Name throws NRE in 1.3.x for some
+            // bandit states (observed in bk-firstchance.log). Null-
+            // conditional doesn't catch property-getter throws — needs
+            // try/catch. Without this each rescue iteration that touches
+            // a bandit party generates a managed exception, which is
+            // expensive in a tight loop.
+            if (party != null)
+            {
+                try { name = party.Name?.ToString() ?? "?"; }
+                catch { name = "?"; }
+            }
+            try
+            {
+                TaleWorlds.Library.Debug.Print(
+                    $"[BK] Rescue sweep: {name} — {message}",
+                    color: TaleWorlds.Library.Debug.DebugColor.Yellow);
+            }
+            catch { /* defensive */ }
+        }
+
         private static bool IsClearlyLand(TerrainType t)
         {
-            // Strict allow-list of inland terrains. Anything outside this
-            // set (water, coastal, transitional, restriction zones) leaves
-            // the at-sea flag intact.
             return t == TerrainType.Plain
                 || t == TerrainType.Forest
                 || t == TerrainType.Steppe
@@ -741,60 +778,12 @@ namespace BannerKings.Behaviours.Shipping
                 || t == TerrainType.Swamp;
         }
 
-        // Inverse of RescueBoatsOnLand. v1.6.4.10's rescue used a too-broad
-        // "not navigable water" test and de-flagged some legitimate at-sea
-        // convoys docked on coastal terrain. Those parties are now in land
-        // mode while physically over open water — observed as caravans
-        // "walking across the ocean from the land without going to a port."
-        //
-        // Flip them back: a party that is NOT at-sea, has naval navigation
-        // capability, is not in BK's sailing dict, is not at a settlement,
-        // and stands over navigable open water needs to be at sea for any
-        // pathfind to work.
-        private void RescueLandPartiesOnWater()
+        private static bool IsOpenWater(TerrainType t)
         {
-            try
-            {
-                var wrapper = TaleWorlds.CampaignSystem.Campaign.Current?.MapSceneWrapper;
-                if (wrapper == null) return;
-
-                foreach (var party in MobileParty.All)
-                {
-                    if (party == null) continue;
-                    if (party.IsCurrentlyAtSea) continue;
-                    if (party == MobileParty.MainParty) continue;
-                    if (party.CurrentSettlement != null) continue;
-                    if (sailing.ContainsKey(party)) continue;
-
-                    bool naval;
-                    try { naval = party.HasNavalNavigationCapability; }
-                    catch { continue; }
-                    if (!naval) continue;
-
-                    TerrainType terrain;
-                    try { terrain = wrapper.GetFaceTerrainType(party.CurrentNavigationFace); }
-                    catch { continue; }
-
-                    // Only flip when unambiguously over open water — we don't
-                    // want to push a party at the coast back out to sea on
-                    // the wrong terrain face.
-                    if (terrain != TerrainType.Water
-                        && terrain != TerrainType.CoastalSea
-                        && terrain != TerrainType.OpenSea
-                        && terrain != TerrainType.Lake)
-                        continue;
-
-                    try
-                    {
-                        TaleWorlds.Library.Debug.Print(
-                            $"[BK] Land-on-water rescue: setting IsCurrentlyAtSea on {party.Name} (terrain={terrain})",
-                            color: TaleWorlds.Library.Debug.DebugColor.Yellow);
-                        party.IsCurrentlyAtSea = true;
-                    }
-                    catch { /* defensive */ }
-                }
-            }
-            catch { /* never throw out of a daily tick or load handler */ }
+            return t == TerrainType.Water
+                || t == TerrainType.CoastalSea
+                || t == TerrainType.OpenSea
+                || t == TerrainType.Lake;
         }
 
         private void TickParty(MobileParty party)
