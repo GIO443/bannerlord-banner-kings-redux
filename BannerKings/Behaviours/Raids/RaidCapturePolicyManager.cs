@@ -13,7 +13,7 @@ namespace BannerKings.Behaviours.Raids
 
         public RaidCapturePolicy Get(Clan clan)
         {
-            if (clan == null) return new RaidCapturePolicy(RaidCaptureMode.Leave, CaptiveDisposition.Serfs);
+            if (clan == null) return new RaidCapturePolicy(RaidCaptureMode.Leave);
             if (!policies.TryGetValue(clan, out var p))
             {
                 p = MakeDefault(clan);
@@ -28,10 +28,13 @@ namespace BannerKings.Behaviours.Raids
             policies[clan] = p;
         }
 
+        // AI clans without an explicit player toggle: take prisoners only
+        // when their realm permits slavery. Non-slaver AI realms leave the
+        // villagers in place so vanilla raid behaviour is preserved for
+        // them.
         public bool ClanRealmAllowsSlavery(Clan clan)
         {
             if (clan == null) return false;
-            // Independent clans set their own rules.
             if (clan.Kingdom == null) return true;
 
             var kingdom = clan.Kingdom;
@@ -45,7 +48,6 @@ namespace BannerKings.Behaviours.Raids
                 }
             }
 
-            // Fall back to receiving-side criminal policy: if the clan's home town runs Enslavement, treat as slaver.
             var home = clan.HomeSettlement;
             if (home != null && home.IsTown)
             {
@@ -56,26 +58,9 @@ namespace BannerKings.Behaviours.Raids
             return false;
         }
 
-        public bool IsDispositionLegal(Clan clan, CaptiveDisposition d)
-        {
-            if (d == CaptiveDisposition.Serfs) return true;
-            return ClanRealmAllowsSlavery(clan);
-        }
-
-        public IEnumerable<CaptiveDisposition> AvailableDispositions(Clan clan)
-        {
-            // Both options always shown; legality decided by IsDispositionLegal.
-            yield return CaptiveDisposition.Slaves;
-            yield return CaptiveDisposition.Serfs;
-        }
-
         private RaidCapturePolicy MakeDefault(Clan clan)
         {
-            bool slaver = ClanRealmAllowsSlavery(clan);
-            return new RaidCapturePolicy(
-                RaidCaptureMode.Take,
-                slaver ? CaptiveDisposition.Slaves : CaptiveDisposition.Serfs,
-                RaidDestinationMode.NearestFriendly);
+            return new RaidCapturePolicy(RaidCaptureMode.Take);
         }
     }
 }

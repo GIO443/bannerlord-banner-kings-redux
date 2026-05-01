@@ -582,20 +582,8 @@ namespace BannerKings
             try
             {
                 var sb = new StringBuilder();
-                int captiveCount = 0;
                 int regularCount = 0;
 
-                sb.AppendLine("Captive caravans:");
-                foreach (var party in MobileParty.All)
-                {
-                    if (party?.PartyComponent is not BannerKings.Components.PopulationPartyComponent ppc) continue;
-                    if (!ppc.IsRaidCaptiveCaravan) continue;
-                    captiveCount++;
-                    AppendCaravanLine(sb, party, ppc);
-                }
-                if (captiveCount == 0) sb.AppendLine("  (none)");
-
-                sb.AppendLine();
                 sb.AppendLine("Trade caravans:");
                 foreach (var party in MobileParty.AllCaravanParties)
                 {
@@ -622,7 +610,6 @@ namespace BannerKings
                 foreach (var party in MobileParty.All)
                 {
                     if (party?.PartyComponent is not BannerKings.Components.PopulationPartyComponent ppc2) continue;
-                    if (ppc2.IsRaidCaptiveCaravan) continue; // already listed above
                     popCount++;
                     AppendCaravanLine(sb, party, ppc2);
                 }
@@ -666,7 +653,7 @@ namespace BannerKings
                 if (unnamedCount == 0) sb.AppendLine("  (none)");
 
                 WriteDiagnosticFile("dump_caravans.txt", sb.ToString());
-                string summary = $"dump_caravans: {captiveCount} captive, {regularCount} trade, {popCount} pop, {banditCount} bandit, {otherBKCount} other-BK, {unnamedCount} nameless. {LastWriteResult}";
+                string summary = $"dump_caravans: {regularCount} trade, {popCount} pop, {banditCount} bandit, {otherBKCount} other-BK, {unnamedCount} nameless. {LastWriteResult}";
                 InformationManager.DisplayMessage(new InformationMessage(summary, Color.FromUint(0xFFFFD700)));
                 return summary;
             }
@@ -738,39 +725,20 @@ namespace BannerKings
         {
             if (!CampaignCheats.CheckCheatUsage(ref CampaignCheats.ErrorType)) return CampaignCheats.ErrorType;
             if (strings == null || strings.Count == 0)
-                return "Format: bannerkings.test_raid_policy <Take|Leave> | <Slaves|Serfs> [| <NearestFriendly|NearestOwned|MostProfitable>]";
+                return "Format: bannerkings.test_raid_policy <Take|Leave>";
 
-            var parts = CampaignCheats.ConcatenateString(strings).Split('|');
-            if (parts.Length != 2 && parts.Length != 3)
-                return "Format: bannerkings.test_raid_policy <Take|Leave> | <Slaves|Serfs> [| <NearestFriendly|NearestOwned|MostProfitable>]";
-
-            var modeToken = parts[0].Trim().ToLowerInvariant();
-            var dispToken = parts[1].Trim().ToLowerInvariant();
+            var modeToken = CampaignCheats.ConcatenateString(strings).Trim().ToLowerInvariant();
             BannerKings.Behaviours.Raids.RaidCaptureMode mode;
-            BannerKings.Behaviours.Raids.CaptiveDisposition disposition;
             if (modeToken == "take") mode = BannerKings.Behaviours.Raids.RaidCaptureMode.Take;
             else if (modeToken == "leave") mode = BannerKings.Behaviours.Raids.RaidCaptureMode.Leave;
-            else return $"Unknown mode: {parts[0]} (expected Take or Leave)";
-            if (dispToken == "slaves") disposition = BannerKings.Behaviours.Raids.CaptiveDisposition.Slaves;
-            else if (dispToken == "serfs") disposition = BannerKings.Behaviours.Raids.CaptiveDisposition.Serfs;
-            else return $"Unknown disposition: {parts[1]} (expected Slaves or Serfs)";
-
-            BannerKings.Behaviours.Raids.RaidDestinationMode dest = BannerKings.Behaviours.Raids.RaidDestinationMode.NearestFriendly;
-            if (parts.Length == 3)
-            {
-                var destToken = parts[2].Trim().Replace(" ", "").ToLowerInvariant();
-                if (destToken == "nearestfriendly" || destToken == "friendly") dest = BannerKings.Behaviours.Raids.RaidDestinationMode.NearestFriendly;
-                else if (destToken == "nearestowned" || destToken == "owned") dest = BannerKings.Behaviours.Raids.RaidDestinationMode.NearestOwned;
-                else if (destToken == "mostprofitable" || destToken == "profit") dest = BannerKings.Behaviours.Raids.RaidDestinationMode.MostProfitable;
-                else return $"Unknown destination: {parts[2]} (expected NearestFriendly, NearestOwned, or MostProfitable)";
-            }
+            else return $"Unknown mode: {modeToken} (expected Take or Leave)";
 
             var behavior = TaleWorlds.CampaignSystem.Campaign.Current
                 .GetCampaignBehavior<BannerKings.Behaviours.Raids.BKRaidCaptureBehavior>();
             if (behavior == null) return "BKRaidCaptureBehavior not registered.";
             behavior.Policies.Set(Clan.PlayerClan,
-                new BannerKings.Behaviours.Raids.RaidCapturePolicy(mode, disposition, dest));
-            return $"Player raid policy: {mode} / {disposition} / {dest}.";
+                new BannerKings.Behaviours.Raids.RaidCapturePolicy(mode));
+            return $"Player raid policy: {mode}.";
         }
 
         [CommandLineFunctionality.CommandLineArgumentFunction("test_raid_capture", "bannerkings")]
@@ -807,39 +775,12 @@ namespace BannerKings
 
                 var policy = behavior.Policies.Get(Clan.PlayerClan);
                 bool slaverRealm = behavior.Policies.ClanRealmAllowsSlavery(Clan.PlayerClan);
-                sb.AppendLine($"Player policy: mode={policy.Mode} disposition={policy.Disposition} destination={policy.Destination} (slaver realm: {slaverRealm})");
+                sb.AppendLine($"Player policy: mode={policy.Mode} (slaver realm: {slaverRealm})");
                 sb.AppendLine($"Settings: enabled={Settings.BannerKingsSettings.Instance.EnableRaidCaptureSystem} " +
                               $"fraction={Settings.BannerKingsSettings.Instance.RaidCaptureFraction:n2} " +
                               $"foreignSkim={Settings.BannerKingsSettings.Instance.ForeignMercSkim:n2} " +
                               $"log={Settings.BannerKingsSettings.Instance.LogRaidCaptureBehavior}");
-
-                int active = 0;
-                int shown = 0;
-                sb.AppendLine("Active captive caravans:");
-                foreach (var party in MobileParty.All)
-                {
-                    if (party?.PartyComponent is not BannerKings.Components.PopulationPartyComponent ppc) continue;
-                    if (!ppc.IsRaidCaptiveCaravan) continue;
-                    active++;
-                    if (shown >= 10) continue;
-                    int prisoners = 0;
-                    var byCulture = new Dictionary<string, int>();
-                    foreach (var e in party.PrisonRoster.GetTroopRoster())
-                    {
-                        if (e.Character == null || e.Character.IsHero) continue;
-                        prisoners += e.Number;
-                        var key = e.Character.Culture?.StringId ?? "?";
-                        byCulture[key] = (byCulture.TryGetValue(key, out var v) ? v : 0) + e.Number;
-                    }
-                    string at = party.CurrentSettlement?.Name?.ToString() ?? $"({party.Position.X:n0},{party.Position.Y:n0})";
-                    string tgt = ppc.TargetSettlement?.Name?.ToString() ?? "(no target)";
-                    string captor = ppc.CaptorHero?.Name?.ToString() ?? "?";
-                    string cult = byCulture.Count == 0 ? "(empty)" : string.Join(",", byCulture.Select(kv => $"{kv.Key}:{kv.Value}"));
-                    sb.AppendLine($"  {party.Name} @ {at} → {tgt} | {prisoners} captives ({ppc.Disposition}, {cult}), captor={captor}");
-                    shown++;
-                }
-                if (active == 0) sb.AppendLine("  (none)");
-                else if (active > shown) sb.AppendLine($"  … {active - shown} more");
+                sb.AppendLine("(Captives are added directly to the raider's prisoner roster — no caravan to dump.)");
             }
             catch (Exception ex) { sb.AppendLine("[dump_raid_state error: " + ex.Message + "]"); }
             string full = sb.ToString();

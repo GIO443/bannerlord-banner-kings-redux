@@ -232,7 +232,6 @@ namespace BannerKings
             AddClassDefinition(typeof(RaidCapturePolicyManager), 1101);
             AddEnumDefinition(typeof(RaidCaptureMode), 1102);
             AddEnumDefinition(typeof(CaptiveDisposition), 1103);
-            AddEnumDefinition(typeof(RaidDestinationMode), 1104);
         }
 
         protected override void DefineContainerDefinitions()
