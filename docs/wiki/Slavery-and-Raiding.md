@@ -3,14 +3,14 @@
 ← [Home](Home)
 
 The slavery and raid economy in BK Redux: how to sell prisoners, how
-slave caravans work, the v1.6.2 raid capture system, and the Nord-flavoured
+slave caravans work, the raid capture system, and the Nord-flavoured
 build that the Nordic Thrall Law unlocks.
 
 ## On this page
 
 - [The Nord raid economy (high-level)](#the-nord-raid-economy-high-level)
 - [How do I sell prisoners as slaves?](#how-do-i-sell-prisoners-as-slaves)
-- [Raid capture system (v1.6.2)](#raid-capture-system-v162)
+- [Raid capture system](#raid-capture-system)
 - [Is slave trading and raiding profitable?](#is-slave-trading-and-raiding-profitable)
 - [Console cheats and logging](#console-cheats-and-logging)
 - [Slavery & raiding FAQ](#slavery--raiding-faq)
@@ -33,7 +33,9 @@ Manumission), see [Systems reference → Demesne laws](Systems-Reference#demesne
 ## How do I sell prisoners as slaves?
 
 1. Capture prisoners in battle (vanilla — they go into your party's
-   prisoner roster automatically when you defeat enemies).
+   prisoner roster automatically when you defeat enemies). **Raiding a
+   village now also drops captives directly into your prisoner roster**
+   — see [Raid capture system](#raid-capture-system) below.
 2. Travel to a town with high slave demand. Best markets in order:
    - **Nord ports** under the Nordic Thrall Law (+80% demand).
    - **Aserai cities** under the Aseran Law (+50% demand).
@@ -48,236 +50,114 @@ Manumission), see [Systems reference → Demesne laws](Systems-Reference#demesne
 
 ---
 
-## Raid capture system (v1.6.2)
+## Raid capture system
 
 When the **Raid Capture System** is enabled in MCM (default on), every
-village you raid produces a *captive caravan* on top of vanilla raid
-damage. The vanilla raid still hits hearths and prosperity exactly as
-before — the captives are conceptually drawn from the already-displaced
-cohort, so the source village is *not* damaged extra. The caravan ships
-captives to your nearest friendly fief, and on arrival they enter the
-local population either as Slaves or as Serfs depending on your toggle.
+village you raid drops a cohort of captive villagers into **your own
+prisoner roster** on top of the normal raid damage. There is no
+caravan, no delivery target, no absorb step — the captives are yours
+to dispose of however vanilla allows: sell at any town, ransom,
+recruit, or release.
 
-### 1. Set your defaults
+The vanilla raid still hits hearths and prosperity exactly as before —
+captives are conceptually drawn from the already-displaced cohort, so
+the source village is *not* damaged extra.
 
-> **All three toggles are sticky per clan and survive save/load.** Set
-> them once on your first raid; you don't need to cycle them again
-> unless you want to change strategy.
+### How it works
 
-When you walk up to a hostile village (the `village_hostile_action`
-menu, the same one with "Raid the village" and "Loot the village"),
-three new lines appear above the raid options:
+1. Walk up to a hostile village. The `village_hostile_action` menu
+   shows two new lines above the raid options:
+   - `Captives: Take` / `Captives: Leave` — flip with a click. Sticky
+     per clan. Default Take if your realm has slavery, Leave otherwise.
+   - `Estimated captives: ~N` — read-only preview computed from village
+     serf population and your party size.
+2. Choose "Raid the village" as normal.
+3. When the raid completes, BK reads your toggle and (if Take) adds
+   captive prisoners directly to your party's `PrisonRoster`. You'll
+   see "X captives taken from VILLAGE as prisoners." in the info
+   panel.
+4. Sell, ransom, or recruit them as you would any other prisoner.
 
-- `Captives: Take` / `Captives: Leave` — click to flip. Sticky per clan.
-  Default Take if your clan's realm has slavery, Leave otherwise.
-- `Disposition: Slaves` / `Disposition: Serfs` — only shown if Captives
-  is set to Take. Sticky per clan. Default Slaves under slavery realms,
-  Serfs otherwise.
-- `Destination: …` — only shown if Captives is set to Take. Cycles
-  through the three destination strategies. Sticky per clan. Default
-  Nearest Friendly.
-- `Estimated captives: ~N` — read-only preview computed from village
-  serf population. Helps you decide whether the raid is worth setting up
-  for capture.
+### Capture count
 
-**Destination modes (v1.6.2.2).**
+Two limiters, whichever is lower:
 
-| Mode | How the caravan picks its target |
-|---|---|
-| **Nearest Friendly** *(default)* | Closest non-sieged town/castle in your faction or your clan's faction. Cheapest in time, lowest payout ceiling. |
-| **Nearest Owned** | Closest fief your *clan* owns. Funnels captives into your demesne — useful for populating a frontier estate. Falls back to Nearest Friendly when your clan owns no fiefs. |
-| **Most Profitable** | Scores every reachable friendly fief by `(payout-per-head × surviving-captives) − (graph-weighted-distance × travel-cost)` and picks the max within a 600-unit search radius. Uses the [adaptive shipping graph](Shipping-and-Trade#adaptive-shipping-costs-v161) so war zones and bandit coasts are auto-discounted. Can produce long, interceptable caravans through hostile waters — that's the trade. |
+- **Village pool**: serfs × 10% × *Raid Capture Fraction* (MCM, default
+  40%) — so a 1,000-serf village offers up to 40 captives.
+- **Party carry**: `(troops − 5) × 0.5` with a floor of 5 — a 30-troop
+  war band carries 12, a 100-troop army carries 47, 200 troops hits
+  the cap.
 
-**AI clans always use Nearest Owned**, regardless of any saved policy. The destination toggle on the village menu only affects the player clan; AI raiders funnel captives back to their own demesne, not random allied fiefs.
+Hard cap 150 per raid. Multi-party raids (armies, multiple clans on
+the same village) **pool their carry capacity** — the game sums troops
+across every party on the attacker side, so a coordinated army of three
+50-troop parties has a 72 carry cap, not 22.
 
-**Fallback chain (v1.6.3.0).** If the chosen mode finds no destination — e.g. an exiled lord or fresh mercenary band with no kingdom and no fiefs — the system tries the alternates and finally falls back to *Most Profitable* as a last resort. Captives never just dissolve.
+### Cohort culture
 
-**No payout when delivering to your own clan's fief (v1.6.3.0).** The slaves still go into the receiving population (so you keep the long-term economic value via tax revenue and population growth), but you don't get an instant gold lump sum — you'd be paying yourself for the slaves you captured. Pick **Most Profitable** or any non-clan-owned destination if you want the gold.
+Captives keep their **original culture** — Battanian raids on a mixed
+Vlandian village produce a culture-weighted cohort of Vlandian, Empire,
+etc., **excluding your raid leader's culture**. This is intentional:
+no internal slave-taking among your own ethnos. The breakdown follows
+the village's `CultureData.Assimilation` weights with the raider's
+culture filtered out.
 
-**Hop-by-hop graph routing (v1.6.3.0).** Captive caravans now route through the unified [trade graph](Shipping-and-Trade) — they walk hop by hop along risk-weighted edges, detouring around hostile coasts and sieged regions instead of vanilla pathfinding straight across. A captive caravan from inland Battania to a Vlandian fief might walk south, board a ship, and land on the Vlandian coast all in one graph path. This is what makes the destination toggle actually meaningful for non-port raids.
-
-**Village anchoring (v1.6.3.1).** The graph contains only towns and castles, not villages. When a raid completes at a village (which is always the case), the captive caravan first walks to the *nearest safe* graph fief — closest by distance, weighted by risk so a hostile-bordered fief loses to a slightly farther peaceful one and sieged fiefs are skipped. Once it reaches that anchor, normal graph hops take over. This preserves risk-aware routing for the full journey instead of dropping to vanilla pathfind for the whole trip.
-
-**Hop routing actually works now (v1.6.4.0).** Two latent bugs were defeating the hop chain on v1.6.3.x: the population-party hourly tick clobbered the router's intermediate move-target on every tick (sending captive caravans straight to the final destination via vanilla pathfind), and AI-disabled captive caravans never left intermediate settlements after entering them (`SetMoveGoToSettlement` alone doesn't trigger leave for AI-disabled parties). Both fixed — captive caravans now visibly hop through graph nodes, and the destination toggle (Most Profitable, etc.) is actually meaningful.
-
-**Captive caravan owned by captor (v1.6.6.0).** Earlier builds had captive caravans inheriting their faction from the *raided village's* owner clan, because `BannerKingsComponent.PartyOwner` defaulted to `HomeSettlement.OwnerClan.Leader` and `Home` was set to the origin (the raided village). Net effect: an independent player clan that raided an Aserai village ended up with an *Aserai-owned* slave caravan, hostile to the player who raided it. Now `PopulationPartyComponent.PartyOwner` returns `CaptorHero` for raid-captive caravans, and `MobileParty.ActualClan` is set to the captor's clan at spawn time. Caravans display as friendly to the captor's clan/kingdom, not the raided faction. Existing in-progress caravans on saved games re-resolve faction on next load.
-
-**Empty-roster guard (v1.6.5.3).** A daily watchdog now destroys any captive caravan with `prisoners=0`. Earlier builds occasionally spawned captive caravans with empty rosters (cohort distribution edge cases or post-spawn drains via PrisonRoster cleanup paths) — those caravans piled up at their origin since they couldn't progress past the absorption-on-arrival step (no captives to absorb). Logged to `Configs/ModLogs/BK_caravan_watchdog.txt` as `empty-captive guard: destroying X` so you can spot patterns.
-
-**Captive count (v1.6.3.1).** Two limiters, whichever is lower:
-
-- **Village pool**: serfs × 10% × *Raid Capture Fraction* (MCM, default 40%) — so a 1,000-serf village offers up to 40 captives.
-- **Party carry**: `(troops − 5) × 0.5` with a floor of 5 — a 30-troop war band carries 12, a 100-troop army carries 47, 200 troops hits the cap.
-
-Hard cap 150 per raid. Multi-party raids (armies, multiple clans on the same village) **pool their carry capacity** — the game sums troops across every party on the attacker side, so a coordinated army of three 50-troop parties has a 72 carry cap, not 22.
-
-**Most Profitable scoring (v1.6.3.1).** Multiplicative decay rather than flat penalty:
-
-```
-score = (captives × payout/head) × distanceDecay × safetyDecay
-distanceDecay = 1 / (1 + dist / 100)
-safetyDecay = 1 / riskMultiplier
-```
-
-A close peaceful fief beats a distant high-payout one unless the payout differential is genuinely large. War zones, sieges, and bandit-heavy approaches reduce the score proportional to risk.
-
-### 2. Run the raid
-
-Choose "Raid the village" as normal. When the raid completes, BK applies
-your toggles:
-
-- A captive caravan spawns at the raided village and walks to the
-  *nearest friendly* town or castle that isn't at war with your party.
-- Captives keep their **original culture** — Battanian raids on a mixed
-  Vlandian village produce a culture-weighted cohort of Vlandian, Empire,
-  etc., **excluding your raid leader's culture**. This is intentional: no
-  internal slave-taking among your own ethnos.
-- A small culture-typed escort accompanies the caravan (10–40 troops, tier
-  ≤ 2). Strong enough to fend off a small bandit pack; weak enough that
-  any war party will roll over it. Decide whether to escort it home
-  yourself.
-
-### 3. Arrival
-
-When the caravan reaches its destination, captives are absorbed into the
-receiving fief's population (Slaves or Serfs per your toggle), each
-cohort credited under its *own* culture in `CultureData`. You receive a
-lump-sum payout to your hero — full slave price for Slaves, ~55% of
-slave price for Serfs.
-
-### 4. Disposition legality
-
-- **Independent clan** (no kingdom): both Slaves and Serfs always legal.
-- **Realm with `SlaveryNord` / `SlaveryAserai` / criminal Enslavement**:
-  both legal, default Slaves.
-- **Realm without slavery**: Serfs legal; Slaves shows
-  *"Slaves (UNLAWFUL)"* — you can still pick it for the higher payout, but
-  expect a criminal rating tick, relation hit with your kingdom's ruler,
-  and influence loss per caravan. Profit beats penalty for one-off
-  captures; sustained illegal slaving will cost more than it earns.
-
-### 5. Foreign mercenaries and mercenary raiding
+### Foreign mercenaries: skim payout
 
 The skim system models the awkward reality that a captain serving a
-foreign crown has private interests of his own. **The trigger is
-strictly: the raid leader's clan has a Kingdom, AND the leader's
-culture differs from that Kingdom's culture.** Both conditions are
-required — independent mercenary captains (no kingdom) are *not*
-flagged as foreign, even though they're explicitly serving no one,
-because the skim is about secretly diverting an employer's haul.
-Without an employer, there's nothing to skim *from* — you just keep
-everything via the regular destination policy.
+foreign crown has private interests of their own. **Trigger:** the
+raid leader has a Kingdom AND the leader's culture differs from that
+Kingdom's culture. Both required.
 
-**Who counts as foreign:**
-
-- **A mercenary clan on an active kingdom contract**, where the clan's
-  leader has a different culture than the employing kingdom — almost
-  the textbook case.
-- **A vassal whose culture differs from their liege's kingdom** — e.g.
-  a Battanian count under a Vlandian king after a successful claim
-  war. They get the skim every time they raid for Vlandia, indefinitely.
-- **The player serving a foreign kingdom**, with your character's
-  culture set to anything other than that kingdom's culture.
+When a foreign-led party raids, **20% of captives** (default — MCM-tunable
+as *Foreign Merc Skim*) are converted to **instant gold** paid to the
+raid leader, priced at the local slave market rate of the nearest
+friendly fief. The remaining 80% go to the prisoner roster as usual.
+There is no longer a side caravan — the diversion is just a gold lump
+sum.
 
 A clan in a kingdom whose leader shares the kingdom's culture is
 treated as native and the skim doesn't apply. An independent clan
-(no kingdom) is also not flagged as foreign — see "Independent
-mercenaries" below for what they actually do.
+(no kingdom) is also not flagged as foreign — they're explicitly
+serving no one, so there's no employer to skim *from*.
 
-**The split for a foreign captain.** When a foreign-led party raids:
+A foreign captain raiding villages of *their own* culture produces no
+captives at all (the cohort is empty after exclusion), and the system
+silently aborts the capture.
 
-- **20% of captives** (default — MCM-tunable as *Foreign Merc Skim*)
-  are diverted to the captain's private profit pool.
-- The remaining **80%** travel to the destination chosen by the raid
-  capture policy (Nearest Friendly / Nearest Owned / Most Profitable
-  for the player; always Nearest Owned for AI clans).
-- **Skim destination**: a *second*, smaller captive caravan spawns at
-  the raided village and walks to the captain's **clan home
-  settlement** — not their employer's territory. Disposition is
-  always **Slaves**, regardless of the policy's disposition setting:
-  the captain personally captured these heads and is selling them
-  through his own networks, not on his employer's books. Both
-  caravans (main + skim) appear on the map and are interceptable.
-- **Edge case** — if the foreign captain's clan has a kingdom but no
-  home settlement (an orphan clan, rare), the skim collapses to
-  instant gold paid directly to the captain at the destination's
-  slave price.
-
-**Cohort culture exclusion uses the leader's culture, not the
-employer's.** A Battanian mercenary serving Vlandia who raids a
-Battanian village does not take Battanian captives — even though
-Vlandia might have wanted them. The exclusion is about identity, not
-employer obligation. A foreign captain raiding villages of *their
-own* culture produces no captives at all (the cohort is empty after
-exclusion), and the system silently aborts the capture.
-
-**Independent mercenaries** (clan exists, no kingdom — typical of a
-fresh mercenary band or a clan between contracts) are *not* flagged
-as foreign. All captives go to the main caravan via the regular
-destination policy. With no fief or kingdom, the destination
-fallback chain (added in v1.6.3.0) routes them via *Most Profitable*
-as a last resort — a long caravan to whatever market pays best,
-through whatever route the trade graph picks.
-
-**Mercenary raiding scenarios at a glance:**
-
-- **Player as an independent mercenary captain.** No skim. Your raids
-  produce one caravan with all captives, routed by your policy
-  toggle on the village menu (or fallback to Most Profitable if you
-  own no fief).
-- **Player vassal/mercenary in a foreign kingdom.** Skim 20% to a
-  side caravan to your clan home (Slaves). Main caravan follows your
-  policy.
-- **AI mercenary clans on contract.** Same flow. AI clans always use
-  **Nearest Owned** for the main caravan; the skim side caravan goes
-  to their clan home as Slaves. AI mercenary clans with no fief and
-  no clan home hit the fallback chain and route the main caravan via
-  Most Profitable.
-- **Vassal clans of mismatched culture.** Same skim rules. A
-  long-standing Battanian vassal of Vlandia keeps diverting 20% of
-  their raid captives to their own clan home over decades — meaningful
-  demographic pressure on the vassal's own demesne, and meaningful
-  loss to the Vlandian crown's recruitable pool.
-- **Bandits and BK bandit-hero clans never produce captives.** This
-  shortcut applies before the foreign-merc check, so a hired bandit
-  clan acting as a war party still won't trigger captures.
-
-### 6. Intercepting enemy caravans
-
-Hostile captive caravans appear on the map and can be attacked like any
-party. Defeating one releases the captives (no transfer to your fief) —
-useful for harassing slaver realms.
-
-### 7. Demographic warfare
-
-Because captives keep their original culture and feed the destination's
-`CultureData`, sustained raiding visibly reshapes both sides over decades:
-
-- **Donor settlements** lose pop biased toward their own culture (your
-  culture is excluded), so a raided foreign town slowly purifies toward
-  the *raider's* cultural minority over many raids.
-- **Receiver settlements** gain a foreign-culture cohort with low
-  acceptance (0.20). The next-tick weight recompute shifts assimilation
-  in their favor; over many caravans, visible foreign pockets form in
-  your towns, with all the loyalty/recruit-pool consequences that come
-  with cultural mismatch.
-
-### 8. Toggling the system off
+### Toggling the system off
 
 Open MCM → Banner Kings → Slavery → *Raid Capture System*. With it off,
-only the existing slavery system runs (criminal-policy Enslavement on
-prisoner sale, `decision_slaves_export` slave caravans). Existing saves
-remain compatible either way.
+village raids no longer produce captives — only vanilla raid damage
+applies, and the existing slavery-economy loops (criminal-policy
+Enslavement on prisoner sale, `decision_slaves_export` slave caravans
+between AI towns) continue to run.
+
+### Migrating from older builds
+
+Earlier BK Redux builds (v1.6.2 – v1.6.6) spawned a separate **captive
+caravan** that walked from the raided village to a destination fief
+and absorbed captives into the destination's population on arrival.
+That whole flow is gone in v1.6.7. On save load, any leftover captive
+caravan from an older build is silently destroyed — they were ghosts
+either way (frequent stuck-on-coast / hop-routing failure cases). No
+manual cleanup required.
+
+The companion toggles **Disposition (Slaves/Serfs)** and **Destination
+(Nearest Friendly / Nearest Owned / Most Profitable)** were only
+meaningful inside the caravan flow and are also gone. With captives
+landing directly in your prisoner roster, *you* decide what to do with
+them — sell at the highest-paying market, hand-walk to a frontier
+estate, ransom individuals, etc.
 
 ### Gotchas
 
 - Raid leader's *culture* (not their kingdom's) decides the cohort
   exclusion. Mercenary captains carry their own culture into this rule.
 - Bandits never produce captives — only player and AI lord raids do.
-- If no friendly town/castle exists (besieged, all-hostile, etc.), the
-  caravan routes to your clan's home settlement as a fallback.
-- Caravans are not invincible. Plan to escort them home if you raided
-  deep in enemy territory.
+- Prisoners go to the **raid leader's party**, not split across the
+  army. If you led the raid as part of an army, redistribute later
+  through the party screen if needed.
 
 ---
 
@@ -305,40 +185,24 @@ Yes, but with caveats:
 
 Cheats must be enabled in the launcher.
 
-**Test cheats** (v1.6.2.1):
-
-- `bannerkings.test_raid_policy Take | Slaves [| MostProfitable]` — set
-  the player clan's raid capture policy directly (cycling through the
-  village menu also works in-game; this is faster from the console).
-  Optional 3rd arg sets the destination mode: `NearestFriendly`,
-  `NearestOwned`, or `MostProfitable`.
+- `bannerkings.test_raid_policy Take` (or `Leave`) — set the player
+  clan's raid capture toggle directly without walking up to a village
+  menu.
 - `bannerkings.test_raid_capture village_V1_1` — run the capture flow
   on the named village as if MainParty just finished a successful raid
   there. Skips the actual raid combat / village damage; you only see
-  the captive caravan side.
-- `bannerkings.test_dump_raid_state` — list the player policy, the
-  current settings (enable / fraction / skim / log), and every active
-  captive caravan with cargo breakdown by culture, target, captor.
-- `bannerkings.dump_caravans` *(v1.6.3.2)* — instant snapshot of every
-  caravan-style party (captive + trade) with position, current
-  settlement, move target, final destination, IsActive, AtSea,
-  AiDisabled, prisoner count, captor. Output → BK_dump_caravans.txt.
-  Use this when a caravan looks stuck; the field values usually
-  identify the cause (IsActive=false → BK shipping limbo; moveTo=null
-  → AI lost its goal; AtSea=true on land settlement → disembark
-  failure; etc.).
-
-A passive **daily caravan watchdog** also appends every captive
-caravan's state and any 24h-idle trade caravan to BK_caravan_watchdog.txt
-when MCM *Log Raid Capture Behavior* is on, so retroactive diagnosis is
-possible even if the cheat wasn't run at the time.
+  the prisoner handoff.
+- `bannerkings.test_dump_raid_state` — list the player policy and the
+  current settings (enable / fraction / skim / log).
+- `bannerkings.dump_caravans` — snapshot of every caravan-style party
+  (BK + vanilla trade) with position, target, IsActive, AtSea,
+  prisoner count. Output → `BK_dump_caravans.txt`.
 
 **Behavior logging** (no cheats required): toggle **MCM → Banner Kings
 → Slavery → Log Raid Capture Behavior**. With it on, every capture
-decision (project, split, disposition, cohort, spawn, payout) prints
-to both the in-game info panel and `Debug.Print`. Lines are prefixed
-`[BKRaid]` for grepping. Use this when investigating an unexpected
-outcome from a real campaign raid.
+decision (projection, split, cohort distribution, prisoners added)
+prints to both the in-game info panel and `Debug.Print`. Lines are
+prefixed `[BKRaid]` for grepping.
 
 ---
 
@@ -360,17 +224,20 @@ decision (Nordic Thrall Law overrides the gate).
 Enact the *Manumission* demesne law. It drives slave demand to zero, and
 the population balance code converts excess slaves to serfs over time.
 
-**Q: How does the new raid capture system work?**
-See [Raid capture system (v1.6.2)](#raid-capture-system-v162) above.
+**Q: Where does the captive caravan go after a raid?**
+There is no captive caravan anymore. Captives are added directly to
+your party's prisoner roster — sell or ransom them through any town's
+prisoner UI.
 
-**Q: Why didn't I get a captive caravan after raiding?**
+**Q: Why didn't I get any captives after raiding?**
 A few reasons. (1) You may have set Captives → Leave on the village menu;
 flip it back. (2) The village had ~0 serfs (raid frequency or famine);
 the model floors at 0 captives. (3) The MCM toggle is off. (4) You raided
-as a bandit clan — bandits never produce captives. Run
-`bannerkings.test_dump_raid_state` to confirm your policy and the system
-state, and toggle on the *Log Raid Capture Behavior* MCM setting to see
-the decision trace.
+as a bandit clan — bandits never produce captives. (5) Your party was
+the only one on the attacker side and had ≤5 troops — the carry floor
+is 5, but a literal 5-troop band gets 5 max even on a high-pop village.
+Run `bannerkings.test_dump_raid_state` to confirm your policy, and
+toggle on *Log Raid Capture Behavior* in MCM to see the decision trace.
 
 ---
 
