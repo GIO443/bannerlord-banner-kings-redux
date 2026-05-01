@@ -123,21 +123,28 @@ namespace BannerKings.Managers.Populations.Estates
         public ExplainedNumber PopulationCapacityExplained => BannerKingsConfig.Instance.GrowthModel.CalculateEstateCap(this, true);
         public ExplainedNumber MaxManpower => BannerKingsConfig.Instance.EstatesModel.CalculateEstateManpower(this);
         public ExplainedNumber MaxManpowerExplained => BannerKingsConfig.Instance.EstatesModel.CalculateEstateManpower(this, true);
-        public int Income => (int)(TaxAccumulated * 0.8f);
+        // Payout primed for the next clan-finance withdrawal: 80% of the
+        // accumulated tax balance. Returns 0 when income is currently
+        // blocked (e.g. owner at war with the village's faction) — this
+        // matches BKClanFinanceModel.CalculateOwnerIncomeFromEstates so
+        // the UI column doesn't show a number the player will never see
+        // hit their gold.
+        public int Income => IncomeBlockedReason != null ? 0 : (int)(TaxAccumulated * 0.8f);
 
-        // Estimated steady-state daily income from the production tick
-        // (EstateData.DailyProductionIncome). Used by the UI to show
-        // "expected denar/day" without waiting for the daily-tick to
-        // accumulate and pay out. Mirrors the same formula:
+        // Steady-state daily denar/day prediction. Mirrors the production
+        // tick formula in EstateData.DailyProductionIncome × the same
+        // 0.8 payout factor as Income. Returns 0 when blocked so the
+        // estimate doesn't promise income that won't flow.
         //   effectiveAcres   = Farmland + Pastureland*0.5 + Woodland*0.15
         //   workforceFactor  = clamp((Pop + Slaves) / (effectiveAcres*0.5), 0..1)
         //   gross            = effectiveAcres × workforceFactor × 0.4
         //   net              = gross × (1 - TaxRatio)
-        //   payout           = net × 0.8           (Income returns 80% of accumulated)
+        //   payout           = net × 0.8
         public float EstimatedDailyIncome
         {
             get
             {
+                if (IncomeBlockedReason != null) return 0f;
                 float effectiveAcres = Farmland + (Pastureland * 0.5f) + (Woodland * 0.15f);
                 if (effectiveAcres <= 0f) return 0f;
                 int totalLabor = Population + Slaves;
@@ -152,6 +159,54 @@ namespace BannerKings.Managers.Populations.Estates
                 float gross = effectiveAcres * workforceFactor * 0.4f;
                 float net = gross * keepRate;
                 return net * 0.8f;
+            }
+        }
+
+        // Returns null when income is flowing normally; a short
+        // human-readable reason string when something is preventing the
+        // clan-finance daily tick from withdrawing TaxAccumulated. The
+        // reason is surfaced verbatim in the visit-panel tooltip and the
+        // clan-finance row tooltip so the player can see *why* the
+        // estate is producing nothing despite a healthy population.
+        //
+        // Mirrors every short-circuit in the actual income path:
+        //   1. BKClanFinanceModel.CalculateOwnerIncomeFromEstates skips
+        //      estates whose village faction is at war with the owner.
+        //   2. BKClanFinanceModel.CalculateClanIncome only invokes
+        //      AddIncomes (the BK estate hook) when TitleManager != null,
+        //      so without the title system the daily tick never reads
+        //      estate income at all.
+        //   3. CalculateOwnerIncomeFromEstates iterates
+        //      PopulationManager.GetEstates(Owner), which keys off a
+        //      dictionary populated by ChangeEstateOwner / AddEstate.
+        //      If an estate's Owner field is set but the dict isn't, the
+        //      loop never sees it — observed when estates were swapped
+        //      via paths that bypassed those helpers.
+        public string IncomeBlockedReason
+        {
+            get
+            {
+                var settlement = EstatesData?.Settlement;
+                if (settlement == null) return null;
+                if (Owner == null) return null;
+
+                var villageFaction = settlement.MapFaction;
+                var ownerFaction = Owner.MapFaction;
+                if (villageFaction != null && ownerFaction != null && villageFaction.IsAtWarWith(ownerFaction))
+                    return $"at war with {villageFaction.Name}";
+
+                if (BannerKingsConfig.Instance.TitleManager == null)
+                    return "BK title manager not loaded — clan finance hook is gated on it";
+
+                var popManager = BannerKingsConfig.Instance.PopulationManager;
+                if (popManager != null)
+                {
+                    var registered = popManager.GetEstates(Owner);
+                    if (registered == null || !registered.Contains(this))
+                        return "estate not registered to its owner — try save/reload to resync";
+                }
+
+                return null;
             }
         }
         public int AvailableWorkForce

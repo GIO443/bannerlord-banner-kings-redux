@@ -135,6 +135,7 @@ namespace BannerKings
             campaignStarter.AddBehavior(new BKMercenaryCompanyBehavior());
             campaignStarter.AddBehavior(new BKAIVisitSettlementBehavior());
             campaignStarter.AddBehavior(new BKRaidCaptureBehavior());
+            campaignStarter.AddBehavior(new BKEstateIncomeBehavior());
             //campaignStarter.RemoveBehavior(campaignStarter.CampaignBehaviors.First(x => x.GetType() == typeof(CaravansCampaignBehavior)));
 
 

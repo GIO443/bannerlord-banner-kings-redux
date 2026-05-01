@@ -71,6 +71,7 @@ namespace BannerKings.UI.Estates
             // shows here is what's actually being paid out per day in
             // steady state. Last actual paid-out income shown alongside.
             int estDaily = (int)Estate.EstimatedDailyIncome;
+            string blocker = Estate.IncomeBlockedReason;
             MainInfo.Add(new TownManagementDescriptionItemVM(new TextObject("{=BKEstate_DailyIncome}Daily Income (est.):"),
                 estDaily,
                 Estate.LastIncome,
@@ -78,6 +79,12 @@ namespace BannerKings.UI.Estates
                 new BasicTooltipViewModel(() =>
                 {
                     var sb = new System.Text.StringBuilder();
+                    if (blocker != null)
+                    {
+                        sb.AppendLine($"INCOME BLOCKED: {blocker}.");
+                        sb.AppendLine("No payout flows while blocked. Tax keeps accumulating but won't reach you.");
+                        sb.AppendLine();
+                    }
                     sb.AppendLine("Estimated steady-state daily income from production.");
                     sb.AppendLine($"  effective acres = {(Estate.Farmland + Estate.Pastureland * 0.5f + Estate.Woodland * 0.15f):0.0}");
                     sb.AppendLine($"  workforce saturation = {(Estate.WorkforceSaturation * 100f):0}%");
@@ -85,7 +92,31 @@ namespace BannerKings.UI.Estates
                     sb.AppendLine($"  estimated payout = {estDaily} denar/day");
                     sb.AppendLine();
                     sb.AppendLine($"Last actual paid-out income: {Estate.LastIncome} denar.");
+                    sb.AppendLine($"Pending balance accumulated:  {Estate.TaxAccumulated} denar (drained at clan-finance tick).");
                     sb.AppendLine("Trade-tax share from villager parties is added on top of this and varies with village trade volume.");
+                    return sb.ToString();
+                })));
+
+            // Pending balance — the gold sitting in TaxAccumulated waiting
+            // for the next clan-finance tick. Visible so the player can see
+            // *why* the daily-income column on the clan tab might show 0
+            // even though the estate is "earning" — when blocked, the
+            // balance just keeps climbing without ever reaching them.
+            MainInfo.Add(new TownManagementDescriptionItemVM(new TextObject("{=BKEstate_PendingBalance}Pending Balance:"),
+                Estate.TaxAccumulated,
+                0,
+                TownManagementDescriptionItemVM.DescriptionType.Gold,
+                new BasicTooltipViewModel(() =>
+                {
+                    var sb = new System.Text.StringBuilder();
+                    sb.AppendLine("Tax accumulated by the estate, waiting to be paid out.");
+                    sb.AppendLine("Each clan-finance daily tick withdraws 80% of this and pays it to the owner;");
+                    sb.AppendLine("the remaining 20% rolls over so the balance never hits zero.");
+                    if (blocker != null)
+                    {
+                        sb.AppendLine();
+                        sb.AppendLine($"Currently blocked: {blocker}. Balance keeps climbing but no withdrawals fire.");
+                    }
                     return sb.ToString();
                 })));
 

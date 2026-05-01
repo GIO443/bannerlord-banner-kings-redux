@@ -75,6 +75,24 @@ namespace BannerKings.UI.VanillaTabs.Clans
 
         protected override void PopulateStatsList()
         {
+            string blocker = Estate.IncomeBlockedReason;
+
+            // Income blocker first — when something is preventing payout
+            // (war with the village's faction, etc.), put it at the top
+            // so the player isn't left wondering why the daily/last/
+            // pending columns disagree.
+            if (blocker != null)
+            {
+                ItemProperties.Add(new SelectableItemPropertyVM(new TextObject("{=BKEstate_BlockedProp}Income Blocked").ToString(),
+                    blocker,
+                    false,
+                    new BasicTooltipViewModel(() =>
+                        $"Income blocked: {blocker}.\n" +
+                        "While blocked, the daily clan-finance tick skips this estate, so no gold reaches you.\n" +
+                        "Tax keeps accumulating into the pending balance — when the block ends, withdrawals resume " +
+                        "and the balance drains 80% per day until paid out.")));
+            }
+
             // Daily income estimate first — what the player wants to see
             // most. Mirrors the production-tick payout formula. Last
             // actual paid income shown separately at the bottom.
@@ -85,12 +103,19 @@ namespace BannerKings.UI.VanillaTabs.Clans
                 new BasicTooltipViewModel(() =>
                 {
                     var sb = new System.Text.StringBuilder();
+                    if (blocker != null)
+                    {
+                        sb.AppendLine($"INCOME BLOCKED: {blocker}.");
+                        sb.AppendLine("While blocked the estimate is forced to 0 — payout won't fire.");
+                        sb.AppendLine();
+                    }
                     sb.AppendLine($"Estimated steady-state daily payout: {estDaily} denar");
                     sb.AppendLine($"  effective acres = {(Estate.Farmland + Estate.Pastureland * 0.5f + Estate.Woodland * 0.15f):0.0}");
                     sb.AppendLine($"  workforce saturation = {(Estate.WorkforceSaturation * 100f):0}%");
                     sb.AppendLine($"  keep rate after tax = {((1f - Estate.TaxRatio.ResultNumber) * 100f):0}%");
                     sb.AppendLine();
                     sb.AppendLine($"Last actual paid income: {Estate.LastIncome} denar.");
+                    sb.AppendLine($"Pending balance: {Estate.TaxAccumulated} denar (drains 80%/day at clan-finance tick).");
                     sb.AppendLine("Trade-tax share from villager parties is added on top of this.");
                     return sb.ToString();
                 })));
