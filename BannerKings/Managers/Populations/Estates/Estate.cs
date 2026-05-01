@@ -124,6 +124,36 @@ namespace BannerKings.Managers.Populations.Estates
         public ExplainedNumber MaxManpower => BannerKingsConfig.Instance.EstatesModel.CalculateEstateManpower(this);
         public ExplainedNumber MaxManpowerExplained => BannerKingsConfig.Instance.EstatesModel.CalculateEstateManpower(this, true);
         public int Income => (int)(TaxAccumulated * 0.8f);
+
+        // Estimated steady-state daily income from the production tick
+        // (EstateData.DailyProductionIncome). Used by the UI to show
+        // "expected denar/day" without waiting for the daily-tick to
+        // accumulate and pay out. Mirrors the same formula:
+        //   effectiveAcres   = Farmland + Pastureland*0.5 + Woodland*0.15
+        //   workforceFactor  = clamp((Pop + Slaves) / (effectiveAcres*0.5), 0..1)
+        //   gross            = effectiveAcres × workforceFactor × 0.4
+        //   net              = gross × (1 - TaxRatio)
+        //   payout           = net × 0.8           (Income returns 80% of accumulated)
+        public float EstimatedDailyIncome
+        {
+            get
+            {
+                float effectiveAcres = Farmland + (Pastureland * 0.5f) + (Woodland * 0.15f);
+                if (effectiveAcres <= 0f) return 0f;
+                int totalLabor = Population + Slaves;
+                if (totalLabor <= 0) return 0f;
+                float required = effectiveAcres * 0.5f;
+                float workforceFactor = required > 0f
+                    ? MathF.Clamp(totalLabor / required, 0f, 1f)
+                    : 0f;
+                if (workforceFactor <= 0f) return 0f;
+                float keepRate = 1f - TaxRatio.ResultNumber;
+                if (keepRate < 0f) keepRate = 0f;
+                float gross = effectiveAcres * workforceFactor * 0.4f;
+                float net = gross * keepRate;
+                return net * 0.8f;
+            }
+        }
         public int AvailableWorkForce
         {
             get

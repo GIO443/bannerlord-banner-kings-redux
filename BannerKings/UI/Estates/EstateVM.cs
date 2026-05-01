@@ -66,8 +66,31 @@ namespace BannerKings.UI.Estates
                 ImageIdentifier = new CharacterImageIdentifierVM(CampaignUIHelper.GetCharacterCode(Estate.Owner.CharacterObject));
             }
 
-            MainInfo.Add(new TownManagementDescriptionItemVM(new TextObject("{=VRbXbsPE}Population:"), 
-                Estate.Population, 
+            // Daily-income estimate first — most important number for the
+            // owner. Mirrors the production-tick formula so what the panel
+            // shows here is what's actually being paid out per day in
+            // steady state. Last actual paid-out income shown alongside.
+            int estDaily = (int)Estate.EstimatedDailyIncome;
+            MainInfo.Add(new TownManagementDescriptionItemVM(new TextObject("{=BKEstate_DailyIncome}Daily Income (est.):"),
+                estDaily,
+                Estate.LastIncome,
+                TownManagementDescriptionItemVM.DescriptionType.Gold,
+                new BasicTooltipViewModel(() =>
+                {
+                    var sb = new System.Text.StringBuilder();
+                    sb.AppendLine("Estimated steady-state daily income from production.");
+                    sb.AppendLine($"  effective acres = {(Estate.Farmland + Estate.Pastureland * 0.5f + Estate.Woodland * 0.15f):0.0}");
+                    sb.AppendLine($"  workforce saturation = {(Estate.WorkforceSaturation * 100f):0}%");
+                    sb.AppendLine($"  keep rate after tax = {((1f - Estate.TaxRatio.ResultNumber) * 100f):0}%");
+                    sb.AppendLine($"  estimated payout = {estDaily} denar/day");
+                    sb.AppendLine();
+                    sb.AppendLine($"Last actual paid-out income: {Estate.LastIncome} denar.");
+                    sb.AppendLine("Trade-tax share from villager parties is added on top of this and varies with village trade volume.");
+                    return sb.ToString();
+                })));
+
+            MainInfo.Add(new TownManagementDescriptionItemVM(new TextObject("{=VRbXbsPE}Population:"),
+                Estate.Population,
                 0,
                 TownManagementDescriptionItemVM.DescriptionType.Loyalty));
 
@@ -83,7 +106,28 @@ namespace BannerKings.UI.Estates
                (int)Estate.Acreage,
                (int)acreage.ResultNumber,
                TownManagementDescriptionItemVM.DescriptionType.Prosperity,
-               new BasicTooltipViewModel(() => acreage.GetExplanations())));
+               new BasicTooltipViewModel(() =>
+               {
+                   var sb = new System.Text.StringBuilder();
+                   sb.AppendLine($"Total acreage: {Estate.Acreage:0.0}");
+                   sb.AppendLine($"  Farmland:    {Estate.Farmland:0.0}");
+                   sb.AppendLine($"  Pastureland: {Estate.Pastureland:0.0}");
+                   sb.AppendLine($"  Woodland:    {Estate.Woodland:0.0}");
+                   if (acreage.ResultNumber > 0f)
+                   {
+                       sb.AppendLine();
+                       string source = Estate.Task == EstateTask.Land_Expansion
+                           ? "Land Expansion task (full diverted workforce)"
+                           : "Production task (excess workforce above 100% saturation)";
+                       sb.AppendLine($"Currently growing +{acreage.ResultNumber:0.00} acres/day from {source}.");
+                   }
+                   else
+                   {
+                       sb.AppendLine();
+                       sb.AppendLine("Not growing. Switch to Land Expansion task or boost workforce above 100% saturation to clear new land.");
+                   }
+                   return sb.ToString();
+               })));
 
             PlayerOwned = Estate.Owner == Hero.MainHero && !IsDisabled;
             RetinueHint = new HintViewModel(new TextObject("{=g9WenypY}Enter dialogue with your retainers. You can command and manage their party."));
@@ -128,12 +172,20 @@ namespace BannerKings.UI.Estates
                 ExtraInfos.Add(LandInfo);
 
                 WorkforceInfo.Add(new InformationElement(new TextObject("{=p7yrSOcC}Available Workforce:").ToString(),
-                    Estate.AvailableWorkForce.ToString(),
+                    Estate.AvailableWorkForce.ToString() + " (" + Estate.Population + " free + " + Estate.Slaves + " slaves)",
                     new TextObject("{=1mJgkKHB}The amount of productive workers in this region, able to work the land").ToString()));
 
+                float satPct = Estate.WorkforceSaturation * 100f;
+                string satLabel;
+                if (satPct < 50f) satLabel = $"{satPct:0}% (severely under-staffed)";
+                else if (satPct < 90f) satLabel = $"{satPct:0}% (under-staffed)";
+                else if (satPct <= 110f) satLabel = $"{satPct:0}% (balanced)";
+                else if (satPct <= 200f) satLabel = $"{satPct:0}% (surplus → clearing land)";
+                else satLabel = $"{satPct:0}% (large surplus → clearing land)";
+
                 WorkforceInfo.Add(new InformationElement(new TextObject("{=vaT0rnKq}Workforce Saturation:").ToString(),
-                    FormatValue(Estate.WorkforceSaturation),
-                    new TextObject("{=1KB6Hbpm}Represents how many workers there are in correlation to the amount needed to fully utilize the acreage. Saturation over 100% indicates more workers than the land needs, while under 100% means not all acres are producing output")
+                    satLabel,
+                    new TextObject("{=BKEstate_SatTooltip}Saturation < 100% means some acres aren't being worked → reduced production. = 100% means production is maximised. > 100% means surplus workforce; on Production task they auto-clear new land, on Land Expansion they accelerate the divert.")
                     .ToString()));
 
                 ExtraInfos.Add(WorkforceInfo);

@@ -75,6 +75,55 @@ namespace BannerKings.UI.VanillaTabs.Clans
 
         protected override void PopulateStatsList()
         {
+            // Daily income estimate first — what the player wants to see
+            // most. Mirrors the production-tick payout formula. Last
+            // actual paid income shown separately at the bottom.
+            int estDaily = (int)Estate.EstimatedDailyIncome;
+            ItemProperties.Add(new SelectableItemPropertyVM(new TextObject("{=BKEstate_DailyIncomeProp}Daily Income (est.)").ToString(),
+                estDaily.ToString(),
+                false,
+                new BasicTooltipViewModel(() =>
+                {
+                    var sb = new System.Text.StringBuilder();
+                    sb.AppendLine($"Estimated steady-state daily payout: {estDaily} denar");
+                    sb.AppendLine($"  effective acres = {(Estate.Farmland + Estate.Pastureland * 0.5f + Estate.Woodland * 0.15f):0.0}");
+                    sb.AppendLine($"  workforce saturation = {(Estate.WorkforceSaturation * 100f):0}%");
+                    sb.AppendLine($"  keep rate after tax = {((1f - Estate.TaxRatio.ResultNumber) * 100f):0}%");
+                    sb.AppendLine();
+                    sb.AppendLine($"Last actual paid income: {Estate.LastIncome} denar.");
+                    sb.AppendLine("Trade-tax share from villager parties is added on top of this.");
+                    return sb.ToString();
+                })));
+
+            // Workforce saturation with status label.
+            float satPct = Estate.WorkforceSaturation * 100f;
+            string satLabel;
+            if (satPct < 50f) satLabel = $"{satPct:0}% (severely under-staffed)";
+            else if (satPct < 90f) satLabel = $"{satPct:0}% (under-staffed)";
+            else if (satPct <= 110f) satLabel = $"{satPct:0}% (balanced)";
+            else if (satPct <= 200f) satLabel = $"{satPct:0}% (surplus → clearing land)";
+            else satLabel = $"{satPct:0}% (large surplus → clearing land)";
+            ItemProperties.Add(new SelectableItemPropertyVM(new TextObject("{=BKEstate_SatProp}Workforce Saturation").ToString(),
+                satLabel,
+                false,
+                new BasicTooltipViewModel(() => "Saturation = workforce / acres-required.\n" +
+                    "< 100% = some acres unworked, production reduced.\n" +
+                    "= 100% = full production, no surplus.\n" +
+                    "> 100% = surplus auto-clears new land on the Production task.")));
+
+            // Acreage growth — only show when actually growing.
+            ExplainedNumber growth = Estate.AcreageGrowth;
+            if (growth.ResultNumber > 0f)
+            {
+                string source = Estate.Task == EstateTask.Land_Expansion
+                    ? "Land Expansion task"
+                    : "Production task surplus";
+                ItemProperties.Add(new SelectableItemPropertyVM(new TextObject("{=BKEstate_GrowthProp}Acreage Growth").ToString(),
+                    "+" + growth.ResultNumber.ToString("0.00") + " ac/day",
+                    false,
+                    new BasicTooltipViewModel(() => $"Growing from: {source}\n+{growth.ResultNumber:0.00} acres/day, distributed by village land mix.")));
+            }
+
             ItemProperties.Add(new SelectableItemPropertyVM(new TextObject("{=NZTEBOw6}Acreage", null).ToString(),
                Estate.Acreage.ToString("0.00"),
                false,
