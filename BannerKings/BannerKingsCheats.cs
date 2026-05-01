@@ -807,6 +807,121 @@ namespace BannerKings
             return Settlement.All.FirstOrDefault(s => s.Name != null && s.Name.ToString().Equals(token, StringComparison.OrdinalIgnoreCase));
         }
 
+        // Dumps the full estate-finance pipeline state for every player
+        // estate so we can see precisely where the income path is
+        // short-circuiting when the visit panel reports a non-zero
+        // estimate but no gold actually flows.
+        [CommandLineFunctionality.CommandLineArgumentFunction("dump_estate_finance", "bannerkings")]
+        public static string DumpEstateFinance(List<string> strings)
+        {
+            // Marker file proves the dispatcher reached this method even
+            // if a later step throws and the catch handler also silently
+            // fails. If BK_estate_finance_marker.txt does NOT appear after
+            // running the command, the command name is not registered or
+            // the dispatcher never routed to it.
+            try { TouchFile("estate_finance_marker.txt", "dump_estate_finance invoked"); } catch { }
+            // Minimal toast first — same pattern as bannerkings.ping which
+            // is known to work. If even this doesn't appear in-game, the
+            // cheat itself isn't being invoked.
+            try { InformationManager.DisplayMessage(new InformationMessage("dump_estate_finance: starting…", Color.FromUint(0xFF00FF80))); } catch { }
+
+            try
+            {
+                var sb = new StringBuilder();
+                var hero = Hero.MainHero;
+                if (hero == null)
+                {
+                    try { InformationManager.DisplayMessage(new InformationMessage("dump_estate_finance: Hero.MainHero is null", Color.FromUint(0xFFFF4040))); } catch { }
+                    return "No main hero.";
+                }
+                var clan = hero.Clan;
+
+                sb.AppendLine($"Main hero: {hero.Name} (clan: {clan?.Name?.ToString() ?? "(none)"}, faction: {hero.MapFaction?.Name?.ToString() ?? "(none)"})");
+                sb.AppendLine($"BK config: TitleManager={(BannerKingsConfig.Instance.TitleManager != null ? "loaded" : "NULL")}, " +
+                              $"PopulationManager={(BannerKingsConfig.Instance.PopulationManager != null ? "loaded" : "NULL")}");
+                sb.AppendLine($"Active ClanFinanceModel: {Campaign.Current?.Models?.ClanFinanceModel?.GetType().FullName ?? "(null)"}");
+                sb.AppendLine();
+
+                if (BannerKingsConfig.Instance.PopulationManager == null)
+                {
+                    sb.AppendLine("PopulationManager is null — cannot enumerate estates.");
+                    WriteDiagnosticFile("dump_estate_finance.txt", sb.ToString());
+                    string earlySummary = "dump_estate_finance: PopulationManager null. " + LastWriteResult;
+                    try { InformationManager.DisplayMessage(new InformationMessage(earlySummary, Color.FromUint(0xFFFF4040))); } catch { }
+                    return earlySummary;
+                }
+
+                // Estates registered to MainHero via the dictionary.
+                var registered = BannerKingsConfig.Instance.PopulationManager.GetEstates(hero) ?? new List<BannerKings.Managers.Populations.Estates.Estate>();
+                sb.AppendLine($"PopulationManager.GetEstates(MainHero): {registered.Count} estate(s).");
+
+                // Estates whose Owner field points at MainHero — found by
+                // scanning every settlement's EstateData. If this set
+                // diverges from `registered` above, the dictionary is
+                // out of sync with the Owner field.
+                var byOwnerField = new List<BannerKings.Managers.Populations.Estates.Estate>();
+                foreach (var settlement in Settlement.All)
+                {
+                    var data = BannerKingsConfig.Instance.PopulationManager.GetPopData(settlement);
+                    if (data?.EstateData?.Estates == null) continue;
+                    foreach (var e in data.EstateData.Estates)
+                        if (e?.Owner == hero) byOwnerField.Add(e);
+                }
+                sb.AppendLine($"Estates with Owner==MainHero (scanned across all settlements): {byOwnerField.Count}.");
+
+                // Union the two so we dump everything either source reports.
+                var all = new HashSet<BannerKings.Managers.Populations.Estates.Estate>(registered);
+                foreach (var e in byOwnerField) all.Add(e);
+                sb.AppendLine();
+
+                foreach (var estate in all)
+                {
+                    var settlement = estate.EstatesData?.Settlement;
+                    bool inRegistry = registered.Contains(estate);
+                    bool ownerMatch = estate.Owner == hero;
+                    string warState = "n/a";
+                    if (settlement?.MapFaction != null && hero.MapFaction != null)
+                        warState = settlement.MapFaction.IsAtWarWith(hero.MapFaction) ? $"AT WAR with {settlement.MapFaction.Name}" : $"peace with {settlement.MapFaction.Name}";
+                    sb.AppendLine($"Estate at {settlement?.Name?.ToString() ?? "?"}");
+                    sb.AppendLine($"  Owner field           = {estate.Owner?.Name?.ToString() ?? "(null)"} (matches main hero: {ownerMatch})");
+                    sb.AppendLine($"  In registry dict      = {inRegistry}  ← if false but Owner matches, that's the desync");
+                    sb.AppendLine($"  Settlement faction    = {warState}");
+                    sb.AppendLine($"  TaxAccumulated        = {estate.TaxAccumulated}");
+                    sb.AppendLine($"  Income (next payout)  = {estate.Income}");
+                    sb.AppendLine($"  EstimatedDailyIncome  = {estate.EstimatedDailyIncome:0.0}");
+                    sb.AppendLine($"  LastIncome            = {estate.LastIncome}");
+                    sb.AppendLine($"  IncomeBlockedReason   = {estate.IncomeBlockedReason ?? "(null — should be flowing)"}");
+                    sb.AppendLine();
+                }
+                if (all.Count == 0) sb.AppendLine("(no estates owned by main hero)");
+
+                // Run the actual finance hook so we can compare what BK
+                // reports vs what the active model returns. If
+                // BKClanFinanceModel was overridden by another mod, this
+                // will surface it.
+                if (clan != null && Campaign.Current?.Models?.ClanFinanceModel is BannerKings.Models.Vanilla.BKClanFinanceModel bk)
+                {
+                    int bkEstateIncome = bk.CalculateOwnerIncomeFromEstates(hero, false);
+                    sb.AppendLine($"BKClanFinanceModel.CalculateOwnerIncomeFromEstates(MainHero, applyWithdrawals=false) = {bkEstateIncome}");
+                }
+                else
+                {
+                    sb.AppendLine($"Active ClanFinanceModel is NOT BKClanFinanceModel — another mod is overriding it. Estate income flow is bypassed.");
+                }
+
+                WriteDiagnosticFile("dump_estate_finance.txt", sb.ToString());
+                string summary = $"dump_estate_finance: {all.Count} estate(s) dumped. {LastWriteResult}";
+                try { InformationManager.DisplayMessage(new InformationMessage(summary, Color.FromUint(0xFF00FF80))); } catch { }
+                return summary;
+            }
+            catch (Exception ex)
+            {
+                string err = "dump_estate_finance failed: " + ex.GetType().Name + ": " + ex.Message;
+                try { InformationManager.DisplayMessage(new InformationMessage(err, Color.FromUint(0xFFFF4040))); } catch { }
+                return err;
+            }
+        }
+
         // Mirror cheat output to files in the user's BK ModLogs directory so
         // that diagnostic reports (which the in-game console can't reliably
         // echo for multi-line strings) are persistently readable while the
