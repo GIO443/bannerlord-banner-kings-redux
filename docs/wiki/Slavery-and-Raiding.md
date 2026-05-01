@@ -100,6 +100,10 @@ three new lines appear above the raid options:
 
 **Hop routing actually works now (v1.6.4.0).** Two latent bugs were defeating the hop chain on v1.6.3.x: the population-party hourly tick clobbered the router's intermediate move-target on every tick (sending captive caravans straight to the final destination via vanilla pathfind), and AI-disabled captive caravans never left intermediate settlements after entering them (`SetMoveGoToSettlement` alone doesn't trigger leave for AI-disabled parties). Both fixed — captive caravans now visibly hop through graph nodes, and the destination toggle (Most Profitable, etc.) is actually meaningful.
 
+**Captive caravan owned by captor (v1.6.6.0).** Earlier builds had captive caravans inheriting their faction from the *raided village's* owner clan, because `BannerKingsComponent.PartyOwner` defaulted to `HomeSettlement.OwnerClan.Leader` and `Home` was set to the origin (the raided village). Net effect: an independent player clan that raided an Aserai village ended up with an *Aserai-owned* slave caravan, hostile to the player who raided it. Now `PopulationPartyComponent.PartyOwner` returns `CaptorHero` for raid-captive caravans, and `MobileParty.ActualClan` is set to the captor's clan at spawn time. Caravans display as friendly to the captor's clan/kingdom, not the raided faction. Existing in-progress caravans on saved games re-resolve faction on next load.
+
+**Empty-roster guard (v1.6.5.3).** A daily watchdog now destroys any captive caravan with `prisoners=0`. Earlier builds occasionally spawned captive caravans with empty rosters (cohort distribution edge cases or post-spawn drains via PrisonRoster cleanup paths) — those caravans piled up at their origin since they couldn't progress past the absorption-on-arrival step (no captives to absorb). Logged to `Configs/ModLogs/BK_caravan_watchdog.txt` as `empty-captive guard: destroying X` so you can spot patterns.
+
 **Captive count (v1.6.3.1).** Two limiters, whichever is lower:
 
 - **Village pool**: serfs × 10% × *Raid Capture Fraction* (MCM, default 40%) — so a 1,000-serf village offers up to 40 captives.

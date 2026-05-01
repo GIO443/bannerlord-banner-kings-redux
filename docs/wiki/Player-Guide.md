@@ -227,6 +227,85 @@ A flagged condition (food shortage, slave overrun, mood collapse, etc.).
 Resolve it via the relevant policy lever or by addressing the underlying
 cause.
 
+## Estates
+
+**Q: How does estate income work?**
+Two parallel sources, both feeding the estate's `TaxAccumulated`. The
+owner gets paid 80% of the accumulated total each daily tick.
+
+1. **Daily production income** (the bulk source). Each in-game day
+   the village runs an estate-production tick. Formula:
+   ```
+   effectiveAcres   = Farmland + Pastureland*0.5 + Woodland*0.15
+   workforceFactor  = clamp((Population + Slaves) / (effectiveAcres*0.5), 0..1)
+   gross            = effectiveAcres × workforceFactor × 0.4
+   net              = gross × (1 - TaxRatio)
+   ```
+   A 100-acre fully-staffed allodial estate yields ≈ 40 denar/day.
+   Tax rate from the parent fief's policy (Low / Standard / High /
+   Exemption) cuts proportionally; allodial keeps 100%.
+2. **Trade-tax share.** Whenever a villager party returns to its
+   home village after selling at a town, the village-tax slice is
+   split between the village's lord and the local estates by
+   workforce proportion. Smaller and noisier than production
+   income, but adds up at high-volume villages.
+
+**Q: My estate makes 0 income, what gives?**
+Quick checklist: estate population > 0 (estates with no tenants
+generate nothing), estate has acres > 0, estate isn't disabled (only
+happens if `Owner == null`), parent fief isn't under a tax policy
+that zeros the share. If all those check out, give it 2-3 in-game
+days — a fresh-purchased estate needs population to ramp before
+production hits a meaningful daily denar count. Below ~population
+20 the per-day yield is sub-1-denar and may show as 0 on the panel
+even though it's accumulating fractionally.
+
+**Q: Can I make the estate clear new land while still earning income?**
+Yes — just leave it on the **Production** task. Workers up to 100%
+saturation drive production; any *excess* workforce above 100%
+saturation automatically clears land (Farmland / Pastureland /
+Woodland weighted by the village's land mix). Production income is
+unaffected; only the surplus does the clearing. Set the task to
+**Land Expansion** when you want to clear AS FAST AS POSSIBLE and
+don't care about income — that diverts half the entire population
+into clearing, which cuts your daily yield substantially.
+
+**Q: Allodial Tenure shows "Tax Rate: 0%" — am I being robbed?**
+No. The Tax Rate stat is the LORD'S cut, not your income. Allodial
+means the parent fief's lord gets nothing; you keep 100% of the
+production net. Standard tenure with the default tax policy gives
+the lord 15% and you 85%; high policy 30/70; exemption 0/100 (lord
+gets nothing via a different mechanism). Allodial is the most
+profitable tenure for the estate owner.
+
+**Q: What does the estate panel show now (v1.6.6.0+)?**
+The "Daily Income (est.)" line at the top is the steady-state payout
+you should see per day from the production tick. Last actual paid
+income shows next to it (the *secondary* number on the same line).
+"Workforce Saturation" now includes a status label — e.g. "120%
+(surplus → clearing land)" — so it's obvious whether you're
+under-staffed, balanced, or over-saturated. "Acreage Growth"
+appears only when actively growing, with the source (Production
+surplus vs Land Expansion task). Same data shown in the per-estate
+row of the clan finance income panel.
+
+**Q: I clicked Retinue and ended up fighting it.**
+*Was* a bug — fixed in v1.6.6.0. The retinue's faction was being
+inherited from the village's owner clan, so a player-owned estate
+in foreign territory had its retinue flagged hostile. Now the
+retinue is owned by `Estate.Owner.Clan` directly (and `ActualClan`
+is set explicitly at spawn). Player retinues are friendly to the
+player; player-vassal retinues are friendly to the kingdom.
+
+**Q: The Slaves button on the estate panel does nothing.**
+*Was* broken in the 1.3.x port — `PartyScreenHelper.OpenScreenAsLoot`
+was removed from vanilla and the original BK transfer screen
+depended on it. Replaced in v1.6.6.0 with a multi-choice inquiry:
+shows your party-prisoner count and the estate's slave count, then
+offers "Transfer all party prisoners to estate" / "Take all estate
+slaves into party". Hero prisoners are never transferred. Both-empty
+just shows the status line.
+
 ## Titles
 
 **Q: My heir is the wrong person — why?**

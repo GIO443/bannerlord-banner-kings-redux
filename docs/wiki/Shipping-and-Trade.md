@@ -72,6 +72,26 @@ immediately re-embarked them — a wasteful round-trip on every
 intermediate port that could produce visible flicker. Now stays at
 sea and just refreshes the move target.
 
+**Graph-driven port redirect (v1.6.5.3+).** The hourly redirect that
+pushes parties toward a boarding port no longer uses geometric
+heuristics ("closest port that's 30% closer than target"). It
+consults the unified shipping graph: nearest entry node → adaptive
+or shortest path to target → if the FIRST edge is a sea hop, walk
+the party to the entry node (the boarding port); if first edge is
+land, hand off to vanilla AI. Village-targeted parties route via the
+village's bound town/castle (graph nodes are towns + castles only).
+Caravans whose owner-merchant isn't loaded as `LeaveHero` now also
+go through the redirect (previously bailed silently). Coastal
+parties whose vanilla pathfind to BOTH the entry node AND the
+original target returns Infinity get a "stuck at coast" fallback —
+forced to the nearest sea-reachable port. Parties already targeting
+a port from a prior redirect skip re-evaluation to prevent
+ping-pong between two coastal ports. Parties stuck at the same
+coordinates over 4+ ticks are hard-teleported to the chosen port
+(escape hatch for impassable-terrain spawns). Decisions log to
+`Configs/ModLogs/BK_redirect.txt` if you need to debug a stuck
+caravan.
+
 ## Caravan auto-board and ticker
 
 Caravan and player sea travel uses Banner Kings' own ticker (a
