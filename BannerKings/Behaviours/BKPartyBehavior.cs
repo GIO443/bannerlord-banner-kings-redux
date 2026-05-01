@@ -25,7 +25,7 @@ namespace BannerKings.Behaviours
 {
     public class BKPartyBehavior : CampaignBehaviorBase
     {
-        private ItemObject chicken, goose, cow;
+        private ItemObject chicken, goose, cow, cheese;
 
         private ItemObject Chicken
         {
@@ -51,6 +51,15 @@ namespace BannerKings.Behaviours
             {
                 if (goose == null) goose = Campaign.Current.ObjectManager.GetObject<ItemObject>("goose");
                 return goose;
+            }
+        }
+
+        private ItemObject Cheese
+        {
+            get
+            {
+                if (cheese == null) cheese = Campaign.Current.ObjectManager.GetObject<ItemObject>("cheese");
+                return cheese;
             }
         }
 
@@ -157,7 +166,7 @@ namespace BannerKings.Behaviours
                 for (int i = 0; i < cattle; i++)
                     if (MBRandom.RandomFloat < 0.02f) cheese++;
 
-                if (cheese > 0) party.ItemRoster.AddToCounts(Campaign.Current.ObjectManager.GetObject<ItemObject>("cheese"), cheese);
+                if (cheese > 0) party.ItemRoster.AddToCounts(Cheese, cheese);
             }
 
             if (party.PartyComponent is PopulationPartyComponent)
