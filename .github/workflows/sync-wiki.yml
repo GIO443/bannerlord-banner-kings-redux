@@ -46,12 +46,16 @@ jobs:
 
       - name: Mirror docs/wiki/ to wiki repo
         run: |
-          # Wipe any existing .md pages in the wiki working tree so renames
-          # and removals propagate. Preserve .git/ and any non-.md files
-          # the wiki may keep (assets, sidebar, footer).
+          # Wipe any existing .md pages and the assets/ folder in the wiki
+          # working tree so renames and removals propagate. Preserve .git/
+          # and any wiki-only files (sidebar, footer).
           find wiki-repo -maxdepth 1 -type f -name '*.md' -delete
-          # Copy all docs/wiki/*.md to the wiki root.
+          rm -rf wiki-repo/assets
+          # Copy all docs/wiki/*.md and the assets/ folder to the wiki root.
           cp docs/wiki/*.md wiki-repo/
+          if [ -d docs/wiki/assets ]; then
+            cp -r docs/wiki/assets wiki-repo/assets
+          fi
 
       - name: Commit and push if changed
         working-directory: wiki-repo

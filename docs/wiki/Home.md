@@ -72,7 +72,7 @@ native support for the **War Sails (NavalDLC)** Nord faction, including:
 - **[Systems reference](Systems-Reference)** — lifestyles, demesne laws, per-settlement policies. Tables you look up while playing.
 - **[Player guide](Player-Guide)** — step-by-step "how do I…" recipes plus the per-system FAQ for population, titles, education, diplomacy, mercenaries.
 - **[Shipping & trade](Shipping-and-Trade)** — caravan auto-board, AI shipping, adaptive risk weighting, freight pricing, console cheats for testing routes.
-- **[Slavery & raiding](Slavery-and-Raiding)** — the Nord raid economy, slave caravans, the 1.6.2 raid capture system (toggles, captives, dispositions, foreign-merc skim), cheats and logging.
+- **[Slavery & raiding](Slavery-and-Raiding)** — the Nord raid economy, slave caravans, the raid capture system (toggles, captives, dispositions, foreign-merc skim), cheats and logging.
 - **[Troubleshooting & compatibility](Troubleshooting)** — edge cases, mod compatibility table, save-game safety, how to file a useful bug report, credits & license.
 
 If you're new to BK, read **Installing → Getting started → Player guide** in that order. The other pages are reference material you visit when you need a specific answer.

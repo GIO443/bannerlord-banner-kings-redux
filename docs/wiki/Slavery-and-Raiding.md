@@ -135,13 +135,13 @@ between AI towns) continue to run.
 
 ### Migrating from older builds
 
-Earlier BK Redux builds (v1.6.2 – v1.6.6) spawned a separate **captive
-caravan** that walked from the raided village to a destination fief
-and absorbed captives into the destination's population on arrival.
-That whole flow is gone in v1.6.7. On save load, any leftover captive
-caravan from an older build is silently destroyed — they were ghosts
-either way (frequent stuck-on-coast / hop-routing failure cases). No
-manual cleanup required.
+Earlier BK Redux builds spawned a separate **captive caravan** that
+walked from the raided village to a destination fief and absorbed
+captives into the destination's population on arrival. That whole
+flow is gone. On save load, any leftover captive caravan from an
+older build is silently destroyed — they were ghosts either way
+(frequent stuck-on-coast / hop-routing failure cases). No manual
+cleanup required.
 
 The companion toggles **Disposition (Slaves/Serfs)** and **Destination
 (Nearest Friendly / Nearest Owned / Most Profitable)** were only

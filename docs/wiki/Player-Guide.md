@@ -276,9 +276,9 @@ If no blocker is named and income is still zero, run
 `bannerkings.dump_estate_finance` in the console — it writes
 `BK_dump_estate_finance.txt` showing the active `ClanFinanceModel`
 class. If it's not `BKClanFinanceModel` (because ImprovedGarrisons
-or another mod replaced it), v1.6.8.0+ catches that case via a
-backstop daily-tick payout in `BKEstateIncomeBehavior`. Older
-versions silently piled up `TaxAccumulated` without paying.
+or another mod replaced it), a backstop daily-tick payout in
+`BKEstateIncomeBehavior` catches that case. Older builds silently
+piled up `TaxAccumulated` without paying — upgrade if you see this.
 
 If still nothing checks out, give it 2-3 in-game days — a fresh-
 purchased estate needs population to ramp before production hits a
@@ -304,7 +304,7 @@ the lord 15% and you 85%; high policy 30/70; exemption 0/100 (lord
 gets nothing via a different mechanism). Allodial is the most
 profitable tenure for the estate owner.
 
-**Q: What does the estate panel show now (v1.6.8.0+)?**
+**Q: What does the estate panel show?**
 - **Daily Income (est.)** — steady-state payout you should see per
   day from the production tick. Last actual paid income shows next
   to it (the *secondary* number on the same line). Forces to 0 when
@@ -324,21 +324,21 @@ income panel; an extra "Income Blocked" entry appears at the top of
 that row when the blocker is active.
 
 **Q: I clicked Retinue and ended up fighting it.**
-*Was* a bug — fixed in v1.6.6.0. The retinue's faction was being
-inherited from the village's owner clan, so a player-owned estate
-in foreign territory had its retinue flagged hostile. Now the
-retinue is owned by `Estate.Owner.Clan` directly (and `ActualClan`
-is set explicitly at spawn). Player retinues are friendly to the
-player; player-vassal retinues are friendly to the kingdom.
+*Was* a bug. The retinue's faction was being inherited from the
+village's owner clan, so a player-owned estate in foreign territory
+had its retinue flagged hostile. The retinue is now owned by
+`Estate.Owner.Clan` directly (and `ActualClan` is set explicitly at
+spawn). Player retinues are friendly to the player; player-vassal
+retinues are friendly to the kingdom.
 
 **Q: The Slaves button on the estate panel does nothing.**
 *Was* broken in the 1.3.x port — `PartyScreenHelper.OpenScreenAsLoot`
-was removed from vanilla and the original BK transfer screen
-depended on it. Replaced in v1.6.6.0 with a multi-choice inquiry:
-shows your party-prisoner count and the estate's slave count, then
-offers "Transfer all party prisoners to estate" / "Take all estate
-slaves into party". Hero prisoners are never transferred. Both-empty
-just shows the status line.
+was removed from vanilla and the original BK transfer screen depended
+on it. Replaced with a multi-choice inquiry that shows your
+party-prisoner count and the estate's slave count, then offers
+"Transfer all party prisoners to estate" / "Take all estate slaves
+into party". Hero prisoners are never transferred. Both-empty just
+shows the status line.
 
 ## Titles
 
@@ -394,18 +394,18 @@ experiment was clamping every vanilla skill's learning rate to a 5%
 floor — the value vanilla normally tapers toward zero past your skill's
 learning limit. With the floor in place, every skill kept gaining 5% of
 base XP forever, so combat skills, social skills, everything kept
-ticking past their natural caps. Removed in v1.6.4.4. Skills past their
-learning limit now decay normally, and the per-day Scholarship XP from
-language/book reading was also rescaled (50/day → 10/day, 2000 on
+ticking past their natural caps. The postfix is gone: skills past
+their learning limit decay normally, and the per-day Scholarship XP
+from language/book reading was rescaled (50/day → 10/day, 2000 on
 completion → 500). Existing high skills won't be reset; only future
 gains use the corrected curve.
 
 **Q: I want BK's smithing overhaul. How do I turn it on?**
 **MCM → Banner Kings → Balancing → BK Smithing System → on, then
-restart.** It defaults to **off** as of v1.6.4.7 — vanilla
-`DefaultSmithingModel` runs unmodified out of the box. With the toggle
-on, BK's smelting caps, stamina inflation, armor crafting tab, and
-hourly smith fee all apply.
+restart.** It defaults to **off** — vanilla `DefaultSmithingModel`
+runs unmodified out of the box. With the toggle on, BK's smelting
+caps, stamina inflation, armor crafting tab, and hourly smith fee all
+apply.
 
 What BK Smithing does when on:
 
@@ -433,25 +433,24 @@ What BK Smithing does when on:
 attribute dict only fired on `OnGameLoadedEvent`, which doesn't run on
 fresh new games — it only fires when you load a save. So on a brand-
 new sandbox, your starting hero (and every other world hero) had no
-Wisdom entry until the first save/reload. Fixed in v1.6.4.8: the
-seeder now also runs on `OnCharacterCreationIsOverEvent` (covers the
-fresh-start case) and on every `HeroCreated` (covers notables,
-wanderers, and other mid-campaign heroes). Existing saves with
-Wisdom = 0 will pick up the value 2 on next load.
+Wisdom entry until the first save/reload. The seeder now also runs
+on `OnCharacterCreationIsOverEvent` (covers the fresh-start case) and
+on every `HeroCreated` (covers notables, wanderers, and other
+mid-campaign heroes). Existing saves with Wisdom = 0 will pick up the
+value 2 on next load.
 
 **Q: Where is the Wisdom attribute?**
 On the character-developer screen alongside the six vanilla
 attributes (Vigor / Control / Endurance / Cunning / Social /
-Intelligence). Wisdom is BK's 7th attribute and starts at 2 on
-every hero. As of v1.6.5.1 it shows in the UI again — earlier
-attempts to expose it via the global `Attributes.All` list caused
-vanilla `EducationCampaignBehavior.CreateStage2` to crash on every
-child's daily tick, so the patch was reverted in v1.6.4.13 and
-Wisdom went temporarily invisible. v1.6.5.1 instead injects the
-Wisdom tile directly into the character-developer screen via a
-Harmony postfix on `CharacterDeveloperHeroItemVM.InitializeCharacter`
-— that touches only the screen's per-instance attribute list, not
-the global `Attributes.All`, so vanilla education stays happy.
+Intelligence). Wisdom is BK's 7th attribute and starts at 2 on every
+hero. The Wisdom tile is injected directly into the character-developer
+screen via a Harmony postfix on
+`CharacterDeveloperHeroItemVM.InitializeCharacter` — that touches only
+the screen's per-instance attribute list, not the global
+`Attributes.All`, so vanilla education stays happy. (An earlier attempt
+to expose Wisdom through `Attributes.All` was reverted because it
+crashed `EducationCampaignBehavior.CreateStage2` on every child's
+daily tick.)
 
 ## Diplomacy & demands
 
@@ -475,18 +474,17 @@ At model evaluation time wherever vanilla reads the same skill effect. The
 seafaring perks specifically also hook into War Sails' naval game models.
 
 **Q: Why aren't AI armies forming all the time anymore?**
-Earlier Redux versions (and original BK pre-1.3.x) had a bug where AI
-lords formed Patrolling-type armies with no target settlement. Vanilla
-AI dispersed them within days for "no purpose", and BK pushed again as
-soon as influence rebuilt — a recruit→march→disband loop that wasted
-influence and never fielded an actual force. Redux v1.5.2+ replaces
-that with a target-quality gate: AI only forms an army when there's a
-real objective (friendly fief under siege within 350 units → Defender,
-or enemy fortification within 280 units → Besieger). With no target,
-BK doesn't push and vanilla AI runs unmodified. The result is fewer
-but more purposeful AI armies. There's also an MCM toggle
-(Performance → AI Army Formation) to disable the BK push entirely if
-you want pure vanilla AI behaviour.
+Older builds had a bug where AI lords formed Patrolling-type armies
+with no target settlement. Vanilla AI dispersed them within days for
+"no purpose", and BK pushed again as soon as influence rebuilt — a
+recruit→march→disband loop that wasted influence and never fielded an
+actual force. The current behaviour is a target-quality gate: AI only
+forms an army when there's a real objective (friendly fief under
+siege within 350 units → Defender, or enemy fortification within 280
+units → Besieger). With no target, BK doesn't push and vanilla AI
+runs unmodified. The result is fewer but more purposeful AI armies.
+An MCM toggle (Performance → AI Army Formation) disables the BK push
+entirely if you want pure vanilla AI behaviour.
 
 ---
 

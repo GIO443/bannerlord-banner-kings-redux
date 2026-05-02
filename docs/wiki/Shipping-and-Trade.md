@@ -3,15 +3,15 @@
 ← [Home](Home)
 
 How caravans, AI lord parties, captive caravans, and the player travel
-across Calradia under BK Redux. The trade graph was overhauled across
-the 1.5–1.6 lines into an explicit topology with adaptive risk
-weighting; v1.6.3 unified it into a single graph covering both **sea**
-and **land** edges so non-port settlements participate too. This page
-is the HOW for living with that system.
+across Calradia under BK Redux. The trade graph is an explicit topology
+with adaptive risk weighting and a single unified graph covering both
+**sea** and **land** edges, so non-port settlements participate too.
+This page is the HOW for living with that system.
 
 ## On this page
 
 - [How shipping works](#how-shipping-works)
+- [Graph topology map](#graph-topology-map)
 - [AI lord parties at sea](#ai-lord-parties-at-sea)
 - [Caravan auto-board and ticker](#caravan-auto-board-and-ticker)
 - [Adaptive shipping costs](#adaptive-shipping-costs-v161)
@@ -24,20 +24,33 @@ is the HOW for living with that system.
 
 ## How shipping works
 
-Caravans and parties auto-board ships at known shipping lanes. Sea travel
-takes real time and is faster under seafaring perks (Drakkar Helmsman).
+Caravans and parties auto-board ships at any settlement with a working
+harbour scene. Sea travel takes real time and is faster under seafaring
+perks (Drakkar Helmsman).
 
 **The trade graph is one unified topology with two edge kinds:**
 
-- **Sea edges** — built from BK's `DefaultShippingLanes` (intra-lane
-  clique, one edge per port-pair sharing a lane). Cross-continent routes
-  chain through bridge ports that appear on more than one lane.
-- **Land edges** — built from k-nearest-neighbor adjacency between every
-  town, castle, and village, with vanilla pathfind validation pruning
-  false land bridges (so a Nord island doesn't get connected to the
-  mainland by raw straight-line distance). Edge weight is the actual
-  vanilla map-pathfind distance, so the graph weights match how a
-  caravan really walks.
+- **Land edges** — k-nearest-neighbor between every town and castle
+  (k = 3, ≤75u euclidean cap). Villages aren't graph nodes for land
+  routing; they're walked through via vanilla pathfind. Edge weight is
+  raw gate-to-gate distance.
+- **Sea edges** — *opportunistic shortcuts* between ports. A port is
+  any settlement the engine flags as `HasPort` (base game + War Sails
+  set this on every coastal town with an actual harbour scene). For
+  each port, BK looks at its 4 nearest port neighbours and **only
+  adds a sea edge if the direct sea hop is shorter than the best land
+  path between them.** Same-coast ports with a road lose the
+  comparison and stay land-only — a caravan walks. Ports across a bay
+  or on different landmasses win the comparison and get a sea edge —
+  a caravan boards.
+
+The "should this caravan board a ship" decision is no longer a separate
+classification step. It's just whichever route is shorter on the unified
+graph; if shortest crosses a sea edge, the caravan ships.
+
+This replaced an earlier curated lane list, which missed five coastal
+towns (Omor, Varcheg, Sibir, Argoron, Sargot) that the auto-port
+detection now picks up correctly.
 
 Both edge kinds use the same risk multiplier (war / siege / banditry /
 neutral). Diagonal sea+land paths emerge naturally — a captive caravan
@@ -49,110 +62,101 @@ arrival, re-evaluating trade scores at every intermediate stop. This
 preserves the multi-stop economy: a caravan shipping Hvalvik → Ostican
 will stop and trade at Sturgia central along the way.
 
+## Graph topology map
+
+A snapshot of the current shipping graph across Calradia. Towns and
+castles are land nodes; coastal towns flagged as ports are blue. Dashed
+grey lines are land hops; solid blue lines are the auto-derived sea
+shortcuts. Sea hops only show up where sailing between two ports is
+genuinely shorter than the road path, so same-coast neighbours like
+Sanala ↔ Husn Fulq stay land-only and a caravan walks them.
+
+![Banner Kings shipping graph topology](assets/shipping-graph.svg)
+
+Counts at the top of the diagram give the current totals (fiefs as
+land nodes, ports, land edges, sea edges). The diagram is a static
+reconstruction; the live in-game graph reads the engine's port flag
+directly and adapts to wars, sieges, and bandit pressure as the world
+state changes.
+
 ## AI lord parties at sea
 
 When an AI lord party (or an entire AI army) arrives at a port whose
 shipping lane connects to its target, the party boards via the same
-vanilla "Set sail" call the player uses, sails across, and disembarks at
-the destination port. Armies travel intact — the vanilla
+vanilla "Set sail" call the player uses, sails across, and disembarks
+at the destination port. Armies travel intact — the vanilla
 `IsCurrentlyAtSea` cascade keeps sub-parties attached to the leader.
-Before this, AI lords would buy ships and never use them; you'd see them
+Without this, AI lords buy ships and never use them; you see them
 stuck at the coast.
 
-The auto-disembark only fires for **AI lord parties** Banner Kings put
-at sea — vanilla NavalDLC convoys, caravans, and bandit ships use their
-own naval AI and are left alone. Earlier builds disembarked everything
-on port arrival, which left convoys in land mode while still
-geometrically on water and stranded them on the coast.
+Auto-disembark only fires for **AI lord parties** Banner Kings put at
+sea. Vanilla NavalDLC convoys, caravans, and bandit ships use their
+own naval AI and are left alone, and an AI lord crossing an
+intermediate port stays at sea rather than briefly disembarking and
+re-embarking.
 
-**No more disembark+immediately-reembark cycle (v1.6.4.0).** When an
-AI lord at sea entered an intermediate port whose lane reached its
-target, the previous logic disembarked them, then the lord branch
-immediately re-embarked them — a wasteful round-trip on every
-intermediate port that could produce visible flicker. Now stays at
-sea and just refreshes the move target.
-
-**Graph-driven port redirect (v1.6.5.3+).** The hourly redirect that
-pushes parties toward a boarding port no longer uses geometric
-heuristics ("closest port that's 30% closer than target"). It
-consults the unified shipping graph: nearest entry node → adaptive
-or shortest path to target → if the FIRST edge is a sea hop, walk
-the party to the entry node (the boarding port); if first edge is
-land, hand off to vanilla AI. Village-targeted parties route via the
-village's bound town/castle (graph nodes are towns + castles only).
-Caravans whose owner-merchant isn't loaded as `LeaveHero` now also
-go through the redirect (previously bailed silently). Coastal
-parties whose vanilla pathfind to BOTH the entry node AND the
-original target returns Infinity get a "stuck at coast" fallback —
-forced to the nearest sea-reachable port. Parties already targeting
-a port from a prior redirect skip re-evaluation to prevent
-ping-pong between two coastal ports. Parties stuck at the same
-coordinates over 4+ ticks are hard-teleported to the chosen port
-(escape hatch for impassable-terrain spawns). Decisions log to
-`Configs/ModLogs/BK_redirect.txt` if you need to debug a stuck
-caravan.
+**Graph-driven port redirect.** The hourly redirect that pushes
+parties toward a boarding port consults the unified shipping graph:
+nearest entry node → shortest (or risk-weighted) path to target → if
+the first edge is a sea hop, walk the party to the boarding port; if
+the first edge is land, hand off to vanilla AI. Village-targeted
+parties route via the village's bound town or castle, since graph
+nodes are towns and castles only. Coastal parties whose pathfind to
+both the entry node *and* the original target returns Infinity get a
+"stuck at coast" fallback — forced to the nearest sea-reachable port —
+and parties pinned at the same coordinates for several ticks are
+hard-teleported there as an escape hatch for impassable-terrain
+spawns. Once a party is targeting a port from a prior redirect, the
+re-evaluation is skipped to prevent ping-pong between two coastal
+options. Decisions log to `Configs/ModLogs/BK_redirect.txt` for
+diagnosing a stuck caravan.
 
 ## Caravan auto-board and ticker
 
-Caravan and player sea travel uses Banner Kings' own ticker (a
-behaviour-level hourly check rather than a per-party tick). This means
-caravans that suspend themselves mid-voyage still get re-checked every
-hour and arrive on schedule — earlier builds lost the per-party tick once
-the caravan deactivated, and the caravan would sit on the coast forever.
+Caravan and player sea travel uses Banner Kings' own ticker — a
+behaviour-level hourly check rather than a per-party tick. Caravans
+that suspend themselves mid-voyage still get re-checked every hour
+and arrive on schedule, where earlier builds lost the per-party tick
+the moment a caravan deactivated and left it sitting on the coast.
 
-**NavalDLC convoys are now hands-off (v1.6.4.0).** Earlier builds
-treated NavalDLC convoys (`IsCaravan=true`, already at sea via
-NavalDLC's own AI) as candidates for BK's ship-travel system, which
-deactivated them mid-ocean and left them frozen. BK now skips any
-party that's already at sea — NavalDLC keeps managing its own
-convoys. The signature in `dump_caravans` to look for if you suspect a
-stuck convoy: `IsActive=False / AtSea=True / AiDisabled=True / BKTracked=false`.
+**NavalDLC convoys are hands-off.** A NavalDLC convoy (`IsCaravan=true`,
+already at sea via NavalDLC's own AI) is never picked up by BK's
+ship-travel flow. If you suspect a stuck convoy from a save migrated
+off an older build, look for `IsActive=False / AtSea=True /
+AiDisabled=True / BKTracked=false` in `dump_caravans`.
 
-**Unified rescue sweep (v1.6.8.0).** A single daily-tick sweep (also
-runs on save load) walks `MobileParty.All` once and applies every
-known broken-state fix in one pass. Replaces three separate rescue
-methods that each handled one signature in isolation. Five broken
-states the sweep now catches:
+**Unified rescue sweep.** A single daily-tick sweep — also run on
+save load — walks `MobileParty.All` once and applies every known
+broken-state fix in one pass. The five signatures it catches:
 
-- BK shipping limbo: `IsActive=false`, not in the sailing dict,
-  no path back to `FinishTravel`. Reactivates and re-enables AI.
-- AI-disabled NavalDLC convoy not BK-tracked: legacy state from
-  pre-v1.6.4.0 builds that hijacked at-sea convoys into BK's
-  ship-travel flow. Re-enables AI so NavalDLC's own AI takes over.
-- At-sea over non-water terrain (boat on land): clears the at-sea
-  flag. Test inverted from the previous "must be clearly land" allow-
-  list, which missed coastal/transitional terrain (Beach, RuralArea,
-  Bridge, Fording) where most pre-v1.6.4.9 strandings actually
-  happened.
-- Land mode over open water (a naval-capable party walking through
-  the sea): re-flags at sea so NavalDLC pathfinding works.
-- Legacy slave caravan with no live move target: destroyed (v1.6.7.0
-  removed the AI-town slave-export flow that spawned these).
+- **BK shipping limbo** — `IsActive=false`, not in the sailing dict,
+  no path back to `FinishTravel`. Reactivated and AI re-enabled.
+- **AI-disabled NavalDLC convoy not BK-tracked** — legacy state from
+  pre-rescue builds that briefly hijacked at-sea convoys into BK's
+  ship-travel flow. AI re-enabled so NavalDLC takes over.
+- **At-sea over non-water terrain (boat on land)** — at-sea flag
+  cleared. The test now triggers on coastal and transitional terrain
+  (Beach, RuralArea, Bridge, Fording) where most strandings actually
+  happen, rather than only "clearly land".
+- **Land mode over open water** — a naval-capable party walking
+  through the sea is re-flagged as at sea so NavalDLC pathfinding
+  works.
+- **Legacy slave caravan with no live move target** — destroyed
+  (the AI-town slave-export flow that used to spawn these is gone).
 
 The sweep is gated to `IsCaravan || IsLordParty` parties before any
-expensive checks (`HasNavalNavigationCapability`, terrain queries).
-Without that gate, the sweep itself caused 10-second daily-tick
+expensive checks; without that gate it caused 10-second daily-tick
 freezes on campaigns with 5000+ parties.
 
-**Siege-end caravan release (v1.6.8.0).** When a siege starts, BK
-puts every caravan inside the besieged settlement on hold so they
-don't try to walk out through siege lines. The pre-v1.6.8.0 code
-never released that hold; caravans pinned at siege start stayed
-pinned forever after the siege resolved. Now `OnSiegeEventEnded`
-flags `Ai.RethinkAtNextHourlyTick = true` on every released caravan
-so vanilla CaravanAi picks a fresh destination.
+**Siege-end caravan release.** When a siege starts, BK puts every
+caravan inside the besieged settlement on hold so they don't try to
+walk out through siege lines. `OnSiegeEventEnded` now flags
+`Ai.RethinkAtNextHourlyTick = true` on every released caravan so
+vanilla CaravanAi picks a fresh destination — older builds never
+released the hold and caravans pinned at siege start stayed pinned
+forever after the siege resolved.
 
-**TickSailing orphan cleanup removed (v1.6.8.0).** A guard branch
-that evicted parties from the sailing dict on
-`(IsActive==false && PartyComponent==null)` was firing on legitimate
-in-flight caravans (every BK-shipped caravan is `IsActive=false` by
-SetTravel) when `PartyComponent` transiently read null. That was the
-root cause of the recurring `IsActive=False, AiDisabled=True,
-BKTracked=false` zombie state. `OnMobilePartyDestroyed` already
-handles real destruction, so the cleanup branch wasn't doing useful
-work — only causing harm.
-
-## Adaptive shipping costs (v1.6.1)
+## Adaptive shipping costs
 
 Routes are graph-aware *and* react to the current world state. Each
 shipping edge is weighted by raw map distance × a risk multiplier that
@@ -197,7 +201,7 @@ Diagnose the live state in-game with these console commands:
   caravan would actually take given the current world state. Use this
   when a caravan is taking a surprising path.
 
-## Test-scenario commands (v1.6.1.2)
+## Test-scenario commands
 
 A small suite of cheats for forcing world state instead of waiting for
 it. Cheats must be enabled in the launcher; otherwise these are inert.
@@ -249,7 +253,7 @@ Travel time is distance / 75, faster under the Drakkar Helmsman perk.
 Cross-Calradia trips take 4–6 days.
 
 **Q: Why did the freight cost just jump?**
-Adaptive shipping pricing (v1.6.1+). Freight cost is graph distance ×
+Adaptive shipping pricing. Freight cost is graph distance ×
 risk multiplier. Sieged endpoint = +60%. Bandits crawling the coast
 near either port = up to +50%. Foreign-owned port = +5%. A war zone
 on your route can land you at almost double the previous fare. Run
@@ -266,11 +270,11 @@ The route stabilises once the war ends or the bandit hideouts clear.
 You shouldn't be on Redux. See [Quest-mandated overloaded fleets](#quest-mandated-overloaded-fleets) above.
 
 **Q: I defeated an enemy caravan but got nothing — bug?**
-*Was* a bug. The 1.3.x port broke the caravan loot dialog (it was
-deleting the cargo instead of giving you a loot screen). Redux v1.5.2+
-restores it: surrendering or captured caravans now open a real loot
-screen for cargo, and a separate prisoner screen for their troops, the
-same way they did pre-1.3.x.
+*Was* a bug. The 1.3.x port broke the caravan loot dialog — it was
+deleting the cargo instead of giving you a loot screen. Surrendering
+or captured caravans now open a real loot screen for cargo and a
+separate prisoner screen for their troops, the way they did before
+the 1.3.x port landed.
 
 ---
 

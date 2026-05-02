@@ -28,19 +28,13 @@
 - **"Council Marshal didn't reduce wages"** — the reduction is
   multiplicative; other modifiers (custom troop, mercenary status) can
   dominate. Check the wage tooltip breakdown in the party UI.
-- **"Estate showing zero income"** — first check the visit panel. v1.6.8.0
-  surfaces an explicit **Income Blocked** reason when payout is short-
-  circuiting (war with the village's faction, BK title manager not
-  loaded, owner→estate registry desync). The **Pending Balance** row
-  shows whether the estate is earning into `TaxAccumulated` while
-  blocked. If no blocker is shown and gold still isn't moving, run
-  `bannerkings.dump_estate_finance` (cheats enabled) — it writes
-  `BK_dump_estate_finance.txt` showing the active `ClanFinanceModel`
-  class. ImprovedGarrisons replaces it with `GarrisonCostModel`,
-  which used to silently bypass the BK estate-income hook; v1.6.8.0
-  added a `BKEstateIncomeBehavior` daily-tick backstop so payout
-  flows regardless of which finance model is active. If you're on
-  v1.6.7.x or earlier and see this, upgrade.
+- **"Estate showing zero income"** — check the visit panel for an
+  **Income Blocked** reason (war with the village's faction, BK title
+  manager not loaded, owner→estate registry desync). See the full
+  recipe under [Player guide → Estates](Player-Guide#estates). If
+  you're running an older 1.6.x build, upgrade — recent builds added
+  a backstop payout that fixes the silent
+  ImprovedGarrisons-replaces-finance-model case.
 - **"Can't change demesne law"** — locked behind a contract-change cooldown
   (≈ 1 in-game year) and minimum loyalty / authority gates.
 - **"Skills level too fast in Banner Kings"** — older builds shipped
@@ -66,6 +60,15 @@
   there is no working in-game way to convert a settlement, install a
   preacher, or perform a rite. If you see a religion popup, ignore
   it. If a quest references piety, the quest is stuck — abandon it.
+- **"A caravan is walking visibly across open water"** — fixed in two
+  layers on the 1.6.x line: a daily rescue sweep steers stranded
+  parties to the nearest sea-reachable port, and the routing graph
+  now reads the engine's `HasPort` flag directly so previously-missed
+  coastal towns (Omor, Varcheg, Sibir, Argoron, Sargot) no longer
+  leave a gap caravans can fall through. To unstick a specific party
+  immediately without waiting for the daily sweep, enable cheats and
+  run `bannerkings.unstrand_party <name substring>` — it redirects
+  the first matching caravan or lord party to its nearest port.
 - **"My new game crashes during loading"** — almost always a non-BK mod's
   Harmony patch failing (e.g., GovernorsHandleIssues against newer
   Bannerlord builds). Install **Better Exception Window** if you haven't
@@ -135,9 +138,8 @@ For the recommended load order, see [Installing → Recommended load order](Inst
 - **Removing BK from an active save is not safe.** References to BK objects
   (titles, estates, custom troops) become orphaned and the save will corrupt.
   Once you start a save with BK, keep BK installed for the life of that save.
-- **Updating BK on an active save is generally safe within a minor version**
-  (e.g., v1.5.0 → v1.5.1). Major-version updates (e.g., upstream BK →
-  Redux, or a future v2.x) may require a fresh save.
+- **Updating BK on an active save is generally safe within a minor version.**
+  Major-version updates (e.g. upstream BK → Redux) may require a fresh save.
 - **Switching from upstream Banner Kings to Banner Kings — Redux on an
   existing save is not supported.** The two are separate modules with
   separate save data. Start fresh.
@@ -231,10 +233,10 @@ This fork's contributions on top of the original BK:
   iteration fix, and other targeted stability work.
 - **UI polish** — consolidated kingdom-screen tab, lifestyle picker bonus
   tooltips, Tax/Conquest aspect button rewire, several latent UI bugs fixed.
-- **Shipping graph + adaptive risk weighting** (v1.6.0–v1.6.1) — explicit
-  graph topology with war/siege/banditry-aware routing.
-- **Raid capture system** (v1.6.2) — village raids produce captive
-  caravans with cultural carry-over.
+- **Shipping graph + adaptive risk weighting** — explicit graph topology
+  with war/siege/banditry-aware routing.
+- **Raid capture system** — village raids drop captives directly into
+  the player's prisoner roster with cultural carry-over.
 
 These are real engineering contributions but they're a thin layer on top of a
 thick original — by line count, less than 2% of the codebase is Redux work.

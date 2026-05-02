@@ -74,13 +74,10 @@ mercantile network.
 
 ### Raiding, slavery, and Nord economy *(War Sails)*
 
-The Nords lean hard into the raid-economy loop. The Nordic Thrall Law applies
-automatically to Nord realms and amplifies slave demand by 80%, making Nord
-ports the most profitable place in Calradia to sell prisoners as slaves. Nord
-towns run slave caravans regardless of policy. Combined with the Drakkar
-Captain lifestyle, raiding and selling becomes a viable Nord economic build.
-The 1.6.2 raid capture system layers on top of this — see
-[Slavery & raiding](Slavery-and-Raiding) for the full picture.
+A full raid-economy build for Nord clans: the Nordic Thrall Law amplifies
+slave demand at Nord ports, village raids drop captives directly into your
+prisoner roster, and the Drakkar Captain lifestyle ties the whole loop
+together. See [Slavery & raiding](Slavery-and-Raiding) for the full system.
 
 ---
 
