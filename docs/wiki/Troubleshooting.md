@@ -69,6 +69,13 @@
   immediately without waiting for the daily sweep, enable cheats and
   run `bannerkings.unstrand_party <name substring>` — it redirects
   the first matching caravan or lord party to its nearest port.
+- **"Crash every time I open castle/town management to set a governor"** —
+  was an NRE inside vanilla `DefaultDelayedTeleportationModel.GetTeleportationDelayAsHours`
+  when the candidate hero hovered in the picker had no clan reference (which
+  some BK-tracked heroes can briefly end up with). Fixed in v1.6.8.1: a
+  defensive prefix on that vanilla method returns a zero teleport delay
+  instead of crashing. If you still see this on an older build, update to
+  the latest Banner Kings — Redux release.
 - **"My new game crashes during loading"** — almost always a non-BK mod's
   Harmony patch failing (e.g., GovernorsHandleIssues against newer
   Bannerlord builds). Install **Better Exception Window** if you haven't
