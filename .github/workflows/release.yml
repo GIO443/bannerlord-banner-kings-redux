@@ -1,0 +1,120 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Tag to release (e.g. v1.6.8.1). Must already exist on this branch.'
+        required: true
+        type: string
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    name: Build and publish module bundle
+    runs-on: windows-latest
+
+    env:
+      MODULE_NAME: BannerKings.Redux
+      CONFIGURATION: Release
+
+    steps:
+      - name: Resolve tag
+        id: tag
+        shell: pwsh
+        run: |
+          $tag = if ('${{ github.event_name }}' -eq 'workflow_dispatch') { '${{ inputs.tag }}' } else { '${{ github.ref_name }}' }
+          if (-not $tag) { throw 'No tag resolved' }
+          "tag=$tag" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
+          "version=$($tag.TrimStart('v'))" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
+
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ steps.tag.outputs.tag }}
+          fetch-depth: 0
+
+      - name: Setup .NET SDK
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+
+      - name: Restore
+        shell: pwsh
+        run: dotnet restore BannerKings/BannerKings.csproj
+
+      - name: Build (Release|x64)
+        shell: pwsh
+        env:
+          BANNERLORD_GAME_DIR: ''
+        run: |
+          $out = Join-Path $env:GITHUB_WORKSPACE 'build_output\bin\Win64_Shipping_Client\'
+          New-Item -ItemType Directory -Force -Path $out | Out-Null
+          dotnet build BannerKings/BannerKings.csproj `
+            -c ${{ env.CONFIGURATION }} `
+            -p:Platform=x64 `
+            -p:OutputPath="$out" `
+            -p:SkipModuleDeploy=true `
+            -p:AppendTargetFrameworkToOutputPath=false `
+            --no-restore
+
+      - name: Stage module bundle
+        shell: pwsh
+        run: |
+          $stage = Join-Path $env:GITHUB_WORKSPACE "stage\$env:MODULE_NAME"
+          $bin   = Join-Path $stage 'bin\Win64_Shipping_Client'
+          New-Item -ItemType Directory -Force -Path $bin | Out-Null
+
+          # Module assets (SubModule.xml, ModuleData/, GUI/).
+          Copy-Item -Recurse -Force `
+            -Path 'BannerKings/_Module/*' `
+            -Destination $stage
+
+          # Compiled assembly.
+          $built = 'build_output\bin\Win64_Shipping_Client\BannerKings.dll'
+          if (-not (Test-Path $built)) { throw "Build output not found at $built" }
+          Copy-Item -Force -Path 'build_output\bin\Win64_Shipping_Client\BannerKings.dll' -Destination $bin
+          if (Test-Path 'build_output\bin\Win64_Shipping_Client\BannerKings.pdb') {
+            Copy-Item -Force -Path 'build_output\bin\Win64_Shipping_Client\BannerKings.pdb' -Destination $bin
+          }
+
+          # Sanity check: SubModule.xml is present at the top of the staged folder.
+          if (-not (Test-Path (Join-Path $stage 'SubModule.xml'))) {
+            throw "SubModule.xml missing from staged module."
+          }
+
+      - name: Pack zip
+        id: pack
+        shell: pwsh
+        run: |
+          $tag = '${{ steps.tag.outputs.tag }}'
+          $zipName = "$env:MODULE_NAME-$tag.zip"
+          $zipPath = Join-Path $env:GITHUB_WORKSPACE $zipName
+          if (Test-Path $zipPath) { Remove-Item $zipPath -Force }
+          # Compress the module folder so the zip extracts to "BannerKings.Redux/...".
+          Compress-Archive -Path (Join-Path $env:GITHUB_WORKSPACE "stage\$env:MODULE_NAME") `
+                           -DestinationPath $zipPath
+          "zip=$zipPath" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
+          "zipName=$zipName" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
+
+      - name: Upload workflow artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ steps.pack.outputs.zipName }}
+          path: ${{ steps.pack.outputs.zip }}
+          if-no-files-found: error
+
+      - name: Create / update GitHub Release
+        if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.tag.outputs.tag }}
+          name: ${{ steps.tag.outputs.tag }}
+          generate_release_notes: true
+          fail_on_unmatched_files: true
+          files: ${{ steps.pack.outputs.zip }}
