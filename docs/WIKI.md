@@ -774,6 +774,13 @@ the population balance code converts excess slaves to serfs over time.
   language-rate skill effect off the rails) plus an unsafe rate path.
   Per-tick fluency gain is now hard-capped at 5%, so even with the worst
   rate inputs a language can't finish in fewer than ~20 in-game days.
+- **"Crash every time I open castle/town management to set a governor"** —
+  was an NRE inside vanilla `DefaultDelayedTeleportationModel.GetTeleportationDelayAsHours`
+  when the candidate hero hovered in the picker had no clan reference (which
+  some BK-tracked heroes can briefly end up with). Fixed in v1.5.8.2: a
+  defensive prefix on that vanilla method returns a zero teleport delay
+  instead of crashing. If you still see this on an older build, update to
+  the latest Banner Kings — Redux release.
 - **"My new game crashes during loading"** — almost always a non-BK mod's
   Harmony patch failing (e.g., GovernorsHandleIssues against newer
   Bannerlord builds). Install **Better Exception Window** if you haven't

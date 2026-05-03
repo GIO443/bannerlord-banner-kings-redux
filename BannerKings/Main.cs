@@ -226,6 +226,26 @@ namespace BannerKings
             {
             }
 
+            // DelayedTeleportation null-guard — vanilla NREs on
+            // teleportingHero.Clan.HasNavalNavigationCapability when a clanless
+            // hero is passed to the governor-pick tooltip. Crashes "Replace
+            // Governor" on hover for affected heroes. Same install pattern.
+            try
+            {
+                var harmony = new Harmony("BannerKings.DelayedTeleportation");
+                var target = BannerKings.Patches.DelayedTeleportationModelNullGuardPatch.TargetMethod();
+                var prefix = AccessTools.Method(
+                    typeof(BannerKings.Patches.DelayedTeleportationModelNullGuardPatch),
+                    nameof(BannerKings.Patches.DelayedTeleportationModelNullGuardPatch.Prefix));
+                if (target != null && prefix != null)
+                {
+                    harmony.Patch(target, prefix: new HarmonyMethod(prefix));
+                }
+            }
+            catch
+            {
+            }
+
             // PatchAll is DEFERRED to OnBeforeInitialModuleScreenSetAsRoot.
             // Reason: PatchAll triggers static cctor of every patched vanilla type.
             // In 1.3.x several of those cctors (DefaultClanFinanceModel, CampaignUIHelper,
