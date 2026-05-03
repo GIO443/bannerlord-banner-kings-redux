@@ -24,19 +24,25 @@ jobs:
       CONFIGURATION: Release
 
     steps:
-      - name: Resolve tag
+      - name: Resolve tag and build ref
         id: tag
         shell: pwsh
         run: |
-          $tag = if ('${{ github.event_name }}' -eq 'workflow_dispatch') { '${{ inputs.tag }}' } else { '${{ github.ref_name }}' }
+          $isDispatch = '${{ github.event_name }}' -eq 'workflow_dispatch'
+          $tag = if ($isDispatch) { '${{ inputs.tag }}' } else { '${{ github.ref_name }}' }
           if (-not $tag) { throw 'No tag resolved' }
+          # On tag push, build the tagged commit. On manual dispatch, build the
+          # branch HEAD where the workflow was dispatched — lets us back-fill
+          # zips for old tags using the latest CI-capable build setup.
+          $buildRef = if ($isDispatch) { '${{ github.ref }}' } else { $tag }
           "tag=$tag" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
           "version=$($tag.TrimStart('v'))" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
+          "buildRef=$buildRef" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
 
       - name: Checkout
         uses: actions/checkout@v4
         with:
-          ref: ${{ steps.tag.outputs.tag }}
+          ref: ${{ steps.tag.outputs.buildRef }}
           fetch-depth: 0
 
       - name: Setup .NET SDK
