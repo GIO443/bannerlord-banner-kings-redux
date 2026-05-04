@@ -276,16 +276,14 @@ namespace BannerKings.Models.Vanilla
             if (options.Count > 0)
             {
                 if (options.Count == 1) return options.First().Troop;
-                while(true) 
-                { 
-                    foreach (RecruitSpawn spawn in options)
-                    {
-                        if (MBRandom.RandomFloat <= spawn.GetChance(popType))
-                        {
-                            return spawn.Troop;
-                        }
-                    }
+                var weighted = new List<(RecruitSpawn, float)>(options.Count);
+                foreach (RecruitSpawn spawn in options)
+                {
+                    float c = spawn.GetChance(popType);
+                    if (c > 0f) weighted.Add((spawn, c));
                 }
+                if (weighted.Count == 0) return options.First().Troop;
+                return MBRandom.ChooseWeighted(weighted).Troop;
             }
             else return base.GetBasicVolunteer(sellerHero);
         }

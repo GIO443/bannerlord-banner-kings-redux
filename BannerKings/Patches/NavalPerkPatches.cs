@@ -1,6 +1,7 @@
 using System;
 using System.Reflection;
 using BannerKings.Managers.Skills;
+using BannerKings.Settings;
 using BannerKings.Utils;
 using HarmonyLib;
 using TaleWorlds.CampaignSystem;
@@ -8,6 +9,7 @@ using TaleWorlds.CampaignSystem.CharacterDevelopment;
 using TaleWorlds.CampaignSystem.Party;
 using TaleWorlds.Core;
 using TaleWorlds.Library;
+using TaleWorlds.Localization;
 
 namespace BannerKings.Patches
 {
@@ -144,6 +146,97 @@ namespace BannerKings.Patches
 
                 if (TryGetPerk(party, BKPerks.Instance.SjofarandiSeaEyes, out _))
                     __result.AddFactor(0.08f, BKPerks.Instance.SjofarandiSeaEyes.Name);
+            }
+        }
+
+        // --- Mirror the BannerKings "Slower Parties" MCM setting onto the NavalDLC
+        //     speed model. The vanilla-side patch lives in
+        //     VanillaModelTweakPatches.BKPartySpeedTweakPatches and only hooks
+        //     DefaultPartySpeedCalculatingModel. With War Sails installed, naval
+        //     / at-sea parties go through NavalDLCPartySpeedCalculationModel
+        //     instead, so without this mirror the slowdown applies on land but
+        //     evaporates the moment a party boards — players see "sometimes hits
+        //     hard, sometimes nothing" depending on whether the party is on land
+        //     or at sea at the moment of observation.
+        [HarmonyPatch]
+        internal static class SlowerPartiesNavalSpeedPatch
+        {
+            private static Type _modelType;
+
+            private static bool Prepare()
+            {
+                _modelType = AccessTools.TypeByName("NavalDLC.GameComponents.NavalDLCPartySpeedCalculationModel");
+                return _modelType != null
+                    && AccessTools.Method(_modelType, "CalculateFinalSpeed") != null;
+            }
+
+            private static MethodBase TargetMethod()
+                => AccessTools.Method(_modelType, "CalculateFinalSpeed");
+
+            private static void Postfix(ref ExplainedNumber __result)
+            {
+                if (!ModCompat.WarSails) return;
+                float slow = BannerKingsSettings.Instance.SlowerParties;
+                if (slow > 0f)
+                    __result.AddFactor(-slow, new TextObject("{=OohdenyR}Slower Parties setting"));
+            }
+        }
+
+        // --- Scale the NavalDLC fleet-size cap by the BannerKings "Party Sizes"
+        //     MCM slider, mirroring how BK already scales land-party member-size
+        //     caps in VanillaModelTweakPatches. PartySizes is a 1..3 multiplier
+        //     (1.0 = vanilla, default 2.0 = doubled) so a player who has
+        //     PartySizes=2 sees their land cap doubled and previously their
+        //     fleet cap stayed at vanilla — this brings the two in line.
+        [HarmonyPatch]
+        internal static class FleetSizeScalePartyPatch
+        {
+            private static Type _modelType;
+
+            private static bool Prepare()
+            {
+                _modelType = AccessTools.TypeByName("NavalDLC.GameComponents.NavalDLCShipLimitModel");
+                if (_modelType == null) return false;
+                return AccessTools.Method(_modelType, "GetIdealShipNumber", new[] { typeof(MobileParty) }) != null;
+            }
+
+            private static MethodBase TargetMethod()
+                => AccessTools.Method(_modelType, "GetIdealShipNumber", new[] { typeof(MobileParty) });
+
+            private static void Postfix(ref int __result)
+            {
+                if (!ModCompat.WarSails) return;
+                float mult = BannerKingsSettings.Instance.PartySizes;
+                if (mult <= 1f || __result <= 0) return;
+                int scaled = (int)(__result * mult);
+                if (scaled < 1) scaled = 1;
+                __result = scaled;
+            }
+        }
+
+        [HarmonyPatch]
+        internal static class FleetSizeScaleClanPatch
+        {
+            private static Type _modelType;
+
+            private static bool Prepare()
+            {
+                _modelType = AccessTools.TypeByName("NavalDLC.GameComponents.NavalDLCShipLimitModel");
+                if (_modelType == null) return false;
+                return AccessTools.Method(_modelType, "GetIdealShipNumber", new[] { typeof(Clan) }) != null;
+            }
+
+            private static MethodBase TargetMethod()
+                => AccessTools.Method(_modelType, "GetIdealShipNumber", new[] { typeof(Clan) });
+
+            private static void Postfix(ref int __result)
+            {
+                if (!ModCompat.WarSails) return;
+                float mult = BannerKingsSettings.Instance.PartySizes;
+                if (mult <= 1f || __result <= 0) return;
+                int scaled = (int)(__result * mult);
+                if (scaled < 1) scaled = 1;
+                __result = scaled;
             }
         }
 

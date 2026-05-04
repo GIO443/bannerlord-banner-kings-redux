@@ -59,16 +59,13 @@ namespace BannerKings.Managers.Recruits
             if (Chances.Count == 1) return Chances.First().Key;
             else if (Chances.Count > 0)
             {
-                while (true)
+                var weighted = new List<(PopType, float)>(Chances.Count);
+                foreach (var pair in Chances)
                 {
-                    foreach (var pair in Chances)
-                    {
-                        if (MBRandom.RandomFloat <= pair.Value)
-                        {
-                            return pair.Key;
-                        }
-                    }
+                    if (pair.Value > 0f) weighted.Add((pair.Key, pair.Value));
                 }
+                if (weighted.Count == 0) return Chances.First().Key;
+                return MBRandom.ChooseWeighted(weighted);
             }
 
             return PopType.None;

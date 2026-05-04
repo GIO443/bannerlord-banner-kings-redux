@@ -18,6 +18,8 @@ This page is the HOW for living with that system.
 - [Adaptive shipping costs](#adaptive-shipping-costs-v161)
 - [Console diagnostics](#console-diagnostics)
 - [Test scenario commands](#test-scenario-commands-v1612)
+- [Fleet-size cap follows the party-size slider](#fleet-size-cap-follows-the-party-size-slider)
+- [Slower Parties applies at sea too](#slower-parties-applies-at-sea-too)
 - [Quest-mandated overloaded fleets](#quest-mandated-overloaded-fleets)
 - [Shipping FAQ](#shipping-faq)
 
@@ -271,6 +273,38 @@ Composable — run them in sequence to set up a specific situation:
 A typical shipping iteration loop: `test_setup` → `test_war Vlandia | Sturgia`
 → `shipping_risk_path town_V8 town_S2` (confirm the war redirects the route)
 → `test_clear_wars` (reset).
+
+## Fleet-size cap follows the party-size slider
+
+The War Sails fleet-size cap (the "ideal ship number" the game targets
+for your party and clan) now scales by the same MCM **Party Sizes**
+slider that scales land-party troop limits. With the default slider
+(2.0 = 200%) your fleet cap is doubled vs. vanilla War Sails; setting
+the slider back to 1.0 restores vanilla. Same multiplier applies to AI
+clans, so AI lords field proportionally larger fleets too — keeping
+naval war balance roughly in line with the larger land armies the
+slider produces.
+
+Where to see it: open the port screen at any town with shipyards. The
+target ship count for your party / clan is the cap with the multiplier
+applied. Lower the slider in MCM → Banner Kings → Balancing if you
+want vanilla-sized fleets while keeping the larger land armies.
+
+## Slower Parties applies at sea too
+
+The MCM **Slower Parties** setting (default 40%) previously only
+slowed parties on land — when a party boarded a ship it reverted to
+full naval speed because War Sails uses a different speed model that
+the BK slowdown didn't hook. Banner Kings — Redux now applies the
+same slowdown factor on the naval speed model, so the slider has a
+consistent effect on both land and sea.
+
+What you'll notice: open any party's speed tooltip while it's
+sailing — there's now a "Slower Parties setting" line subtracting the
+slider's percentage, identical to the line shown on land. Change the
+slider in MCM → Banner Kings → Balancing if you want sailing parties
+to feel different from land parties; otherwise the value applies
+uniformly.
 
 ## Quest-mandated overloaded fleets
 

@@ -52,18 +52,14 @@ namespace BannerKings.Patches.Diag
         }
     }
 
-    [HarmonyPatch(typeof(ClanVariablesCampaignBehavior), "UpdateClanAfterDays")]
-    internal class TraceUpdateClanAfterDays
-    {
-        private static void Prefix(Clan clan, out System.Diagnostics.Stopwatch __state)
-        {
-            __state = BannerKings.Behaviours.Shipping.BKShippingBehavior.TraceEnter("Vanilla.UpdateClanAfterDays:" + (clan?.Name?.ToString() ?? "?"));
-        }
-        private static void Postfix(System.Diagnostics.Stopwatch __state)
-        {
-            BannerKings.Behaviours.Shipping.BKShippingBehavior.TraceExit("Vanilla.UpdateClanAfterDays", __state);
-        }
-    }
+    // 2026-05-03: removed TraceUpdateClanAfterDays — the target method
+    // ClanVariablesCampaignBehavior.UpdateClanAfterDays no longer exists
+    // in 1.3.x (renamed/removed during a vanilla refactor). Harmony's
+    // attach was failing every session with ArgumentException, polluting
+    // bk-firstchance.log with a benign-but-noisy warning. The
+    // DailyTickClan trace above already covers the daily-tick path; the
+    // perf bracket this would have added (UpdateClanAfterDays specifically)
+    // doesn't exist as a separate vanilla call any more.
 
     [HarmonyPatch(typeof(ClanVariablesCampaignBehavior), "UpdateClanSettlementsPaymentLimit")]
     internal class TraceUpdateClanSettlementsPaymentLimit
