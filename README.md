@@ -32,7 +32,7 @@ in the meantime.
    `…/Mount & Blade II Bannerlord/Modules/BannerKings.Redux/_Module/SubModule.xml`.
 4. Enable **Banner Kings — Redux** in the launcher and start a fresh save.
 
-[![CodeFactor](https://www.codefactor.io/repository/github/r-vaccari/bannerlord-banner-kings/badge)](https://www.codefactor.io/repository/github/r-vaccari/bannerlord-banner-kings)
+[![CodeFactor](https://www.codefactor.io/repository/github/gio443/bannerlord-banner-kings-redux/badge/main)](https://www.codefactor.io/repository/github/gio443/bannerlord-banner-kings-redux/overview/main)
 
 ## What this fork adds
 
