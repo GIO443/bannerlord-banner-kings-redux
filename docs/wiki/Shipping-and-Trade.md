@@ -13,6 +13,7 @@ This page is the HOW for living with that system.
 - [How shipping works](#how-shipping-works)
 - [Graph topology map](#graph-topology-map)
 - [AI lord parties at sea](#ai-lord-parties-at-sea)
+- [Caravan classes — sea vs land](#caravan-classes--sea-vs-land)
 - [Caravan auto-board and ticker](#caravan-auto-board-and-ticker)
 - [Adaptive shipping costs](#adaptive-shipping-costs-v161)
 - [Console diagnostics](#console-diagnostics)
@@ -110,6 +111,48 @@ spawns. Once a party is targeting a port from a prior redirect, the
 re-evaluation is skipped to prevent ping-pong between two coastal
 options. Decisions log to `Configs/ModLogs/BK_redirect.txt` for
 diagnosing a stuck caravan.
+
+## Caravan classes — sea vs land
+
+Vanilla Bannerlord splits caravans into two classes: **sea caravans**
+(party templates that include `ShipHulls`) and **land caravans** (no
+ships). The two never mix: a port town spawns sea caravans, an inland
+town spawns land caravans, and an existing caravan stays in its class
+for life.
+
+**Vanilla owns daily caravan spawning now.** Earlier BK builds ran
+their own daily spawn loop in parallel with vanilla's, with a
+narrower `IsNotable + IsMerchant` filter and a template picker that
+ignored the port/no-port predicate. The mismatch had two visible
+effects on top of the duplication:
+
+- A merchant in an inland town occasionally rolled a sea template,
+  which silently failed to spawn — that merchant kept rolling the
+  same broken outcome and never produced a caravan.
+- Per-culture caches treated those failures as "this culture has no
+  templates" and **permanently disabled caravan spawning** for the
+  whole culture for the rest of the campaign. That single bug
+  accounts for most of the "BK has fewer caravans than vanilla"
+  feeling. Reloading the save resets the cache.
+
+Banner Kings now defers daily caravan spawning to vanilla
+`CaravansCampaignBehavior`, which already enforces the port/template
+predicate correctly and covers the merchant-companion population
+BK's narrower filter ignored. BK still owns the **initial** spawn
+wave at campaign start (vanilla's `DoInitialTradeRuns` is
+Harmony-skipped for an unrelated NavalDLC distance-model crash) and
+the BK-side initial spawn now applies the same port/template
+predicate. The remaining BK-driven spawn paths — the
+`BKLordPropertyBehavior` weekly clan-caravan acquisition, the
+`bannerkings.test_spawn_caravan` cheat, and the slave-caravan
+movement parties created by `PopulationPartyComponent` — also pick
+templates with the correct predicate (slave caravans are forced to
+land templates because they walk overland and aren't real
+`CaravanPartyComponent` instances).
+
+You should see noticeably more caravans on a fresh campaign,
+including visible sea caravans leaving Sargot, Pravend, Omor,
+Marunath, and other port towns.
 
 ## Caravan auto-board and ticker
 

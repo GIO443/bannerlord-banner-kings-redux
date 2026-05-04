@@ -32,7 +32,7 @@ namespace BannerKings.Components
             party.Ai.SetInitiative(0.5f, 1f, float.MaxValue);
             party.ShouldJoinPlayerBattles = true;
             party.Aggressiveness = 0.1f;
-            party.SetMoveEscortParty(escortTarget, MobileParty.NavigationType.All, false);
+            party.SetMoveEscortParty(escortTarget, MobileParty.NavigationType.Default, false);
             party.SetWagePaymentLimit(TaleWorlds.CampaignSystem.Campaign.Current.Models.PartyWageModel.MaxWagePaymentLimit);
             return party;
         }
@@ -41,7 +41,7 @@ namespace BannerKings.Components
         {
             var caravan = CreateParty($"bk_raisedmilitia_{origin}", origin, escortTarget);
             caravan.InitializeMobilePartyAtPosition(reference.MemberRoster, reference.PrisonRoster, origin.GatePosition);
-            caravan.SetMoveEscortParty(escortTarget, MobileParty.NavigationType.All, false);
+            caravan.SetMoveEscortParty(escortTarget, MobileParty.NavigationType.Default, false);
             reference.MemberRoster.RemoveIf(roster => roster.Number > 0);
             reference.PrisonRoster.RemoveIf(roster => roster.Number > 0);
             GiveMounts(ref caravan);
@@ -51,13 +51,37 @@ namespace BannerKings.Components
         public override void TickHourly()
         {
             var behavior = Behavior;
+            // Escort target validation. SetMoveEscortParty on a null /
+            // destroyed party is undefined in 1.3.x — observed as militia
+            // standing still after their commander died. Fall back to
+            // returning home so the militia eventually disbands rather
+            // than wandering with a dead reference.
+            if (behavior == AiBehavior.EscortParty
+                && (Escort == null || !Escort.IsActive))
+            {
+                Behavior = AiBehavior.GoToSettlement;
+                behavior = AiBehavior.GoToSettlement;
+            }
+
             if (behavior == AiBehavior.EscortParty)
             {
-                MobileParty.SetMoveEscortParty(Escort, MobileParty.NavigationType.All, false);
+                MobileParty.SetMoveEscortParty(Escort, MobileParty.NavigationType.Default, false);
             }
             else
             {
-                MobileParty.SetMoveGoToSettlement(HomeSettlement, MobileParty.NavigationType.All, false);
+                MobileParty.SetMoveGoToSettlement(HomeSettlement, MobileParty.NavigationType.Default, false);
+                // Straight-line arrival fallback. Pathfind can return
+                // a value that never decays below the engine's enter-
+                // settlement threshold for some coastal tiles, leaving
+                // the militia orbiting its home gate. Mirrors the
+                // PopulationPartyComponent / EstateComponent fallback.
+                var dist = TaleWorlds.CampaignSystem.Campaign.Current.Models.MapDistanceModel.GetDistance(MobileParty, HomeSettlement, false, MobileParty.NavigationType.Default, out _);
+                if ((dist <= 2f && dist >= 0f && !float.IsNaN(dist) && !float.IsInfinity(dist))
+                    || ((float.IsNaN(dist) || float.IsInfinity(dist) || dist < 0f)
+                        && MobileParty.GetPosition2D.Distance(HomeSettlement.GatePosition.ToVec2()) <= 3f))
+                {
+                    TaleWorlds.CampaignSystem.Actions.EnterSettlementAction.ApplyForParty(MobileParty, HomeSettlement);
+                }
             }
         }
     }

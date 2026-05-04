@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 using BannerKings.Extensions;
 using Helpers;
 using TaleWorlds.CampaignSystem;
@@ -25,11 +26,11 @@ namespace BannerKings.Behaviours
 {
     public class BKCaravansBehavior : CampaignBehaviorBase
     {
-        private float DistanceScoreDivider => (636f + 11.36f * Campaign.Current.GetAverageDistanceBetweenClosestTwoTownsWithNavigationType(MobileParty.NavigationType.All)) / 2f;
-        private float DistanceLimitVeryFar => (508f + 9f * Campaign.Current.GetAverageDistanceBetweenClosestTwoTownsWithNavigationType(MobileParty.NavigationType.All)) / 2f;
-        private float DistanceLimitFar => (381f + 6.75f * Campaign.Current.GetAverageDistanceBetweenClosestTwoTownsWithNavigationType(MobileParty.NavigationType.All)) / 2f;
-        private float DistanceLimitMedium => (254f + 4.5f * Campaign.Current.GetAverageDistanceBetweenClosestTwoTownsWithNavigationType(MobileParty.NavigationType.All)) / 2f;
-        private float DistanceLimitClose => (127f + 2.25f * Campaign.Current.GetAverageDistanceBetweenClosestTwoTownsWithNavigationType(MobileParty.NavigationType.All)) / 2f;
+        private float DistanceScoreDivider => (636f + 11.36f * Campaign.Current.GetAverageDistanceBetweenClosestTwoTownsWithNavigationType(MobileParty.NavigationType.Default)) / 2f;
+        private float DistanceLimitVeryFar => (508f + 9f * Campaign.Current.GetAverageDistanceBetweenClosestTwoTownsWithNavigationType(MobileParty.NavigationType.Default)) / 2f;
+        private float DistanceLimitFar => (381f + 6.75f * Campaign.Current.GetAverageDistanceBetweenClosestTwoTownsWithNavigationType(MobileParty.NavigationType.Default)) / 2f;
+        private float DistanceLimitMedium => (254f + 4.5f * Campaign.Current.GetAverageDistanceBetweenClosestTwoTownsWithNavigationType(MobileParty.NavigationType.Default)) / 2f;
+        private float DistanceLimitClose => (127f + 2.25f * Campaign.Current.GetAverageDistanceBetweenClosestTwoTownsWithNavigationType(MobileParty.NavigationType.Default)) / 2f;
 
         public BKCaravansBehavior()
         {
@@ -41,24 +42,72 @@ namespace BannerKings.Behaviours
             CampaignEvents.SettlementEntered.AddNonSerializedListener(this, new Action<MobileParty, Settlement, Hero>(OnSettlementEntered));
             CampaignEvents.OnSettlementLeftEvent.AddNonSerializedListener(this, new Action<MobileParty, Settlement>(OnSettlementLeft));
             CampaignEvents.DailyTickEvent.AddNonSerializedListener(this, new Action(DailyTick));
-            CampaignEvents.DailyTickHeroEvent.AddNonSerializedListener(this, new Action<Hero>(DailyTickHero));
+            // Daily caravan-spawn handler intentionally NOT registered.
+            // Vanilla CaravansCampaignBehavior.DailyTickHero now drives daily
+            // caravan spawning (it's no longer removed); BK's duplicate path
+            // was redundant and used a narrower IsNotable+IsMerchant filter
+            // that ignored merchant-companions vanilla covers correctly.
+            // BK still owns INITIAL spawn (OnNewGameCreatedPartialFollowUp-
+            // EndEvent → DoInitialTradeRuns) because vanilla's initial
+            // pass is Harmony-skipped for the NavalDLCMapDistanceModel
+            // AccessViolation. See CaravansCampaignBehaviorPatches.cs.
             CampaignEvents.HourlyTickPartyEvent.AddNonSerializedListener(this, new Action<MobileParty>(HourlyTickParty));
             CampaignEvents.OnSessionLaunchedEvent.AddNonSerializedListener(this, new Action<CampaignGameStarter>(OnSessionLaunched));
 
-            // Kill vanilla CaravansCampaignBehavior BEFORE its partial-follow-up
-            // listeners fire. Otherwise vanilla's DoInitialTradeRuns runs after BK
-            // has spawned caravans, calls NavalDLCMapDistanceModel.GetDistance for
-            // a non-port spawn, and the engine pathfinder throws AccessViolation.
-            // OnNewGameCreatedEvent fires before OnNewGameCreatedPartialFollowUpEvent
-            // and OnNewGameCreatedPartialFollowUpEndEvent.
-            CampaignEvents.OnNewGameCreatedEvent.AddNonSerializedListener(this, (CampaignGameStarter starter) =>
-            {
-                Campaign.Current.CampaignBehaviorManager.RemoveBehavior<CaravansCampaignBehavior>();
-            });
-            // Belt-and-braces: also remove on game-loaded for existing saves.
+            // Vanilla CaravansCampaignBehavior is left running again as of
+            // 2026-05-02 — the original removal was driven by a NavalDLC
+            // AccessViolation in DoInitialTradeRuns, now handled by
+            // Patches/CaravansCampaignBehaviorPatches.cs (prefix-skip).
+            // The follow-up IndexOutOfRange in MapEvent.LootDefeatedParty-
+            // Prisoners is handled by Patches/TroopRosterSafetyPatch.cs
+            // (finalizer that swallows the exception on corrupt rosters).
+            // With both shims in place, vanilla can drive the per-caravan
+            // tick / boarding / disembarking pipeline that NavalDLC was
+            // designed around, and BK becomes a routing-decision overlay
+            // rather than a replacement.
+            //
+            // Old saves: the existing TroopRoster slot-table corruption
+            // self-heals over a save/load cycle, and the finalizer covers
+            // any remaining stale lookups in the meantime.
+            //
+            // New campaigns: vanilla establishes invariants from day 1, so
+            // the boat-on-mountain / walking-water visual classes go away.
             CampaignEvents.OnGameLoadedEvent.AddNonSerializedListener(this, (CampaignGameStarter starter) =>
             {
-                Campaign.Current.CampaignBehaviorManager.RemoveBehavior<CaravansCampaignBehavior>();
+                // _siegeHeldCaravans is non-serialized: a save taken
+                // mid-siege restores with the set empty, and OnSiegeEventEnded
+                // never fires on load if the siege resolved during the save.
+                // Two stuck-caravan signatures appear on load:
+                //   1. Caravan inside a now-not-besieged settlement, still
+                //      in Hold from OnSiegeEventStarted.
+                //   2. Caravan out in the world with DefaultBehavior==Hold
+                //      and no target — left over from siege start, then
+                //      LeaveSettlementAction (or a player-clan rescue)
+                //      ejected it from the besieged settlement without
+                //      clearing Hold mode.
+                // Both surface as "Sturgia caravan with anchor icon on
+                // land, going nowhere" reports.
+                try
+                {
+                    foreach (var p in MobileParty.AllCaravanParties)
+                    {
+                        if (p == null) continue;
+                        // Inside a besieged settlement — leave it alone;
+                        // the active siege handlers will manage it.
+                        if (p.CurrentSettlement != null && p.CurrentSettlement.IsUnderSiege) continue;
+                        // Trigger release if Hold mode is set OR if there's
+                        // no live target. The DefaultBehavior check covers
+                        // the legitimate stuck-on-land case the screenshot
+                        // documented (anchor icon visible, no boat visual).
+                        bool inHold = p.DefaultBehavior == AiBehavior.Hold || p.ShortTermBehavior == AiBehavior.Hold;
+                        bool noTarget = p.TargetSettlement == null;
+                        if (inHold || noTarget)
+                        {
+                            ReleaseCaravanFromHold(p);
+                        }
+                    }
+                }
+                catch { /* never throw out of a load handler */ }
             });
 
             CampaignEvents.OnNewGameCreatedPartialFollowUpEvent.AddNonSerializedListener(this, new Action<CampaignGameStarter, int>(OnNewGameCreatedPartialFollowUpEvent));
@@ -97,16 +146,92 @@ namespace BannerKings.Behaviours
         private void OnSiegeEventEnded(SiegeEvent siegeEvent)
         {
             if (_siegeHeldCaravans.Count == 0) return;
-            // Release every caravan we held, regardless of which siege ended —
-            // a caravan held by an earlier siege that somehow outlived it
-            // shouldn't be left pinned. RethinkAtNextHourlyTick wakes
-            // vanilla CaravanAi to pick a fresh destination.
+            // Explicitly release every caravan we held. Setting
+            // RethinkAtNextHourlyTick alone is a no-op here: that flag is
+            // consumed by vanilla CaravansCampaignBehavior, which BK
+            // removes on new-game/load. Without an explicit move re-issue,
+            // SetMoveModeHold persists, the caravan keeps the anchor
+            // speed-icon, and BK's hourly tick may never reach the
+            // 33%-roll branch that would clear it (gated on
+            // IsPartyTradeActive + DoNotMakeNewDecisions + MapEvent==null).
             foreach (var p in _siegeHeldCaravans)
             {
-                if (p == null) continue;
-                try { if (p.Ai != null) p.Ai.RethinkAtNextHourlyTick = true; } catch { /* defensive */ }
+                ReleaseCaravanFromHold(p);
             }
             _siegeHeldCaravans.Clear();
+        }
+
+        // Force a held caravan back into movement. Called on siege-end,
+        // on game-load, and as a defensive measure from the hourly tick
+        // when a caravan is found in Hold mode outside a besieged
+        // settlement (so any code path that called SetMoveModeHold
+        // without a release — including third-party mods — gets resolved).
+        private void ReleaseCaravanFromHold(MobileParty caravan)
+        {
+            if (caravan == null || !caravan.IsCaravan) return;
+            try
+            {
+                if (caravan.Ai != null) caravan.Ai.RethinkAtNextHourlyTick = true;
+
+                // Pick a destination. Order:
+                //   1. Existing TargetSettlement if it's still valid.
+                //   2. Re-think via BK's normal scoring path.
+                //   3. HomeSettlement if reachable / friendly.
+                //   4. Nearest friendly non-besieged town.
+                Settlement dest = null;
+                var existing = caravan.TargetSettlement;
+                if (existing != null
+                    && existing.Town != null
+                    && !existing.IsUnderSiege
+                    && existing.MapFaction != null
+                    && !existing.MapFaction.IsAtWarWith(caravan.MapFaction))
+                {
+                    dest = existing;
+                }
+                if (dest == null)
+                {
+                    Town picked = null;
+                    try { picked = ThinkNextDestination(caravan); } catch { }
+                    if (picked != null) dest = picked.Settlement;
+                }
+                if (dest == null
+                    && caravan.HomeSettlement != null
+                    && caravan.HomeSettlement.Town != null
+                    && !caravan.HomeSettlement.IsUnderSiege
+                    && caravan.HomeSettlement.MapFaction != null
+                    && !caravan.HomeSettlement.MapFaction.IsAtWarWith(caravan.MapFaction))
+                {
+                    dest = caravan.HomeSettlement;
+                }
+                if (dest == null)
+                {
+                    float bestDist = float.MaxValue;
+                    foreach (var t in Town.AllTowns)
+                    {
+                        if (t == null) continue;
+                        var ts = t.Settlement;
+                        if (ts == null || ts.IsUnderSiege) continue;
+                        if (ts.MapFaction != null && ts.MapFaction.IsAtWarWith(caravan.MapFaction)) continue;
+                        float d = caravan.GetPosition2D.Distance(ts.GatePosition.ToVec2());
+                        if (d < bestDist) { bestDist = d; dest = ts; }
+                    }
+                }
+                if (dest != null)
+                {
+                    caravan.SetMoveGoToSettlement(dest, MobileParty.NavigationType.Default, false);
+                    // Invalidate BKShipping's redirect cache so the next
+                    // hourly TickParty re-evaluates from scratch instead
+                    // of skipping for up to 6 hours on a stale cached
+                    // entry from the pre-Hold target.
+                    try
+                    {
+                        var shipping = Campaign.Current.GetCampaignBehavior<BannerKings.Behaviours.Shipping.BKShippingBehavior>();
+                        shipping?.InvalidateRedirectCache(caravan);
+                    }
+                    catch { /* defensive */ }
+                }
+            }
+            catch { /* never throw out of an event handler */ }
         }
 
         private void OnLootCaravanParties(PartyBase winnerParty, PartyBase defeatedParty, ItemRoster lootedItems)
@@ -227,6 +352,22 @@ namespace BannerKings.Behaviours
         // Token: 0x06003490 RID: 13456 RVA: 0x000DD4A8 File Offset: 0x000DB6A8
         private void OnMapEventEnded(MapEvent mapEvent)
         {
+            BannerKings.Utils.Logs.BattleResolution(() =>
+            {
+                try
+                {
+                    string winner = mapEvent.WinningSide.ToString();
+                    string place = mapEvent.MapEventSettlement?.Name?.ToString() ?? "(field)";
+                    var atk = mapEvent.AttackerSide?.LeaderParty?.Name?.ToString() ?? "?";
+                    var def = mapEvent.DefenderSide?.LeaderParty?.Name?.ToString() ?? "?";
+                    int atkStrength = 0, defStrength = 0;
+                    try { atkStrength = (int)(mapEvent.AttackerSide?.RecalculateStrengthOfSide() ?? 0f); } catch { }
+                    try { defStrength = (int)(mapEvent.DefenderSide?.RecalculateStrengthOfSide() ?? 0f); } catch { }
+                    return $"BATTLE @ {place}: {atk} ({atkStrength}) vs {def} ({defStrength}) → winner={winner}";
+                }
+                catch (Exception ex) { return $"BATTLE log error: {ex.GetType().Name}: {ex.Message}"; }
+            });
+
             foreach (PartyBase partyBase in mapEvent.InvolvedParties)
             {
                 if (partyBase.IsMobile && partyBase.MobileParty.IsCaravan && IsWinnerSide(partyBase.Side, mapEvent))
@@ -306,24 +447,6 @@ namespace BannerKings.Behaviours
         {
             if (hero.OwnedCaravans.Count <= 0)
             {
-                Settlement settlement = hero.HomeSettlement ?? hero.BornSettlement;
-                Settlement spawnSettlement;
-                if (settlement == null)
-                {
-                    spawnSettlement = Town.AllTowns.GetRandomElement<Town>().Settlement;
-                }
-                else if (settlement.Town != null)
-                {
-                    spawnSettlement = settlement;
-                }
-                else if (settlement.IsVillage)
-                {
-                    spawnSettlement = (settlement.Village.TradeBound ?? Town.AllTowns.GetRandomElement<Town>().Settlement);
-                }
-                else
-                {
-                    spawnSettlement = Town.AllTowns.GetRandomElement<Town>().Settlement;
-                }
                 bool isElite = false;
                 if (hero.Power >= 112f)
                 {
@@ -331,32 +454,103 @@ namespace BannerKings.Behaviours
                     isElite = (hero.RandomFloat() < num);
                 }
 
-                // 1.3.x: CreateCaravanParty's templateObject parameter is no longer
-                // nullable — it dereferences template.ShipHulls immediately. Pick
-                // a culture-appropriate template the way vanilla SpawnCaravan does,
-                // with fallbacks so we never pass null.
+                // Pick a template the way vanilla SpawnCaravan does (1.3.x):
+                // vanilla strictly partitions templates by port-status — the
+                // predicate
+                //   ShipHulls.Count == 0  !=  spawnSettlement.HasPort
+                // keeps SEA templates only at port towns and LAND templates
+                // only at inland towns. Without this partition, BK could
+                // spawn a sea-template caravan inland (no water access,
+                // template.ShipHulls deref still fires) or a land-template
+                // caravan at a port (no boat sprite, no sea travel),
+                // and any throw on the random pick used to permanently
+                // blacklist the culture via _culturesWithoutCaravanTemplates.
+                // That single bug accounts for most of the "fewer caravans
+                // than vanilla" feel.
                 var culture = hero.Culture;
-                var templates = isElite ? culture?.EliteCaravanPartyTemplates : culture?.CaravanPartyTemplates;
-                PartyTemplateObject template = null;
-                if (templates != null && templates.Count > 0)
-                    template = templates.GetRandomElement();
-                if (template == null && culture?.CaravanPartyTemplates != null && culture.CaravanPartyTemplates.Count > 0)
-                    template = culture.CaravanPartyTemplates.GetRandomElement();
-                if (template == null)
+                if (culture != null && _culturesWithoutCaravanTemplates.Contains(culture))
                 {
-                    // No template available for this culture (e.g., minor faction
-                    // hero in a War Sails Nord context with no caravan templates
-                    // defined). Skip silently — caravans aren't critical for
-                    // game-creation correctness.
                     return;
                 }
 
+                // First decide isNaval = does the chosen template use ships,
+                // because spawnSettlement selection depends on it. We need a
+                // template before we know isNaval, but the candidate list is
+                // already narrowed by isElite — pick a candidate, then choose
+                // a spawnSettlement matching its naval-ness.
+                var primaryList = isElite ? culture?.EliteCaravanPartyTemplates : culture?.CaravanPartyTemplates;
+                var fallbackList = culture?.CaravanPartyTemplates;
+
+                Settlement homeSettlement = hero.HomeSettlement ?? hero.BornSettlement;
+                bool homeIsPort = homeSettlement != null && homeSettlement.IsTown && homeSettlement.HasPort;
+
+                PartyTemplateObject template = PickCaravanTemplate(primaryList, homeIsPort)
+                                            ?? PickCaravanTemplate(fallbackList, homeIsPort)
+                                            // No port-matched template — fall back to ANY
+                                            // template rather than silently skipping. This
+                                            // is the safety net that prevents the cache
+                                            // permanently disabling a culture's caravans.
+                                            ?? (primaryList != null && primaryList.Count > 0 ? primaryList.GetRandomElement() : null)
+                                            ?? (fallbackList != null && fallbackList.Count > 0 ? fallbackList.GetRandomElement() : null);
+
+                if (template == null)
+                {
+                    // Truly no caravan templates for this culture. Cache it.
+                    if (culture != null) _culturesWithoutCaravanTemplates.Add(culture);
+                    return;
+                }
+
+                bool isNaval = template.ShipHulls != null && template.ShipHulls.Count > 0;
+
+                // Spawn settlement: prefer hero's home town if it matches the
+                // template's port-ness; otherwise pick a random town that does.
+                Settlement spawnSettlement = null;
+                if (homeSettlement != null)
+                {
+                    if (homeSettlement.IsTown && homeSettlement.HasPort == isNaval)
+                    {
+                        spawnSettlement = homeSettlement;
+                    }
+                    else if (homeSettlement.IsVillage && homeSettlement.Village?.TradeBound != null
+                          && homeSettlement.Village.TradeBound.HasPort == isNaval)
+                    {
+                        spawnSettlement = homeSettlement.Village.TradeBound;
+                    }
+                }
+                if (spawnSettlement == null)
+                {
+                    var matching = Town.AllTowns.Where(t => t.Settlement.HasPort == isNaval).ToList();
+                    if (matching.Count > 0)
+                    {
+                        spawnSettlement = matching.GetRandomElement().Settlement;
+                    }
+                    else
+                    {
+                        // No towns of the required port-ness exist (e.g. no
+                        // ports in this campaign world). Fall back to any town
+                        // — better an oddly-placed caravan than none.
+                        spawnSettlement = Town.AllTowns.GetRandomElement().Settlement;
+                    }
+                }
+
                 CaravanPartyComponent.CreateCaravanParty(hero, spawnSettlement, template, initialSpawn, null, null, isElite);
+                BannerKings.Utils.Logs.CaravanLifecycle(() =>
+                    $"SPAWN: caravan of {hero.Name} ({hero.Culture?.Name}) at {spawnSettlement.Name} elite={isElite} naval={isNaval} initial={initialSpawn}");
                 if (!initialSpawn && hero.Power >= 50f)
                 {
                     hero.AddPower(-30f);
                 }
             }
+        }
+
+        // Vanilla predicate: keeps templates whose ShipHulls-emptiness differs
+        // from the target settlement's HasPort flag. Equivalently: at a port
+        // we keep only sea templates; inland we keep only land templates.
+        private static PartyTemplateObject PickCaravanTemplate(MBReadOnlyList<PartyTemplateObject> templates, bool atPort)
+        {
+            if (templates == null || templates.Count == 0) return null;
+            return templates.GetRandomElementWithPredicate(t =>
+                (t.ShipHulls == null || t.ShipHulls.Count == 0) != atPort);
         }
 
         private void UpdateAverageValues()
@@ -413,29 +607,16 @@ namespace BannerKings.Behaviours
             List<MobileParty> list = new List<MobileParty>(MobileParty.AllCaravanParties);
             foreach (MobileParty caravan in list)
             {
-                if (caravan.Owner == null || caravan.Owner.IsAlive || caravan.Owner.Clan == null) continue;
+                // Owner-less caravan: another mod or a mid-flight component
+                // mutation orphaned it. Destroy rather than leak — the
+                // caravan can't claim wages, transfer, or be cleaned up
+                // by any of the owner-keyed paths.
+                if (caravan.Owner == null) { DestroyPartyAction.Apply(null, caravan); continue; }
+
+                if (caravan.Owner.IsAlive || caravan.Owner.Clan == null) continue;
 
                 if (caravan.Owner.Clan.IsEliminated) DestroyPartyAction.Apply(null, caravan);
                 else CaravanPartyComponent.TransferCaravanOwnership(caravan, caravan.Owner.Clan.Leader, caravan.HomeSettlement);
-            }
-        }
-
-        private void DailyTickHero(Hero hero)
-        {
-            if (hero != Hero.MainHero && hero.IsNotable)
-            {
-                if (ShouldHaveCaravan(hero))
-                {
-                    SpawnCaravan(hero, false);
-                    if (hero.OwnedCaravans.Count > 1)
-                    {
-                        DestroyPartyAction.Apply(null, hero.OwnedCaravans.GetRandomElement().MobileParty);
-                    }
-                } 
-                else if (hero.OwnedCaravans.Count > 1)
-                {
-                    DestroyPartyAction.Apply(null, hero.OwnedCaravans.GetRandomElement().MobileParty);
-                }
             }
         }
 
@@ -484,9 +665,34 @@ namespace BannerKings.Behaviours
         public void HourlyTickParty(MobileParty caravanParty)
         {
             if (!Campaign.Current.GameStarted) return;
-            
+            var __sw = Settings.BannerKingsSettings.Instance.LogHourlyTickPerf
+                ? System.Diagnostics.Stopwatch.StartNew()
+                : null;
+            try { HourlyTickPartyImpl(caravanParty); }
+            finally { if (__sw != null) { __sw.Stop(); BannerKings.Behaviours.Shipping.BKShippingBehavior.PerfRecordPublic("BKCaravans.HourlyTickParty", __sw); } }
+        }
+
+        private void HourlyTickPartyImpl(MobileParty caravanParty)
+        {
             if (caravanParty.IsCaravan)
             {
+                // Hold-mode safety net. Runs BEFORE the IsPartyTradeActive
+                // gate below so a caravan stuck in Hold from a missed
+                // siege-end release path (or any other code that called
+                // SetMoveModeHold without releasing it) gets unstuck even
+                // when the trade-active flag is somehow false. Skip if
+                // we're legitimately holding inside a besieged settlement
+                // — the active siege flow owns that state.
+                bool inHold = caravanParty.DefaultBehavior == AiBehavior.Hold
+                              || caravanParty.ShortTermBehavior == AiBehavior.Hold;
+                bool insideBesiegedSettlement = caravanParty.CurrentSettlement != null
+                                                && caravanParty.CurrentSettlement.IsUnderSiege;
+                if (inHold && !insideBesiegedSettlement && caravanParty.MapEvent == null)
+                {
+                    ReleaseCaravanFromHold(caravanParty);
+                    return;
+                }
+
                 bool flag = false;
                 float randomFloat = MBRandom.RandomFloat;
                 if (caravanParty.MapEvent == null && caravanParty.IsPartyTradeActive && !caravanParty.Ai.DoNotMakeNewDecisions)
@@ -538,7 +744,7 @@ namespace BannerKings.Behaviours
                         }
                         if (!_previouslyChangedCaravanTargetsDueToEnemyOnWay.ContainsKey(caravanParty))
                         {
-                            _previouslyChangedCaravanTargetsDueToEnemyOnWay.Add(caravanParty, new List<Settlement>());
+                            _previouslyChangedCaravanTargetsDueToEnemyOnWay[caravanParty] = new List<Settlement>();
                         }
                         // Find the replacement BEFORE blacklisting the current target.
                         // If we blacklist first and ThinkNextDestination returns null,
@@ -553,21 +759,65 @@ namespace BannerKings.Behaviours
                             {
                                 _previouslyChangedCaravanTargetsDueToEnemyOnWay[caravanParty].Add(caravanParty.TargetSettlement);
                             }
-                            caravanParty.SetMoveGoToSettlement(town2.Settlement, MobileParty.NavigationType.All, false);
+                            caravanParty.SetMoveGoToSettlement(town2.Settlement, MobileParty.NavigationType.Default, false);
                         }
-                        else if (_previouslyChangedCaravanTargetsDueToEnemyOnWay[caravanParty].Count > 0)
+                        else
                         {
                             // No reachable destination among non-blacklisted towns.
                             // Clear the blacklist so next tick can pick anything —
                             // better to revisit a previously-tried town than to
                             // freeze the caravan in place.
-                            _previouslyChangedCaravanTargetsDueToEnemyOnWay[caravanParty].Clear();
+                            if (_previouslyChangedCaravanTargetsDueToEnemyOnWay[caravanParty].Count > 0)
+                            {
+                                _previouslyChangedCaravanTargetsDueToEnemyOnWay[caravanParty].Clear();
+                            }
+
+                            // Force-fallback when the current target is invalid:
+                            // sieged, hostile, or null. Without this the caravan
+                            // walks toward a sieged/hostile target indefinitely
+                            // because the 575-579 fall-through only re-issues
+                            // movement when target ≠ destination, and after a
+                            // siege change those are usually equal.
+                            var currentTarget = caravanParty.TargetSettlement;
+                            bool currentInvalid = currentTarget == null
+                                || currentTarget.Town == null
+                                || currentTarget.IsUnderSiege
+                                || (currentTarget.MapFaction != null && currentTarget.MapFaction.IsAtWarWith(caravanParty.MapFaction));
+                            if (currentInvalid)
+                            {
+                                Settlement fallback = null;
+                                if (caravanParty.HomeSettlement != null
+                                    && caravanParty.HomeSettlement.Town != null
+                                    && !caravanParty.HomeSettlement.IsUnderSiege
+                                    && !caravanParty.HomeSettlement.MapFaction.IsAtWarWith(caravanParty.MapFaction))
+                                {
+                                    fallback = caravanParty.HomeSettlement;
+                                }
+                                else
+                                {
+                                    // Nearest friendly non-besieged town.
+                                    float bestDist = float.MaxValue;
+                                    foreach (var t in Town.AllTowns)
+                                    {
+                                        if (t == null) continue;
+                                        var ts = t.Settlement;
+                                        if (ts == null || ts.IsUnderSiege) continue;
+                                        if (ts.MapFaction != null && ts.MapFaction.IsAtWarWith(caravanParty.MapFaction)) continue;
+                                        float d = caravanParty.GetPosition2D.Distance(ts.GatePosition.ToVec2());
+                                        if (d < bestDist) { bestDist = d; fallback = ts; }
+                                    }
+                                }
+                                if (fallback != null && fallback != currentTarget)
+                                {
+                                    caravanParty.SetMoveGoToSettlement(fallback, MobileParty.NavigationType.Default, false);
+                                }
+                            }
                         }
                     }
                     Town destinationForMobileParty2 = GetDestinationForMobileParty(caravanParty);
                     if (caravanParty.CurrentSettlement == null && destinationForMobileParty2 != null && caravanParty.TargetSettlement != destinationForMobileParty2.Settlement)
                     {
-                        caravanParty.SetMoveGoToSettlement(destinationForMobileParty2.Settlement, MobileParty.NavigationType.All, false);
+                        caravanParty.SetMoveGoToSettlement(destinationForMobileParty2.Settlement, MobileParty.NavigationType.Default, false);
                     }
                 }
             }
@@ -578,13 +828,13 @@ namespace BannerKings.Behaviours
             Town town = settlement.Town;
             if (Campaign.Current.GameStarted && mobileParty != null && town != null && mobileParty.IsCaravan && mobileParty.IsPartyTradeActive && mobileParty.IsActive)
             {
-                if (_previouslyChangedCaravanTargetsDueToEnemyOnWay.ContainsKey(mobileParty))
+                if (_previouslyChangedCaravanTargetsDueToEnemyOnWay.TryGetValue(mobileParty, out var __entryBlacklist))
                 {
-                    _previouslyChangedCaravanTargetsDueToEnemyOnWay[mobileParty].Clear();
+                    __entryBlacklist.Clear();
                 }
                 else
                 {
-                    _previouslyChangedCaravanTargetsDueToEnemyOnWay.Add(mobileParty, new List<Settlement>());
+                    _previouslyChangedCaravanTargetsDueToEnemyOnWay[mobileParty] = new List<Settlement>();
                 }
                 if (Campaign.Current.GameStarted)
                 {
@@ -616,6 +866,11 @@ namespace BannerKings.Behaviours
 
         public void OnSettlementLeft(MobileParty mobileParty, Settlement settlement)
         {
+            if (mobileParty != null && mobileParty.IsCaravan && settlement != null)
+            {
+                BannerKings.Utils.Logs.CaravanLifecycle(() =>
+                    $"LEAVE: {mobileParty.Name} ← {settlement.Name} (next target {mobileParty.TargetSettlement?.Name?.ToString() ?? "(null)"})");
+            }
             if (mobileParty != null && mobileParty != MobileParty.MainParty && (mobileParty.IsCaravan || mobileParty.IsLordParty))
             {
                 int inventoryCapacity = mobileParty.InventoryCapacity;
@@ -641,6 +896,11 @@ namespace BannerKings.Behaviours
 
         private void OnMobilePartyDestroyed(MobileParty mobileParty, PartyBase destroyerParty)
         {
+            if (mobileParty != null && mobileParty.IsCaravan)
+            {
+                BannerKings.Utils.Logs.CaravanLifecycle(() =>
+                    $"DESTROYED: {mobileParty.Name} (destroyer {destroyerParty?.Name?.ToString() ?? "(none)"})");
+            }
             if (_interactedCaravans.ContainsKey(mobileParty))
             {
                 _interactedCaravans.Remove(mobileParty);
@@ -680,7 +940,13 @@ namespace BannerKings.Behaviours
         {
             if (mobileParty.IsCaravan)
             {
-                _previouslyChangedCaravanTargetsDueToEnemyOnWay.Add(mobileParty, new List<Settlement>());
+                // Use indexer + ContainsKey instead of .Add — saved games
+                // restore this dict via SyncData and a re-fired
+                // MobilePartyCreated for an already-keyed caravan would
+                // throw ArgumentException out of the event dispatcher,
+                // aborting later listeners in the same dispatch.
+                if (!_previouslyChangedCaravanTargetsDueToEnemyOnWay.ContainsKey(mobileParty))
+                    _previouslyChangedCaravanTargetsDueToEnemyOnWay[mobileParty] = new List<Settlement>();
             }
         }
 
@@ -753,14 +1019,14 @@ namespace BannerKings.Behaviours
         // Token: 0x060034A2 RID: 13474 RVA: 0x000DE394 File Offset: 0x000DC594
         private float GetTradeScoreForTown(MobileParty caravanParty, Town town, CampaignTime lastHomeVisitTimeOfCaravan, float caravanFullness, bool distanceCut)
         {
-            float distance = Campaign.Current.Models.MapDistanceModel.GetDistance(caravanParty, town.Owner.Settlement, false, MobileParty.NavigationType.All, out _);
+            float distance = Campaign.Current.Models.MapDistanceModel.GetDistance(caravanParty, town.Owner.Settlement, false, MobileParty.NavigationType.Default, out _);
             float num = 0f;
             AdjustVeryFarAddition(distance, 0.15f, ref num);
             float elapsedDaysUntilNow = lastHomeVisitTimeOfCaravan.ElapsedDaysUntilNow;
             bool flag = elapsedDaysUntilNow > 2f;
             if (flag)
             {
-                float distance2 = Campaign.Current.Models.MapDistanceModel.GetDistance(town.Owner.Settlement, caravanParty.HomeSettlement, false, false, MobileParty.NavigationType.All);
+                float distance2 = Campaign.Current.Models.MapDistanceModel.GetDistance(town.Owner.Settlement, caravanParty.HomeSettlement, false, false, MobileParty.NavigationType.Default);
                 AdjustVeryFarAddition(distance2, ((elapsedDaysUntilNow - 1f) * MathF.Sqrt(elapsedDaysUntilNow - 1f) - 1f) * 0.008f, ref num);
             }
             float num2 = 1f / (distance + num + 8f);
@@ -1762,6 +2028,11 @@ namespace BannerKings.Behaviours
 
         // Token: 0x04001110 RID: 4368
         private readonly Dictionary<ItemCategory, int> _totalValueOfItemsAtCategory = new Dictionary<ItemCategory, int>();
+
+        // Cultures we've confirmed have no caravan templates. Stops
+        // DailyTickHero from re-evaluating the template fallback chain
+        // for every minor-faction notable, every day, forever.
+        private readonly HashSet<CultureObject> _culturesWithoutCaravanTemplates = new HashSet<CultureObject>();
 
         public enum PlayerInteraction
         {

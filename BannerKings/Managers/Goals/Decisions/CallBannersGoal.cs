@@ -260,7 +260,7 @@ namespace BannerKings.Managers.Goals.Decisions
             // based on the target's state.
             if (aiTargetSettlement != null && aiTargetSettlement != gatherSettlement)
             {
-                mobileParty.SetMoveGoToSettlement(aiTargetSettlement, MobileParty.NavigationType.All, false);
+                mobileParty.SetMoveGoToSettlement(aiTargetSettlement, MobileParty.NavigationType.Default, false);
             }
 
             var behavior = TaleWorlds.CampaignSystem.Campaign.Current.GetCampaignBehavior<BKGentryBehavior>();
@@ -272,7 +272,7 @@ namespace BannerKings.Managers.Goals.Decisions
                     influenceTotal += option.Influence;
                     if (option.Party != null)
                     {
-                        SetPartyAiAction.GetActionForEscortingParty(option.Party, army.LeaderParty, MobileParty.NavigationType.All, false, false);
+                        SetPartyAiAction.GetActionForEscortingParty(option.Party, army.LeaderParty, MobileParty.NavigationType.Default, false, false);
                     }
                     else if (option.Estate != null)
                     {

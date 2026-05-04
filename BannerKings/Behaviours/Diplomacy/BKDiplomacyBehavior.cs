@@ -340,6 +340,9 @@ namespace BannerKings.Behaviours.Diplomacy
 
         private void OnKingdomDestroyed(Kingdom kingdom)
         {
+            BannerKings.Utils.Logs.MajorEvent(() =>
+                $"kingdom DESTROYED: {kingdom?.Name} (culture {kingdom?.Culture?.Name})");
+
             if (kingdomDiplomacies.ContainsKey(kingdom))
             {
                 kingdomDiplomacies.Remove(kingdom);
@@ -370,6 +373,13 @@ namespace BannerKings.Behaviours.Diplomacy
         }
 
         private void OnDailyTick()
+        {
+            var __sw = BannerKings.Behaviours.Shipping.BKShippingBehavior.TraceEnter("BKDiplomacy.OnDailyTick");
+            try { OnDailyTickImpl(); }
+            finally { BannerKings.Behaviours.Shipping.BKShippingBehavior.TraceExit("BKDiplomacy.OnDailyTick", __sw); }
+        }
+
+        private void OnDailyTickImpl()
         {
             TickKingdoms();
             InitializeDiplomacies();
@@ -596,6 +606,9 @@ namespace BannerKings.Behaviours.Diplomacy
            Hero capturerHero,
            ChangeOwnerOfSettlementAction.ChangeOwnerOfSettlementDetail detail)
         {
+            BannerKings.Utils.Logs.MajorEvent(() =>
+                $"settlement OWNER changed: {settlement?.Name} {oldOwner?.Name} ({oldOwner?.MapFaction?.Name}) → {newOwner?.Name} ({newOwner?.MapFaction?.Name}) [{detail}]");
+
             if (newOwner != null && oldOwner != null)
             {
                 IFaction attacker = newOwner.MapFaction;
@@ -631,6 +644,8 @@ namespace BannerKings.Behaviours.Diplomacy
       
         private void OnMakePeace(IFaction faction1, IFaction faction2, MakePeaceAction.MakePeaceDetail detail)
         {
+            BannerKings.Utils.Logs.Kingdom(() => $"peace: {faction1?.Name} ↔ {faction2?.Name} ({detail})");
+
             if (faction1.IsKingdomFaction && faction2.IsKingdomFaction)
             {
                 MakeTruce(faction1 as Kingdom, faction2 as Kingdom, 1f);
@@ -646,6 +661,8 @@ namespace BannerKings.Behaviours.Diplomacy
 
         private void OnWarDeclared(IFaction faction1, IFaction faction2, DeclareWarAction.DeclareWarDetail detail)
         {
+            BannerKings.Utils.Logs.Kingdom(() => $"war: {faction1?.Name} → {faction2?.Name} ({detail})");
+
             if (faction1.IsKingdomFaction && faction2.IsKingdomFaction)
             {
                 Kingdom attacker = faction1 as Kingdom;

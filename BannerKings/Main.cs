@@ -128,6 +128,7 @@ namespace BannerKings
             campaignStarter.AddBehavior(new BKTraitBehavior());
             campaignStarter.AddBehavior(new BKPartyNeedsBehavior());
             campaignStarter.AddBehavior(new BKShippingBehavior());
+            campaignStarter.AddBehavior(new BannerKings.Behaviours.Shipping.BKLordShippingBehavior());
             campaignStarter.AddBehavior(new BKMercenaryCareerBehavior());
             campaignStarter.AddBehavior(new BKRelationsBehavior());
             campaignStarter.AddBehavior(new BKSettlementBehavior());

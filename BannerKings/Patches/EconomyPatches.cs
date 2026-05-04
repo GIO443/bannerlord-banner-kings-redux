@@ -32,6 +32,174 @@ using TaleWorlds.CampaignSystem.Roster;
 using BannerKings.CampaignContent;
 using BannerKings.CampaignContent.Economy.Markets;
 
+namespace BannerKings.Patches.Diag
+{
+    // Tracer-only patches in their own classes so a failure in one
+    // doesn't cascade and disable other patches. These wrap vanilla
+    // ClanVariablesCampaignBehavior methods that fire per-clan during
+    // daily processing — used to find which one hangs for a particular
+    // clan. All gated on the LogHourlyTickPerf MCM toggle.
+    [HarmonyPatch(typeof(ClanVariablesCampaignBehavior), "DailyTickClan")]
+    internal class TraceDailyTickClan
+    {
+        private static void Prefix(Clan clan, out System.Diagnostics.Stopwatch __state)
+        {
+            __state = BannerKings.Behaviours.Shipping.BKShippingBehavior.TraceEnter("Vanilla.DailyTickClan:" + (clan?.Name?.ToString() ?? "?"));
+        }
+        private static void Postfix(System.Diagnostics.Stopwatch __state)
+        {
+            BannerKings.Behaviours.Shipping.BKShippingBehavior.TraceExit("Vanilla.DailyTickClan", __state);
+        }
+    }
+
+    [HarmonyPatch(typeof(ClanVariablesCampaignBehavior), "UpdateClanAfterDays")]
+    internal class TraceUpdateClanAfterDays
+    {
+        private static void Prefix(Clan clan, out System.Diagnostics.Stopwatch __state)
+        {
+            __state = BannerKings.Behaviours.Shipping.BKShippingBehavior.TraceEnter("Vanilla.UpdateClanAfterDays:" + (clan?.Name?.ToString() ?? "?"));
+        }
+        private static void Postfix(System.Diagnostics.Stopwatch __state)
+        {
+            BannerKings.Behaviours.Shipping.BKShippingBehavior.TraceExit("Vanilla.UpdateClanAfterDays", __state);
+        }
+    }
+
+    [HarmonyPatch(typeof(ClanVariablesCampaignBehavior), "UpdateClanSettlementsPaymentLimit")]
+    internal class TraceUpdateClanSettlementsPaymentLimit
+    {
+        private static void Prefix(Clan clan, out System.Diagnostics.Stopwatch __state)
+        {
+            __state = BannerKings.Behaviours.Shipping.BKShippingBehavior.TraceEnter("Vanilla.UpdateClanSettlementsPaymentLimit:" + (clan?.Name?.ToString() ?? "?"));
+        }
+        private static void Postfix(System.Diagnostics.Stopwatch __state)
+        {
+            BannerKings.Behaviours.Shipping.BKShippingBehavior.TraceExit("Vanilla.UpdateClanSettlementsPaymentLimit", __state);
+        }
+    }
+
+    // NavalDLC subscribes to DailyTickClanEvent (per strings dump). Its
+    // listener fires alongside ours and could be the freeze source.
+    // Resolve the target type+method by reflection — type names aren't
+    // referenced anywhere in BK so this lazy-finds it without a hard
+    // assembly reference. Returns null if NavalDLC isn't loaded or the
+    // method isn't found, in which case Harmony silently skips.
+    // Patch MbEvent<Clan>.Invoke directly via reflection. Logs the
+    // boundary of every event invocation so we can see whether the next
+    // clan even gets its event invoked, or if vanilla iteration code
+    // hangs between clans.
+    [HarmonyPatch]
+    internal class TraceMbEventClanInvoke
+    {
+        private static System.Reflection.MethodBase TargetMethod()
+        {
+            try
+            {
+                // Find the open generic MbEvent<> type. Search all loaded
+                // assemblies because TaleWorlds split types across DLLs.
+                System.Type openMbEvent = null;
+                foreach (var asm in System.AppDomain.CurrentDomain.GetAssemblies())
+                {
+                    var n = asm.GetName().Name;
+                    if (n == null) continue;
+                    if (!n.StartsWith("TaleWorlds")) continue;
+                    System.Type[] types;
+                    try { types = asm.GetTypes(); }
+                    catch (System.Reflection.ReflectionTypeLoadException ex) { types = ex.Types.Where(x => x != null).ToArray(); }
+                    foreach (var t in types)
+                    {
+                        if (t == null) continue;
+                        if (!t.IsGenericTypeDefinition) continue;
+                        if (!t.Name.StartsWith("MbEvent")) continue;
+                        if (t.GetGenericArguments().Length != 1) continue;
+                        openMbEvent = t;
+                        break;
+                    }
+                    if (openMbEvent != null) break;
+                }
+                if (openMbEvent == null) return null;
+                var closed = openMbEvent.MakeGenericType(typeof(Clan));
+                return closed.GetMethod("Invoke",
+                    System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.NonPublic);
+            }
+            catch { return null; }
+        }
+
+        private static void Prefix(object[] __args)
+        {
+            string clanName = "?";
+            try
+            {
+                if (__args != null && __args.Length > 0 && __args[0] is Clan c)
+                    clanName = c.Name?.ToString() ?? "?";
+            }
+            catch { }
+            BannerKings.BannerKingsCheats.AppendDiagnosticLine("tick_trace.txt",
+                "[mb] Invoke ENTER:" + clanName);
+        }
+        private static void Postfix(object[] __args)
+        {
+            string clanName = "?";
+            try
+            {
+                if (__args != null && __args.Length > 0 && __args[0] is Clan c)
+                    clanName = c.Name?.ToString() ?? "?";
+            }
+            catch { }
+            BannerKings.BannerKingsCheats.AppendDiagnosticLine("tick_trace.txt",
+                "[mb] Invoke EXIT:" + clanName);
+        }
+    }
+
+    [HarmonyPatch]
+    internal class TraceNavalDLCClanTick
+    {
+        private static System.Reflection.MethodInfo _target;
+
+        private static System.Reflection.MethodBase TargetMethod()
+        {
+            try
+            {
+                var asm = System.AppDomain.CurrentDomain.GetAssemblies()
+                    .FirstOrDefault(a => a.GetName().Name == "NavalDLC");
+                if (asm == null) return null;
+                // Scan every type in the assembly for a DailyTickClan-like
+                // method. Beats hard-coding namespaces we'd have to chase.
+                foreach (var t in asm.GetTypes())
+                {
+                    foreach (var name in new[] { "DailyTickClan", "OnDailyTickClan", "OnClanDailyTick" })
+                    {
+                        var m = t.GetMethod(name,
+                            System.Reflection.BindingFlags.Instance |
+                            System.Reflection.BindingFlags.Static |
+                            System.Reflection.BindingFlags.Public |
+                            System.Reflection.BindingFlags.NonPublic);
+                        if (m != null && m.GetParameters().Length == 1
+                            && m.GetParameters()[0].ParameterType == typeof(Clan))
+                        {
+                            _target = m;
+                            return m;
+                        }
+                    }
+                }
+            }
+            catch { }
+            return null;
+        }
+
+        private static void Prefix(Clan clan, out System.Diagnostics.Stopwatch __state)
+        {
+            string typeName = _target?.DeclaringType?.Name ?? "?";
+            __state = BannerKings.Behaviours.Shipping.BKShippingBehavior.TraceEnter("NavalDLC." + typeName + ":" + (clan?.Name?.ToString() ?? "?"));
+        }
+        private static void Postfix(System.Diagnostics.Stopwatch __state)
+        {
+            BannerKings.Behaviours.Shipping.BKShippingBehavior.TraceExit("NavalDLC.DailyTickClan", __state);
+        }
+    }
+
+}
+
 namespace BannerKings.Patches
 {
     internal class EconomyPatches
@@ -76,29 +244,41 @@ namespace BannerKings.Patches
             [HarmonyPatch("UpdateClanSettlementAutoRecruitment", MethodType.Normal)]
             private static bool Prefix1(Clan clan)
             {
-                // ImprovedGarrisons owns garrison auto-recruit decisions; let vanilla
-                // run so IG's own postfix sees a sane state.
-                if (ModCompat.ImprovedGarrisons) return true;
-
-                if (clan.MapFaction is { IsKingdomFaction: true })
+                var __sw = BannerKings.Behaviours.Shipping.BKShippingBehavior.TraceEnter("Patch.UpdateClanSettlementAutoRecruitment:" + (clan?.Name?.ToString() ?? "?"));
+                try
                 {
-                    var enemies = FactionHelper.GetEnemyKingdoms(clan.Kingdom);
-                    foreach (var settlement in clan.Settlements)
+                    // ImprovedGarrisons owns garrison auto-recruit decisions; let vanilla
+                    // run so IG's own postfix sees a sane state.
+                    if (ModCompat.ImprovedGarrisons) return true;
+
+                    if (clan.MapFaction is { IsKingdomFaction: true })
                     {
-                        if (settlement.IsFortification && settlement.Town.GarrisonParty != null)
+                        var enemies = FactionHelper.GetEnemyKingdoms(clan.Kingdom);
+                        foreach (var settlement in clan.Settlements)
                         {
-                            settlement.Town.GarrisonAutoRecruitmentIsEnabled =
-                                enemies.Any() && settlement.Town.GarrisonParty.MemberRoster.TotalManCount < 500;
+                            if (settlement.IsFortification && settlement.Town.GarrisonParty != null)
+                            {
+                                settlement.Town.GarrisonAutoRecruitmentIsEnabled =
+                                    enemies.Any() && settlement.Town.GarrisonParty.MemberRoster.TotalManCount < 500;
+                            }
                         }
                     }
-                }
 
-                return false;
+                    return false;
+                }
+                finally { BannerKings.Behaviours.Shipping.BKShippingBehavior.TraceExit("Patch.UpdateClanSettlementAutoRecruitment", __sw); }
             }
 
             [HarmonyPrefix]
             [HarmonyPatch("MakeClanFinancialEvaluation", MethodType.Normal)]
             private static bool Prefix2(Clan clan)
+            {
+                var __sw = BannerKings.Behaviours.Shipping.BKShippingBehavior.TraceEnter("Patch.MakeClanFinancialEvaluation:" + (clan?.Name?.ToString() ?? "?"));
+                try { return Prefix2Impl(clan); }
+                finally { BannerKings.Behaviours.Shipping.BKShippingBehavior.TraceExit("Patch.MakeClanFinancialEvaluation", __sw); }
+            }
+
+            private static bool Prefix2Impl(Clan clan)
             {
                 int num = MBRandom.RoundRandomized((clan.IsMinorFaction ? 10000 : 30000) * BannerKingsSettings.Instance.BaseWage);
                 int num2 = MBRandom.RoundRandomized((clan.IsMinorFaction ? 30000 : 90000) * BannerKingsSettings.Instance.BaseWage);

@@ -36,6 +36,132 @@ namespace BannerKings.Behaviours
             CampaignEvents.SettlementEntered.AddNonSerializedListener(this, OnSettlementEntered);
             CampaignEvents.DailyTickClanEvent.AddNonSerializedListener(this, OnClanDailyTick);
             CampaignEvents.OnSessionLaunchedEvent.AddNonSerializedListener(this, OnSessionLaunched);
+
+            // Cleanup orphaned gentry clans on load: a gentry clan with no
+            // parties AND no settlements is a degraded state — observed
+            // hanging vanilla's daily-clan iteration loop in a save with
+            // active sieges. Destroy them on game load so the next daily
+            // tick iterates a clean Clan.All.
+            CampaignEvents.OnGameLoadedEvent.AddNonSerializedListener(this,
+                (CampaignGameStarter starter) => { if (!_disableGentryCleanup) CleanupOrphanedGentry("OnGameLoaded"); });
+            CampaignEvents.OnSessionLaunchedEvent.AddNonSerializedListener(this,
+                (CampaignGameStarter starter) => { if (!_disableGentryCleanup) CleanupOrphanedGentry("OnSessionLaunched"); });
+        }
+
+        // Toggle to disable the orphan-gentry cleanup. DEFAULT ON
+        // because the cleanup leaves dangling MapEvent references when
+        // it removes heroes via KillCharacterAction.ApplyByRemove,
+        // which crashes the next map tick. Set to false explicitly via
+        // bannerkings.enable_gentry_cleanup if you need to run it.
+        public static bool _disableGentryCleanup = true;
+
+        private void CleanupOrphanedGentry(string trigger)
+        {
+            int destroyed = 0, scanned = 0, candidates = 0;
+            var report = new System.Text.StringBuilder();
+            report.AppendLine($"[BK gentry cleanup] trigger={trigger}");
+            try
+            {
+                var dead = new System.Collections.Generic.List<Clan>();
+                foreach (var c in Clan.All)
+                {
+                    if (c == null) continue;
+                    scanned++;
+                    if (c.IsEliminated) continue;
+                    var sid = c.StringId ?? "";
+                    if (!sid.StartsWith("gentryClan_")) continue;
+                    candidates++;
+                    int parties = 0;
+                    int settlements = 0;
+                    int heroes = 0;
+                    try { parties = c.WarPartyComponents?.Count ?? 0; } catch { }
+                    try { settlements = c.Settlements?.Count ?? 0; } catch { }
+                    try { heroes = c.Heroes?.Count ?? 0; } catch { }
+
+                    // Broaden the corruption signature — destroy any gentry
+                    // clan with EITHER no parties+no settlements, OR no
+                    // heroes, OR a null leader. All three are degraded
+                    // states that vanilla daily-clan iteration may hang
+                    // on. Observed in saves with Morochoving (0 parties,
+                    // 0 settlements).
+                    bool noPartiesNoSettlements = parties == 0 && settlements == 0;
+                    bool noHeroes = heroes == 0;
+                    bool noLeader = c.Leader == null;
+                    if (noPartiesNoSettlements || noHeroes || noLeader)
+                    {
+                        dead.Add(c);
+                        report.AppendLine($"  DEAD: {c.Name} ({sid}) parties={parties} settlements={settlements} heroes={heroes} leader={(c.Leader?.Name?.ToString() ?? "null")}");
+                    }
+                }
+                foreach (var c in dead)
+                {
+                    bool ok = false;
+                    // Try in order: kill all heroes (most graceful — vanilla
+                    // marks the clan eliminated when its last hero dies),
+                    // then DestroyClanAction (often NREs on parties=0
+                    // clans), then direct IsEliminated set via reflection.
+                    try
+                    {
+                        var heroes = c.Heroes?.ToList() ?? new System.Collections.Generic.List<Hero>();
+                        foreach (var h in heroes)
+                        {
+                            if (h == null || h.IsDead) continue;
+                            try { TaleWorlds.CampaignSystem.Actions.KillCharacterAction.ApplyByRemove(h); }
+                            catch
+                            {
+                                try { TaleWorlds.CampaignSystem.Actions.KillCharacterAction.ApplyByMurder(h); } catch { }
+                            }
+                        }
+                        ok = true;
+                    }
+                    catch (System.Exception ex)
+                    {
+                        report.AppendLine($"  KillHeroes FAIL: {c?.Name} — {ex.GetType().Name}: {ex.Message}");
+                    }
+
+                    if (!ok)
+                    {
+                        try
+                        {
+                            TaleWorlds.CampaignSystem.Actions.DestroyClanAction.Apply(c);
+                            ok = true;
+                        }
+                        catch { /* fall through */ }
+                    }
+
+                    // Last resort — flip IsEliminated via reflection so
+                    // vanilla iteration filters skip the clan.
+                    if (!ok)
+                    {
+                        try
+                        {
+                            var prop = typeof(Clan).GetProperty("IsEliminated",
+                                System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.NonPublic);
+                            if (prop != null && prop.CanWrite) prop.SetValue(c, true);
+                            else
+                            {
+                                var fld = typeof(Clan).GetField("_isEliminated",
+                                    System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic);
+                                fld?.SetValue(c, true);
+                            }
+                            ok = true;
+                        }
+                        catch (System.Exception ex)
+                        {
+                            report.AppendLine($"  ReflectionEliminate FAIL: {c?.Name} — {ex.GetType().Name}: {ex.Message}");
+                        }
+                    }
+
+                    if (ok) destroyed++;
+                }
+                report.AppendLine($"[BK gentry cleanup] scanned={scanned} candidates={candidates} destroyed={destroyed}");
+            }
+            catch (System.Exception ex)
+            {
+                report.AppendLine($"[BK gentry cleanup] FATAL: {ex.GetType().Name}: {ex.Message}");
+            }
+            try { BannerKings.BannerKingsCheats.AppendDiagnosticLine("gentry_cleanup.txt", report.ToString()); } catch { }
+            try { TaleWorlds.Library.Debug.Print(report.ToString()); } catch { }
         }
 
         public override void SyncData(IDataStore dataStore)
@@ -62,6 +188,14 @@ namespace BannerKings.Behaviours
         }
 
         private void OnClanDailyTick(Clan clan)
+        {
+            if (BannerKings.Behaviours.BKClanBehavior.ShouldSkipClan(clan)) return;
+            var __sw = BannerKings.Behaviours.Shipping.BKShippingBehavior.TraceEnter("BKGentry.OnClanDailyTick:" + (clan?.Name?.ToString() ?? "?"));
+            try { OnClanDailyTickImpl(clan); }
+            finally { BannerKings.Behaviours.Shipping.BKShippingBehavior.TraceExit("BKGentry.OnClanDailyTick", __sw); }
+        }
+
+        private void OnClanDailyTickImpl(Clan clan)
         {
             RunWeekly(() =>
             {
@@ -136,8 +270,16 @@ namespace BannerKings.Behaviours
                 bool war = FactionHelper.GetEnemyKingdoms(kingdom).Any();
                 if (!war)
                 {
-                    party.Ai.DisableAi();
-                    party.SetMoveGoToSettlement(gentryTuple.Item2.EstatesData.Settlement, MobileParty.NavigationType.All, false);
+                    // Bounded suspension. DisableAi() with no time limit needs
+                    // an explicit EnableAi() pair on every state-change branch;
+                    // a single missed re-enable leaves the gentry party
+                    // permanently AI-disabled. DisableForHours self-heals
+                    // after the cooldown so the next state transition can
+                    // recover without manual intervention. The hourly tick
+                    // re-applies the disable while the suppression condition
+                    // still holds.
+                    party.Ai.DisableForHours(72);
+                    party.SetMoveGoToSettlement(gentryTuple.Item2.EstatesData.Settlement, MobileParty.NavigationType.Default, false);
                 }
                 else
                 {
@@ -151,8 +293,16 @@ namespace BannerKings.Behaviours
                         return;
                     }
 
-                    party.Ai.DisableAi();
-                    party.SetMoveGoToSettlement(gentryTuple.Item2.EstatesData.Settlement, MobileParty.NavigationType.All, false);
+                    // Bounded suspension. DisableAi() with no time limit needs
+                    // an explicit EnableAi() pair on every state-change branch;
+                    // a single missed re-enable leaves the gentry party
+                    // permanently AI-disabled. DisableForHours self-heals
+                    // after the cooldown so the next state transition can
+                    // recover without manual intervention. The hourly tick
+                    // re-applies the disable while the suppression condition
+                    // still holds.
+                    party.Ai.DisableForHours(72);
+                    party.SetMoveGoToSettlement(gentryTuple.Item2.EstatesData.Settlement, MobileParty.NavigationType.Default, false);
                 }
             },
             GetType().Name);
@@ -240,7 +390,7 @@ namespace BannerKings.Behaviours
                 EnterSettlementAction.ApplyForParty(party, settlement);
                 LeaveSettlementAction.ApplyForParty(party);
                 estate.TakeRetinue(party);
-                SetPartyAiAction.GetActionForEscortingParty(party, army.LeaderParty, MobileParty.NavigationType.All, false, false);
+                SetPartyAiAction.GetActionForEscortingParty(party, army.LeaderParty, MobileParty.NavigationType.Default, false, false);
             }
         }
 

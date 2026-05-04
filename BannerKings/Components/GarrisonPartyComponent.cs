@@ -73,7 +73,7 @@ namespace BannerKings.Components
                 {
                     var village = Home?.BoundVillages?.GetRandomElement();
                     if (village?.Settlement != null)
-                        MobileParty.SetMovePatrolAroundSettlement(village.Settlement, MobileParty.NavigationType.All, false);
+                        MobileParty.SetMovePatrolAroundSettlement(village.Settlement, MobileParty.NavigationType.Default, false);
                     else
                         ReturnHome();
                 }
@@ -81,6 +81,6 @@ namespace BannerKings.Components
             HoursPatrolled++;
         }
 
-        private void ReturnHome() => MobileParty.SetMoveGoToSettlement(Home, MobileParty.NavigationType.All, false);
+        private void ReturnHome() => MobileParty.SetMoveGoToSettlement(Home, MobileParty.NavigationType.Default, false);
     }
 }

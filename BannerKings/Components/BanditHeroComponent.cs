@@ -79,12 +79,12 @@ namespace BannerKings.Components
             {
                 if (party.MemberRoster.TotalManCount < partyLimit * 0.2f)
                 {
-                    party.SetMoveGoToSettlement(Hideout.Settlement, MobileParty.NavigationType.All, false);
+                    party.SetMoveGoToSettlement(Hideout.Settlement, MobileParty.NavigationType.Default, false);
                 }
 
                 if (party.Food < 10)
                 {
-                    party.SetMoveGoToSettlement(Hideout.Settlement, MobileParty.NavigationType.All, false);
+                    party.SetMoveGoToSettlement(Hideout.Settlement, MobileParty.NavigationType.Default, false);
                     return;
                 }
 
@@ -96,18 +96,18 @@ namespace BannerKings.Components
                     }
                     else
                     {
-                        party.SetMovePatrolAroundSettlement(Hideout.Settlement, MobileParty.NavigationType.All, false);
+                        party.SetMovePatrolAroundSettlement(Hideout.Settlement, MobileParty.NavigationType.Default, false);
                     }
                 }
 
                 if (raidTarget != null)
                 {
-                    party.SetMoveRaidSettlement(raidTarget.Settlement, MobileParty.NavigationType.All);
+                    party.SetMoveRaidSettlement(raidTarget.Settlement, MobileParty.NavigationType.Default);
                 }
 
                 if (robbingTarget != null)
                 {
-                    party.SetMovePatrolAroundSettlement(robbingTarget, MobileParty.NavigationType.All, false);
+                    party.SetMovePatrolAroundSettlement(robbingTarget, MobileParty.NavigationType.Default, false);
                 }
             }
         }
@@ -195,7 +195,7 @@ namespace BannerKings.Components
                                 x.Village.Hearth > 100f && x.Village.Militia < party.MemberRoster.TotalManCount * 0.5f, party);
                     if (target != null)
                     {
-                        party.SetMoveRaidSettlement(target, MobileParty.NavigationType.All);
+                        party.SetMoveRaidSettlement(target, MobileParty.NavigationType.Default);
                         // RecalculateShortTermAi removed in 1.3.x
                         raidTarget = target.Village;
                         lastDecision = CampaignTime.Now;

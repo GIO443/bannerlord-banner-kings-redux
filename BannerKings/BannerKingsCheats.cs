@@ -153,9 +153,9 @@ namespace BannerKings
             return msg;
         }
 
-        // Diagnostic for the BK shipping topology — connected components, bridge
-        // ports, average shortest path, diameter. Useful when designing or
-        // debugging the ShippingLane data in DefaultShippingLanes.cs.
+        // Diagnostic for the BK shipping topology — connected components, sea
+        // hubs, average shortest path, diameter. Useful when validating the
+        // HasPort-driven port set and the auto-derived sea/land edges.
         //
         // Output is large; the in-game console echo seems to mishandle multi-
         // line strings (visible jolt with no display). To get a reliable read,
@@ -473,13 +473,19 @@ namespace BannerKings
             if (town == null) return $"Settlement not found: {townToken}";
             if (town.Town == null) return $"{town.Name} is not a town.";
 
-            // Same template fallback chain as BKCaravansBehavior.SpawnCaravan
-            // (BKCaravansBehavior.cs:310-324) — try elite, then regular, bail
-            // gracefully if the hero's culture has nothing to spawn from.
+            // Mirror vanilla's port-aware predicate (sea template at port,
+            // land template inland), with fallbacks so the cheat never just
+            // silently fails — diagnostic value matters more than realism here.
             var culture = hero.Culture;
+            var templates = culture?.CaravanPartyTemplates;
             PartyTemplateObject template = null;
-            if (culture?.CaravanPartyTemplates != null && culture.CaravanPartyTemplates.Count > 0)
-                template = culture.CaravanPartyTemplates.GetRandomElement();
+            if (templates != null && templates.Count > 0)
+            {
+                bool atPort = town.HasPort;
+                template = templates.GetRandomElementWithPredicate(t =>
+                    (t.ShipHulls == null || t.ShipHulls.Count == 0) != atPort);
+                if (template == null) template = templates.GetRandomElement();
+            }
             if (template == null) return $"No caravan template available for culture {culture?.StringId}.";
 
             try
@@ -513,7 +519,7 @@ namespace BannerKings
             try
             {
                 caravan.Position = town.GatePosition;
-                caravan.SetMoveGoToSettlement(town, MobileParty.NavigationType.All, false);
+                caravan.SetMoveGoToSettlement(town, MobileParty.NavigationType.Default, false);
             }
             catch (Exception ex) { return "Relocate failed: " + ex.Message; }
             return $"Relocated {caravan.Name} to {town.Name}.";
@@ -681,27 +687,30 @@ namespace BannerKings
                 try { foreach (var e in party.PrisonRoster.GetTroopRoster()) if (!e.Character.IsHero) prisoners += e.Number; } catch { }
                 int troops = party.MemberRoster?.TotalManCount ?? 0;
 
-                // Probe BK's shipping-behavior tracking dict so we can
-                // distinguish "legitimately at sea, will arrive when timer
-                // fires" from "BK lost track, party will sit forever".
-                string travelInfo = "BKTracked=false";
-                try
-                {
-                    var ship = TaleWorlds.CampaignSystem.Campaign.Current
-                        ?.GetCampaignBehavior<BannerKings.Behaviours.Shipping.BKShippingBehavior>();
-                    if (ship != null && ship.TryGetTravelInfo(party, out var dest, out var arr))
-                    {
-                        string when;
-                        try { when = arr.IsPast ? $"{(-(arr - CampaignTime.Now).ToHours):n1}h overdue" : $"in {(arr - CampaignTime.Now).ToHours:n1}h"; }
-                        catch { when = "unknown"; }
-                        travelInfo = $"BKTracked=true → {dest?.Name}, arrival {when}";
-                    }
-                }
-                catch { /* defensive */ }
-
+                // v1.6.10 dropped BK's SetTravel timer-teleport in favour
+                // of vanilla naval transit, so there's no per-party shipping
+                // tracking to probe. Surface AtSea + IsActive instead — the
+                // engine flag tells us whether the party is currently in
+                // a vanilla naval voyage.
                 string componentTag = party.PartyComponent?.GetType().Name ?? "(null component)";
                 string homeTag = "-";
-                try { if (party.PartyComponent is BannerKings.Components.BannerKingsComponent bkc) homeTag = bkc.HomeSettlement?.Name?.ToString() ?? "-"; }
+                try
+                {
+                    // Vanilla caravans use CaravanPartyComponent and store
+                    // home on MobileParty.HomeSettlement. BK's own components
+                    // expose it via BannerKingsComponent.HomeSettlement. Read
+                    // both so the dump shows a real value either way — the
+                    // pre-fix dump rendered "home=-" for every caravan in
+                    // the world because only the BK-component path was
+                    // checked.
+                    Settlement home = null;
+                    try { home = party.HomeSettlement; } catch { }
+                    if (home == null && party.PartyComponent is BannerKings.Components.BannerKingsComponent bkc)
+                    {
+                        try { home = bkc.HomeSettlement; } catch { }
+                    }
+                    if (home != null) homeTag = home.Name?.ToString() ?? "-";
+                }
                 catch { }
                 string nameRendered;
                 try { nameRendered = party.Name?.ToString() ?? "(null name)"; }
@@ -710,7 +719,7 @@ namespace BannerKings
 
                 sb.AppendLine($"  {nameRendered} [{componentTag}, home={homeTag}] @ {current} → moveTo={moveTarget}; finalDest={finalDest}; " +
                               $"troops={troops}; prisoners={prisoners}; IsActive={party.IsActive}; " +
-                              $"AtSea={party.IsCurrentlyAtSea}; AiDisabled={party.Ai?.IsDisabled}; captor={captor}; {travelInfo}");
+                              $"AtSea={party.IsCurrentlyAtSea}; AiDisabled={party.Ai?.IsDisabled}; captor={captor}");
             }
             catch (Exception ex)
             {
@@ -797,6 +806,473 @@ namespace BannerKings
             if (string.IsNullOrEmpty(token)) return null;
             return Kingdom.All.FirstOrDefault(k => k.StringId == token)
                 ?? Kingdom.All.FirstOrDefault(k => k.Name != null && k.Name.ToString().Equals(token, StringComparison.OrdinalIgnoreCase));
+        }
+
+        // Per-clan daily-tick skip. Add a clan name (or StringId) to bypass
+        // every BK daily-clan listener for that clan, used to play through
+        // a freeze caused by a specific clan's state. Use without arg to
+        // list and clear.
+        [CommandLineFunctionality.CommandLineArgumentFunction("skip_clan_daily", "bannerkings")]
+        public static string SkipClanDaily(List<string> strings)
+        {
+            if (!CampaignCheats.CheckCheatUsage(ref CampaignCheats.ErrorType)) return CampaignCheats.ErrorType;
+
+            var set = BannerKings.Behaviours.BKClanBehavior._skipClanIds;
+            if (strings == null || strings.Count == 0)
+            {
+                if (set.Count == 0) return "skip_clan_daily: empty (usage: bannerkings.skip_clan_daily <ClanName>; bannerkings.skip_clan_daily clear)";
+                return "skip_clan_daily currently skipping: " + string.Join(", ", set);
+            }
+
+            var token = CampaignCheats.ConcatenateString(strings).Trim();
+            if (token.Equals("clear", StringComparison.OrdinalIgnoreCase))
+            {
+                int n = set.Count;
+                set.Clear();
+                return $"skip_clan_daily: cleared {n} entries.";
+            }
+
+            // Resolve to canonical clan name (or take token as-is).
+            var clan = Clan.All.FirstOrDefault(c => c?.StringId == token)
+                ?? Clan.All.FirstOrDefault(c => c?.Name?.ToString().Equals(token, StringComparison.OrdinalIgnoreCase) ?? false);
+
+            if (clan == null)
+            {
+                set.Add(token);
+                return $"skip_clan_daily: added '{token}' (no Clan match — added as raw token).";
+            }
+            set.Add(clan.StringId);
+            set.Add(clan.Name?.ToString() ?? "");
+            return $"skip_clan_daily: now skipping {clan.Name} ({clan.StringId}). Total entries: {set.Count}.";
+        }
+
+        // Bulk skip every clan whose name starts with the given prefix.
+        // Use to quickly find a freeze trigger when the suspect range is
+        // a few alphabetical neighbours: bannerkings.skip_clans_starting Le
+        // skips Lezhanoving, Lhamoving, Likanoving, etc. all at once.
+        [CommandLineFunctionality.CommandLineArgumentFunction("skip_clans_starting", "bannerkings")]
+        public static string SkipClansStarting(List<string> strings)
+        {
+            if (!CampaignCheats.CheckCheatUsage(ref CampaignCheats.ErrorType)) return CampaignCheats.ErrorType;
+            if (strings == null || strings.Count == 0)
+                return "Usage: bannerkings.skip_clans_starting <prefix>  (e.g. 'L' to skip every L-named clan)";
+
+            var prefix = CampaignCheats.ConcatenateString(strings).Trim();
+            if (string.IsNullOrEmpty(prefix)) return "Empty prefix.";
+
+            var set = BannerKings.Behaviours.BKClanBehavior._skipClanIds;
+            int added = 0;
+            var added_names = new List<string>();
+            foreach (var clan in Clan.All)
+            {
+                var name = clan?.Name?.ToString() ?? "";
+                if (name.StartsWith(prefix, StringComparison.OrdinalIgnoreCase))
+                {
+                    set.Add(clan.StringId);
+                    set.Add(name);
+                    added++;
+                    added_names.Add(name);
+                }
+            }
+            return $"skip_clans_starting '{prefix}': added {added} clan(s): {string.Join(", ", added_names)}";
+        }
+
+        // Dump Clan.All in iteration order with key state — siege,
+        // war count, party count — so we can see the clan AFTER a
+        // known-good last-processed clan and inspect what's
+        // distinctive about it. Output → BK_dump_clan_iter.txt.
+        [CommandLineFunctionality.CommandLineArgumentFunction("dump_clan_iter", "bannerkings")]
+        public static string DumpClanIter(List<string> strings)
+        {
+            try
+            {
+                var sb = new StringBuilder();
+                int idx = 0;
+                foreach (var c in Clan.All)
+                {
+                    if (c == null) continue;
+                    string name = "?";
+                    try { name = c.Name?.ToString() ?? "?"; } catch { }
+                    string kingdom = "(none)";
+                    try { kingdom = c.Kingdom?.Name?.ToString() ?? "(none)"; } catch { }
+                    int parties = 0;
+                    try { parties = c.WarPartyComponents?.Count ?? 0; } catch { }
+                    int settlements = 0;
+                    try { settlements = c.Settlements?.Count ?? 0; } catch { }
+                    int besieged = 0, besieging = 0;
+                    try
+                    {
+                        if (c.Settlements != null)
+                            foreach (var s in c.Settlements)
+                                if (s != null && s.IsUnderSiege) besieged++;
+                    }
+                    catch { }
+                    try
+                    {
+                        if (c.WarPartyComponents != null)
+                            foreach (var w in c.WarPartyComponents)
+                                if (w?.MobileParty?.SiegeEvent != null && w.MobileParty.SiegeEvent.BesiegerCamp?.LeaderParty == w.MobileParty) besieging++;
+                    }
+                    catch { }
+                    sb.AppendLine($"{idx++,3}: [{c.StringId}] {name} | kingdom={kingdom} | parties={parties} | settlements={settlements} | besieged={besieged} | besieging={besieging} | eliminated={c.IsEliminated} | bandit={c.IsBanditFaction}");
+                }
+                WriteDiagnosticFile("dump_clan_iter.txt", sb.ToString());
+                string summary = $"dump_clan_iter: {idx} clans dumped. {LastWriteResult}";
+                try { InformationManager.DisplayMessage(new InformationMessage(summary, Color.FromUint(0xFF00FF80))); } catch { }
+                return summary;
+            }
+            catch (Exception ex)
+            {
+                string err = "dump_clan_iter failed: " + ex.GetType().Name + ": " + ex.Message;
+                try { InformationManager.DisplayMessage(new InformationMessage(err, Color.FromUint(0xFFFF4040))); } catch { }
+                return err;
+            }
+        }
+
+        // Dump every active siege with full state so we can see whether
+        // the besieger / besieged clan is BK-created (gentry/rebel) and
+        // whether the state has anything unusual.
+        [CommandLineFunctionality.CommandLineArgumentFunction("dump_sieges", "bannerkings")]
+        public static string DumpSieges(List<string> strings)
+        {
+            try
+            {
+                var sb = new StringBuilder();
+                int n = 0;
+                foreach (var s in Settlement.All)
+                {
+                    if (s == null || !s.IsUnderSiege) continue;
+                    n++;
+                    sb.AppendLine($"Siege #{n}: {s.Name} ({s.StringId}) owned by {s.OwnerClan?.Name?.ToString() ?? "?"}");
+                    sb.AppendLine($"  defender clan: {s.OwnerClan?.StringId ?? "?"} kingdom={s.MapFaction?.Name?.ToString() ?? "?"}");
+                    var ev = s.SiegeEvent;
+                    if (ev != null)
+                    {
+                        var camp = ev.BesiegerCamp;
+                        var leader = camp?.LeaderParty;
+                        sb.AppendLine($"  besieger leader party: {leader?.Name?.ToString() ?? "?"} (clan: {leader?.LeaderHero?.Clan?.Name?.ToString() ?? "?"} / {leader?.LeaderHero?.Clan?.StringId ?? "?"})");
+                        sb.AppendLine($"  is BK-clan besieger: {(leader?.LeaderHero?.Clan?.StringId?.StartsWith("gentryClan_") == true || leader?.LeaderHero?.Clan?.StringId?.Contains("rebel") == true)}");
+                        try
+                        {
+                            int siegeParties = 0;
+                            if (s.Parties != null) foreach (var p in s.Parties) siegeParties++;
+                            sb.AppendLine($"  parties at settlement: {siegeParties}");
+                        }
+                        catch { }
+                    }
+                }
+                if (n == 0) sb.AppendLine("(no active sieges)");
+                WriteDiagnosticFile("dump_sieges.txt", sb.ToString());
+                string summary = $"dump_sieges: {n} active siege(s). {LastWriteResult}";
+                try { InformationManager.DisplayMessage(new InformationMessage(summary, Color.FromUint(0xFF00FF80))); } catch { }
+                return summary;
+            }
+            catch (System.Exception ex)
+            {
+                return "dump_sieges failed: " + ex.GetType().Name + ": " + ex.Message;
+            }
+        }
+
+        // Forcibly end every active siege by removing the besieger camp.
+        // Used to A/B test whether siege state is the freeze trigger.
+        [CommandLineFunctionality.CommandLineArgumentFunction("end_all_sieges", "bannerkings")]
+        public static string EndAllSieges(List<string> strings)
+        {
+            if (!CampaignCheats.CheckCheatUsage(ref CampaignCheats.ErrorType)) return CampaignCheats.ErrorType;
+            int ended = 0, failed = 0;
+            try
+            {
+                var siegedSettlements = new List<Settlement>();
+                foreach (var s in Settlement.All)
+                    if (s != null && s.IsUnderSiege) siegedSettlements.Add(s);
+
+                foreach (var s in siegedSettlements)
+                {
+                    var ev = s.SiegeEvent;
+                    if (ev == null) continue;
+                    try
+                    {
+                        // Move the besieger leader away to dissolve the siege.
+                        var leader = ev.BesiegerCamp?.LeaderParty;
+                        if (leader != null && leader.LeaderHero?.Clan?.HomeSettlement != null)
+                        {
+                            leader.SetMoveGoToSettlement(leader.LeaderHero.Clan.HomeSettlement, MobileParty.NavigationType.Default, false);
+                            leader.Position = leader.LeaderHero.Clan.HomeSettlement.GatePosition;
+                        }
+                        // Try the API to end the siege event.
+                        var concludeMethod = typeof(TaleWorlds.CampaignSystem.Siege.SiegeEvent).GetMethod("ConcludeSiegeEvent",
+                            System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.NonPublic);
+                        if (concludeMethod != null) concludeMethod.Invoke(ev, null);
+                        ended++;
+                    }
+                    catch (System.Exception)
+                    {
+                        failed++;
+                    }
+                }
+            }
+            catch (System.Exception ex)
+            {
+                return $"end_all_sieges failed: {ex.GetType().Name}: {ex.Message}";
+            }
+            return $"end_all_sieges: ended {ended} sieges, {failed} failures.";
+        }
+
+        // Nuclear option — destroy every BK-created gentry clan in the
+        // map. Gentry clans don't own settlements (they're just an extra
+        // clan around an estate); BK recreates them naturally over time.
+        // Use this when freeze-bisection by clan name is too tedious.
+        [CommandLineFunctionality.CommandLineArgumentFunction("destroy_all_gentry", "bannerkings")]
+        public static string DestroyAllGentry(List<string> strings)
+        {
+            if (!CampaignCheats.CheckCheatUsage(ref CampaignCheats.ErrorType)) return CampaignCheats.ErrorType;
+            int killed = 0;
+            int clans = 0;
+            try
+            {
+                var targets = new List<Clan>();
+                foreach (var c in Clan.All)
+                {
+                    if (c == null) continue;
+                    if (c.IsEliminated) continue;
+                    if (c.StringId == null || !c.StringId.StartsWith("gentryClan_")) continue;
+                    targets.Add(c);
+                }
+                foreach (var c in targets)
+                {
+                    clans++;
+                    try
+                    {
+                        var heroes = c.Heroes?.ToList() ?? new List<Hero>();
+                        foreach (var h in heroes)
+                        {
+                            if (h == null || h.IsDead) continue;
+                            try { TaleWorlds.CampaignSystem.Actions.KillCharacterAction.ApplyByRemove(h); killed++; }
+                            catch { try { TaleWorlds.CampaignSystem.Actions.KillCharacterAction.ApplyByMurder(h); killed++; } catch { } }
+                        }
+                        try { TaleWorlds.CampaignSystem.Actions.DestroyClanAction.Apply(c); } catch { }
+                        try
+                        {
+                            var prop = typeof(Clan).GetProperty("IsEliminated",
+                                System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.NonPublic);
+                            if (prop != null && prop.CanWrite) prop.SetValue(c, true);
+                        }
+                        catch { }
+                    }
+                    catch { }
+                }
+            }
+            catch (System.Exception ex)
+            {
+                return $"destroy_all_gentry failed: {ex.GetType().Name}: {ex.Message}";
+            }
+            return $"destroy_all_gentry: nuked {clans} gentry clans, killed {killed} heroes total.";
+        }
+
+        // Destroy N gentry clans starting from a given clan name in
+        // Clan.All iteration order. Used to bisect the freeze trigger
+        // without wiping the entire gentry system at once (which left
+        // dangling refs and crashed save reload).
+        [CommandLineFunctionality.CommandLineArgumentFunction("destroy_gentry_range", "bannerkings")]
+        public static string DestroyGentryRange(List<string> strings)
+        {
+            if (!CampaignCheats.CheckCheatUsage(ref CampaignCheats.ErrorType)) return CampaignCheats.ErrorType;
+            if (strings == null || strings.Count == 0)
+                return "Usage: bannerkings.destroy_gentry_range <StartClanName> | <Count>";
+            var parts = CampaignCheats.ConcatenateString(strings).Split('|');
+            if (parts.Length != 2) return "Usage: bannerkings.destroy_gentry_range <StartClanName> | <Count>";
+            var startToken = parts[0].Trim();
+            if (!int.TryParse(parts[1].Trim(), out int count) || count <= 0) return "Count must be a positive integer.";
+
+            var allClans = Clan.All.ToList();
+            int startIdx = allClans.FindIndex(c => c?.Name?.ToString().Equals(startToken, StringComparison.OrdinalIgnoreCase) ?? false);
+            if (startIdx < 0)
+                startIdx = allClans.FindIndex(c => c?.StringId == startToken);
+            if (startIdx < 0) return $"Clan '{startToken}' not found in Clan.All";
+
+            int destroyed = 0;
+            int considered = 0;
+            for (int i = startIdx; i < allClans.Count && destroyed < count; i++)
+            {
+                var c = allClans[i];
+                if (c == null) continue;
+                if (c.IsEliminated) continue;
+                if (c.StringId == null || !c.StringId.StartsWith("gentryClan_")) continue;
+                considered++;
+                try
+                {
+                    var heroes = c.Heroes?.ToList() ?? new List<Hero>();
+                    foreach (var h in heroes)
+                    {
+                        if (h == null || h.IsDead) continue;
+                        try { TaleWorlds.CampaignSystem.Actions.KillCharacterAction.ApplyByRemove(h); }
+                        catch { try { TaleWorlds.CampaignSystem.Actions.KillCharacterAction.ApplyByMurder(h); } catch { } }
+                    }
+                    try { TaleWorlds.CampaignSystem.Actions.DestroyClanAction.Apply(c); } catch { }
+                    destroyed++;
+                }
+                catch { }
+            }
+            return $"destroy_gentry_range: starting at idx {startIdx} ({allClans[startIdx].Name}), considered {considered}, destroyed {destroyed} gentry clans.";
+        }
+
+        // Run the unified caravan/party rescue sweep immediately so
+        // stuck caravans don't have to wait for the next daily tick.
+        [CommandLineFunctionality.CommandLineArgumentFunction("rescue_caravans_now", "bannerkings")]
+        public static string RescueCaravansNow(List<string> strings)
+        {
+            if (!CampaignCheats.CheckCheatUsage(ref CampaignCheats.ErrorType)) return CampaignCheats.ErrorType;
+            try
+            {
+                var beh = TaleWorlds.CampaignSystem.Campaign.Current.GetCampaignBehavior<BannerKings.Behaviours.Shipping.BKShippingBehavior>();
+                if (beh == null) return "BKShippingBehavior not registered.";
+                beh.RunUnifiedRescueSweepNow();
+                return "rescue_caravans_now: ran UnifiedRescueSweep. Check BK_dump_caravans.txt to verify.";
+            }
+            catch (System.Exception ex)
+            {
+                return $"rescue_caravans_now failed: {ex.GetType().Name}: {ex.Message}";
+            }
+        }
+
+        // Redirect a single caravan or lord party to its nearest sea-reachable
+        // port, regardless of its current movement state. Use when a specific
+        // party is observed walking visibly across open water in land mode
+        // (NavigationType.Default permits water faces for naval-capable
+        // caravans, so vanilla CaravanAi can pick a water-cutting shortcut
+        // that bypasses BK shipping). The daily UnifiedRescueSweep handles
+        // these reactively, but this cheat lets a player intervene right now
+        // on a named target instead of waiting for the next sweep.
+        [CommandLineFunctionality.CommandLineArgumentFunction("unstrand_party", "bannerkings")]
+        public static string UnstrandParty(List<string> strings)
+        {
+            if (!CampaignCheats.CheckCheatUsage(ref CampaignCheats.ErrorType)) return CampaignCheats.ErrorType;
+            if (strings == null || strings.Count == 0)
+                return "Format: bannerkings.unstrand_party <name substring>";
+
+            string needle = CampaignCheats.ConcatenateString(strings).Trim();
+            if (string.IsNullOrEmpty(needle)) return "Empty needle.";
+
+            MobileParty match = null;
+            int candidates = 0;
+            foreach (var p in MobileParty.All)
+            {
+                if (p == null) continue;
+                if (!p.IsCaravan && !p.IsLordParty) continue;
+                string name = null;
+                try { name = p.Name?.ToString(); } catch { }
+                if (string.IsNullOrEmpty(name)) continue;
+                if (name.IndexOf(needle, System.StringComparison.OrdinalIgnoreCase) >= 0)
+                {
+                    candidates++;
+                    if (match == null) match = p;
+                }
+            }
+            if (match == null) return $"unstrand_party: no caravan or lord party matched '{needle}'.";
+
+            var beh = TaleWorlds.CampaignSystem.Campaign.Current?.GetCampaignBehavior<BannerKings.Behaviours.Shipping.BKShippingBehavior>();
+            if (beh == null) return "unstrand_party: BKShippingBehavior not registered.";
+
+            // Drop into the nearest non-hostile town (any town, not specifically
+            // a port). Vanilla's settlement-exit logic guarantees the party
+            // ends up on a walkable tile when they next leave; the entry-tax
+            // is the small cost of an instant rescue.
+            var prePos = match.GetPosition2D;
+            Settlement town = beh.FindNearestRescueTown(match, prePos);
+            if (town == null) return $"unstrand_party: {match.Name} — no rescue town available.";
+
+            try
+            {
+                EnterSettlementAction.ApplyForParty(match, town);
+                beh.InvalidateRedirectCache(match);
+            }
+            catch (System.Exception ex)
+            {
+                return $"unstrand_party: {match.Name} enter-town threw {ex.GetType().Name}: {ex.Message}";
+            }
+
+            string extra = candidates > 1 ? $" ({candidates} matches, took first)" : "";
+            return $"unstrand_party: {match.Name} ({prePos.X:n0},{prePos.Y:n0}) → ENTERED {town.Name}.{extra}";
+        }
+
+        // Toggle MakeRebelKingdom off. Use as a diagnostic — this BK
+        // path calls Campaign.KingdomManager.CreateKingdom() during the
+        // clan daily tick, which mutates Kingdom.All mid-iteration and
+        // is the top suspect for the freeze.
+        [CommandLineFunctionality.CommandLineArgumentFunction("disable_rebel_kingdom", "bannerkings")]
+        public static string DisableRebelKingdom(List<string> strings)
+        {
+            if (!CampaignCheats.CheckCheatUsage(ref CampaignCheats.ErrorType)) return CampaignCheats.ErrorType;
+            string token = strings == null || strings.Count == 0 ? "on" : CampaignCheats.ConcatenateString(strings).Trim().ToLowerInvariant();
+            bool wantOn = token == "on" || token == "true" || token == "1" || token == "yes";
+            BannerKings.Behaviours.BKClanBehavior._disableRebelKingdom = wantOn;
+            return $"disable_rebel_kingdom: MakeRebelKingdom is {(wantOn ? "DISABLED" : "ENABLED")}.";
+        }
+
+        // Force-destroy a specific clan by killing all its heroes. Used
+        // when a clan's iteration in vanilla daily tick hangs and the
+        // user wants to bypass it permanently. Targeted at gentry clans
+        // (BK-created) that have weird state, but works on any clan.
+        [CommandLineFunctionality.CommandLineArgumentFunction("destroy_clan", "bannerkings")]
+        public static string DestroyClan(List<string> strings)
+        {
+            if (!CampaignCheats.CheckCheatUsage(ref CampaignCheats.ErrorType)) return CampaignCheats.ErrorType;
+            if (strings == null || strings.Count == 0)
+                return "Usage: bannerkings.destroy_clan <ClanName | StringId>";
+            var token = CampaignCheats.ConcatenateString(strings).Trim();
+            var clan = Clan.All.FirstOrDefault(c => c?.StringId == token)
+                ?? Clan.All.FirstOrDefault(c => c?.Name?.ToString().Equals(token, StringComparison.OrdinalIgnoreCase) ?? false);
+            if (clan == null) return $"Clan not found: {token}";
+
+            int killed = 0;
+            int failed = 0;
+            try
+            {
+                var heroes = clan.Heroes?.ToList() ?? new List<Hero>();
+                foreach (var h in heroes)
+                {
+                    if (h == null || h.IsDead) continue;
+                    try
+                    {
+                        TaleWorlds.CampaignSystem.Actions.KillCharacterAction.ApplyByRemove(h);
+                        killed++;
+                    }
+                    catch
+                    {
+                        try { TaleWorlds.CampaignSystem.Actions.KillCharacterAction.ApplyByMurder(h); killed++; }
+                        catch { failed++; }
+                    }
+                }
+                // Also try DestroyClanAction as final step
+                try { TaleWorlds.CampaignSystem.Actions.DestroyClanAction.Apply(clan); } catch { }
+                // And reflection-set IsEliminated as last resort
+                try
+                {
+                    var prop = typeof(Clan).GetProperty("IsEliminated",
+                        System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.NonPublic);
+                    if (prop != null && prop.CanWrite) prop.SetValue(clan, true);
+                }
+                catch { }
+            }
+            catch (System.Exception ex)
+            {
+                return $"destroy_clan failed: {ex.GetType().Name}: {ex.Message}";
+            }
+            return $"destroy_clan {clan.Name}: killed {killed} heroes, {failed} failures, IsEliminated={clan.IsEliminated}";
+        }
+
+        // Global kill switch — bypass EVERY BK daily-clan listener for
+        // EVERY clan. Use as the diagnostic of last resort: if the
+        // freeze persists with this on, BK clan listeners are NOT the
+        // cause.
+        [CommandLineFunctionality.CommandLineArgumentFunction("kill_bk_clan_daily", "bannerkings")]
+        public static string KillBkClanDaily(List<string> strings)
+        {
+            if (!CampaignCheats.CheckCheatUsage(ref CampaignCheats.ErrorType)) return CampaignCheats.ErrorType;
+            string token = strings == null || strings.Count == 0 ? "on" : CampaignCheats.ConcatenateString(strings).Trim().ToLowerInvariant();
+            bool wantOn = token == "on" || token == "true" || token == "1" || token == "yes";
+            BannerKings.Behaviours.BKClanBehavior._killBKClanDaily = wantOn;
+            return $"kill_bk_clan_daily: BK clan-daily listeners are now {(wantOn ? "DISABLED" : "ENABLED")} for all clans.";
         }
 
         private static Settlement FindSettlement(string token)
@@ -922,6 +1398,382 @@ namespace BannerKings
             }
         }
 
+        // ---- Shipping graph diagnostics --------------------------------
+        // The unified shipping graph (BannerKings.Managers.Shipping.ShippingGraph)
+        // is the single source of truth for routing decisions. These cheats
+        // expose its current topology so live caravan-stuck reports can be
+        // diagnosed without restarting the game.
+
+        // Full topology report → BK_shipping_topology.txt. Includes node
+        // count, edge counts split by kind, connected components (sets of
+        // settlement names), top sea hubs, sampled diameter, and current
+        // adaptive risk hotspots. Useful for "is the graph fragmented?" and
+        // "which ports actually have sea edges?" questions.
+        [CommandLineFunctionality.CommandLineArgumentFunction("dump_graph", "bannerkings")]
+        public static string DumpGraph(List<string> strings)
+        {
+            if (!CampaignCheats.CheckCheatUsage(ref CampaignCheats.ErrorType)) return CampaignCheats.ErrorType;
+            try
+            {
+                var g = BannerKings.Managers.Shipping.ShippingGraph.Instance;
+                if (g == null) return "dump_graph: ShippingGraph.Instance is null (campaign not loaded?).";
+                string report = g.BuildReport();
+                WriteDiagnosticFile("shipping_topology.txt", report);
+                int components = g.GetConnectedComponents().Count;
+                string summary = $"dump_graph: {g.PortCount} nodes, {g.EdgeCount} edges ({g.SeaEdgeCount} sea / {g.LandEdgeCount} land), {components} component(s). {LastWriteResult}";
+                try { InformationManager.DisplayMessage(new InformationMessage(summary, Color.FromUint(0xFF00FF80))); } catch { }
+                return summary;
+            }
+            catch (Exception ex)
+            {
+                string err = "dump_graph failed: " + ex.GetType().Name + ": " + ex.Message;
+                try { InformationManager.DisplayMessage(new InformationMessage(err, Color.FromUint(0xFFFF4040))); } catch { }
+                return err;
+            }
+        }
+
+        // Shortest path between two named settlements. Format:
+        //   bannerkings.graph_path <from> | <to>
+        // Echoes the ordered hop list with edge kinds (Sea/Land) and per-edge
+        // distances, plus total. Use for "why is X going through Y?" — feeds
+        // off the same Dijkstra the routing pipeline uses.
+        [CommandLineFunctionality.CommandLineArgumentFunction("graph_path", "bannerkings")]
+        public static string GraphPath(List<string> strings)
+        {
+            if (!CampaignCheats.CheckCheatUsage(ref CampaignCheats.ErrorType)) return CampaignCheats.ErrorType;
+            string joined = CampaignCheats.ConcatenateString(strings ?? new List<string>());
+            var parts = joined.Split('|');
+            if (parts.Length != 2 || string.IsNullOrWhiteSpace(parts[0]) || string.IsNullOrWhiteSpace(parts[1]))
+                return "Format: bannerkings.graph_path <from> | <to>";
+
+            string fromName = parts[0].Trim();
+            string toName = parts[1].Trim();
+            Settlement from = FindSettlementFuzzy(fromName);
+            Settlement to = FindSettlementFuzzy(toName);
+            if (from == null) return $"graph_path: no settlement matched '{fromName}'.";
+            if (to == null) return $"graph_path: no settlement matched '{toName}'.";
+
+            try
+            {
+                var g = BannerKings.Managers.Shipping.ShippingGraph.Instance;
+                if (g == null) return "graph_path: ShippingGraph.Instance is null.";
+                var path = g.GetShortestPath(from, to);
+                if (path == null || path.Count < 2)
+                {
+                    bool fromInGraph = g.Adjacency.ContainsKey(from);
+                    bool toInGraph = g.Adjacency.ContainsKey(to);
+                    string nodeStatus = fromInGraph && toInGraph
+                        ? "both endpoints in graph"
+                        : $"from-in-graph={fromInGraph}, to-in-graph={toInGraph}";
+                    return $"graph_path: NO PATH from {from.Name} to {to.Name} ({nodeStatus}).";
+                }
+                var sb = new StringBuilder();
+                sb.AppendLine($"graph_path {from.Name} → {to.Name}: {path.Count - 1} hop(s)");
+                float total = 0f;
+                for (int i = 0; i + 1 < path.Count; i++)
+                {
+                    var step = g.Adjacency[path[i]].FirstOrDefault(e => e.To == path[i + 1]);
+                    total += step.Distance;
+                    sb.AppendLine($"  {i + 1}. {path[i].Name} →[{step.Kind}, {step.Distance:n1}u]→ {path[i + 1].Name}");
+                }
+                sb.AppendLine($"  total: {total:n1} map units");
+                WriteDiagnosticFile("graph_path.txt", sb.ToString());
+                string summary = $"graph_path: {path.Count - 1} hop(s), total {total:n1}u. {LastWriteResult}";
+                try { InformationManager.DisplayMessage(new InformationMessage(summary, Color.FromUint(0xFF00FF80))); } catch { }
+                return summary;
+            }
+            catch (Exception ex)
+            {
+                return $"graph_path failed: {ex.GetType().Name}: {ex.Message}";
+            }
+        }
+
+        // Force-rebuild the shipping graph and summarise before/after stats.
+        // Use after toggling settlement HasPort flags via mods, or to verify
+        // graph fix changes without restarting the campaign.
+        [CommandLineFunctionality.CommandLineArgumentFunction("rebuild_graph", "bannerkings")]
+        public static string RebuildGraph(List<string> strings)
+        {
+            if (!CampaignCheats.CheckCheatUsage(ref CampaignCheats.ErrorType)) return CampaignCheats.ErrorType;
+            try
+            {
+                var before = BannerKings.Managers.Shipping.ShippingGraph.Instance;
+                int beforeNodes = before?.PortCount ?? 0;
+                int beforeEdges = before?.EdgeCount ?? 0;
+                int beforeComp = before?.GetConnectedComponents().Count ?? 0;
+
+                BannerKings.Managers.Shipping.ShippingGraph.Invalidate();
+                var after = BannerKings.Managers.Shipping.ShippingGraph.Instance;
+                int afterNodes = after?.PortCount ?? 0;
+                int afterEdges = after?.EdgeCount ?? 0;
+                int afterComp = after?.GetConnectedComponents().Count ?? 0;
+
+                string summary = $"rebuild_graph: nodes {beforeNodes}→{afterNodes}, edges {beforeEdges}→{afterEdges}, components {beforeComp}→{afterComp}.";
+                try { InformationManager.DisplayMessage(new InformationMessage(summary, Color.FromUint(0xFF00FF80))); } catch { }
+                return summary;
+            }
+            catch (Exception ex)
+            {
+                return $"rebuild_graph failed: {ex.GetType().Name}: {ex.Message}";
+            }
+        }
+
+        // Live pathology dump → BK_graph_unreachable.txt. For every active
+        // caravan (and optionally lord party), check whether the graph has a
+        // path from the nearest graph node to the caravan's current move
+        // target. List unreachable pairs. Direct counterpart to the "no
+        // graph path from X to Y" log lines, but as a single-shot snapshot.
+        [CommandLineFunctionality.CommandLineArgumentFunction("graph_unreachable", "bannerkings")]
+        public static string GraphUnreachable(List<string> strings)
+        {
+            if (!CampaignCheats.CheckCheatUsage(ref CampaignCheats.ErrorType)) return CampaignCheats.ErrorType;
+            try
+            {
+                var g = BannerKings.Managers.Shipping.ShippingGraph.Instance;
+                if (g == null) return "graph_unreachable: ShippingGraph.Instance is null.";
+
+                var sb = new StringBuilder();
+                sb.AppendLine("Caravans with no graph path from nearest node to current move target:");
+                int total = 0, unreachable = 0;
+                foreach (var p in MobileParty.All)
+                {
+                    if (p == null || !p.IsActive) continue;
+                    if (!p.IsCaravan) continue;
+                    Settlement target = p.TargetSettlement ?? p.MoveTargetParty?.HomeSettlement;
+                    if (target == null) continue;
+                    Settlement graphTarget = target;
+                    if (!g.Adjacency.ContainsKey(graphTarget))
+                    {
+                        if (graphTarget.IsVillage && graphTarget.Village?.Bound != null
+                            && g.Adjacency.ContainsKey(graphTarget.Village.Bound))
+                            graphTarget = graphTarget.Village.Bound;
+                        else continue;
+                    }
+                    Settlement entry = null;
+                    float bestD = float.MaxValue;
+                    var pos = p.GetPosition2D;
+                    foreach (var n in g.Adjacency.Keys)
+                    {
+                        if (n == graphTarget) continue;
+                        float d = pos.Distance(n.GatePosition.ToVec2());
+                        if (d < bestD) { bestD = d; entry = n; }
+                    }
+                    total++;
+                    if (entry == null)
+                    {
+                        unreachable++;
+                        sb.AppendLine($"  {p.Name} @ ({pos.X:0.0},{pos.Y:0.0}) → {target.Name}: no graph entry node");
+                        continue;
+                    }
+                    var path = g.GetShortestPath(entry, graphTarget);
+                    if (path == null || path.Count < 2)
+                    {
+                        unreachable++;
+                        sb.AppendLine($"  {p.Name} @ ({pos.X:0.0},{pos.Y:0.0}) → {target.Name}: no path {entry.Name} → {graphTarget.Name}");
+                    }
+                }
+                sb.AppendLine();
+                sb.AppendLine($"Summary: {unreachable}/{total} caravans unreachable.");
+                WriteDiagnosticFile("graph_unreachable.txt", sb.ToString());
+                string summary = $"graph_unreachable: {unreachable}/{total} caravans unreachable. {LastWriteResult}";
+                try { InformationManager.DisplayMessage(new InformationMessage(summary, Color.FromUint(0xFF00FF80))); } catch { }
+                return summary;
+            }
+            catch (Exception ex)
+            {
+                return $"graph_unreachable failed: {ex.GetType().Name}: {ex.Message}";
+            }
+        }
+
+        // Per-clan / per-party fleet inventory → BK_naval_fleets.txt.
+        // Vanilla NavalDLC's HasNavalNavigationCapability returns true iff a
+        // MobileParty has Ships.Count > 0 (or its army leader / attached
+        // sub-parties do); ship distribution is run by ShipTradeCampaignBehavior.
+        // DailyTickClan with a 50% roll, ≤20% gold cap, and a worst-composition
+        // recipient heuristic. That's eventual-consistency: brand-new sub-lords
+        // can spend several days shipless. This dump shows ground truth so we
+        // can tell whether observed "no naval capability" SKIPs are isolated
+        // (e.g. one or two unlucky sub-lords) or systemic (a culture / kingdom
+        // routinely has shipless lord parties).
+        [CommandLineFunctionality.CommandLineArgumentFunction("dump_naval_fleets", "bannerkings")]
+        public static string DumpNavalFleets(List<string> strings)
+        {
+            if (!CampaignCheats.CheckCheatUsage(ref CampaignCheats.ErrorType)) return CampaignCheats.ErrorType;
+            try
+            {
+                var sb = new StringBuilder();
+                sb.AppendLine($"[{DateTime.Now:yyyy-MM-dd HH:mm:ss}]");
+                sb.AppendLine("Naval fleet inventory (skipping bandit / eliminated / player clans).");
+                sb.AppendLine();
+
+                var perClan = new List<(Clan clan, int gold, int fiefs, int portFiefs, int totalShips,
+                                         List<(MobileParty p, int ships, bool naval, string loc, string leader)> parties)>();
+
+                foreach (var clan in Clan.All)
+                {
+                    if (clan == null) continue;
+                    if (clan.IsBanditFaction || clan.IsEliminated) continue;
+                    if (clan == Clan.PlayerClan) continue;
+
+                    int gold = 0;
+                    try { gold = clan.Gold; } catch { }
+
+                    int fiefs = 0, portFiefs = 0;
+                    try
+                    {
+                        foreach (var t in clan.Fiefs ?? Enumerable.Empty<Town>())
+                        {
+                            fiefs++;
+                            try { if (t?.Settlement?.HasPort == true) portFiefs++; } catch { }
+                        }
+                    }
+                    catch { }
+
+                    var parties = new List<(MobileParty p, int ships, bool naval, string loc, string leader)>();
+                    int totalShips = 0;
+                    try
+                    {
+                        foreach (var wpc in clan.WarPartyComponents ?? Enumerable.Empty<TaleWorlds.CampaignSystem.Party.PartyComponents.WarPartyComponent>())
+                        {
+                            var p = wpc?.MobileParty;
+                            if (p == null) continue;
+                            int ships = 0;
+                            try { ships = p.Ships?.Count ?? 0; } catch { }
+                            totalShips += ships;
+                            bool naval = false;
+                            try { naval = p.HasNavalNavigationCapability; } catch { }
+                            string loc = "";
+                            try
+                            {
+                                if (p.CurrentSettlement != null) loc = p.CurrentSettlement.Name?.ToString() ?? "?";
+                                else { var pos = p.GetPosition2D; loc = $"({pos.X:0.0},{pos.Y:0.0})"; }
+                            }
+                            catch { }
+                            string leader = "-";
+                            try { leader = p.LeaderHero?.Name?.ToString() ?? "-"; } catch { }
+                            parties.Add((p, ships, naval, loc, leader));
+                        }
+                    }
+                    catch { }
+
+                    perClan.Add((clan, gold, fiefs, portFiefs, totalShips, parties));
+                }
+
+                // ---- Per-clan totals ----
+                sb.AppendLine("Per-clan totals (sorted by culture, then clan):");
+                foreach (var c in perClan.OrderBy(x => x.clan.Culture?.StringId ?? "")
+                                          .ThenBy(x => x.clan.Name?.ToString() ?? ""))
+                {
+                    int navalParties = c.parties.Count(p => p.naval);
+                    string culture = "";
+                    try { culture = c.clan.Culture?.StringId ?? "?"; } catch { }
+                    string kingdom = "";
+                    try { kingdom = c.clan.Kingdom?.Name?.ToString() ?? "(independent)"; } catch { }
+                    sb.AppendLine($"  {c.clan.Name} [{culture}, {kingdom}] gold={c.gold}, fiefs={c.fiefs}, port-fiefs={c.portFiefs}, ships={c.totalShips}, parties={c.parties.Count}, naval={navalParties}/{c.parties.Count}");
+                }
+
+                // ---- Per-party detail ----
+                sb.AppendLine();
+                sb.AppendLine("Per-party detail:");
+                foreach (var c in perClan.OrderBy(x => x.clan.Culture?.StringId ?? "")
+                                          .ThenBy(x => x.clan.Name?.ToString() ?? ""))
+                {
+                    foreach (var pty in c.parties)
+                    {
+                        sb.AppendLine($"  {pty.p.Name} [{c.clan.Name}] @ {pty.loc}: ships={pty.ships}, naval={pty.naval}, leader={pty.leader}");
+                    }
+                }
+
+                // ---- Summary by culture ----
+                sb.AppendLine();
+                sb.AppendLine("Summary by culture (war-parties naval-capable):");
+                var byCulture = perClan
+                    .SelectMany(c => c.parties.Select(p => (culture: SafeCulture(c.clan), naval: p.naval)))
+                    .GroupBy(x => x.culture)
+                    .Select(g => new { Culture = g.Key, Total = g.Count(), Naval = g.Count(x => x.naval) })
+                    .OrderBy(x => x.Culture);
+                foreach (var x in byCulture)
+                {
+                    float pct = x.Total == 0 ? 0f : 100f * x.Naval / x.Total;
+                    sb.AppendLine($"  {x.Culture}: {x.Naval}/{x.Total} ({pct:0.0}%)");
+                }
+
+                // ---- Summary by kingdom ----
+                sb.AppendLine();
+                sb.AppendLine("Summary by kingdom (war-parties naval-capable):");
+                var byKingdom = perClan
+                    .SelectMany(c => c.parties.Select(p => (kingdom: SafeKingdom(c.clan), naval: p.naval)))
+                    .GroupBy(x => x.kingdom)
+                    .Select(g => new { Kingdom = g.Key, Total = g.Count(), Naval = g.Count(x => x.naval) })
+                    .OrderBy(x => x.Kingdom);
+                foreach (var x in byKingdom)
+                {
+                    float pct = x.Total == 0 ? 0f : 100f * x.Naval / x.Total;
+                    sb.AppendLine($"  {x.Kingdom}: {x.Naval}/{x.Total} ({pct:0.0}%)");
+                }
+
+                // ---- Overall ----
+                int totalParties = perClan.Sum(c => c.parties.Count);
+                int navalTotal = perClan.Sum(c => c.parties.Count(p => p.naval));
+                int totalShipsAll = perClan.Sum(c => c.totalShips);
+                int clansWithZeroShips = perClan.Count(c => c.totalShips == 0);
+                sb.AppendLine();
+                sb.AppendLine($"Overall: {navalTotal}/{totalParties} war-parties naval-capable. {totalShipsAll} ships across {perClan.Count} clans. {clansWithZeroShips} clan(s) own zero ships.");
+
+                WriteDiagnosticFile("naval_fleets.txt", sb.ToString());
+                string summary = $"dump_naval_fleets: {navalTotal}/{totalParties} parties naval, {totalShipsAll} ships in {perClan.Count} clans. {LastWriteResult}";
+                try { InformationManager.DisplayMessage(new InformationMessage(summary, Color.FromUint(0xFF00FF80))); } catch { }
+                return summary;
+            }
+            catch (Exception ex)
+            {
+                string err = $"dump_naval_fleets failed: {ex.GetType().Name}: {ex.Message}";
+                try { InformationManager.DisplayMessage(new InformationMessage(err, Color.FromUint(0xFFFF4040))); } catch { }
+                return err;
+            }
+        }
+
+        private static string SafeCulture(Clan c)
+        {
+            try { return c?.Culture?.StringId ?? "?"; } catch { return "?"; }
+        }
+
+        private static string SafeKingdom(Clan c)
+        {
+            try { return c?.Kingdom?.Name?.ToString() ?? "(independent)"; } catch { return "(independent)"; }
+        }
+
+        // Helper for graph_path: lookup by exact name or case-insensitive
+        // substring match; prefer exact, then unique substring.
+        private static Settlement FindSettlementFuzzy(string needle)
+        {
+            if (string.IsNullOrWhiteSpace(needle)) return null;
+            needle = needle.Trim();
+            Settlement exact = null;
+            Settlement substr = null;
+            int substrCount = 0;
+            try
+            {
+                foreach (var s in Settlement.All)
+                {
+                    if (s == null) continue;
+                    string name = null;
+                    try { name = s.Name?.ToString(); } catch { }
+                    if (string.IsNullOrEmpty(name)) continue;
+                    if (string.Equals(name, needle, StringComparison.OrdinalIgnoreCase)) { exact = s; break; }
+                    if (name.IndexOf(needle, StringComparison.OrdinalIgnoreCase) >= 0)
+                    {
+                        if (substr == null) substr = s;
+                        substrCount++;
+                    }
+                }
+            }
+            catch { }
+            if (exact != null) return exact;
+            if (substrCount == 1) return substr;
+            return null;
+        }
+
         // Mirror cheat output to files in the user's BK ModLogs directory so
         // that diagnostic reports (which the in-game console can't reliably
         // echo for multi-line strings) are persistently readable while the
@@ -981,6 +1833,37 @@ namespace BannerKings
                     $"[{stamp}] {line}{Environment.NewLine}");
             }
             catch { }
+        }
+
+        // Per-save log cleaner. Called from BKShippingBehavior on
+        // OnGameLoadFinishedEvent and OnNewGameCreatedEvent so each play
+        // session starts with a fresh set of BK_*.txt logs. Without this,
+        // logs accumulate across save loads and every diagnostic grep
+        // mixes data from multiple sessions, hiding the timeline of the
+        // current session's events. Deletes only BK_ prefixed files so
+        // we don't touch ButterLib / vanilla / other-mod logs in the
+        // same directory.
+        //
+        // bk-firstchance.log is left ALONE — it's BK's first-chance
+        // exception logger, the closest thing to a black box for crash
+        // forensics, and persisting across sessions makes patterns
+        // visible. The exception stream is small and self-stamped per
+        // session via the "=== BK FirstChance logger installed at ... ==="
+        // header banner.
+        public static void ClearSessionDiagnostics()
+        {
+            try
+            {
+                if (!Directory.Exists(DiagnosticDir)) return;
+                int deleted = 0;
+                foreach (var path in Directory.GetFiles(DiagnosticDir, "BK_*.txt"))
+                {
+                    try { File.Delete(path); deleted++; }
+                    catch { /* a file may be locked by another process; skip */ }
+                }
+                LastWriteResult = $"per-save log cleaner: cleared {deleted} BK_*.txt file(s) in {DiagnosticDir}";
+            }
+            catch { /* defensive: never throw out of a load-time hook */ }
         }
     }
 }

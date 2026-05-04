@@ -93,8 +93,8 @@ namespace BannerKings.Behaviours.Diplomacy.Wars
                         if (possibleWar.DefenderFront != null && possibleWar.AttackerFront != null)
                         {
                             bool strength = faction2.CurrentTotalStrength >= (faction1.CurrentTotalStrength * 0.8f);
-                            float distance = TaleWorlds.CampaignSystem.Campaign.Current.Models.MapDistanceModel.GetDistance(possibleWar.DefenderFront.Settlement, possibleWar.AttackerFront.Settlement, false, false, MobileParty.NavigationType.All);
-                            float factor = distance / TaleWorlds.CampaignSystem.Campaign.Current.GetAverageDistanceBetweenClosestTwoTownsWithNavigationType(MobileParty.NavigationType.All);
+                            float distance = TaleWorlds.CampaignSystem.Campaign.Current.Models.MapDistanceModel.GetDistance(possibleWar.DefenderFront.Settlement, possibleWar.AttackerFront.Settlement, false, false, MobileParty.NavigationType.Default);
+                            float factor = distance / TaleWorlds.CampaignSystem.Campaign.Current.GetAverageDistanceBetweenClosestTwoTownsWithNavigationType(MobileParty.NavigationType.Default);
                             return strength && factor <= 2f;
                         }
                         

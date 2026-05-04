@@ -167,7 +167,7 @@ namespace BannerKings.Managers.Goals.Decisions
                 DisbandArmyAction.ApplyByUnknownReason(selectedArmy);
                 foreach (MobileParty party in parties)
                 {
-                    SetPartyAiAction.GetActionForEscortingParty(party, hero.PartyBelongedTo, MobileParty.NavigationType.All, false, false);
+                    SetPartyAiAction.GetActionForEscortingParty(party, hero.PartyBelongedTo, MobileParty.NavigationType.Default, false, false);
                 }
                 ChangeClanInfluenceAction.Apply(hero.Clan, -cost);
             }

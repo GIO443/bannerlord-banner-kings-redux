@@ -166,7 +166,11 @@ namespace BannerKings.Behaviours
 
         private void AddFood(MobileParty party, int limit)
         {
-            foreach (ItemRosterElement itemRosterElement in party.ItemRoster)
+            // Snapshot — Remove during iteration of the ItemRoster invalidates
+            // the enumerator (same iterate-and-mutate failure mode as the
+            // TroopRoster cases).
+            var partyItems = party.ItemRoster.ToList();
+            foreach (ItemRosterElement itemRosterElement in partyItems)
             {
                 if (!itemRosterElement.EquipmentElement.IsQuestItem)
                 {

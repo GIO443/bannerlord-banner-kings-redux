@@ -27,6 +27,14 @@ namespace BannerKings.Behaviours
 
         private void OnDailyTickClan(Clan clan)
         {
+            if (BannerKings.Behaviours.BKClanBehavior.ShouldSkipClan(clan)) return;
+            var __sw = BannerKings.Behaviours.Shipping.BKShippingBehavior.TraceEnter("BKEstateIncome.OnDailyTickClan:" + (clan?.Name?.ToString() ?? "?"));
+            try { OnDailyTickClanImpl(clan); }
+            finally { BannerKings.Behaviours.Shipping.BKShippingBehavior.TraceExit("BKEstateIncome.OnDailyTickClan", __sw); }
+        }
+
+        private void OnDailyTickClanImpl(Clan clan)
+        {
             if (clan == null) return;
             // Authoritative path is BKClanFinanceModel.AddIncomes when it
             // is the active model — skip here to avoid double payout.

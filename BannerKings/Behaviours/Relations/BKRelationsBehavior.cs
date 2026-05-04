@@ -41,6 +41,18 @@ namespace BannerKings.Behaviours.Relations
                 SetRelations();
             });
 
+            // Drop dead heroes from the per-hero dicts. Without this, the
+            // `relations` and `lastUpdated` dicts accumulate dead-hero keys
+            // forever — observed as steadily-growing memory and slower
+            // dict lookups in 200+ day campaigns with hero attrition.
+            CampaignEvents.HeroKilledEvent.AddNonSerializedListener(this,
+                (Hero victim, Hero killer, KillCharacterAction.KillCharacterActionDetail detail, bool showNotification) =>
+                {
+                    if (victim == null) return;
+                    if (relations != null) relations.Remove(victim);
+                    if (lastUpdated != null) lastUpdated.Remove(victim);
+                });
+
             CampaignEvents.KingdomDecisionConcluded.AddNonSerializedListener(this, (KingdomDecision decision, DecisionOutcome outcome, bool playerChooser) =>
             {
                 if (outcome != null && outcome.SupporterList != null)

@@ -234,76 +234,77 @@ namespace BannerKings.Behaviours
 
             // ------- ACTIONS --------
 
+            // Ship Travel — BK's legacy menu, shown only when War Sails
+            // (NavalDLC) is NOT installed. With War Sails the player uses
+            // vanilla NavalDLC's own port menu (visible naval transit);
+            // BK's timer-teleport would just be redundant. Without War
+            // Sails there is no engine-side shipping at all, so BK
+            // provides this fallback.
             campaignGameStarter.AddGameMenuOption("bannerkings_actions",
                "action_ship",
                "{=v4RfkZ9Q}Take a Ship",
                (MenuCallbackArgs args) =>
                {
                    args.optionLeaveType = GameMenuOption.LeaveType.Continue;
-                   return DefaultShippingLanes.Instance.GetSettlementLanes(Settlement.CurrentSettlement).Any();
+                   if (BannerKings.Utils.ModCompat.WarSails) return false;
+                   var here = Settlement.CurrentSettlement;
+                   return here != null && BannerKings.Behaviours.Shipping.BKShippingBehavior.IsBKShippingPort(here);
                },
                (MenuCallbackArgs args) =>
                {
-                   List<InquiryElement> list = new List<InquiryElement>();
-                   foreach (ShippingLane lane in DefaultShippingLanes.Instance.GetSettlementLanes(Settlement.CurrentSettlement))
+                   var here = Settlement.CurrentSettlement;
+                   if (here == null) return;
+                   var behavior = TaleWorlds.CampaignSystem.Campaign.Current.GetCampaignBehavior<BKShippingBehavior>();
+                   if (behavior == null) return;
+
+                   var herePos = here.GatePosition;
+                   var candidates = new List<(Settlement port, float dist)>();
+                   foreach (var p in Settlement.All)
                    {
-                       list.Add(new InquiryElement(lane,
-                           lane.Name.ToString(),
-                           null,
-                           true,
-                           lane.Description.ToString()));
+                       if (p == null || p == here) continue;
+                       if (!BannerKings.Behaviours.Shipping.BKShippingBehavior.IsBKShippingPort(p)) continue;
+                       try { candidates.Add((p, herePos.Distance(p.GatePosition))); }
+                       catch { }
+                   }
+                   candidates.Sort((a, b) => a.dist.CompareTo(b.dist));
+
+                   // !WarSails path: BK timer-teleport via SetTravel. Player
+                   // picks a destination, gold is charged based on distance,
+                   // bk_shipping_wait menu fast-forwards time, party arrives
+                   // via FinishTravel.
+                   var ports = new List<InquiryElement>(candidates.Count);
+                   foreach (var (port, _) in candidates)
+                   {
+                       int price = behavior.CalculatePrice(port, MobileParty.MainParty);
+                       CampaignTime arrival = behavior.CalculateArrival(port, MobileParty.MainParty);
+                       ports.Add(new InquiryElement(port,
+                           new TextObject("{=cQPJe24s}{PORT} - {GOLD}{GOLD_ICON}, {ARRIVAL} days")
+                           .SetTextVariable("PORT", port.Name)
+                           .SetTextVariable("GOLD", price)
+                           .SetTextVariable("ARRIVAL", arrival.RemainingDaysFromNow.ToString("0"))
+                           .ToString(),
+                           port.MapFaction != null ? new BannerImageIdentifier(port.MapFaction.Banner) : null,
+                           Hero.MainHero.Gold >= price,
+                           port.EncyclopediaText?.ToString()));
                    }
 
                    MBInformationManager.ShowMultiSelectionInquiry(new MultiSelectionInquiryData(
-                       new TextObject("{=ufDdSBDk}Ship Travel (1/2)").ToString(),
-                       new TextObject("{=pmAiqwfC}Select one of the shipping lanes available to this settlement.").ToString(),
-                       list,
+                       new TextObject("{=ufDdSBDk}Ship Travel").ToString(),
+                       new TextObject("{=xEsPbrGm}Select a destination port.").ToString(),
+                       ports,
                        true,
                        1,
                        1,
                        GameTexts.FindText("str_selection_widget_accept").ToString(),
                        GameTexts.FindText("str_selection_widget_cancel").ToString(),
-                       (List<InquiryElement> list) =>
+                       (List<InquiryElement> selection) =>
                        {
-                           ShippingLane lane = list.First().Identifier as ShippingLane;
-                           List<InquiryElement> ports = new List<InquiryElement>();
-                           BKShippingBehavior behavior = TaleWorlds.CampaignSystem.Campaign.Current.GetCampaignBehavior<BKShippingBehavior>();
-                           foreach (var port in lane.Ports)
-                           {
-                               if (port == Settlement.CurrentSettlement) continue;
-
-                               int price = behavior.CalculatePrice(port, MobileParty.MainParty);
-                               CampaignTime arrival = behavior.CalculateArrival(port, MobileParty.MainParty);
-                               ports.Add(new InquiryElement(port,
-                                   new TextObject("{=cQPJe24s}{PORT} - {GOLD}{GOLD_ICON}, {ARRIVAL} days")
-                                   .SetTextVariable("PORT", port.Name)
-                                   .SetTextVariable("GOLD", price)
-                                   .SetTextVariable("ARRIVAL", arrival.RemainingDaysFromNow.ToString("0"))
-                                   .ToString(),
-                                   new BannerImageIdentifier(port.MapFaction.Banner),
-                                   Hero.MainHero.Gold >= price,
-                                   port.EncyclopediaText.ToString()));
-                           }
-
-                           MBInformationManager.ShowMultiSelectionInquiry(new MultiSelectionInquiryData(
-                               new TextObject("{=PiUBNXne}Ship Travel (2/2)").ToString(),
-                               new TextObject("{=xEsPbrGm}Select one of the ports available in this shipping lane.").ToString(),
-                               ports,
-                               true,
-                               1,
-                               1,
-                               GameTexts.FindText("str_selection_widget_accept").ToString(),
-                               GameTexts.FindText("str_selection_widget_cancel").ToString(),
-                               (List<InquiryElement> list) =>
-                               {
-                                   Settlement port = list.First().Identifier as Settlement;
-                                   BKShippingBehavior behavior = TaleWorlds.CampaignSystem.Campaign.Current.GetCampaignBehavior<BKShippingBehavior>();
-                                   behavior.SetTravel(MobileParty.MainParty, port);
-                               },
-                               null));
+                           if (selection == null || selection.Count == 0) return;
+                           Settlement port = selection.First().Identifier as Settlement;
+                           if (port == null) return;
+                           behavior.SetTravel(MobileParty.MainParty, port);
                        },
                        null));
-                   
                },
                false, -1, false, null);
 

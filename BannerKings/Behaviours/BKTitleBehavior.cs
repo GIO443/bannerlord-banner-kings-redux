@@ -290,6 +290,13 @@ namespace BannerKings.Behaviours
 
         private void OnDailyTick()
         {
+            var __sw = BannerKings.Behaviours.Shipping.BKShippingBehavior.TraceEnter("BKTitle.OnDailyTick");
+            try { OnDailyTickImpl(); }
+            finally { BannerKings.Behaviours.Shipping.BKShippingBehavior.TraceExit("BKTitle.OnDailyTick", __sw); }
+        }
+
+        private void OnDailyTickImpl()
+        {
             if (BannerKingsConfig.Instance.TitleManager == null)
             {
                 return;
@@ -463,6 +470,9 @@ namespace BannerKings.Behaviours
 
         private void OnClanDestroyed(Clan clan)
         {
+            BannerKings.Utils.Logs.MajorEvent(() =>
+                $"clan DESTROYED: {clan?.Name} (kingdom {clan?.Kingdom?.Name}, culture {clan?.Culture?.Name})");
+
             var titles = BannerKingsConfig.Instance.TitleManager.GetAllDeJure(clan);
             if (titles.Count > 0)
             {

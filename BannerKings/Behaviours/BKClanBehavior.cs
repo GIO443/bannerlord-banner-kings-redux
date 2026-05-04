@@ -484,14 +484,55 @@ namespace BannerKings.Behaviours
             }
         }
 
+        // Cheat-controlled per-clan skip set. Populated by
+        // bannerkings.skip_clan_daily. When a clan is in this set, EVERY
+        // BK daily-clan listener early-returns. Used to play through a
+        // freeze caused by a specific clan's state corruption.
+        public static readonly System.Collections.Generic.HashSet<string> _skipClanIds
+            = new System.Collections.Generic.HashSet<string>(System.StringComparer.OrdinalIgnoreCase);
+
+        // Global kill switch — when true, EVERY BK daily-clan listener
+        // skips for EVERY clan. Set via bannerkings.kill_bk_clan_daily.
+        // Use to A/B test whether the freeze is in BK clan listeners at
+        // all: if the freeze persists with this on, BK isn't the cause.
+        public static bool _killBKClanDaily = false;
+
+        public static bool ShouldSkipClan(Clan clan)
+        {
+            if (_killBKClanDaily) return true;
+            if (clan == null) return false;
+            // Trace what we're matching against to debug name vs StringId
+            // mismatches — written rarely (only on a hit), so cheap.
+            string sid = clan.StringId ?? "";
+            string nm = clan.Name?.ToString() ?? "";
+            if (_skipClanIds.Contains(sid) || _skipClanIds.Contains(nm))
+                return true;
+            return false;
+        }
+
         private void DailyClanTick(Clan clan)
+        {
+            if (ShouldSkipClan(clan))
+            {
+                BannerKings.Behaviours.Shipping.BKShippingBehavior.TraceExit(
+                    "BKClan.DailyClanTick.SKIPPED:" + (clan?.Name?.ToString() ?? "?"),
+                    System.Diagnostics.Stopwatch.StartNew());
+                return;
+            }
+            var __sw = BannerKings.Behaviours.Shipping.BKShippingBehavior.TraceEnter("BKClan.DailyClanTick:" + (clan?.Name?.ToString() ?? "?"));
+            try { DailyClanTickImpl(clan); }
+            finally { BannerKings.Behaviours.Shipping.BKShippingBehavior.TraceExit("BKClan.DailyClanTick", __sw); }
+        }
+
+        private void DailyClanTickImpl(Clan clan)
         {
             if (clan.IsEliminated || clan.IsBanditFaction || clan.Kingdom == null || clan.Leader == null)
             {
                 return;
             }
 
-            BannerKingsConfig.Instance.CourtManager.UpdateCouncil(clan);
+            string clanName = clan.Name?.ToString() ?? "?";
+            TraceClanStep("UpdateCouncil", clanName, () => BannerKingsConfig.Instance.CourtManager.UpdateCouncil(clan));
 
             var councillours = BannerKingsConfig.Instance.CourtManager.GetCouncilloursCount(clan);
             if (councillours != 0)
@@ -499,9 +540,9 @@ namespace BannerKings.Behaviours
                 clan.Leader.AddSkillXp(BKSkills.Instance.Lordship, councillours * 10f);
             }
 
-            MakeRebelKingdom(clan);
-            AddPeerage(clan);
-            ConvertTroopsMercenaries(clan);
+            TraceClanStep("MakeRebelKingdom", clanName, () => MakeRebelKingdom(clan));
+            TraceClanStep("AddPeerage", clanName, () => AddPeerage(clan));
+            TraceClanStep("ConvertTroopsMercenaries", clanName, () => ConvertTroopsMercenaries(clan));
 
             if (clan == Clan.PlayerClan || clan.IsUnderMercenaryService || clan.IsMinorFaction || clan.IsBanditFaction)
             {
@@ -511,16 +552,23 @@ namespace BannerKings.Behaviours
             string name = GetType().Name;
             RunWeekly(() =>
             {
-                EvaluateRecruitKnight(clan);
-                EvaluateRecruitCompanion(clan);
+                TraceClanStep("EvaluateRecruitKnight", clanName, () => EvaluateRecruitKnight(clan));
+                TraceClanStep("EvaluateRecruitCompanion", clanName, () => EvaluateRecruitCompanion(clan));
             },
             name,
             false);
-           
-            SetCompanionParty(clan);
-            RunCouncilTasks(clan);
-            DismissParties(clan);
-            JoinArmies(clan);
+
+            TraceClanStep("SetCompanionParty", clanName, () => SetCompanionParty(clan));
+            TraceClanStep("RunCouncilTasks", clanName, () => RunCouncilTasks(clan));
+            TraceClanStep("DismissParties", clanName, () => DismissParties(clan));
+            TraceClanStep("JoinArmies", clanName, () => JoinArmies(clan));
+        }
+
+        private static void TraceClanStep(string step, string clanName, System.Action body)
+        {
+            var __sw = BannerKings.Behaviours.Shipping.BKShippingBehavior.TraceEnter("BKClan.DailyClanTick." + step + ":" + clanName);
+            try { body(); }
+            finally { BannerKings.Behaviours.Shipping.BKShippingBehavior.TraceExit("BKClan.DailyClanTick." + step, __sw); }
         }
 
         private void AddPeerage(Clan clan)
@@ -583,14 +631,21 @@ namespace BannerKings.Behaviours
             }
         }
 
+        // Toggle to disable MakeRebelKingdom entirely. Set via cheat
+        // bannerkings.disable_rebel_kingdom on. Diagnostic — if the
+        // freeze stops with this off, KingdomManager.CreateKingdom()
+        // mid-clan-iteration is the trigger.
+        public static bool _disableRebelKingdom = false;
+
         private void MakeRebelKingdom(Clan clan)
         {
-            if (clan.Kingdom == null && 
+            if (_disableRebelKingdom) return;
+            if (clan.Kingdom == null &&
                 clan != Clan.PlayerClan &&
-                clan.Settlements.Count > 0 && 
-                clan.Heroes.Count > 0 && 
-                !clan.IsEliminated && 
-                !clan.IsRebelClan && 
+                clan.Settlements.Count > 0 &&
+                clan.Heroes.Count > 0 &&
+                !clan.IsEliminated &&
+                !clan.IsRebelClan &&
                 !clan.IsClanTypeMercenary &&
                 !clan.IsBanditFaction)
             {
@@ -627,6 +682,9 @@ namespace BannerKings.Behaviours
                     }
 
                     RebellionActions.InitializeKingdom(rebel, name, color1, color2);
+
+                    BannerKings.Utils.Logs.MajorEvent(() =>
+                        $"rebel kingdom CREATED: {name} (from clan {clan.Name}, culture {clan.Culture?.Name}, holdings {clan.Settlements.Count})");
                 }
             }
         }
@@ -643,7 +701,12 @@ namespace BannerKings.Behaviours
             {
                 foreach (WarPartyComponent party in clan.WarPartyComponents)
                 {
-                    foreach (var element in party.MobileParty.MemberRoster.GetTroopRoster())
+                    // Snapshot — TroopRoster.AddToCounts re-keys slot indices,
+                    // so iterating-and-decrementing leaves the live roster
+                    // with stale UniqueTroopDescriptors that vanilla code
+                    // (e.g. MapEvent.LootDefeatedPartyPrisoners) trips on.
+                    var snapshot = party.MobileParty.MemberRoster.GetTroopRoster().ToList();
+                    foreach (var element in snapshot)
                     {
                         if (element.Number < 1) continue;
 
@@ -702,29 +765,44 @@ namespace BannerKings.Behaviours
 
         private void JoinArmies(Clan clan)
         {
+            int idx = 0;
             foreach (Hero lord in clan.AliveLords)
             {
-                if (lord == clan.Leader || lord.IsChild || lord.IsPrisoner || !lord.IsPartyLeader) continue;
-
-                MobileParty party = lord.PartyBelongedTo;
-                if (party.Army != null || party.TargetParty != null || party.MapEvent != null ||
-                    party.MemberRoster.TotalManCount < (party.Party.PartySizeLimit * 0.7f) ||
-                    party.TotalFoodAtInventory < (party.MemberRoster.TotalManCount * 0.5f)) continue;
-
-                if (FactionHelper.GetEnemyKingdoms(clan.Kingdom).Any())
+                idx++;
+                string lordName = lord?.Name?.ToString() ?? "?";
+                var __sw = BannerKings.Behaviours.Shipping.BKShippingBehavior.TraceEnter("JoinArmies.Lord[" + idx + "]:" + lordName);
+                try
                 {
-                    if (BannerKingsConfig.Instance.ArmyManagementModel.CanCreateArmy(lord)) continue;
+                    if (lord == clan.Leader || lord.IsChild || lord.IsPrisoner || !lord.IsPartyLeader) continue;
 
-                    int valor = lord.GetTraitLevel(DefaultTraits.Valor);
-                    int violence = lord.GetTraitLevel(BKTraits.Instance.AptitudeViolence);
-                    if ((valor + violence) < 1) continue;
+                    MobileParty party = lord.PartyBelongedTo;
+                    if (party == null) continue;
+                    if (party.Army != null || party.TargetParty != null || party.MapEvent != null ||
+                        party.MemberRoster.TotalManCount < (party.Party.PartySizeLimit * 0.7f) ||
+                        party.TotalFoodAtInventory < (party.MemberRoster.TotalManCount * 0.5f)) continue;
 
-                    Army army = clan.Kingdom.Armies.GetRandomElement();
-                    if (army != null)
+                    if (FactionHelper.GetEnemyKingdoms(clan.Kingdom).Any())
                     {
-                        SetPartyAiAction.GetActionForEscortingParty(party, army.LeaderParty, MobileParty.NavigationType.All, false, false);
+                        var __sw2 = BannerKings.Behaviours.Shipping.BKShippingBehavior.TraceEnter("JoinArmies.CanCreateArmy:" + lordName);
+                        bool canCreate;
+                        try { canCreate = BannerKingsConfig.Instance.ArmyManagementModel.CanCreateArmy(lord); }
+                        finally { BannerKings.Behaviours.Shipping.BKShippingBehavior.TraceExit("JoinArmies.CanCreateArmy", __sw2); }
+                        if (canCreate) continue;
+
+                        int valor = lord.GetTraitLevel(DefaultTraits.Valor);
+                        int violence = lord.GetTraitLevel(BKTraits.Instance.AptitudeViolence);
+                        if ((valor + violence) < 1) continue;
+
+                        Army army = clan.Kingdom.Armies.GetRandomElement();
+                        if (army != null)
+                        {
+                            var __sw3 = BannerKings.Behaviours.Shipping.BKShippingBehavior.TraceEnter("JoinArmies.SetEscort:" + lordName);
+                            try { SetPartyAiAction.GetActionForEscortingParty(party, army.LeaderParty, MobileParty.NavigationType.Default, false, false); }
+                            finally { BannerKings.Behaviours.Shipping.BKShippingBehavior.TraceExit("JoinArmies.SetEscort", __sw3); }
+                        }
                     }
                 }
+                finally { BannerKings.Behaviours.Shipping.BKShippingBehavior.TraceExit("JoinArmies.Lord[" + idx + "]", __sw); }
             }
         }
 

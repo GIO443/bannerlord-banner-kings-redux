@@ -277,5 +277,60 @@ namespace BannerKings.Settings
             HintText = "{=!}Verbose in-game and Debug.Print logging of raid capture decisions: capture/skip, projected captives, culture cohort distribution, caravan spawn details, and arrival payouts. Useful when testing the raid system or debugging unexpected outcomes. Default: false.")]
         [SettingPropertyGroup("{=!}Slavery")]
         public bool LogRaidCaptureBehavior { get; set; } = false;
+
+        [SettingProperty("{=!}Log Shipping Redirect Decisions", RequireRestart = false,
+            HintText = "{=!}Append every shipping-redirect decision (per party, per hourly tick) to BK_redirect.txt. Useful for diagnosing stuck-caravan reports, but writes synchronously on every decision — turning this on in a populated campaign drops file I/O into the hot path and produces visible freezes. Default: false.")]
+        [SettingPropertyGroup("{=!}Diagnostics")]
+        public bool LogShippingRedirect { get; set; } = false;
+
+        [SettingProperty("{=!}Log Hourly Tick Perf", RequireRestart = false,
+            HintText = "{=!}Time each registered hourly handler and write a one-line summary per game-hour (only when any handler exceeded 100ms total) to BK_hourly_perf.txt. Used to diagnose the source of nightfall / hour-rollover freezes. Off by default — leaves a single accumulator dict and per-call stopwatch in the hot path. Default: false.")]
+        [SettingPropertyGroup("{=!}Diagnostics")]
+        public bool LogHourlyTickPerf { get; set; } = false;
+
+        [SettingProperty("{=!}Log Rescue Sweep", RequireRestart = false,
+            HintText = "{=!}Append every BKShippingBehavior.UnifiedRescueSweep action (cleared at-sea, walking-water redirect, caravan reactivation, slave-caravan destruction) to BK_rescue.txt. Useful for diagnosing visible boat-on-land or caravan-on-water reports. Off by default. Default: false.")]
+        [SettingPropertyGroup("{=!}Diagnostics")]
+        public bool LogRescueSweep { get; set; } = false;
+
+        [SettingProperty("{=!}Log Economy Decisions", RequireRestart = false,
+            HintText = "{=!}Append clan-finance, workshop, caravan-trade, and town-income decisions to BK_economy.txt. Useful for diagnosing 'where did my money go?' or 'why is this town poor?' reports. One-line entries; minimal hot-path cost. Default: false.")]
+        [SettingPropertyGroup("{=!}Diagnostics")]
+        public bool LogEconomyDecisions { get; set; } = false;
+
+        [SettingProperty("{=!}Log Lord Decisions", RequireRestart = false,
+            HintText = "{=!}Append AI lord-party think results (target picks, army linkage, settlement-visit choices, escort/raid/defend transitions) to BK_lord_decisions.txt. Useful for tracking why a specific lord went somewhere. Default: false.")]
+        [SettingPropertyGroup("{=!}Diagnostics")]
+        public bool LogLordDecisions { get; set; } = false;
+
+        [SettingProperty("{=!}Log Kingdom Decisions", RequireRestart = false,
+            HintText = "{=!}Append kingdom-level decisions (war/peace/votes, council appointments, peerage votes, demesne-law changes, contract changes) to BK_kingdom_decisions.txt. Useful for understanding faction politics. Default: false.")]
+        [SettingPropertyGroup("{=!}Diagnostics")]
+        public bool LogKingdomDecisions { get; set; } = false;
+
+        [SettingProperty("{=!}Log Religion / Title Decisions", RequireRestart = false,
+            HintText = "{=!}Append religion conversions, faith-piety changes, title inheritance, and claim resolution to BK_religion_titles.txt. Useful for narrative-tracing weird cultural / clergy outcomes. Default: false.")]
+        [SettingPropertyGroup("{=!}Diagnostics")]
+        public bool LogReligionTitleDecisions { get; set; } = false;
+
+        [SettingProperty("{=!}Log Major Events", RequireRestart = false,
+            HintText = "{=!}Append rare, high-impact world events to BK_major_events.txt: rebellion warnings (town entered rebellious state), rebellions firing, rebel-kingdom consolidations, kingdom destructions, clan destructions, settlement ownership changes. Quiet log volume — fires only on actual events, not per-tick — so it's a useful default-on candidate when narrating campaigns. Default: false.")]
+        [SettingPropertyGroup("{=!}Diagnostics")]
+        public bool LogMajorEvents { get; set; } = false;
+
+        [SettingProperty("{=!}Log Caravan Lifecycle", RequireRestart = false,
+            HintText = "{=!}Append a per-caravan timeline (spawn, settlement entered/left, target picked, destroyed) to BK_caravan_lifecycle.txt. Grep a single caravan's name to see its full arc — useful for diagnosing 'why is this one stuck?' reports. Moderate log volume — proportional to caravan count × settlement transitions. Default: false.")]
+        [SettingPropertyGroup("{=!}Diagnostics")]
+        public bool LogCaravanLifecycle { get; set; } = false;
+
+        [SettingProperty("{=!}Log Battle Resolution", RequireRestart = false,
+            HintText = "{=!}Append every MapEvent battle/siege resolution (attacker/defender, winner, prisoner counts) to BK_battles.txt. Useful for correlating crashes / weird outcomes with specific battles. Quiet — fires once per battle. Default: false.")]
+        [SettingPropertyGroup("{=!}Diagnostics")]
+        public bool LogBattleResolution { get; set; } = false;
+
+        [SettingProperty("{=!}Log Roster Mutations (heavy)", RequireRestart = false,
+            HintText = "{=!}WARNING: heavy. Appends every TroopRoster.AddToCounts call with caller stack trace to BK_roster_mutations.txt. Used to hunt iterate-and-mutate sites that corrupt UniqueTroopDescriptor slot tables (the IndexOutOfRange-in-LootDefeatedPartyPrisoners crash family). Off by default — leave on only while investigating. Default: false.")]
+        [SettingPropertyGroup("{=!}Diagnostics")]
+        public bool LogRosterMutationsTrace { get; set; } = false;
     }
 }

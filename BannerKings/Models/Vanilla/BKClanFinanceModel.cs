@@ -86,16 +86,32 @@ namespace BannerKings.Models.Vanilla
 
         public override ExplainedNumber CalculateClanGoldChange(Clan clan, bool includeDescriptions = false, bool applyWithdrawals = false, bool includeDetails = false)
         {
-            var baseResult = base.CalculateClanGoldChange(clan, true, applyWithdrawals, includeDetails);
-            if (BannerKingsConfig.Instance.TitleManager == null)
+            var __sw = applyWithdrawals
+                ? BannerKings.Behaviours.Shipping.BKShippingBehavior.TraceEnter("BKClanFinanceModel.CalculateClanGoldChange:" + (clan?.Name?.ToString() ?? "?"))
+                : null;
+            try
             {
+                var baseResult = base.CalculateClanGoldChange(clan, true, applyWithdrawals, includeDetails);
+                if (BannerKingsConfig.Instance.TitleManager == null)
+                {
+                    return baseResult;
+                }
+
+                AddExpenses(clan, ref baseResult, applyWithdrawals);
+                AddIncomes(clan, ref baseResult, applyWithdrawals);
+
+                // Per-clan daily gold delta. Only emit on the
+                // applyWithdrawals pass so we log once per game-day per clan
+                // (not once per UI panel refresh).
+                if (applyWithdrawals)
+                {
+                    BannerKings.Utils.Logs.Economy(() =>
+                        $"clan {clan?.Name} dailyΔ={baseResult.ResultNumber:n0} (gold now {clan?.Leader?.Gold ?? 0})");
+                }
+
                 return baseResult;
             }
-
-            AddExpenses(clan, ref baseResult, applyWithdrawals);
-            AddIncomes(clan, ref baseResult, applyWithdrawals);
-
-            return baseResult;
+            finally { if (__sw != null) BannerKings.Behaviours.Shipping.BKShippingBehavior.TraceExit("BKClanFinanceModel.CalculateClanGoldChange", __sw); }
         }
 
         public override ExplainedNumber CalculateClanIncome(Clan clan, bool includeDescriptions = false, bool applyWithdrawals = false, bool includeDetails = false)

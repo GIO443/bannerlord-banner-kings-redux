@@ -294,6 +294,15 @@ namespace BannerKings.Behaviours
 
         public void AiHourlyTick(MobileParty mobileParty, PartyThinkParams p)
         {
+            var __sw = BannerKingsSettings.Instance.LogHourlyTickPerf
+                ? System.Diagnostics.Stopwatch.StartNew()
+                : null;
+            try { AiHourlyTickImpl(mobileParty, p); }
+            finally { if (__sw != null) { __sw.Stop(); BannerKings.Behaviours.Shipping.BKShippingBehavior.PerfRecordPublic("BKArmy.AiHourlyTick", __sw); } }
+        }
+
+        private void AiHourlyTickImpl(MobileParty mobileParty, PartyThinkParams p)
+        {
             TickDuty(mobileParty);
 
             if (BannerKingsSettings.Instance.ArmyConsistency)

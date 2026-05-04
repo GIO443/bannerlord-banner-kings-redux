@@ -356,7 +356,7 @@ namespace BannerKings.Behaviours.Raids
                 if (s.MapFaction == null || faction == null) continue;
                 if (s.MapFaction.IsAtWarWith(faction)) continue;
                 if (s.MapFaction != faction && s.MapFaction != party.LeaderHero?.Clan?.MapFaction) continue;
-                float d = Campaign.Current.Models.MapDistanceModel.GetDistance(party, s, false, MobileParty.NavigationType.All, out _);
+                float d = Campaign.Current.Models.MapDistanceModel.GetDistance(party, s, false, MobileParty.NavigationType.Default, out _);
                 if (d < bestDist) { bestDist = d; best = s; }
             }
             if (best == null && party.LeaderHero?.Clan?.HomeSettlement != null)

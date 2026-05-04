@@ -118,19 +118,35 @@ namespace BannerKings.Components
             // active AI to actually walk them to their target. Aggressiveness=0
             // and ShouldJoinPlayerBattles=false keep them from being
             // sidetracked into combat.
-            party.SetMoveGoToSettlement(target, MobileParty.NavigationType.All, false);
+            party.SetMoveGoToSettlement(target, MobileParty.NavigationType.Default, false);
             return party;
         }
 
         public static void CreateSlaveCaravan(Settlement origin, Settlement target, int slaves)
         {
+            // Slave caravans are PopulationPartyComponent (not CaravanParty-
+            // Component) — they walk overland via SetMoveGoToSettlement and
+            // don't have ship-handling. A sea template (ShipHulls > 0) on
+            // such a party would render as a boat-on-land oddity. Filter to
+            // LAND templates only. Elite-list first, then regular, bail
+            // silently if neither has a land template.
+            var culture = origin.Culture;
+            PartyTemplateObject template = null;
+            System.Func<PartyTemplateObject, bool> isLand =
+                t => t != null && (t.ShipHulls == null || t.ShipHulls.Count == 0);
+            if (culture?.EliteCaravanPartyTemplates != null && culture.EliteCaravanPartyTemplates.Count > 0)
+                template = culture.EliteCaravanPartyTemplates.GetRandomElementWithPredicate(t => isLand(t));
+            if (template == null && culture?.CaravanPartyTemplates != null && culture.CaravanPartyTemplates.Count > 0)
+                template = culture.CaravanPartyTemplates.GetRandomElementWithPredicate(t => isLand(t));
+            if (template == null) return;
+
             var caravan = CreateParty("slavecaravan_" + origin.Name, origin,
                 true,
                 target,
                 "{=cCzJ9Nk6}Slave Caravan from {ORIGIN}",
                 PopType.None);
             caravan.AddPrisoner(CharacterObject.All.FirstOrDefault(x => x.StringId == "looter"), slaves);
-            caravan.InitializeMobilePartyAtPosition(origin.Culture.EliteCaravanPartyTemplates.GetRandomElement(), origin.GatePosition);
+            caravan.InitializeMobilePartyAtPosition(template, origin.GatePosition);
             GiveMounts(ref caravan);
             GiveFood(ref caravan);
         }
@@ -318,7 +334,7 @@ namespace BannerKings.Components
                 // count, not real units) lets them snap inside instead
                 // of orbiting the gate. Fall back to a straight-line
                 // proximity check if pathfind returned NaN/inf.
-                var distance = TaleWorlds.CampaignSystem.Campaign.Current.Models.MapDistanceModel.GetDistance(MobileParty, target, false, MobileParty.NavigationType.All, out _);
+                var distance = TaleWorlds.CampaignSystem.Campaign.Current.Models.MapDistanceModel.GetDistance(MobileParty, target, false, MobileParty.NavigationType.Default, out _);
                 if (distance <= 2f && distance >= 0f && !float.IsNaN(distance) && !float.IsInfinity(distance))
                 {
                     EnterSettlementAction.ApplyForParty(MobileParty, target);
@@ -345,7 +361,13 @@ namespace BannerKings.Components
                 {
                     bool intermediateUnsafe =
                         moveTarget.IsUnderSiege ||
-                        (moveTarget.IsVillage && moveTarget.Village.VillageState is Village.VillageStates.Looted or Village.VillageStates.BeingRaided);
+                        (moveTarget.IsVillage && moveTarget.Village.VillageState is Village.VillageStates.Looted or Village.VillageStates.BeingRaided)
+                        // Hostile-faction flip: the intermediate's owner
+                        // declared war on us mid-route. Without this check
+                        // we'd happily walk the party into a freshly
+                        // hostile town and trigger an encounter.
+                        || (moveTarget.MapFaction != null && MobileParty.MapFaction != null
+                            && moveTarget.MapFaction.IsAtWarWith(MobileParty.MapFaction));
                     if (!intermediateUnsafe) return;
                 }
 
@@ -357,16 +379,21 @@ namespace BannerKings.Components
                 // re-issue movement on its own).
                 if (target.IsVillage)
                 {
+                    // Looted/BeingRaided → bail home; otherwise walk to the
+                    // village. The two branches were swapped in earlier
+                    // builds, which made every slave-caravan and traveller
+                    // ping-pong back to its origin instead of delivering
+                    // its payload.
                     if (target.Village.VillageState is Village.VillageStates.Looted or Village.VillageStates.BeingRaided)
-                        MobileParty.SetMoveGoToSettlement(target, MobileParty.NavigationType.All, false);
-                    else MobileParty.SetMoveGoToSettlement(HomeSettlement, MobileParty.NavigationType.All, false);
+                        MobileParty.SetMoveGoToSettlement(HomeSettlement, MobileParty.NavigationType.Default, false);
+                    else MobileParty.SetMoveGoToSettlement(target, MobileParty.NavigationType.Default, false);
                 }
-                else MobileParty.SetMoveGoToSettlement(!target.IsUnderSiege ? target : HomeSettlement, MobileParty.NavigationType.All, false);
+                else MobileParty.SetMoveGoToSettlement(!target.IsUnderSiege ? target : HomeSettlement, MobileParty.NavigationType.Default, false);
             }
             else
             {
                 if (Home != null && Home.MapFaction == MobileParty.MapFaction && !Home.IsUnderSiege)
-                    MobileParty.SetMoveGoToSettlement(Home, MobileParty.NavigationType.All, false);
+                    MobileParty.SetMoveGoToSettlement(Home, MobileParty.NavigationType.Default, false);
                 else DestroyPartyAction.Apply(null, MobileParty);
             }
         }

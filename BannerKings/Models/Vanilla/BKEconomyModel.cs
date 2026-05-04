@@ -235,13 +235,33 @@ namespace BannerKings.Models.Vanilla
                 DefaultCouncilTasks.Instance.DevelopEconomy,
                 0.15f, false);
 
-            foreach (var lane in DefaultShippingLanes.Instance.GetSettlementLanes(settlement))
+            // Sea-trade prosperity bonus: this port's market score gets a
+            // small boost per direct sea-edge neighbour in the unified
+            // shipping graph (one source of truth — same graph the routing
+            // system uses). Pre-v1.6.10 this iterated curated lanes and
+            // counted intra-lane port memberships; the lane curation was
+            // both incomplete and partly wrong, so the bonus was misapplied
+            // (e.g. Balgard credited as a port when it isn't, Omor missing
+            // entirely). HasPort + graph traversal fix both directions.
+            bool isPort = false; try { isPort = settlement.HasPort; } catch { }
+            if (isPort)
             {
-                float laneResult = 0f;
-                foreach (Settlement port in lane.Ports)
-                    if (port.IsTown) laneResult += 0.06f;
-
-                result.Add(MathF.Min(laneResult, 0.4f), lane.Name);
+                int seaNeighbours = 0;
+                if (BannerKings.Managers.Shipping.ShippingGraph.Instance.Adjacency.TryGetValue(settlement, out var edges))
+                {
+                    foreach (var e in edges)
+                    {
+                        if (e.Kind == BannerKings.Managers.Shipping.ShippingGraph.EdgeKind.Sea
+                            && e.To != null && e.To.IsTown)
+                        {
+                            seaNeighbours++;
+                        }
+                    }
+                }
+                if (seaNeighbours > 0)
+                {
+                    result.Add(MathF.Min(seaNeighbours * 0.06f, 0.4f), new TextObject("{=!}Sea trade network"));
+                }
             }
 
             if (settlement.Town != null)

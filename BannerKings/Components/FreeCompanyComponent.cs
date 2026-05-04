@@ -70,7 +70,7 @@ namespace BannerKings.Components
                 party.SetWagePaymentLimit(TaleWorlds.CampaignSystem.Campaign.Current.Models.PartyWageModel.MaxWagePaymentLimit);
 
                 party.InitializeMobilePartyAtPosition(template, origin.GatePosition);
-                party.SetMovePatrolAroundSettlement(origin, MobileParty.NavigationType.All, false);
+                party.SetMovePatrolAroundSettlement(origin, MobileParty.NavigationType.Default, false);
                 GiveMounts(ref party);
                 GiveFood(ref party);
             }
@@ -81,7 +81,7 @@ namespace BannerKings.Components
             var behavior = Behavior;
             if (behavior == AiBehavior.EscortParty && Escort != null)
             {
-                MobileParty.SetMoveEscortParty(Escort, MobileParty.NavigationType.All, false);
+                MobileParty.SetMoveEscortParty(Escort, MobileParty.NavigationType.Default, false);
 
                 if (MobileParty.MapEvent == null)
                 {
@@ -101,7 +101,7 @@ namespace BannerKings.Components
                             MobileParty);
                         PatrolPoint = nearestTown?.Settlement;
                         Behavior = AiBehavior.PatrolAroundPoint;
-                        MobileParty.SetMovePatrolAroundSettlement(PatrolPoint, MobileParty.NavigationType.All, false);
+                        MobileParty.SetMovePatrolAroundSettlement(PatrolPoint, MobileParty.NavigationType.Default, false);
                     }
                 }
             }
@@ -111,7 +111,7 @@ namespace BannerKings.Components
             }
 
             if (Behavior == AiBehavior.PatrolAroundPoint && MobileParty.DefaultBehavior != AiBehavior.PatrolAroundPoint)
-                MobileParty.SetMovePatrolAroundSettlement(PatrolPoint, MobileParty.NavigationType.All, false);
+                MobileParty.SetMovePatrolAroundSettlement(PatrolPoint, MobileParty.NavigationType.Default, false);
         }
     }
 }

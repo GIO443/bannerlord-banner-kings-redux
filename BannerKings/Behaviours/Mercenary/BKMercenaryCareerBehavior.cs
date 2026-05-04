@@ -169,6 +169,14 @@ namespace BannerKings.Behaviours.Mercenary
 
         private void OnClanDailyTick(Clan clan)
         {
+            if (BannerKings.Behaviours.BKClanBehavior.ShouldSkipClan(clan)) return;
+            var __sw = BannerKings.Behaviours.Shipping.BKShippingBehavior.TraceEnter("BKMercCareer.OnClanDailyTick:" + (clan?.Name?.ToString() ?? "?"));
+            try { OnClanDailyTickImpl(clan); }
+            finally { BannerKings.Behaviours.Shipping.BKShippingBehavior.TraceExit("BKMercCareer.OnClanDailyTick", __sw); }
+        }
+
+        private void OnClanDailyTickImpl(Clan clan)
+        {
             if (clan.IsUnderMercenaryService)
             {
                 if (!careers.ContainsKey(clan)) AddCareer(clan, clan.Kingdom);

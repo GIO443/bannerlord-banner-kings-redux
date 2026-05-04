@@ -27,7 +27,9 @@ namespace BannerKings.Behaviours.Innovations
 
         private void OnDailyTick()
         {
-            BannerKingsConfig.Instance.InnovationsManager.UpdateInnovations();
+            var __sw = BannerKings.Behaviours.Shipping.BKShippingBehavior.TraceEnter("BKInnovations.OnDailyTick");
+            try { BannerKingsConfig.Instance.InnovationsManager.UpdateInnovations(); }
+            finally { BannerKings.Behaviours.Shipping.BKShippingBehavior.TraceExit("BKInnovations.OnDailyTick", __sw); }
         }
 
         private void OnGameLoaded(CampaignGameStarter campaignGameStarter)

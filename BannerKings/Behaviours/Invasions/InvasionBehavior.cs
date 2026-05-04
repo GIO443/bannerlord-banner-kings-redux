@@ -23,6 +23,13 @@ namespace BannerKings.Behaviors.Invasions
 
         private void OnDailyTick()
         {
+            var __sw = BannerKings.Behaviours.Shipping.BKShippingBehavior.TraceEnter("BKInvasion.OnDailyTick");
+            try { OnDailyTickImpl(); }
+            finally { BannerKings.Behaviours.Shipping.BKShippingBehavior.TraceExit("BKInvasion.OnDailyTick", __sw); }
+        }
+
+        private void OnDailyTickImpl()
+        {
             if (MBRandom.RandomFloat > 1f / CampaignTime.DaysInYear * 10f) return;
             
             Invasion invasion = DefaultInvasions.Instance.All.ToList().GetRandomElementWithPredicate(x => !invasions.Contains(x));

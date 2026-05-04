@@ -73,8 +73,16 @@ namespace BannerKings.Behaviours
 
         private void OnClanTick(Clan clan)
         {
+            if (BannerKings.Behaviours.BKClanBehavior.ShouldSkipClan(clan)) return;
+            var __sw = BannerKings.Behaviours.Shipping.BKShippingBehavior.TraceEnter("BKBandit.OnClanTick:" + (clan?.Name?.ToString() ?? "?"));
+            try { OnClanTickImpl(clan); }
+            finally { BannerKings.Behaviours.Shipping.BKShippingBehavior.TraceExit("BKBandit.OnClanTick", __sw); }
+        }
+
+        private void OnClanTickImpl(Clan clan)
+        {
             if (!clan.IsBanditFaction) return;
-            
+
             if (clan.StringId == "caravan_robbers")
             {
                 if (clan.WarPartyComponents.Count > BannerKingsSettings.Instance.BanditPartiesLimit * 0.1f)
@@ -98,7 +106,11 @@ namespace BannerKings.Behaviours
 
         private void OnPartyHourlyTick(MobileParty party)
         {
-            TickBandits(party);
+            var __sw = BannerKings.Settings.BannerKingsSettings.Instance.LogHourlyTickPerf
+                ? System.Diagnostics.Stopwatch.StartNew()
+                : null;
+            try { TickBandits(party); }
+            finally { if (__sw != null) { __sw.Stop(); BannerKings.Behaviours.Shipping.BKShippingBehavior.PerfRecordPublic("BKBandit.OnPartyHourlyTick", __sw); } }
         }
 
         private void OnPartyDailyTick(MobileParty party)
@@ -161,7 +173,7 @@ namespace BannerKings.Behaviours
                 if (heroParty == null || !heroParty.IsActive) continue;
                 if (heroParty.GetPosition2D.DistanceSquared(partyPos) > MaxStraightSq) continue;
 
-                if (TaleWorlds.CampaignSystem.Campaign.Current.Models.MapDistanceModel.GetDistance(party, heroParty, MobileParty.NavigationType.All, out _) <= 10f)
+                if (TaleWorlds.CampaignSystem.Campaign.Current.Models.MapDistanceModel.GetDistance(party, heroParty, MobileParty.NavigationType.Default, out _) <= 10f)
                 {
                     SetFollow(heroParty, party);
                 }
@@ -171,7 +183,7 @@ namespace BannerKings.Behaviours
         public void SetFollow(MobileParty heroParty, MobileParty follower)
         {
             follower.Ai.DisableForHours(2);
-            follower.SetMoveEscortParty(heroParty, MobileParty.NavigationType.All, false);
+            follower.SetMoveEscortParty(heroParty, MobileParty.NavigationType.Default, false);
             // RecalculateShortTermAi removed in 1.3.x
         }
 

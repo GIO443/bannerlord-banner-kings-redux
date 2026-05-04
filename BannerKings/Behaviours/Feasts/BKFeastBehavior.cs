@@ -202,7 +202,16 @@ namespace BannerKings.Behaviours.Feasts
 
         private void HourlyTickParty(MobileParty party)
         {
-            if (!party.IsLordParty || party.LeaderHero == null || party.LeaderHero == Hero.MainHero) return;  
+            if (!party.IsLordParty || party.LeaderHero == null || party.LeaderHero == Hero.MainHero) return;
+            var __sw = BannerKings.Settings.BannerKingsSettings.Instance.LogHourlyTickPerf
+                ? System.Diagnostics.Stopwatch.StartNew()
+                : null;
+            try { HourlyTickPartyImpl(party); }
+            finally { if (__sw != null) { __sw.Stop(); BannerKings.Behaviours.Shipping.BKShippingBehavior.PerfRecordPublic("BKFeast.HourlyTickParty", __sw); } }
+        }
+
+        private void HourlyTickPartyImpl(MobileParty party)
+        {
 
             var clan = party.LeaderHero.Clan;
             if (clan == null) return;
@@ -227,7 +236,7 @@ namespace BannerKings.Behaviours.Feasts
                             else
                             {
                                 party.Ai.DisableAi();
-                                party.SetMoveGoToSettlement(town.Settlement, MobileParty.NavigationType.All, false);
+                                party.SetMoveGoToSettlement(town.Settlement, MobileParty.NavigationType.Default, false);
                             }
                         }
                     }
@@ -255,7 +264,15 @@ namespace BannerKings.Behaviours.Feasts
             {
                 return;
             }
+            var __sw = BannerKings.Settings.BannerKingsSettings.Instance.LogHourlyTickPerf
+                ? System.Diagnostics.Stopwatch.StartNew()
+                : null;
+            try { OnSettlementHourlyTickImpl(settlement); }
+            finally { if (__sw != null) { __sw.Stop(); BannerKings.Behaviours.Shipping.BKShippingBehavior.PerfRecordPublic("BKFeast.OnSettlementHourlyTick", __sw); } }
+        }
 
+        private void OnSettlementHourlyTickImpl(Settlement settlement)
+        {
             foreach (var notable in settlement.Notables)
             {
                 Utils.Helpers.AddNotableToKeep(notable, settlement);

@@ -214,7 +214,6 @@ namespace BannerKings
             DefaultGenderLaws.Instance.Initialize();    
             DefaultGovernments.Instance.Initialize();
             DefaultContractAspects.Instance.Initialize();
-            DefaultShippingLanes.Instance.Initialize();
             DefaultMarketGroups.Instance.Initialize();
             DefaultRecruitSpawns.Instance.Initialize();
             DefaultCulturalStandings.Instance.Initialize();

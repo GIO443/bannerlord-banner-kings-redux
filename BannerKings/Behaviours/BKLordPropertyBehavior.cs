@@ -49,8 +49,26 @@ namespace BannerKings.Behaviours
                 var caravanCost = BannerKingsConfig.Instance.EconomyModel.GetCaravanPrice(target, lord).ResultNumber;
                 if (ShouldHaveCaravan(lord, (int)caravanCost))
                 {
-                    lord.ChangeHeroGold(-(int)caravanCost);
-                    CaravanPartyComponent.CreateCaravanParty(lord, target, lord.Culture.CaravanPartyTemplates.GetRandomElement(), false, null, null, false);
+                    // Pick a template matching the spawn settlement's port-ness:
+                    // sea template only at port towns, land template only at
+                    // inland towns. Vanilla CaravansCampaignBehavior.SpawnCaravan
+                    // uses the same predicate. Without it, a sea template at an
+                    // inland town (or vice versa) silently fails inside
+                    // CreateCaravanParty.
+                    var templates = lord.Culture?.CaravanPartyTemplates;
+                    PartyTemplateObject template = null;
+                    if (templates != null && templates.Count > 0)
+                    {
+                        bool atPort = target.IsTown && target.HasPort;
+                        template = templates.GetRandomElementWithPredicate(t =>
+                            (t.ShipHulls == null || t.ShipHulls.Count == 0) != atPort);
+                        if (template == null) template = templates.GetRandomElement();
+                    }
+                    if (template != null)
+                    {
+                        lord.ChangeHeroGold(-(int)caravanCost);
+                        CaravanPartyComponent.CreateCaravanParty(lord, target, template, false, null, null, false);
+                    }
                 }
 
                 if (target.IsTown && !target.Town.Workshops.Any(x => x.Owner == lord))

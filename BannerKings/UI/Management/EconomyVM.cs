@@ -80,13 +80,25 @@ namespace BannerKings.UI.Management
             SlaveryInfo.Clear();
             LanesList.Clear();
 
-            foreach (var lane in DefaultShippingLanes.Instance.GetSettlementLanes(Settlement))
+            // Sea trade panel: list direct sea-edge neighbours of this port
+            // from the unified shipping graph. v1.6.10 replaced the old
+            // per-lane breakdown — there are no lanes anymore, just the
+            // graph derived from HasPort + KNN sea shortcuts.
+            bool isPort = false;
+            try { isPort = Settlement != null && Settlement.HasPort; } catch { }
+            if (isPort
+                && global::BannerKings.Managers.Shipping.ShippingGraph.Instance.Adjacency.TryGetValue(Settlement, out var edges))
             {
-                LanesList.Add(new InformationElement(lane.Name,
-                    new TextObject("{=Vjy26Aru}{COUNT} ports")
-                    .SetTextVariable("COUNT", lane.Ports.Count),
-                    lane.Description));
-                HasLanes = true;
+                foreach (var edge in edges)
+                {
+                    if (edge.Kind != global::BannerKings.Managers.Shipping.ShippingGraph.EdgeKind.Sea) continue;
+                    if (edge.To == null) continue;
+                    LanesList.Add(new InformationElement(edge.To.Name,
+                        new TextObject("{=!}{DIST} units")
+                        .SetTextVariable("DIST", ((int)edge.Distance).ToString()),
+                        edge.To.EncyclopediaText));
+                    HasLanes = true;
+                }
             }
 
             ProductionInfo.Add(new InformationElement(new TextObject("{=NnOoYOTC}State Slaves:").ToString(),

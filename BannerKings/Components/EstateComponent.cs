@@ -74,19 +74,33 @@ namespace BannerKings.Components
             var behavior = Behavior;
             if (behavior == AiBehavior.EscortParty)
             {
-                MobileParty.SetMoveEscortParty(Escort, MobileParty.NavigationType.All, false);
+                MobileParty.SetMoveEscortParty(Escort, MobileParty.NavigationType.Default, false);
                 if (MobileParty.CurrentSettlement != null) LeaveSettlementAction.ApplyForParty(MobileParty);
             }
             else if (behavior == AiBehavior.GoToSettlement || behavior == AiBehavior.Hold)
             {
-                MobileParty.SetMoveGoToSettlement(HomeSettlement, MobileParty.NavigationType.All, false);
-                if (TaleWorlds.CampaignSystem.Campaign.Current.Models.MapDistanceModel.GetDistance(Party.MobileParty, HomeSettlement, false, MobileParty.NavigationType.All, out _) <= 2f)
+                MobileParty.SetMoveGoToSettlement(HomeSettlement, MobileParty.NavigationType.Default, false);
+                // Arrival check #1: pathfind distance.
+                var dist = TaleWorlds.CampaignSystem.Campaign.Current.Models.MapDistanceModel.GetDistance(Party.MobileParty, HomeSettlement, false, MobileParty.NavigationType.Default, out _);
+                if (dist <= 2f && dist >= 0f && !float.IsNaN(dist) && !float.IsInfinity(dist))
+                {
                     EnterSettlementAction.ApplyForParty(Party.MobileParty, HomeSettlement);
+                }
+                // Arrival check #2: straight-line proximity. Pathfind can
+                // return NaN/Infinity/values that never decay below 2 in
+                // certain coastal / island-edge tiles even when the party
+                // is geometrically next to the gate. Without this fallback
+                // estate retinues orbited their home gate forever.
+                else if ((float.IsNaN(dist) || float.IsInfinity(dist) || dist < 0f)
+                         && Party.MobileParty.GetPosition2D.Distance(HomeSettlement.GatePosition.ToVec2()) <= 3f)
+                {
+                    EnterSettlementAction.ApplyForParty(Party.MobileParty, HomeSettlement);
+                }
             }
 
             if (MobileParty.CurrentSettlement == null && Behavior != AiBehavior.EscortParty) 
             {
-                MobileParty.SetMoveGoToSettlement(HomeSettlement, MobileParty.NavigationType.All, false);
+                MobileParty.SetMoveGoToSettlement(HomeSettlement, MobileParty.NavigationType.Default, false);
             }
         }
     }

@@ -194,13 +194,14 @@ namespace BannerKings.Behaviours
 
         private void OnDailyTickSettlement(Settlement settlement)
         {
-            var data = BannerKingsConfig.Instance.PopulationManager.GetPopData(settlement);
-            if (data == null)
+            var __sw = BannerKings.Behaviours.Shipping.BKShippingBehavior.TraceEnter("BKBuildings.OnDailyTickSettlement:" + (settlement?.Name?.ToString() ?? "?"));
+            try
             {
-                return;
+                var data = BannerKingsConfig.Instance.PopulationManager.GetPopData(settlement);
+                if (data == null) return;
+                HandleVillage(data);
             }
-
-            HandleVillage(data);
+            finally { BannerKings.Behaviours.Shipping.BKShippingBehavior.TraceExit("BKBuildings.OnDailyTickSettlement", __sw); }
         }
 
         private void HandleVillage(PopulationData data)
@@ -260,10 +261,15 @@ namespace BannerKings.Behaviours
 
         private void OnTownDailyTick(Town town)
         {
-            RunMines(town);
-            RunStuds(town);
-            RunMaterials(town);
-            RunPorts(town);
+            var __sw = BannerKings.Behaviours.Shipping.BKShippingBehavior.TraceEnter("BKBuildings.OnTownDailyTick:" + (town?.Settlement?.Name?.ToString() ?? "?"));
+            try
+            {
+                RunMines(town);
+                RunStuds(town);
+                RunMaterials(town);
+                RunPorts(town);
+            }
+            finally { BannerKings.Behaviours.Shipping.BKShippingBehavior.TraceExit("BKBuildings.OnTownDailyTick", __sw); }
         }
 
         private void RunMaterials(Town town)
@@ -303,7 +309,12 @@ namespace BannerKings.Behaviours
                     if (stashCount < requirement.Item2)
                     {
                         int toBuy = MathF.Min(requirement.Item2 - stashCount, 5);
-                        foreach (ItemRosterElement element in town.Settlement.ItemRoster)
+                        // Snapshot — when materialSource == town, the inner
+                        // AddToCounts on materialSource.Settlement.ItemRoster
+                        // mutates the same roster being iterated, re-keying
+                        // slot indices and invalidating the enumerator.
+                        var townItems = town.Settlement.ItemRoster.ToList();
+                        foreach (ItemRosterElement element in townItems)
                         {
                             if (element.EquipmentElement.Item == requirement.Item1)
                             {

@@ -78,6 +78,13 @@ namespace BannerKings.Behaviours
 
         private void DailySettlementTick(Settlement settlement)
         {
+            var __sw = BannerKings.Behaviours.Shipping.BKShippingBehavior.TraceEnter("BKNotable.DailySettlementTick:" + (settlement?.Name?.ToString() ?? "?"));
+            try { DailySettlementTickImpl(settlement); }
+            finally { BannerKings.Behaviours.Shipping.BKShippingBehavior.TraceExit("BKNotable.DailySettlementTick", __sw); }
+        }
+
+        private void DailySettlementTickImpl(Settlement settlement)
+        {
             if (settlement.Town == null || settlement.OwnerClan == null)
             {
                 return;

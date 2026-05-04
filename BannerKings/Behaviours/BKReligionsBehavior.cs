@@ -188,6 +188,13 @@ namespace BannerKings.Behaviours
 
         private void OnDailyTickSettlement(Settlement settlement)
         {
+            var __sw = BannerKings.Behaviours.Shipping.BKShippingBehavior.TraceEnter("BKReligions.OnDailyTickSettlement:" + (settlement?.Name?.ToString() ?? "?"));
+            try { OnDailyTickSettlementImpl(settlement); }
+            finally { BannerKings.Behaviours.Shipping.BKShippingBehavior.TraceExit("BKReligions.OnDailyTickSettlement", __sw); }
+        }
+
+        private void OnDailyTickSettlementImpl(Settlement settlement)
+        {
             if (settlement == null || settlement.Notables == null)
             {
                 return;
@@ -390,14 +397,19 @@ namespace BannerKings.Behaviours
 
         private void DailyTick()
         {
-            foreach (var religion in ReligionsManager.GetReligions())
+            var __sw = BannerKings.Behaviours.Shipping.BKShippingBehavior.TraceEnter("BKReligions.DailyTick");
+            try
             {
-                religion.Faith.FaithGroup.TickLeadership(religion);
-                foreach (var hero in ReligionsManager.GetFaithfulHeroes(religion))
+                foreach (var religion in ReligionsManager.GetReligions())
                 {
-                    ReligionsManager.AddPiety(religion, hero, BannerKingsConfig.Instance.ReligionModel.CalculatePietyChange(hero).ResultNumber);
+                    religion.Faith.FaithGroup.TickLeadership(religion);
+                    foreach (var hero in ReligionsManager.GetFaithfulHeroes(religion))
+                    {
+                        ReligionsManager.AddPiety(religion, hero, BannerKingsConfig.Instance.ReligionModel.CalculatePietyChange(hero).ResultNumber);
+                    }
                 }
             }
+            finally { BannerKings.Behaviours.Shipping.BKShippingBehavior.TraceExit("BKReligions.DailyTick", __sw); }
         }
 
         private void OnSettlementEntered(MobileParty party, Settlement target, Hero hero)

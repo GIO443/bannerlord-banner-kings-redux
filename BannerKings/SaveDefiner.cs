@@ -213,7 +213,7 @@ namespace BannerKings
             AddClassDefinition(typeof(ContractDuty), 153);
             AddClassDefinition(typeof(ContractRight), 154);
             AddClassDefinition(typeof(BKContractChangeDecision), 155);
-            AddClassDefinition(typeof(Travel), 156);
+            AddClassDefinition(typeof(BannerKings.Behaviours.Shipping.Travel), 156);
             AddClassDefinition(typeof(RadicalDemand), 157);
             AddClassDefinition(typeof(ClaimantDemand), 158);
             AddClassDefinition(typeof(RadicalGroup), 159);
@@ -298,8 +298,7 @@ namespace BannerKings
             ConstructContainerDefinition(typeof(Dictionary<Hero, Dictionary<Goal, CampaignTime>>));
             ConstructContainerDefinition(typeof(Dictionary<ContractDuty, CampaignTime>));
             ConstructContainerDefinition(typeof(List<ContractAspect>));
-            ConstructContainerDefinition(typeof(Dictionary<MobileParty, Travel>));
-
+            ConstructContainerDefinition(typeof(Dictionary<MobileParty, BannerKings.Behaviours.Shipping.Travel>));
             ConstructContainerDefinition(typeof(List<RelationsModifier>));
             ConstructContainerDefinition(typeof(Dictionary<Hero, List<RelationsModifier>>));
             ConstructContainerDefinition(typeof(Dictionary<Hero, HeroRelations>));

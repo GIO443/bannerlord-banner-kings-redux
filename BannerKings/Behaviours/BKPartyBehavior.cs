@@ -86,7 +86,13 @@ namespace BannerKings.Behaviours
             float space = mobileParty.InventoryCapacity * 0.8f - mobileParty.TotalWeightCarried;
             if (space > 5f)
             {
-                foreach (var element in settlement.Party.ItemRoster)
+                // Snapshot — settlement.Party.ItemRoster is the same instance
+                // as settlement.Town.Owner.ItemRoster, which we mutate via
+                // AddToCounts inside the loop. Iterating the live roster
+                // while AddToCounts re-keys slot indices invalidates the
+                // enumerator and corrupts subsequent lookups.
+                var townItems = settlement.Party.ItemRoster.ToList();
+                foreach (var element in townItems)
                 {
                     float price = settlement.Town.GetItemPrice(element.EquipmentElement, mobileParty);
                     if (price < element.EquipmentElement.ItemValue * 0.33f)
@@ -172,7 +178,12 @@ namespace BannerKings.Behaviours
             if (party.PartyComponent is PopulationPartyComponent)
             {
                 PopulationPartyComponent component = party.PartyComponent as PopulationPartyComponent;
-                if (component.Trading)
+                // Only destroy on arrival. The previous unconditional destroy
+                // would kill in-flight Trading parties on the next daily tick
+                // before they reached anywhere — currently dead code because
+                // DecideSendTraders early-returns, but cheap to harden so a
+                // future re-enable doesn't quietly delete every spawn.
+                if (component.Trading && party.CurrentSettlement != null)
                     DestroyPartyAction.Apply(null, party);
             }
         }
@@ -201,22 +212,38 @@ namespace BannerKings.Behaviours
 
         private void HourlyTickParty(MobileParty party)
         {
-            if (party.LeaderHero != null && party.LeaderHero.Clan == null)
+            var __sw = BannerKings.Settings.BannerKingsSettings.Instance.LogHourlyTickPerf
+                ? System.Diagnostics.Stopwatch.StartNew()
+                : null;
+            try
             {
-                KillCharacterAction.ApplyByMurder(party.LeaderHero);
-            }
+                if (party.LeaderHero != null && party.LeaderHero.Clan == null)
+                {
+                    KillCharacterAction.ApplyByMurder(party.LeaderHero);
+                }
 
-            VillagersCastleTick(party);
-            AddCustomPartyBehaviors(party);
-            GoBuyFood(party);
-            HandleBandits(party);
+                VillagersCastleTick(party);
+                AddCustomPartyBehaviors(party);
+                GoBuyFood(party);
+                HandleBandits(party);
+            }
+            finally { if (__sw != null) { __sw.Stop(); BannerKings.Behaviours.Shipping.BKShippingBehavior.PerfRecordPublic("BKParty.HourlyTickParty", __sw); } }
         }
 
         private void HandleBandits(MobileParty party)
         {
             if (party.IsLordParty && party != MobileParty.MainParty)
             {
-                foreach (var element in party.PrisonRoster.GetTroopRoster())
+                // Snapshot the roster before mutating — TroopRoster.AddToCounts
+                // re-keys the internal UniqueTroopDescriptor slots when a count
+                // is decremented, so iterating-and-mutating the live roster
+                // leaves stale indices in the surviving slots. Vanilla's
+                // MapEvent.LootDefeatedPartyPrisoners later walks the same
+                // roster looking up troops by UniqueTroopDescriptor and hits
+                // IndexOutOfRange in TroopRoster.AddToCountsAtIndex when the
+                // lookup misses (the 2026-05-02 siege-resolution crash).
+                var snapshot = party.PrisonRoster.GetTroopRoster().ToList();
+                foreach (var element in snapshot)
                 {
                     if (element.Character != null && element.Character.IsHero && element.Character.Occupation == Occupation.Bandit)
                     {
@@ -243,7 +270,7 @@ namespace BannerKings.Behaviours
                     !settlement.MapFaction.IsAtWarWith(lordParty.MapFaction) && settlement.ItemRoster.TotalFood > 0;
                 },
                 lordParty);
-                if (settlement != null) lordParty.SetMoveGoToSettlement(settlement, MobileParty.NavigationType.All, false);
+                if (settlement != null) lordParty.SetMoveGoToSettlement(settlement, MobileParty.NavigationType.Default, false);
             }
         }
 
@@ -325,7 +352,7 @@ namespace BannerKings.Behaviours
            
             if (villagerParty.CurrentSettlement != null && villagerParty.CurrentSettlement.IsCastle)
             {
-                villagerParty.SetMoveGoToSettlement(villagerParty.HomeSettlement, MobileParty.NavigationType.All, false);
+                villagerParty.SetMoveGoToSettlement(villagerParty.HomeSettlement, MobileParty.NavigationType.Default, false);
             }
         }
 
@@ -362,7 +389,13 @@ namespace BannerKings.Behaviours
                 || party.PartyComponent is BannerKings.Components.BanditHeroComponent;
             if (!isMover)
             {
-                party.Ai.DisableAi();
+                // Bounded suspension. DisableAi() with no time limit
+                // permanently disables the party if any future tick fails
+                // to re-enable; we re-apply the suspend every hourly tick
+                // anyway, so a 72h cap is the right safety net (the next
+                // tick of this same handler restamps it while the holder
+                // condition still applies).
+                party.Ai.DisableForHours(72);
             }
             else if (party.Ai != null && party.Ai.IsDisabled)
             {
@@ -377,7 +410,14 @@ namespace BannerKings.Behaviours
 
         private void DailySettlementTick(Settlement settlement)
         {
-            if (settlement == null || settlement.Town == null) return;    
+            var __sw = BannerKings.Behaviours.Shipping.BKShippingBehavior.TraceEnter("BKParty.DailySettlementTick:" + (settlement?.Name?.ToString() ?? "?"));
+            try { DailySettlementTickImpl(settlement); }
+            finally { BannerKings.Behaviours.Shipping.BKShippingBehavior.TraceExit("BKParty.DailySettlementTick", __sw); }
+        }
+
+        private void DailySettlementTickImpl(Settlement settlement)
+        {
+            if (settlement == null || settlement.Town == null) return;
 
             // Nord-culture towns always run slave caravans regardless of the
             // decision_slaves_export policy — the Nordic Thrall Law (and the
@@ -551,23 +591,29 @@ namespace BannerKings.Behaviours
             if (party.PartyComponent is BannerKings.Components.GarrisonPartyComponent && target.Town != null &&
                 target == party.HomeSettlement && target.Town.GarrisonParty != null)
             {
-                foreach (TroopRosterElement element in party.MemberRoster.GetTroopRoster())
+                // Snapshot before mutating — TroopRoster.AddToCounts re-keys
+                // internal slot indices, so iterating the live roster while
+                // decrementing it leaves stale UniqueTroopDescriptors and
+                // breaks vanilla code that later looks up troops by descriptor
+                // (e.g. MapEvent.LootDefeatedPartyPrisoners on a subsequent
+                // siege). Same root cause as HandleBandits.
+                foreach (TroopRosterElement element in party.MemberRoster.GetTroopRoster().ToList())
                 {
                     party.MemberRoster.AddToCounts(element.Character, -element.Number);
                     target.Town.GarrisonParty.MemberRoster.AddToCounts(element.Character, element.Number);
                 }
 
-                foreach (TroopRosterElement element in party.PrisonRoster.GetTroopRoster())
+                foreach (TroopRosterElement element in party.PrisonRoster.GetTroopRoster().ToList())
                 {
                     if (element.Character.IsHero)
                     {
                         TakePrisonerAction.Apply(target.Party, element.Character.HeroObject);
-                    } 
+                    }
                     else
                     {
                         data.UpdatePopulation(target, element.Number, PopType.Slaves);
                     }
-                    party.MemberRoster.AddToCounts(element.Character, -element.Number); 
+                    party.MemberRoster.AddToCounts(element.Character, -element.Number);
                 }
 
                 DestroyPartyAction.Apply(null, party);
@@ -687,7 +733,7 @@ namespace BannerKings.Behaviours
 
                     if (!origin.MapFaction.IsAtWarWith(fortification.MapFaction))
                     {
-                        if (TaleWorlds.CampaignSystem.Campaign.Current.Models.MapDistanceModel.GetDistance(fortification.Settlement, origin, false, false, MobileParty.NavigationType.All) < 100f)
+                        if (TaleWorlds.CampaignSystem.Campaign.Current.Models.MapDistanceModel.GetDistance(fortification.Settlement, origin, false, false, MobileParty.NavigationType.Default) < 100f)
                             list.Add(fortification.Settlement);
                     }
                 }

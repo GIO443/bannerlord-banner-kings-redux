@@ -69,6 +69,13 @@ namespace BannerKings.Behaviours
 
         private void OnDailyTick()
         {
+            var __sw = BannerKings.Behaviours.Shipping.BKShippingBehavior.TraceEnter("BKCapital.OnDailyTick");
+            try { OnDailyTickImpl(); }
+            finally { BannerKings.Behaviours.Shipping.BKShippingBehavior.TraceExit("BKCapital.OnDailyTick", __sw); }
+        }
+
+        private void OnDailyTickImpl()
+        {
             foreach (var kingdom in Kingdom.All)
             {
                 if (kingdom.Fiefs.Count > 0)

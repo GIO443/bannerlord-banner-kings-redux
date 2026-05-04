@@ -4,7 +4,6 @@ using System.Linq;
 using BannerKings.Managers.Buildings;
 using BannerKings.Managers.Innovations.Eras;
 using BannerKings.Managers.Populations;
-using BannerKings.Managers.Shipping;
 using BannerKings.Managers.Skills;
 using TaleWorlds.CampaignSystem;
 using TaleWorlds.CampaignSystem.Settlements;
@@ -85,7 +84,11 @@ namespace BannerKings.Managers.Innovations
                 buildings.Remove(BKBuildings.Instance.Theater);
             }
 
-            if (DefaultShippingLanes.Instance.GetSettlementSeaLanes(settlement).IsEmpty())
+            // Harbor + Port buildings only on actual port settlements. v1.6.10
+            // switched from lane membership (manually curated, missed five
+            // coastal towns) to the engine HasPort flag (set by base game +
+            // War Sails on every coastal harbour scene).
+            if (settlement == null || !settlement.HasPort)
             {
                 buildings.Remove(BKBuildings.Instance.Harbor);
                 buildings.Remove(BKBuildings.Instance.Port);

@@ -160,6 +160,13 @@ namespace BannerKings.Behaviours
 
         private void DailySettlementTick(Settlement settlement)
         {
+            var __sw = BannerKings.Behaviours.Shipping.BKShippingBehavior.TraceEnter("BKSettlement.DailySettlementTick:" + (settlement?.Name?.ToString() ?? "?"));
+            try { DailySettlementTickImpl(settlement); }
+            finally { BannerKings.Behaviours.Shipping.BKShippingBehavior.TraceExit("BKSettlement.DailySettlementTick", __sw); }
+        }
+
+        private void DailySettlementTickImpl(Settlement settlement)
+        {
             if (settlement == null || (!settlement.IsVillage && !settlement.IsCastle && !settlement.IsTown))
             {
                 return;
@@ -196,7 +203,10 @@ namespace BannerKings.Behaviours
         {
             if (settlement.Town != null && settlement.Town.GarrisonParty != null)
             {
-                foreach (var element in settlement.Town.GarrisonParty.PrisonRoster.GetTroopRoster())
+                // Snapshot — see HandleBandits / AddPatrolBehavior comment for
+                // the iterate-and-mutate roster failure mode.
+                var snapshot = settlement.Town.GarrisonParty.PrisonRoster.GetTroopRoster().ToList();
+                foreach (var element in snapshot)
                 {
                     if (element.Character != null && element.Character.IsHero && element.Character.Occupation == Occupation.Bandit)
                     {
@@ -609,10 +619,22 @@ namespace BannerKings.Behaviours
                 bool inRebelliousState = castle.Town.InRebelliousState;
                 castle.Town.InRebelliousState = (castle.Town.Loyalty <= (float)Campaign.Current.Models.SettlementLoyaltyModel.RebelliousStateStartLoyaltyThreshold);
                 if (inRebelliousState != castle.Town.InRebelliousState)
+                {
                     CampaignEventDispatcher.Instance.TownRebelliousStateChanged(castle.Town, castle.Town.InRebelliousState);
-                
+                    // Early-warning signal: this town just crossed the
+                    // rebellious-state threshold. Real rebellion firing is
+                    // probabilistic (25% per tick) once loyalty also drops
+                    // below the start threshold, so this is the "soon to
+                    // happen" log entry — gives the player a chance to
+                    // intervene before the rebellion fires.
+                    BannerKings.Utils.Logs.MajorEvent(() =>
+                        $"rebellion-state {(castle.Town.InRebelliousState ? "ENTERED" : "exited")}: {castle.Name} ({castle.MapFaction?.Name}, owner {castle.OwnerClan?.Name}, loyalty {castle.Town.Loyalty:n1})");
+                }
+
                 if (MBRandom.RandomFloat < 0.25f && CheckRebellionEvent(castle))
                 {
+                    BannerKings.Utils.Logs.MajorEvent(() =>
+                        $"rebellion FIRING: {castle.Name} ({castle.MapFaction?.Name}, owner {castle.OwnerClan?.Name}, loyalty {castle.Town.Loyalty:n1}) — militia overpowers garrison");
                     Campaign.Current.GetCampaignBehavior<RebellionsCampaignBehavior>().StartRebellionEvent(castle);
                 }
             }
