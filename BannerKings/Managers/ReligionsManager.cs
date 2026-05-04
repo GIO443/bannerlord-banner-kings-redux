@@ -308,7 +308,6 @@ namespace BannerKings.Managers
             return rel != null ? Religions[rel][hero] : null;
         }
 
-
         public void AddBlessing(Divinity divinity, Hero hero, Religion religion, bool notify = false)
         {
             if (!Religions[religion].ContainsKey(hero))

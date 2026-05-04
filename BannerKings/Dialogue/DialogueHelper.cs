@@ -1,4 +1,4 @@
-﻿using BannerKings.Behaviours.Marriage;
+using BannerKings.Behaviours.Marriage;
 using System.Collections.Generic;
 using TaleWorlds.CampaignSystem;
 using TaleWorlds.CampaignSystem.CharacterDevelopment;
@@ -86,7 +86,6 @@ namespace BannerKings.Dialogue
                 0f,
                 0f));
 
-
             result.Add(new DialogueOption(
                 new TextObject("{=mMuy4hat}The union between {PROPOSER} and {PROPOSED} is not adequate. Our {PROPOSED} is worth more than that.")
                 .SetTextVariable("PROPOSED", contract.Proposed.Name)
@@ -106,7 +105,6 @@ namespace BannerKings.Dialogue
                 -0.2f,
                 0f,
                 0f));
-
 
             result.Add(new DialogueOption(
                 new TextObject("{=GXBmSEi1}Unfortunately, I do not find the union between {PROPOSER} and {PROPOSED} to be adequate. You should improve the standing of your family within the realm, and then we may renegotiate.")

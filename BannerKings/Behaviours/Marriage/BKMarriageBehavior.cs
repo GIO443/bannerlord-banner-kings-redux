@@ -1,4 +1,4 @@
-﻿using BannerKings.Actions;
+using BannerKings.Actions;
 using BannerKings.Behaviours.Feasts;
 using BannerKings.Dialogue;
 using BannerKings.Managers.Institutions.Religions;
@@ -288,7 +288,6 @@ namespace BannerKings.Behaviours.Marriage
                 },
                 null, 100, null);
 
-
             starter.AddPlayerLine("bk_marriage_offered_clan_member", 
                 "lord_start_courtship_response_player_offer", 
                 "bk_marriage_offered_not_accepted",
@@ -318,7 +317,6 @@ namespace BannerKings.Behaviours.Marriage
                    return IsPotentialSpouseBK() && flirtedWith.Contains(Hero.OneToOneConversationHero);
                },
                null);
-
 
             starter.AddDialogLine("lord_start_courtship_response_3",
                 "bk_marriage_offered_not_accepted",
@@ -531,7 +529,6 @@ namespace BannerKings.Behaviours.Marriage
                null,
                () => UIManager.Instance.ShowWindow("marriage"));
 
-
             starter.AddDialogLine("marriage_contract_confirmed_by_player",
                "marriage_contract_confirmed_by_player",
                "close_window",
@@ -639,7 +636,6 @@ namespace BannerKings.Behaviours.Marriage
 
     namespace Patches
     {
-
         [HarmonyPatch(typeof(MarriageBarterable))]
         internal class MarriageBarterablePatches
         {
@@ -693,8 +689,6 @@ namespace BannerKings.Behaviours.Marriage
                 __result = false;
                 return false;
             }
-
-
 
             /*[HarmonyPrefix]
             [HarmonyPatch("conversation_propose_spouse_for_player_nomination_on_condition")]

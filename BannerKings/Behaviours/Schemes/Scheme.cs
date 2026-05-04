@@ -1,4 +1,4 @@
-﻿using BannerKings.Managers.Court;
+using BannerKings.Managers.Court;
 using System;
 using System.Collections.Generic;
 using TaleWorlds.CampaignSystem;
@@ -31,7 +31,6 @@ namespace BannerKings.Behaviours.Schemes
 
         public void PostInitialize()
         {
-
         }
 
         public Hero Agent { get; private set; }

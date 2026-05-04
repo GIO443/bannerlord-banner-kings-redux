@@ -1,4 +1,4 @@
-﻿using System.Collections.Generic;
+using System.Collections.Generic;
 using System.Linq;
 using TaleWorlds.CampaignSystem;
 using TaleWorlds.CampaignSystem.Actions;
@@ -126,7 +126,6 @@ namespace BannerKings.Behaviours.Workshops
                                     null,
                                     null),
                                     true);
-                                
                             }
                         }
                         else if (townOwner.MapFaction.IsKingdomFaction)
@@ -210,7 +209,6 @@ namespace BannerKings.Behaviours.Workshops
                                             null,
                                             null),
                                             true);
-
                                     }
                                 }
                             }

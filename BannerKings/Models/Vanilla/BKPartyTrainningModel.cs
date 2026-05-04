@@ -1,4 +1,4 @@
-﻿using BannerKings.Utils;
+using BannerKings.Utils;
 using Helpers;
 using TaleWorlds.CampaignSystem;
 using TaleWorlds.CampaignSystem.CharacterDevelopment;
@@ -25,7 +25,6 @@ namespace BannerKings.Models.Vanilla
             return 0;
         }
 
-
         public override ExplainedNumber GetEffectiveDailyExperience(MobileParty mobileParty, TroopRosterElement troop)
         {
             ExplainedNumber result = default(ExplainedNumber);
@@ -37,11 +36,11 @@ namespace BannerKings.Models.Vanilla
                 {
                     if (mobileParty.LeaderHero != null && mobileParty.LeaderHero == mobileParty.ActualClan.Leader)
                     {
-                        result.Add(15f + (float)troop.Character.Tier * 3f, null, null);
+                        result.Add(15f + ((float)troop.Character.Tier * 3f), null, null);
                     }
                     else
                     {
-                        result.Add(10f + (float)troop.Character.Tier * 2f, null, null);
+                        result.Add(10f + ((float)troop.Character.Tier * 2f), null, null);
                     }
                 }
                 if (mobileParty.IsActive && mobileParty.HasPerk(DefaultPerks.Leadership.CombatTips, false))

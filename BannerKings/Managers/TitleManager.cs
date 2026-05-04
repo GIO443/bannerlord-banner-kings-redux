@@ -393,7 +393,6 @@ namespace BannerKings.Managers
                 }
             }
 
-
             return clans;
         }
 
@@ -467,7 +466,6 @@ namespace BannerKings.Managers
 
             if (action.ActionTaker == Hero.MainHero)
             {
-
             }
         }
 

@@ -73,7 +73,6 @@ namespace BannerKings.Behaviours.PartyNeeds
                     var supplies = partyNeeds[MobileParty.MainParty];
                     if (companion != null && supplies != null)
                     {
-                        
                         MBTextManager.SetTextVariable("SUPPLIES_RESPONSE_TEXT", supplies.AutoBuying ?
                             new TextObject("{=eJGP57G9}As you wish, {TITLE}. I shall leave our provisioning to you.")
                             .SetTextVariable("TITLE", Hero.MainHero.IsFemale ? GameTexts.FindText("str_player_salutation_my_lady") : GameTexts.FindText("str_player_salutation_my_lord")) 

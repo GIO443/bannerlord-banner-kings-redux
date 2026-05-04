@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 
 namespace BannerKings.Managers.Dynasties
@@ -22,7 +22,6 @@ namespace BannerKings.Managers.Dynasties
                 yield return Slaver;
                 foreach (var legacyType in ModAdditions)
                     yield return legacyType;
-                
             }
         }
 

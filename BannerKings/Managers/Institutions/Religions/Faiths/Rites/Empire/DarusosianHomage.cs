@@ -1,4 +1,4 @@
-﻿using System.Collections.Generic;
+using System.Collections.Generic;
 using BannerKings.Managers.Skills;
 using TaleWorlds.CampaignSystem;
 using TaleWorlds.CampaignSystem.Actions;
@@ -114,7 +114,6 @@ namespace BannerKings.Managers.Institutions.Religions.Faiths.Rites.Empire
             reason = new TextObject("{=oo3xtFfT}This rite is available to be performed.");
             var data = BannerKingsConfig.Instance.ReligionsManager.GetFaithfulData(hero);
             var hasTarget = GetAdequateSacrifices(hero).Count > 0;
-
 
             return hero.IsAlive && !hero.IsChild && !hero.IsPrisoner && data != null &&
                 data.HasTimePassedForRite(GetRiteType(), GetTimeInterval(hero)) && hasTarget;

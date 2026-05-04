@@ -1,4 +1,4 @@
-﻿using TaleWorlds.CampaignSystem.Settlements.Workshops;
+using TaleWorlds.CampaignSystem.Settlements.Workshops;
 using TaleWorlds.CampaignSystem.ViewModelCollection;
 using TaleWorlds.Core.ViewModelCollection.Information;
 using TaleWorlds.Library;
@@ -22,7 +22,6 @@ namespace BannerKings.UI.Items
         public override void RefreshValues()
         {
             base.RefreshValues();
-           
         }
 
         [DataSourceProperty]

@@ -1,4 +1,4 @@
-﻿using Helpers;
+using Helpers;
 using BannerKings.Behaviours.Feasts;
 using BannerKings.Settings;
 using System;
@@ -208,14 +208,12 @@ namespace BannerKings.Managers.Goals.Decisions
 
             var fulfiller = GetFulfiller();
             if (fulfiller.Gold < 80000) return;
-            
 
             if (fulfiller.Clan.Kingdom.UnresolvedDecisions.Any(x => x is DeclareWarDecision))
                 return;
 
             var behavior = TaleWorlds.CampaignSystem.Campaign.Current.GetCampaignBehavior<BKFeastBehavior>();
             if (behavior.KingdomHasFeast(fulfiller.Clan.Kingdom)) return;
-            
 
             if (0.05f < MBRandom.RandomFloat) return;
 

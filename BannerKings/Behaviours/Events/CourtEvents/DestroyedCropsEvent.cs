@@ -21,7 +21,6 @@ namespace BannerKings.Behaviours.Events.CourtEvents
         {
         }
 
-
         public override TextObject Name => new TextObject("{=n3j1wX9z}Destroyed Crops");
 
         public override BannerKingsEvent GetCopy(Hero hero)
@@ -108,7 +107,6 @@ namespace BannerKings.Behaviours.Events.CourtEvents
                     },
                     (Hero fulfiller) =>
                     {
-
                     });
             }
         }

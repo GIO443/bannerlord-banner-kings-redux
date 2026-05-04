@@ -33,7 +33,6 @@ namespace BannerKings.Behaviours
         private void OnDailyTickHero(Hero hero)
         {
             if (hero == null || !hero.IsClanLeader || hero == Hero.MainHero || hero.Clan.Fiefs.Count == 0) return;
-            
 
             if (hero.IsChild || hero.Occupation != Occupation.Lord || hero.Clan == null ||
                 hero.Clan.IsMinorFaction || !BannerKingsConfig.Instance.TitleManager.IsHeroTitleHolder(hero))

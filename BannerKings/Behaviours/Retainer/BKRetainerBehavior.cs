@@ -109,7 +109,6 @@ namespace BannerKings.Behaviours.Retainer
 
         public override void SyncData(IDataStore dataStore)
         {
-            
         }
 
         private void OnLoaded(CampaignGameStarter starter)
@@ -139,7 +138,6 @@ namespace BannerKings.Behaviours.Retainer
                     }
                     else if (PlayerCaptivity.IsCaptive)
                     {
-
                     }
                 }
             }
@@ -504,7 +502,6 @@ namespace BannerKings.Behaviours.Retainer
 
         private void EndService(bool fled)
         {
-
         }
 
         private void StartService()

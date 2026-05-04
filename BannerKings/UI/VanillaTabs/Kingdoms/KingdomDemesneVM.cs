@@ -350,7 +350,6 @@ namespace BannerKings.UI.VanillaTabs.Kingdoms
                 {
                     ContractAspect aspect = list.First().Identifier as ContractAspect;
                     Kingdom.AddDecision(GetDecision(aspect));
-
                 },
                 null,
                 Utils.Helpers.GetKingdomDecisionSound()));

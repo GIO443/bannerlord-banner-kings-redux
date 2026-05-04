@@ -1,4 +1,4 @@
-﻿using System.Collections.Generic;
+using System.Collections.Generic;
 using System.Xml;
 using Bannerlord.UIExtenderEx.Attributes;
 using Bannerlord.UIExtenderEx.Prefabs2;
@@ -26,7 +26,6 @@ namespace BannerKings.UI.Extensions
     [PrefabExtension("RecruitVolunteerTuple", "descendant::Widget", "RecruitVolunteerTuple")]
     internal class VolunteerRecruitmentExtensions2 : PrefabExtensionSetAttributePatch
     {
-
         public override List<Attribute> Attributes => new()
         {
             new Attribute("SuggestedHeight", "160")

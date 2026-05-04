@@ -281,7 +281,6 @@ namespace BannerKings.Behaviours.Diplomacy
             AddFatigue(-0.005f);
             foreach (var kingdom in trucesToDelete) DissolveTruce(kingdom, new TextObject("{=zW5K0UcD}The agreed time has expired."));
 
-
             if (Religion == null)
             {
                 Religion = BannerKingsConfig.Instance.ReligionsManager.GetHeroReligion(Kingdom.RulingClan.Leader);
@@ -376,7 +375,6 @@ namespace BannerKings.Behaviours.Diplomacy
             }
 
             RadicalGroup radicalGroup = GetHeroRadicalGroup(hero);
-
         }
     }
 }

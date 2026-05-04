@@ -552,7 +552,6 @@ namespace BannerKings.Models.BKModels
                     result.AddFactor(0.05f, BKPerks.Instance.TheologyPreacher.Name);
                 }
 
-  
                 if (settlement.Town != null)
                 {
                     SkillHelper.AddSkillBonusForTown(BKSkillEffects.Instance.FaithPresence,

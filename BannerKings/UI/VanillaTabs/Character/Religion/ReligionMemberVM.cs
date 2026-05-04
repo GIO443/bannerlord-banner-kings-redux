@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using BannerKings.Managers.Institutions.Religions;
 using TaleWorlds.CampaignSystem;
 using TaleWorlds.CampaignSystem.ViewModelCollection.GameMenu.TownManagement;
@@ -19,7 +19,6 @@ namespace BannerKings.UI.VanillaTabs.Character.Religion
         public ReligionMemberVM(Hero hero, Action<SettlementGovernorSelectionItemVM> onSelection) : base(hero, onSelection)
         {
         }
-
 
         [DataSourceProperty]
         public BasicTooltipViewModel ReligionHint

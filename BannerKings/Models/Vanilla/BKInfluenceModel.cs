@@ -67,7 +67,7 @@ namespace BannerKings.Models.Vanilla
 
         public override float GetRejectKnighthoodCost(Clan clan)
         {
-            return 10f + MathF.Max(CalculateInfluenceChange(clan).ResultNumber, 5f) * 0.025f * CampaignTime.DaysInYear;
+            return 10f + (MathF.Max(CalculateInfluenceChange(clan).ResultNumber, 5f) * 0.025f * CampaignTime.DaysInYear);
         }
 
         public override ExplainedNumber CalculateInfluenceCap(Clan clan, bool includeDescriptions = false)

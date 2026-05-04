@@ -1,4 +1,4 @@
-﻿using BannerKings.Behaviours;
+using BannerKings.Behaviours;
 using BannerKings.Behaviours.Criminality;
 using BannerKings.Behaviours.Raids;
 using BannerKings.Behaviours.Diplomacy;
@@ -138,7 +138,6 @@ namespace BannerKings
             campaignStarter.AddBehavior(new BKRaidCaptureBehavior());
             campaignStarter.AddBehavior(new BKEstateIncomeBehavior());
             //campaignStarter.RemoveBehavior(campaignStarter.CampaignBehaviors.First(x => x.GetType() == typeof(CaravansCampaignBehavior)));
-
 
             // Models registered as full GameModel replacements where BK genuinely
             // restructures the math. Pure-tweak overrides (single override that just
@@ -285,7 +284,6 @@ namespace BannerKings
             // forever). Deferring until OnBeforeInitialModuleScreenSetAsRoot ensures
             // Game.Current and GameTexts are both initialized before any cctor fires.
         }
-
 
         public override void OnGameEnd(Game game)
         {

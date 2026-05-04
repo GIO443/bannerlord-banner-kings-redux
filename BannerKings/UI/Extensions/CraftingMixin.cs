@@ -55,7 +55,6 @@ namespace BannerKings.UI.Extensions
 
         [DataSourceProperty] public string ArmorText => new TextObject("{=h40bm0cG}Craft").ToString();
 
-
         [DataSourceProperty]
         public string HoursSpentText
         {
@@ -166,7 +165,6 @@ namespace BannerKings.UI.Extensions
                                 .SetTextVariable("HOURS", GetSpentHours().ToString("0.0"))
                                 .ToString();
             }
-            
 
             /*float hours;
     
@@ -249,7 +247,6 @@ namespace BannerKings.UI.Extensions
                         .SetTextVariable("QUALITY", qualityText),
                     0, null, null, "event:/ui/notification/relation");
                 PartyBase.MainParty.ItemRoster.AddToCounts(element, 1);
-
 
                 FINISH:
                 crafting.CurrentCraftingHero.Hero.AddSkillXp(DefaultSkills.Crafting,

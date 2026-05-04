@@ -11,7 +11,7 @@ namespace BannerKings.Utils.Models
         {
             get
             {
-                return MathF.Clamp(BaseNumber + BaseNumber * _sumOfFactors, LimitMinValue, LimitMaxValue);
+                return MathF.Clamp(BaseNumber + (BaseNumber * _sumOfFactors), LimitMinValue, LimitMaxValue);
             }
         }
 

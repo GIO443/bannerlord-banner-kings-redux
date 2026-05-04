@@ -146,7 +146,6 @@ namespace BannerKings.Managers.Court
                 BannerKingsConfig.Instance.CourtManager.AddCache(hero, this);
             }
             Member = hero;
-
         }
         public void SetIsRoyal(bool isRoyal)
         {

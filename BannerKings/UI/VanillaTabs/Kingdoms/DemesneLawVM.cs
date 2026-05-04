@@ -14,7 +14,6 @@ namespace BannerKings.UI.VanillaTabs.Kingdoms
         private BannerKingsSelectorVM<BKDemesneLawItemVM> selector;
         private string nameText, descriptionText, dateText;
 
-
         public DemesneLawVM(List<DemesneLaw> options, DemesneLaw law, bool isKing, Action<SelectorVM<BKDemesneLawItemVM>> onChange)
         {
             NameText = GameTexts.FindText("str_bk_demesne_law", law.LawType.ToString()).ToString();
@@ -42,8 +41,6 @@ namespace BannerKings.UI.VanillaTabs.Kingdoms
 
         [DataSourceProperty]
         public string DateHeaderText => new TextObject("{=SJZmL2Co}Law issued on:").ToString();
-
-
 
         [DataSourceProperty]
         public string NameText

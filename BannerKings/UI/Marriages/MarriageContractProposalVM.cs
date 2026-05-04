@@ -1,4 +1,4 @@
-﻿using BannerKings.Behaviours.Marriage;
+using BannerKings.Behaviours.Marriage;
 using BannerKings.Managers.Institutions.Religions;
 using BannerKings.UI.Items;
 using BannerKings.Utils.Extensions;
@@ -178,7 +178,6 @@ namespace BannerKings.UI.Marriages
             WillAcceptHint = new HintViewModel();
             if (ProposerHero != null && ProposedHero != null)
             {
-
                 if (ProposerHero.Hero.IsCommonBorn() || ProposedHero.Hero.IsCommonBorn())
                 {
                     CanCreateAlliance = false;
@@ -647,7 +646,6 @@ namespace BannerKings.UI.Marriages
                 }
             }
         }
-
 
         [DataSourceProperty]
         public bool InvertedClan

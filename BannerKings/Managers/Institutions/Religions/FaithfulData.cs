@@ -1,4 +1,4 @@
-﻿using System.Collections.Generic;
+using System.Collections.Generic;
 using BannerKings.Managers.Institutions.Religions.Faiths.Rites;
 using BannerKings.Managers.Institutions.Religions.Faiths.Societies;
 using BannerKings.Managers.Populations;
@@ -57,7 +57,6 @@ namespace BannerKings.Managers.Institutions.Religions
 
         public bool CanReceiveBlessing() => blessingEndDate.RemainingDaysFromNow <= 0f;
         public void AddPiety(float piety) => Piety += piety;
-        
 
         public void AddBlessing(Divinity blessing, Hero hero, bool isIdefiniteMembership = false)
         {

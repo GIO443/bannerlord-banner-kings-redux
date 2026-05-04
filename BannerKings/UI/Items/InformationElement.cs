@@ -25,7 +25,6 @@ namespace BannerKings.UI.Items
                 Hint = new HintViewModel(hintText);
             }
 
-
             [DataSourceProperty]
             public string Description
             {

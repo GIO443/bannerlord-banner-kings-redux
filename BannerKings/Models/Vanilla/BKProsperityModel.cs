@@ -1,4 +1,4 @@
-﻿using System.Linq;
+using System.Linq;
 using BannerKings.Extensions;
 using BannerKings.Managers.Court.Members;
 using BannerKings.Managers.Court.Members.Tasks;
@@ -37,7 +37,6 @@ namespace BannerKings.Models.Vanilla
 
         public override ExplainedNumber CalculateProsperityChange(Town fortification, bool includeDescriptions = false)
         {
-
             ExplainedNumber explainedNumber = new ExplainedNumber(0f, true);
             PopulationData data = BannerKingsConfig.Instance.PopulationManager.GetPopData(fortification.Settlement);
             if (data == null) return base.CalculateProsperityChange(fortification, includeDescriptions);
@@ -90,9 +89,9 @@ namespace BannerKings.Models.Vanilla
             }
 
             var houseCost = fortification.Prosperity < 1500f
-                ? 6f - (fortification.Prosperity / 250f - 1f)
+                ? 6f - ((fortification.Prosperity / 250f) - 1f)
                 : fortification.Prosperity >= 6000f
-                    ? -1f + fortification.Prosperity / 3000f * -1f
+                    ? -1f + (fortification.Prosperity / 3000f * -1f)
                     : 0f;
             explainedNumber.Add(houseCost, HousingCostsText);
 
@@ -113,8 +112,8 @@ namespace BannerKings.Models.Vanilla
                 }
 
                 float merchantGold = fortification.Gold;
-                var merchantEffect = merchantGold < 20000f ? merchantGold / 10000f - 2f :
-                    merchantGold >= 200000f ? MathF.Min(200000f * 0.000005f - 1f, 2f) : 0f;
+                var merchantEffect = merchantGold < 20000f ? (merchantGold / 10000f) - 2f :
+                    merchantGold >= 200000f ? MathF.Min((200000f * 0.000005f) - 1f, 2f) : 0f;
                 explainedNumber.Add(merchantEffect, new TextObject("{=Crsf0YLd}Merchants wealth"));
             } 
 

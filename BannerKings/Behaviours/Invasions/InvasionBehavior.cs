@@ -35,7 +35,6 @@ namespace BannerKings.Behaviors.Invasions
             Invasion invasion = DefaultInvasions.Instance.All.ToList().GetRandomElementWithPredicate(x => !invasions.Contains(x));
             if (invasion != null)
             {
-
                 InformationManager.DisplayMessage(new InformationMessage(
                 new TextObject("{=mBO1CASH}{HERO} has invaded the continent alongside their army... Reports say they arrived near {TOWN}...")
                 .SetTextVariable("TOWN", invasion.SpawnSettlement.Name)

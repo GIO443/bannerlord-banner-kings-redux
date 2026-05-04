@@ -1,4 +1,4 @@
-﻿using BannerKings.Behaviours;
+using BannerKings.Behaviours;
 using BannerKings.Managers.Helpers;
 using BannerKings.Managers.Innovations;
 using BannerKings.Managers.Court;
@@ -44,7 +44,6 @@ namespace BannerKings
                 return "Format is \"bannerkings.give_title [TitleName] | [PersonName]";
             }
 
-
             var title = BannerKingsConfig.Instance.TitleManager.GetTitleByName(array[0].Trim());
             if (title == null)
             {
@@ -60,7 +59,6 @@ namespace BannerKings
             BannerKingsConfig.Instance.TitleManager.InheritTitle(title.deJure, hero, title);
             return "Title successfully inherited.";
         }
-
 
         [CommandLineFunctionality.CommandLineArgumentFunction("start_rebellion", "bannerkings")]
         public static string StartRebellionEvent(List<string> strings)
@@ -93,7 +91,6 @@ namespace BannerKings
             return "Title successfully inherited.";
         }
 
-
         [CommandLineFunctionality.CommandLineArgumentFunction("add_piety", "bannerkings")]
         public static string AddPiety(List<string> strings)
         {
@@ -117,7 +114,6 @@ namespace BannerKings
         [CommandLineFunctionality.CommandLineArgumentFunction("add_career_points", "bannerkings")]
         public static string AddCareer(List<string> strings)
         {
-
             MercenaryCareer career = TaleWorlds.CampaignSystem.Campaign.Current.GetCampaignBehavior<BKMercenaryCareerBehavior>().GetCareer(Clan.PlayerClan);
             if (career != null)
             {

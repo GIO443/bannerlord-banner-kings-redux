@@ -357,7 +357,6 @@ namespace BannerKings.Behaviours
             var rel = BannerKingsConfig.Instance.ReligionsManager.GetHeroReligion(hero);
             if (rel == null)
             {
-
                 if (hero.Clan != null && hero != hero.Clan.Leader)
                 {
                     var leaderRel = BannerKingsConfig.Instance.ReligionsManager.GetHeroReligion(hero.Clan.Leader);
@@ -873,7 +872,6 @@ namespace BannerKings.Behaviours
                 .SetTextVariable("FAITH", religion.Faith.GetFaithName())
                 .SetTextVariable("RITES", sb.ToString())));
         }
-
 
         private bool IsPreacher() => Hero.OneToOneConversationHero.IsPreacher &&
                    BannerKingsConfig.Instance.ReligionsManager != null &&

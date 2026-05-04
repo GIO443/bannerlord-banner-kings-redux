@@ -6,7 +6,6 @@ namespace BannerKings.Settings
 {
     public class DefaultSettings : DefaultTypeInitializer<DefaultSettings, SettingsOption>
     {
-
         public SettingsOption NamingFullTitlesSuffixed => new SettingsOption("settings_naming_full_title_suffixed",
             new TextObject("{=QBYvQNa6}Full Titles Suffixed"));
 
@@ -19,12 +18,10 @@ namespace BannerKings.Settings
         public SettingsOption NamingNoTitles => new SettingsOption("settings_naming_no_title",
             new TextObject("{=oSt1agLC}No Titles"));
 
-
         public override IEnumerable<SettingsOption> All => throw new NotImplementedException();
 
         public override void Initialize()
         {
-
         }
     }
 }

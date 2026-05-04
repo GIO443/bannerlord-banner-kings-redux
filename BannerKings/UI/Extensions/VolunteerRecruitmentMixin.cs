@@ -41,7 +41,6 @@ namespace BannerKings.UI.Extensions
             }
         }
 
-
         public override void OnRefresh()
         {
             Materials.Clear();

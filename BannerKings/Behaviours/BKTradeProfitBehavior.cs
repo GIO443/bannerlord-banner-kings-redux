@@ -1,4 +1,4 @@
-﻿using TaleWorlds.CampaignSystem;
+using TaleWorlds.CampaignSystem;
 using static TaleWorlds.CampaignSystem.SkillEffect;
 using TaleWorlds.CampaignSystem.Party;
 using TaleWorlds.Core;
@@ -48,7 +48,6 @@ namespace BannerKings.Behaviours
                 }
             }
 
-
             if (profit > 0)
             {
                 float skillXp = (float)profit * 0.5f;
@@ -84,9 +83,6 @@ namespace BannerKings.Behaviours
                 }
             }
         }
-
-
-     
     }
 
     // Note: a previous "MarketPatch" Prefix on ItemRoster.AddToCounts in

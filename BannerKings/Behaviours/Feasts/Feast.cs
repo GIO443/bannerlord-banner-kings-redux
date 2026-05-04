@@ -216,7 +216,6 @@ namespace BannerKings.Behaviours.Feasts
                 TaleWorlds.CampaignSystem.Campaign.Current.GetCampaignBehavior<BKMarriageBehavior>().ApplyMarriageContract();
             }
 
-
             if (BannerKingsConfig.Instance.CourtManager.HasCurrentTask(Host.Clan, DefaultCouncilTasks.Instance.EntertainFeastsMusician,
                 out float competence))
             {
@@ -243,7 +242,7 @@ namespace BannerKings.Behaviours.Feasts
                     }
                 }
 
-                int relation = (int)MathF.Clamp((MBRandom.RandomInt(3, 8) * satisfaction - 0.5f), -10f, 20f);
+                int relation = (int)MathF.Clamp(((MBRandom.RandomInt(3, 8) * satisfaction) - 0.5f), -10f, 20f);
                 ChangeRelationAction.ApplyRelationChangeBetweenHeroes(Host, clan.Leader, relation);
                 AddPiety(clan.Leader);
             }

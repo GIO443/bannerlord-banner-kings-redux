@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Text;
 using BannerKings.Behaviours;
@@ -241,7 +241,6 @@ namespace BannerKings.UI.VanillaTabs.Character.Education
             Perks.Clear();
             data = BannerKingsConfig.Instance.EducationManager.GetHeroEducation(hero);
 
-
             StringBuilder sb = new StringBuilder();
             foreach (Hero seller in TaleWorlds.CampaignSystem.Campaign.Current.GetCampaignBehavior<BKEducationBehavior>().GetAllBookSellers())
             {
@@ -252,7 +251,6 @@ namespace BannerKings.UI.VanillaTabs.Character.Education
             }
 
             BookSellers = new InformationElement(new TextObject("{=rLnPvsJk}Book Sellers").ToString(), string.Empty, sb.ToString());
-
 
             if (data.Books.Count == 0)
             {

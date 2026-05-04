@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -137,7 +137,6 @@ namespace BannerKings.Utils
                 }
             } catch (NullReferenceException e)
             {
-
             }
         }
 
@@ -329,7 +328,6 @@ namespace BannerKings.Utils
                settlement.Culture,
                LocationCharacter.CharacterRelations.Friendly, 10);
         }
-
 
         public static bool IsClanLeader(Hero hero)
         {

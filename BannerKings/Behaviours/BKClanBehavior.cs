@@ -1072,8 +1072,6 @@ namespace BannerKings.Behaviours
                 item = items.GetRandomElement();
                 if (item != null)
                 {
-                  
-
                     if (clan == Clan.PlayerClan)
                     {
                         MBInformationManager.AddQuickInformation(

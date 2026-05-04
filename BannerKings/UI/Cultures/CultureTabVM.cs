@@ -1,4 +1,4 @@
-﻿using BannerKings.Managers.Education;
+using BannerKings.Managers.Education;
 using BannerKings.Managers.Innovations;
 using BannerKings.Managers.Innovations.Eras;
 using BannerKings.UI.Items;
@@ -87,7 +87,6 @@ namespace BannerKings.UI.Cultures
 
                     requiredResearch += i.RequiredProgress - i.CurrentProgress;
                 }
-
 
                 if (innovationData.CulturalHead != null)
                 {

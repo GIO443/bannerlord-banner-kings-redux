@@ -1,4 +1,4 @@
-﻿using System.Collections.Generic;
+using System.Collections.Generic;
 using System.Linq;
 using TaleWorlds.CampaignSystem;
 using TaleWorlds.CampaignSystem.Settlements;
@@ -38,9 +38,9 @@ namespace BannerKings.Managers.Institutions.Guilds
             get
             {
                 var data = BannerKingsConfig.Instance.PopulationManager.GetPopData(Town.Settlement);
-                return (int) MBMath.ClampFloat(data.GetTypeCount(PopulationManager.PopType.Craftsmen) *
+                return (int) MBMath.ClampFloat((data.GetTypeCount(PopulationManager.PopType.Craftsmen) *
                     data.EconomicData.Mercantilism.ResultNumber * Influence * 0.82f
-                    * 1f + data.Autonomy, 0f, 10000f);
+                    * 1f) + data.Autonomy, 0f, 10000f);
             }
         }
 

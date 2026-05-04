@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using TaleWorlds.Core.ViewModelCollection.Information;
 using TaleWorlds.Library;
 using TaleWorlds.Localization;
@@ -35,7 +35,6 @@ namespace BannerKings.UI.Items
                 }
             }
         }
-
 
         [DataSourceProperty]
         public HintViewModel Hint
@@ -93,7 +92,6 @@ namespace BannerKings.UI.Items
             }
         }
 
-
         public DecisionElement SetAsBooleanOption(string desc, bool initialValue, Action<bool> onChange,
             TextObject hintText)
         {
@@ -117,7 +115,6 @@ namespace BannerKings.UI.Items
             Enabled = true;
             return this;
         }
-
 
         public void OnPress()
         {

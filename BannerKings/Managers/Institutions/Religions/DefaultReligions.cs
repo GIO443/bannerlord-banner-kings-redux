@@ -1,10 +1,9 @@
-﻿using System.Collections.Generic;
+using System.Collections.Generic;
 
 namespace BannerKings.Managers.Institutions.Religions
 {
     public class DefaultReligions : DefaultTypeInitializer<DefaultReligions, Religion>
     {
-
         public override IEnumerable<Religion> All
         {
             get
@@ -18,7 +17,6 @@ namespace BannerKings.Managers.Institutions.Religions
 
         public override void Initialize()
         {
-           
         }
     }
 }

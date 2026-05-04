@@ -1,4 +1,4 @@
-﻿using BannerKings.Managers.Education.Lifestyles;
+using BannerKings.Managers.Education.Lifestyles;
 using BannerKings.Managers.Items;
 using BannerKings.Managers.Skills;
 using TaleWorlds.CampaignSystem;
@@ -107,7 +107,7 @@ namespace BannerKings.Models.Vanilla
             if (isSelling) 
                 inStoreValue += (float)transferValue;
  
-            float value = MathF.Pow(demand / (0.1f * supply + inStoreValue * 0.05f + 2f), itemCategory.IsAnimal ? 0.9f : 0.5f);
+            float value = MathF.Pow(demand / ((0.1f * supply) + (inStoreValue * 0.05f) + 2f), itemCategory.IsAnimal ? 0.9f : 0.5f);
             if (itemCategory.Properties == ItemCategory.Property.BonusToFoodStores)
                 return MathF.Clamp(value, 0.5f, 3f);
 

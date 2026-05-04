@@ -58,7 +58,6 @@ namespace BannerKings.Behaviours.Mercenary
                 2,
                 delegate (MercenaryCareer career)
                 {
-
                     return MercenaryCareer.GetWorkshopPrivilege(career) != null;
                 },
                 (MercenaryCareer career) =>

@@ -197,7 +197,6 @@ namespace BannerKings.Patches.Diag
             BannerKings.Behaviours.Shipping.BKShippingBehavior.TraceExit("NavalDLC.DailyTickClan", __state);
         }
     }
-
 }
 
 namespace BannerKings.Patches
@@ -301,7 +300,7 @@ namespace BannerKings.Patches
                         while (enumerator.MoveNext())
                         {
                             WarPartyComponent warPartyComponent2 = enumerator.Current;
-                            float num3 = 600f + (float)(clan.Leader.Gold - num) / (float)(num2 - num) * 600f;
+                            float num3 = 600f + ((float)(clan.Leader.Gold - num) / (float)(num2 - num) * 600f);
                             if (warPartyComponent2.MobileParty.LeaderHero == clan.Leader)
                             {
                                 num3 *= 1.5f;
@@ -313,7 +312,7 @@ namespace BannerKings.Patches
                 }
                 foreach (WarPartyComponent warPartyComponent3 in clan.WarPartyComponents)
                 {
-                    float num4 = 200f + (float)clan.Leader.Gold / (float)num * ((float)clan.Leader.Gold / (float)num) * 400f;
+                    float num4 = 200f + ((float)clan.Leader.Gold / (float)num * ((float)clan.Leader.Gold / (float)num) * 400f);
                     if (warPartyComponent3.MobileParty.LeaderHero == clan.Leader)
                     {
                         num4 *= 1.5f;
@@ -761,7 +760,7 @@ namespace BannerKings.Patches
             [HarmonyPatch("MeatCount", MethodType.Getter)]
             private static void MeatCountPostfix(HorseComponent __instance, ref int __result)
             {
-                if (__instance.Monster != null && __instance.Monster.StringId == "chicken" ||
+                if ((__instance.Monster != null && __instance.Monster.StringId == "chicken") ||
                     __instance.Monster.StringId == "goose")
                 {
                     __result = 0;
@@ -777,7 +776,7 @@ namespace BannerKings.Patches
             [HarmonyPatch("HideCount", MethodType.Getter)]
             private static void HideCountPostfix(HorseComponent __instance, ref int __result)
             {
-                if (__instance.Monster != null && __instance.Monster.StringId == "chicken" ||
+                if ((__instance.Monster != null && __instance.Monster.StringId == "chicken") ||
                    __instance.Monster.StringId == "goose")
                 {
                     __result = 0;
@@ -860,7 +859,7 @@ namespace BannerKings.Patches
                             }
 
                             itemRoster.AddToCounts(elementCopyAtIndex.EquipmentElement, -finalAmount);
-                            categoryDemand[itemCategory] = budget - desiredAmount * price;
+                            categoryDemand[itemCategory] = budget - (desiredAmount * price);
                             int finalCost = (int)(finalAmount * (float)price);
                             popData.EconomicData.ConsumedValue += finalCost;
                             town.ChangeGold(finalCost);
@@ -942,7 +941,7 @@ namespace BannerKings.Patches
             float priceIndex = town.GetItemCategoryPriceIndex(category);
             float prosperity = (town.Prosperity / 1000f) / priceIndex;
 
-            return demand * MathF.Pow(priceIndex, factor) + prosperity;
+            return (demand * MathF.Pow(priceIndex, factor)) + prosperity;
         }
 
         [HarmonyPatch(typeof(WorkshopsCampaignBehavior))]

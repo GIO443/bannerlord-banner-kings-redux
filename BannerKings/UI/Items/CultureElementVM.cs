@@ -16,7 +16,6 @@ namespace BannerKings.UI.Items
                 this.dataClass = dataClass;
             }
 
-
             [DataSourceProperty] public string Name => dataClass.Culture.Name.ToString();
 
             [DataSourceProperty] public string Acceptance => $"{dataClass.Acceptance:P}";

@@ -313,7 +313,6 @@ namespace BannerKings.Patches
 
     namespace Perks
     {
-
         [HarmonyPatch(typeof(MapEventParty), "ContributionToBattle", MethodType.Getter)]
         internal class ContributionToBattlePatch
         {

@@ -1,4 +1,4 @@
-﻿using BannerKings.Managers.Education.Lifestyles;
+using BannerKings.Managers.Education.Lifestyles;
 using BannerKings.Managers.Skills;
 using TaleWorlds.CampaignSystem;
 using TaleWorlds.CampaignSystem.CampaignBehaviors;
@@ -40,7 +40,6 @@ namespace BannerKings.Models.Vanilla
         {
             var result = 0;
 
-
             var education = BannerKingsConfig.Instance.EducationManager.GetHeroEducation(hero);
             if (education.HasPerk(BKPerks.Instance.ArtisanCraftsman) && MBRandom.RandomFloat <= 0.05f)
             {
@@ -49,7 +48,6 @@ namespace BannerKings.Models.Vanilla
 
             return result;
         }
-
 
         public float CalculateBotchingChance(Hero hero, int difficulty)
         {
@@ -156,7 +154,6 @@ namespace BannerKings.Models.Vanilla
             return MBMath.ClampInt((int) result, 10, 300);
         }
 
-
         public int[] GetCraftingInputForArmor(ItemObject item)
         {
             var result = new int[11];
@@ -259,7 +256,6 @@ namespace BannerKings.Models.Vanilla
                     }
                 }
 
-
                 if (item.WeaponComponent.PrimaryWeapon.WeaponClass == WeaponClass.Dagger)
                 {
                     result[7] = 0;
@@ -287,7 +283,6 @@ namespace BannerKings.Models.Vanilla
                 _ => -1
             };
         }
-
 
         public override int GetEnergyCostForSmithing(ItemObject item, Hero hero)
         {

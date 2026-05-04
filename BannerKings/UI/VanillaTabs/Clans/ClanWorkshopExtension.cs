@@ -1,4 +1,4 @@
-﻿using Bannerlord.UIExtenderEx.Attributes;
+using Bannerlord.UIExtenderEx.Attributes;
 using Bannerlord.UIExtenderEx.Prefabs2;
 using System.Collections.Generic;
 using System.Xml;
@@ -7,7 +7,6 @@ namespace BannerKings.UI.VanillaTabs.Clans
 {
     internal class ClanWorkshopExtension
     {
-
         [PrefabExtension("ClanIncomeWorkshop", "descendant::Widget/Children/ListPanel[1]/Children", "ClanIncomeWorkshop")]
         internal class ClanWorkshopInfoPatch : PrefabExtensionInsertPatch
         {

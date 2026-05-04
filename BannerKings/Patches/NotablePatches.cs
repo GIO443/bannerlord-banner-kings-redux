@@ -1,4 +1,4 @@
-﻿using BannerKings.Utils;
+using BannerKings.Utils;
 using HarmonyLib;
 using Helpers;
 using System;
@@ -95,7 +95,6 @@ namespace BannerKings.Patches
                 return false;
             }
         }
-
 
         [HarmonyPatch(typeof(HeroHelper), "GetVolunteerTroopsOfHeroForRecruitment")]
         internal class GetVolunteerTroopsOfHeroForRecruitmentPatch
@@ -195,7 +194,6 @@ namespace BannerKings.Patches
             }
         }
 
-
         // Fix perk crash due to notable not having a Clan.
         [HarmonyPatch(typeof(GovernorCampaignBehavior), "DailyTickSettlement")]
         internal class DailyTickSettlementPatch
@@ -248,7 +246,6 @@ namespace BannerKings.Patches
                 return false;
             }
         }
-
     }
 }
 

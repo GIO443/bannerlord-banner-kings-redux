@@ -189,7 +189,6 @@ namespace BannerKings.Managers.Items
                 new TextObject("{=skP17S9C}Garum{@Plural}amphorae of garum{\\@}"), "amphora_slim",
                 BKItemCategories.Instance.Garum, 35, 10f, ItemObject.ItemTypeEnum.Goods);
 
-
             BookIrkBitig = Game.Current.ObjectManager.RegisterPresumedObject(new ItemObject("book_irk_bitig"));
             InitializeTradeGood(BookIrkBitig,
                 new TextObject("{=gWqmDXOC}Irk Bitig{@Plural}collection of Irk Bitig books{\\@}"),
@@ -376,7 +375,6 @@ namespace BannerKings.Managers.Items
                 400,
                 200,
                 ItemObject.ItemTypeEnum.Animal);
-
 
             if (BannerKingsSettings.Instance.ExperimentalPrices)
             {

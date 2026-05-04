@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using TaleWorlds.CampaignSystem;
 using TaleWorlds.CampaignSystem.Actions;
 
@@ -6,7 +6,6 @@ namespace BannerKings.Managers.Populations.Estates
 {
     public class EstateAction : BannerKingsAction
     {
-
         public EstateAction(Estate estate, Hero actionTaker, ActionType type, Hero actionTarget = null)
         {
             Estate = estate;

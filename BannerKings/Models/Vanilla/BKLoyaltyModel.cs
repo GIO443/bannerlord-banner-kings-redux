@@ -1,4 +1,4 @@
-﻿using System.Linq;
+using System.Linq;
 using BannerKings.CampaignContent.Traits;
 using BannerKings.Managers.Court.Members;
 using BannerKings.Managers.Court.Members.Tasks;
@@ -144,7 +144,6 @@ namespace BannerKings.Models.Vanilla
             return baseResult;
         }
 
-
         private ExplainedNumber CalculateLoyaltyChangeInternal(Town town, bool includeDescriptions = false)
         {
             var result = new ExplainedNumber(0f, includeDescriptions);
@@ -237,7 +236,6 @@ namespace BannerKings.Models.Vanilla
                     {
                         explainedNumber.Add(0.5f, DefaultPolicies.Citizenship.Name);
                     }
-
                     else
                     {
                         explainedNumber.Add(-0.5f, DefaultPolicies.Citizenship.Name);
@@ -265,7 +263,6 @@ namespace BannerKings.Models.Vanilla
                     {
                         explainedNumber.Add(1f, DefaultPolicies.ImperialTowns.Name);
                     }
-
                     else
                     {
                         explainedNumber.Add(-0.3f, DefaultPolicies.ImperialTowns.Name);

@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using BannerKings.Managers.Education;
@@ -212,7 +212,6 @@ namespace BannerKings.Managers
             {
                 foreach (var education in Educations)
                 {
-                    
                     if (education.Value != null && education.Value.LanguageInstructor == hero)
                     {
                         education.Value.SetCurrentLanguage(null, null);
@@ -221,7 +220,6 @@ namespace BannerKings.Managers
                 Educations.Remove(hero);
             }
         }
-
 
         public void SetCurrentBook(Hero hero, BookType book)
         {

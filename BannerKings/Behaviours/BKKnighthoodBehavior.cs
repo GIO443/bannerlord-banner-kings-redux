@@ -1,4 +1,4 @@
-﻿using System.Collections.Generic;
+using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 using BannerKings.Actions;
@@ -716,7 +716,6 @@ namespace BannerKings.Behaviours
             {
                 if (BannerKingsConfig.Instance.TitleManager.IsKnight(Hero.OneToOneConversationHero))
                 {
-
                     InformationManager.DisplayMessage(new InformationMessage(new TextObject(
                         "{=EYH5bgdS}Not possible to dismiss a knight with property under your service.")
                         .ToString()));

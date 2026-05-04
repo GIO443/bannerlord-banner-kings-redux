@@ -212,7 +212,6 @@ namespace BannerKings.Behaviours.Feasts
 
         private void HourlyTickPartyImpl(MobileParty party)
         {
-
             var clan = party.LeaderHero.Clan;
             if (clan == null) return;
             

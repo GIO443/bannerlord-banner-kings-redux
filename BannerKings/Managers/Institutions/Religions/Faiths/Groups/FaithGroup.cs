@@ -1,4 +1,4 @@
-﻿using BannerKings.Behaviours.Diplomacy;
+using BannerKings.Behaviours.Diplomacy;
 using BannerKings.Extensions;
 using BannerKings.Managers.Court;
 using BannerKings.Managers.Court.Members;
@@ -114,7 +114,6 @@ namespace BannerKings.Managers.Institutions.Religions.Faiths.Groups
                     }
                 }
             }
-            
 
             if (IsPreacher)
             {
@@ -151,7 +150,6 @@ namespace BannerKings.Managers.Institutions.Religions.Faiths.Groups
             Religion playerRel = BannerKingsConfig.Instance.ReligionsManager.GetHeroReligion(Hero.MainHero);
             if (playerRel != null)
             {
-
             }
 
             if (notify)

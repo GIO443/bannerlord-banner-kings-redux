@@ -52,7 +52,6 @@ namespace BannerKings.UI.Cutscenes
         {
             get
             {
-
                 GameTexts.SetVariable("KINGDOM_NAME", title.FullName);
                 GameTexts.SetVariable("DAY_OF_YEAR", CampaignSceneNotificationHelper.GetFormalDayAndSeasonText(CampaignTime.Now));
                 GameTexts.SetVariable("YEAR", CampaignTime.Now.GetYear);
@@ -60,6 +59,5 @@ namespace BannerKings.UI.Cutscenes
                 return new TextObject("{=JXi5502K}On {DAY_OF_YEAR}, {YEAR}, {LEADER_NAME} has reformed the {KINGDOM_NAME}. Their name is now immortalized in history!");
             }
         }
-
     }
 }

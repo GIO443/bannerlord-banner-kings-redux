@@ -1,4 +1,4 @@
-﻿using TaleWorlds.CampaignSystem;
+using TaleWorlds.CampaignSystem;
 using TaleWorlds.CampaignSystem.GameComponents;
 using TaleWorlds.CampaignSystem.Party;
 using TaleWorlds.CampaignSystem.Settlements;
@@ -21,7 +21,7 @@ namespace BannerKings.Models.Vanilla
             if (relation <= 0)
             {
                 var clan = donatedHero.Clan != null ? donatedHero.Clan : donatedHero.CompanionOf;
-                float num2 = 1f - relation / 200f;
+                float num2 = 1f - (relation / 200f);
                 if (donatedHero.MapFaction != null && donatedHero.MapFaction.IsKingdomFaction && donatedHero.IsFactionLeader)
                 {
                     result = MathF.Min(40f, MathF.Pow(num, 0.5f) * 0.5f) * num2;

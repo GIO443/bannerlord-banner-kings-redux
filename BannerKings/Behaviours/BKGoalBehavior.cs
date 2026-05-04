@@ -1,4 +1,4 @@
-﻿using BannerKings.Managers.Goals;
+using BannerKings.Managers.Goals;
 using TaleWorlds.CampaignSystem;
 using TaleWorlds.Core;
 
@@ -8,7 +8,6 @@ namespace BannerKings.Behaviours
     {
         public override void SyncData(IDataStore dataStore)
         {
-
         }
 
         public override void RegisterEvents()
@@ -20,12 +19,10 @@ namespace BannerKings.Behaviours
 
         private void OnCreationEnded()
         {
-            
         }
 
         private void OnGameLoaded(CampaignGameStarter starter)
         {
-
         }
 
         private void OnDailyTickHeroEvent(Hero hero)

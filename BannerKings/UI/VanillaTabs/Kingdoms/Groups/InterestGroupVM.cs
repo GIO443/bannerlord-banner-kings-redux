@@ -45,7 +45,6 @@ namespace BannerKings.UI.VanillaTabs.Kingdoms.Groups
             TertiaryHeaders.Clear();
             IsEmpty = InterestGroup.Members.Count == 0;
 
-
             foreach (var member in InterestGroup.GetSortedMembers(KingdomDiplomacy).Take(5))
             {
                 if (member != Leader.Hero)

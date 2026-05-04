@@ -1,4 +1,4 @@
-﻿using BannerKings.Behaviours.Mercenary;
+using BannerKings.Behaviours.Mercenary;
 using BannerKings.CampaignContent.Economy.Markets;
 using BannerKings.Managers.Skills;
 using BannerKings.Models.BKModels.Abstract;
@@ -12,7 +12,6 @@ namespace BannerKings.Models.BKModels
 {
     public class BKMercenaryModel : MercenaryModel
     {
-
         public override ExplainedNumber GetDailyCareerPointsGain(Clan clan, MercenaryCareer career, bool explanations = false)
         {
             var result = new ExplainedNumber(1f, explanations);

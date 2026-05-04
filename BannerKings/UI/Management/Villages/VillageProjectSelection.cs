@@ -1,4 +1,4 @@
-﻿using BannerKings.Managers.Populations;
+using BannerKings.Managers.Populations;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -110,7 +110,7 @@ namespace BannerKings.UI.Management.Villages
             SettlementProjectVM result = CurrentDailyDefault;
             if (LocalDevelopmentList.Count > 0)
             {
-                var option = AvailableProjects.FirstOrDefault((VillageBuildingProjectVM p) => p.Building == LocalDevelopmentList[0]); ;
+                var option = AvailableProjects.FirstOrDefault((VillageBuildingProjectVM p) => p.Building == LocalDevelopmentList[0]);
                 if (option != null) result = option;
             }
             CurrentSelectedProject = result;

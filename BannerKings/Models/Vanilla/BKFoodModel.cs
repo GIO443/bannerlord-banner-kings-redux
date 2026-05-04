@@ -211,7 +211,6 @@ namespace BannerKings.Models.Vanilla
                    new TextObject("{=8Wuxnwnf}Farmlands ({CLASS})")
                    .SetTextVariable("CLASS", tenantsName));
 
-
                 result.Add(landData.Pastureland * landData.GetAcreOutput("pasture"), new TextObject("{=ngRhXYj1}Pasturelands"));
                 result.Add(landData.Woodland * landData.GetAcreOutput("wood"), new TextObject("{=qPQ7HKgG}Woodlands"));
                 var fertility = landData.Fertility - 1f;

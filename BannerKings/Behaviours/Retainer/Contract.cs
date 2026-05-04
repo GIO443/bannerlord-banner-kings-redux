@@ -1,4 +1,4 @@
-﻿using TaleWorlds.CampaignSystem;
+using TaleWorlds.CampaignSystem;
 using TaleWorlds.CampaignSystem.Roster;
 using TaleWorlds.Core;
 
@@ -65,7 +65,6 @@ namespace BannerKings.Behaviours.Retainer
         {
             foreach (ItemRosterElement element in LastItems)
             {
-
             }
         }
     }

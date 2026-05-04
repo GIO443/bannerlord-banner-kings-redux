@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using BannerKings.Managers.Institutions.Guilds;
@@ -281,7 +281,7 @@ namespace BannerKings.Managers.Populations
                         {
                             var hasExcess = GetCurrentTypeFraction(type) > desiredTypes[type][1];
                             typesList.Add(new ValueTuple<PopType, float>(popClass.type,
-                                (float) popClass.type * 5f + desiredTypes[type][0] * (hasExcess ? 2f : 1f)));
+                                ((float) popClass.type * 5f) + (desiredTypes[type][0] * (hasExcess ? 2f : 1f))));
                             break;
                         }
                         case > 0:

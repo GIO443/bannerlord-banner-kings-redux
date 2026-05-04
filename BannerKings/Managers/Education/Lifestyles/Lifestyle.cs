@@ -22,7 +22,6 @@ namespace BannerKings.Managers.Education.Lifestyles
 
         public float NecessarySkillForFocus => 80f * (InvestedFocus + 1f);
 
-
         public CultureObject Culture { get; private set; }
 
         public TextObject PassiveEffects => effects.SetTextVariable("EFFECT1", FirstEffect).SetTextVariable("EFFECT2", SecondEffect);

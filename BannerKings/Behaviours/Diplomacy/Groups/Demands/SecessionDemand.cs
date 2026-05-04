@@ -49,7 +49,6 @@ namespace BannerKings.Behaviours.Diplomacy.Groups.Demands
                     },
                     (Hero fulfiller) =>
                     {
-                        
                         return 2f + fulfiller.GetTraitLevel(BKTraits.Instance.Humble) 
                         - fulfiller.GetTraitLevel(BKTraits.Instance.Ambitious)
                         + fulfiller.GetTraitLevel(DefaultTraits.Generosity);

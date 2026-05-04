@@ -1,4 +1,4 @@
-﻿using TaleWorlds.CampaignSystem;
+using TaleWorlds.CampaignSystem;
 using TaleWorlds.CampaignSystem.BarterSystem.Barterables;
 
 namespace BannerKings.Behaviours.Diplomacy.Barterable
@@ -13,7 +13,6 @@ namespace BannerKings.Behaviours.Diplomacy.Barterable
         public override void Apply()
         {
             base.Apply();
-
         }
 
         public override string StringID => "bk_peace_barterable";

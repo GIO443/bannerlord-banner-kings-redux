@@ -79,7 +79,6 @@ namespace BannerKings.Managers.Kingdoms.Peerage
 
         public override void ApplySecondaryEffects(MBReadOnlyList<DecisionOutcome> possibleOutcomes, DecisionOutcome chosenOutcome)
         {
-
         }
 
         public override Clan DetermineChooser() => Kingdom.RulingClan;
@@ -172,7 +171,6 @@ namespace BannerKings.Managers.Kingdoms.Peerage
             .SetTextVariable("CLAN", Peer.Name);
 
         public override bool IsAllowed() => !Peer.IsUnderMercenaryService;
-        
 
         public class PeerageKingdomDecisionOutcome : DecisionOutcome
         {
@@ -184,7 +182,6 @@ namespace BannerKings.Managers.Kingdoms.Peerage
 
             [SaveableProperty(200)] public Clan Peer { get; set; }
             [SaveableProperty(201)] public bool Approve { get; set; }
-
 
             public override TextObject GetDecisionTitle() => new TextObject("{=V8eQC16w}{CLAN} Peerage")
                 .SetTextVariable("CLAN", Peer.Name);
@@ -200,7 +197,6 @@ namespace BannerKings.Managers.Kingdoms.Peerage
                 return new TextObject("{=LaXVFt4S}We oppose the grant of Peerage to {CLAN}")
                      .SetTextVariable("CLAN", Peer.Name);
             }
-
 
             public override string GetDecisionLink()
             {

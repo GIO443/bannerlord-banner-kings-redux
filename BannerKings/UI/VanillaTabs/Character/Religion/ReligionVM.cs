@@ -1,4 +1,4 @@
-﻿using BannerKings.Managers.Institutions.Religions;
+using BannerKings.Managers.Institutions.Religions;
 using BannerKings.Managers.Institutions.Religions.Doctrines;
 using BannerKings.Managers.Populations;
 using BannerKings.UI.Items;
@@ -243,7 +243,6 @@ namespace BannerKings.UI.VanillaTabs.Character.Religion
                         new TextObject("{=a98ihEMD}The faith's fervor. A faith's fervor makes its populations and heroes harder to convert. In settlements, fervor grealy contributes to the faith's presence. Heroes instead are less likely and/or require more resources to convert. Fervor is based on doctrines, settlements and clans that follow the faith. Additionaly, holding the Faith Seat and the faith's Holy Sites are important factors to fervor."))
                     .SetTextVariable("EXPLANATIONS", fervor.GetExplanations())
                     ));
-
         }
 
         [DataSourceProperty]
@@ -259,7 +258,6 @@ namespace BannerKings.UI.VanillaTabs.Character.Religion
                 }
             }
         }
-
 
         [DataSourceProperty]
         public SelectorVM<ReligionSelectorItemVM> Selector
@@ -398,7 +396,6 @@ namespace BannerKings.UI.VanillaTabs.Character.Religion
             }
         }
 
-
         [DataSourceProperty]
         public MBBindingList<BKTraitItemVM> Virtues
         {
@@ -496,7 +493,6 @@ namespace BannerKings.UI.VanillaTabs.Character.Religion
                 }
             }
         }
-
 
         [DataSourceProperty]
         public MBBindingList<InformationElement> CourtInfo

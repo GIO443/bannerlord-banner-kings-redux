@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using BannerKings.Managers.Buildings;
@@ -77,7 +77,6 @@ namespace BannerKings.Managers.Innovations
             {
                 buildings.Remove(DefaultBuildingTypes.SettlementWaterworks);
             }
-
 
             if (!HasFinishedInnovation(DefaultInnovations.Instance.Theater))
             {

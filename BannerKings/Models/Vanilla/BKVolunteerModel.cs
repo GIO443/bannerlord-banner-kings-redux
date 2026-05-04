@@ -305,7 +305,6 @@ namespace BannerKings.Models.Vanilla
             return MathF.Max(popFactor, 0f) / (float)data.MilitaryData.Manpower;
         }
 
-
         public override float GetDailyVolunteerProductionProbability(Hero hero, int index, Settlement settlement)
         {
             return GetDraftEfficiency(hero, settlement).ResultNumber;

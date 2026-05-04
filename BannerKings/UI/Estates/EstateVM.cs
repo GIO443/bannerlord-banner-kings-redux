@@ -1,4 +1,4 @@
-﻿using BannerKings.Managers.Populations;
+using BannerKings.Managers.Populations;
 using BannerKings.Managers.Populations.Estates;
 using BannerKings.UI.Items;
 using BannerKings.UI.Items.UI;
@@ -86,7 +86,7 @@ namespace BannerKings.UI.Estates
                         sb.AppendLine();
                     }
                     sb.AppendLine("Estimated steady-state daily income from production.");
-                    sb.AppendLine($"  effective acres = {(Estate.Farmland + Estate.Pastureland * 0.5f + Estate.Woodland * 0.15f):0.0}");
+                    sb.AppendLine($"  effective acres = {(Estate.Farmland + (Estate.Pastureland * 0.5f) + (Estate.Woodland * 0.15f)):0.0}");
                     sb.AppendLine($"  workforce saturation = {(Estate.WorkforceSaturation * 100f):0}%");
                     sb.AppendLine($"  keep rate after tax = {((1f - Estate.TaxRatio.ResultNumber) * 100f):0}%");
                     sb.AppendLine($"  estimated payout = {estDaily} denar/day");
@@ -181,7 +181,6 @@ namespace BannerKings.UI.Estates
 
             var settlement = Estate.EstatesData.Settlement;
             var title = BannerKingsConfig.Instance.TitleManager.GetTitle(settlement);
-
 
             if (IsEnabled)
             {
@@ -360,7 +359,6 @@ namespace BannerKings.UI.Estates
                 }
             }
         }
-     
 
         [DataSourceProperty]
         public string BuyText => new TextObject("{=WabTyEdr}Buy").ToString();
@@ -375,7 +373,6 @@ namespace BannerKings.UI.Estates
 
         [DataSourceProperty]
         public string ReclaimText => new TextObject("{=RmEtkH3A}Reclaim").ToString();
-
 
         [DataSourceProperty]
         public BannerKingsSelectorVM<BKItemVM> TaskSelector

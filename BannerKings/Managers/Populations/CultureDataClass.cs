@@ -1,4 +1,4 @@
-﻿using TaleWorlds.CampaignSystem;
+using TaleWorlds.CampaignSystem;
 using TaleWorlds.CampaignSystem.Settlements;
 using TaleWorlds.Library;
 using TaleWorlds.SaveSystem;
@@ -30,7 +30,6 @@ namespace BannerKings.Managers.Populations
         public Settlement Settlement { get; private set; }
 
         public ExplainedNumber AcceptanceGain => BannerKingsConfig.Instance.CultureModel.CalculateAcceptanceGain(this);
-
 
         public float Assimilation
         {

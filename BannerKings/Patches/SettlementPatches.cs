@@ -1,4 +1,4 @@
-﻿using HarmonyLib;
+using HarmonyLib;
 using System.Collections.Generic;
 using static BannerKings.Managers.PopulationManager;
 using TaleWorlds.CampaignSystem.Settlements;
@@ -113,7 +113,7 @@ namespace BannerKings.Patches
 
                 foreach (var building in __instance.Buildings)
                 {
-                    if (building.CurrentLevel > 0 && building.BuildingType == DefaultBuildingTypes.CastleGranary || building.BuildingType == DefaultBuildingTypes.CastleGranary)
+                    if ((building.CurrentLevel > 0 && building.BuildingType == DefaultBuildingTypes.CastleGranary) || building.BuildingType == DefaultBuildingTypes.CastleGranary)
                     {
                         result += 1000f * building.CurrentLevel;
                     }
@@ -121,7 +121,6 @@ namespace BannerKings.Patches
 
                 __result = (int)result;
                 return false;
-
             }
         }
     }

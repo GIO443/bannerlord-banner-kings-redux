@@ -27,7 +27,6 @@ namespace BannerKings.UI.Extensions
         private bool warExists, peaceExists;
         private War war;
 
-
         public KingdomDiplomacyMixin(KingdomDiplomacyVM vm) : base(vm)
         {
             kingdomDiplomacy = vm;
@@ -135,7 +134,6 @@ namespace BannerKings.UI.Extensions
 
                 TradePactHint = new BasicTooltipViewModel(() =>
                 {
-
                 });
 
                 AllianceHint = new BasicTooltipViewModel(() => UIHelper.GetAllianceHint(currentKingdom, targetKingdom));
@@ -201,7 +199,6 @@ namespace BannerKings.UI.Extensions
                 }
             }
         }
-        
 
         [DataSourceProperty]
         public BasicTooltipViewModel TradePactHint

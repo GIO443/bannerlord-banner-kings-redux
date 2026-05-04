@@ -29,7 +29,6 @@ namespace BannerKings.UI.Crafting
             RefreshValues();
         }
 
-
         [DataSourceProperty]
         public int NameState
         {
@@ -43,7 +42,6 @@ namespace BannerKings.UI.Crafting
                 }
             }
         }
-
 
         [DataSourceProperty]
         public int TypeState
@@ -59,7 +57,6 @@ namespace BannerKings.UI.Crafting
             }
         }
 
-
         [DataSourceProperty]
         public int YieldState
         {
@@ -73,7 +70,6 @@ namespace BannerKings.UI.Crafting
                 }
             }
         }
-
 
         [DataSourceProperty]
         public bool IsNameSelected
@@ -89,7 +85,6 @@ namespace BannerKings.UI.Crafting
             }
         }
 
-
         [DataSourceProperty]
         public bool IsTypeSelected
         {
@@ -103,7 +98,6 @@ namespace BannerKings.UI.Crafting
                 }
             }
         }
-
 
         [DataSourceProperty]
         public bool IsYieldSelected
@@ -119,19 +113,16 @@ namespace BannerKings.UI.Crafting
             }
         }
 
-
         [DataSourceProperty] public string SortTypeText => new TextObject("{=K58MoMHA}Type").ToString();
 
         [DataSourceProperty] public string SortNameText => new TextObject("{=o1Z28eXv}Name").ToString();
 
         [DataSourceProperty] public string SortYieldText => new TextObject("{=ijdxm6U7}Yield").ToString();
 
-
         public void SetListToControl(MBBindingList<ArmorItemVM> listToControl)
         {
             _listToControl = listToControl;
         }
-
 
         public void SortByCurrentState()
         {
@@ -153,7 +144,6 @@ namespace BannerKings.UI.Crafting
             }
         }
 
-
         public void ExecuteSortByName()
         {
             var nameState = NameState;
@@ -168,7 +158,6 @@ namespace BannerKings.UI.Crafting
             _listToControl.Sort(_nameComparer);
             IsNameSelected = true;
         }
-
 
         public void ExecuteSortByYield()
         {
@@ -200,7 +189,6 @@ namespace BannerKings.UI.Crafting
             IsTypeSelected = true;
         }
 
-
         private void SetAllStates(SortState state)
         {
             NameState = (int) state;
@@ -211,14 +199,12 @@ namespace BannerKings.UI.Crafting
             IsYieldSelected = false;
         }
 
-
         private enum SortState
         {
             Default,
             Ascending,
             Descending
         }
-
 
         public abstract class ItemComparerBase : IComparer<ArmorItemVM>
         {
@@ -235,7 +221,6 @@ namespace BannerKings.UI.Crafting
                 return x.ItemName.CompareTo(y.ItemName);
             }
         }
-
 
         public class ItemNameComparer : ItemComparerBase
         {
@@ -263,7 +248,6 @@ namespace BannerKings.UI.Crafting
                 return ResolveEquality(x, y);
             }
         }
-
 
         public class ItemTypeComparer : ItemComparerBase
         {

@@ -1,4 +1,4 @@
-﻿using Helpers;
+using Helpers;
 using TaleWorlds.CampaignSystem;
 using TaleWorlds.CampaignSystem.CharacterDevelopment;
 using TaleWorlds.CampaignSystem.Extensions;
@@ -11,7 +11,6 @@ namespace BannerKings.Models.Vanilla
     public class BKCompanionPrices : DefaultCompanionHiringPriceCalculationModel
     {
         public override int GetCompanionHiringPrice(Hero companion) => GetHiringPrice(companion, true);
-        
 
         public int GetHiringPrice(Hero companion, bool addGearCosts)
         {

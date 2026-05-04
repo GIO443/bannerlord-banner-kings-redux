@@ -1,4 +1,4 @@
-﻿using BannerKings.Behaviours.PartyNeeds;
+using BannerKings.Behaviours.PartyNeeds;
 using Bannerlord.UIExtenderEx.Attributes;
 using Bannerlord.UIExtenderEx.ViewModels;
 using TaleWorlds.CampaignSystem;
@@ -38,7 +38,6 @@ namespace BannerKings.UI.Extensions
                 }
             }
         }
-
 
         [DataSourceProperty]
         public string PietyWithAbbrText

@@ -1,4 +1,4 @@
-﻿using Bannerlord.UIExtenderEx.Attributes;
+using Bannerlord.UIExtenderEx.Attributes;
 using Bannerlord.UIExtenderEx.ViewModels;
 using TaleWorlds.CampaignSystem.ViewModelCollection.Encyclopedia.Pages;
 using TaleWorlds.Library;
@@ -33,7 +33,6 @@ namespace BannerKings.UI.Extensions.Encyclopedia
                 int selected = 0;
                 foreach (var era in DefaultEras.Instance.All)
                 {
-                    ;
                     EraSelection.AddItem(new SelectorItemVM(era.Name.ToString(),
                         era.Description));
 

@@ -200,7 +200,6 @@ namespace BannerKings.UI.VanillaTabs.Clans
                 null));
         }
 
-       
         [DataSourceProperty]
         public MBBindingList<ClanIncomeEstateVM> Estates
         {

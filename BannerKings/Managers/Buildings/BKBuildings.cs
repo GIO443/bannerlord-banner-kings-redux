@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Reflection;
 using TaleWorlds.CampaignSystem.Settlements.Buildings;
@@ -10,7 +10,6 @@ namespace BannerKings.Managers.Buildings
 {
     public class BKBuildings : DefaultTypeInitializer<BKBuildings, BuildingType>
     {
-
         public static MBReadOnlyList<BuildingType> AllBuildings
         {
             get
@@ -114,7 +113,6 @@ namespace BannerKings.Managers.Buildings
                     new Tuple<BuildingEffectEnum, BuildingEffectIncrementType, float, float, float>(BuildingEffectEnum.ConstructionPerDay, BuildingEffectIncrementType.Add, 0.5f, 1f, 1.5f)
                 }, false, 0f);
 
-
             CastleRetinue = Game.Current.ObjectManager.RegisterPresumedObject(new BuildingType("building_castle_retinue"));
             CastleRetinue.Initialize(new TextObject("{=6HgSqiDc}Retinue Barracks"),
                 new TextObject("{=UNLMYRGm}Barracks for the castle retinue, a group of elite soldiers. The retinue is added to the garrison over time, up to a limit of 20, 40 or 60 (building level)."),
@@ -181,7 +179,6 @@ namespace BannerKings.Managers.Buildings
                 new Tuple<BuildingEffectEnum, BuildingEffectIncrementType, float, float, float>[]
                 {
                 }, false, 0f);
-
 
             DailyAssimilation = Game.Current.ObjectManager.RegisterPresumedObject(new BuildingType("bk_building_daily_assimilation"));
             DailyAssimilation.InitializeDailyProject(new TextObject("{=rZOM0Jit}Cultural assimilation"),

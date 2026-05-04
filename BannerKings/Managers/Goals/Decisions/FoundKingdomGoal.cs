@@ -113,7 +113,6 @@ namespace BannerKings.Managers.Goals.Decisions
 
         public override void DoAiDecision()
         {
-
         }
 
         public override TextObject GetCostsHint()

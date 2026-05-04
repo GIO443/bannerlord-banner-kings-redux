@@ -1,4 +1,4 @@
-﻿using BannerKings.Managers.Skills;
+using BannerKings.Managers.Skills;
 using System.Collections.Generic;
 using System;
 using TaleWorlds.CampaignSystem;
@@ -128,7 +128,7 @@ namespace BannerKings.Models.Vanilla
             if (skillValue > num)
             {
                 var num2 = skillValue - num;
-                result.AddFactor(-1f - 0.1f * num2, new TextObject("{=fTKqtNxB}Learning Limit Exceeded"));
+                result.AddFactor(-1f - (0.1f * num2), new TextObject("{=fTKqtNxB}Learning Limit Exceeded"));
             }
 
             if (hero.GetPerkValue(BKPerks.Instance.ScholarshipMagnumOpus))
@@ -151,7 +151,6 @@ namespace BannerKings.Models.Vanilla
             {
                 baseResult.Add(focusValue * 15f, BKPerks.Instance.ScholarshipMagnumOpus.Name);
             }
-
 
             return baseResult;
         }

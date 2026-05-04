@@ -191,7 +191,6 @@ namespace BannerKings.Behaviours.Mercenary
                 10,
                 "camel");
 
-
             SargeantProfessional.Initialize(new TextObject("{=akA3mNVY}Sargeant"),
                 new TextObject("{=xqjWas2R}The backbone of infantry armies, the sargeant specializes in one-handed combat and foot movement. Handles well an extra polearm but poorly any type of ranged weapons. Better with a shield."),
                 TaleWorlds.Core.FormationClass.Infantry,

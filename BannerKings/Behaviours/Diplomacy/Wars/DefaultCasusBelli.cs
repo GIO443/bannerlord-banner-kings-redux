@@ -1,4 +1,4 @@
-﻿using BannerKings.CampaignContent.Traits;
+using BannerKings.CampaignContent.Traits;
 using BannerKings.Extensions;
 using BannerKings.Managers.Institutions.Religions;
 using BannerKings.Managers.Titles;
@@ -47,7 +47,6 @@ namespace BannerKings.Behaviours.Diplomacy.Wars
 
         public override void Initialize()
         {
-
             Rebellion.Initialize(new TextObject("{=kcjyuGpA}Rebellion"),
                 new TextObject("{=t8HQqf4z}A rebellion war is fought by former radical groups over a realm, after their demand was rejected by their ruler. Rebels seek to enforce their demand by force.{newline}{newline}Objective: Survive as a rebellion for over 2 years with at least 1 fief."),
                 new TextObject("{=EOpunWCA}Survive for 2 years"),
@@ -97,7 +96,6 @@ namespace BannerKings.Behaviours.Diplomacy.Wars
                             float factor = distance / TaleWorlds.CampaignSystem.Campaign.Current.GetAverageDistanceBetweenClosestTwoTownsWithNavigationType(MobileParty.NavigationType.Default);
                             return strength && factor <= 2f;
                         }
-                        
                     } return false;
                 },
                 (Kingdom kingdom) => true,
@@ -483,7 +481,6 @@ namespace BannerKings.Behaviours.Diplomacy.Wars
 
         private void TakePiety(War war)
         {
-            
         }
     }
 }

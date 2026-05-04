@@ -1,4 +1,4 @@
-﻿using BannerKings.Managers.Kingdoms.Succession;
+using BannerKings.Managers.Kingdoms.Succession;
 using BannerKings.Managers.Titles;
 using BannerKings.Managers.Titles.Governments;
 using System.Linq;
@@ -16,7 +16,6 @@ namespace BannerKings.Behaviours
         public override void SyncData(IDataStore dataStore)
         {
         }
-
 
         private void DailyTick()
         {

@@ -604,7 +604,6 @@ namespace BannerKings.Patches
                 }
             }
 
-
             [HarmonyPostfix]
             [HarmonyPatch(nameof(DefaultPartySizeLimitModel.GetPartyMemberSizeLimit))]
             private static void GetPartyMemberSizeLimitPostfix(PartyBase party, bool includeDescriptions, ref ExplainedNumber __result)

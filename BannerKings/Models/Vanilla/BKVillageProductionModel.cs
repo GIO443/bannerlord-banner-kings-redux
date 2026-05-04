@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using BannerKings.Extensions;
 using BannerKings.Managers;
 using BannerKings.Managers.Populations;
@@ -79,7 +79,6 @@ namespace BannerKings.Models.Vanilla
                             PerkHelper.AddPerkBonusForTown(DefaultPerks.Trade.GranaryAccountant, village.Bound.Town,
                                 ref explainedNumber);
                         }
-
                         else if (item.ItemCategory == DefaultItemCategories.Clay || item.ItemCategory ==
                                  DefaultItemCategories.Iron
                                  || item.ItemCategory ==
@@ -144,7 +143,6 @@ namespace BannerKings.Models.Vanilla
                         {
                             explainedNumber.AddFactor(0.15f, DefaultVillageBuildings.Instance.DailyProduction.Name);
                         }
-                       
 
                         explainedNumber.AddFactor(data.EconomicData.ProductionEfficiency.ResultNumber - 1f);
                     }

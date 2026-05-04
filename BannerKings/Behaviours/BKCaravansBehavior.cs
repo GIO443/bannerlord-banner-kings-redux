@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using BannerKings.Extensions;
@@ -26,11 +26,11 @@ namespace BannerKings.Behaviours
 {
     public class BKCaravansBehavior : CampaignBehaviorBase
     {
-        private float DistanceScoreDivider => (636f + 11.36f * Campaign.Current.GetAverageDistanceBetweenClosestTwoTownsWithNavigationType(MobileParty.NavigationType.Default)) / 2f;
-        private float DistanceLimitVeryFar => (508f + 9f * Campaign.Current.GetAverageDistanceBetweenClosestTwoTownsWithNavigationType(MobileParty.NavigationType.Default)) / 2f;
-        private float DistanceLimitFar => (381f + 6.75f * Campaign.Current.GetAverageDistanceBetweenClosestTwoTownsWithNavigationType(MobileParty.NavigationType.Default)) / 2f;
-        private float DistanceLimitMedium => (254f + 4.5f * Campaign.Current.GetAverageDistanceBetweenClosestTwoTownsWithNavigationType(MobileParty.NavigationType.Default)) / 2f;
-        private float DistanceLimitClose => (127f + 2.25f * Campaign.Current.GetAverageDistanceBetweenClosestTwoTownsWithNavigationType(MobileParty.NavigationType.Default)) / 2f;
+        private float DistanceScoreDivider => (636f + (11.36f * Campaign.Current.GetAverageDistanceBetweenClosestTwoTownsWithNavigationType(MobileParty.NavigationType.Default))) / 2f;
+        private float DistanceLimitVeryFar => (508f + (9f * Campaign.Current.GetAverageDistanceBetweenClosestTwoTownsWithNavigationType(MobileParty.NavigationType.Default))) / 2f;
+        private float DistanceLimitFar => (381f + (6.75f * Campaign.Current.GetAverageDistanceBetweenClosestTwoTownsWithNavigationType(MobileParty.NavigationType.Default))) / 2f;
+        private float DistanceLimitMedium => (254f + (4.5f * Campaign.Current.GetAverageDistanceBetweenClosestTwoTownsWithNavigationType(MobileParty.NavigationType.Default))) / 2f;
+        private float DistanceLimitClose => (127f + (2.25f * Campaign.Current.GetAverageDistanceBetweenClosestTwoTownsWithNavigationType(MobileParty.NavigationType.Default))) / 2f;
 
         public BKCaravansBehavior()
         {
@@ -253,7 +253,7 @@ namespace BannerKings.Behaviours
                 }
             }
             int count = list.Count;
-            int num = count / 100 + ((count % 100 > i) ? 1 : 0);
+            int num = (count / 100) + ((count % 100 > i) ? 1 : 0);
             int num2 = count / 100 * i;
             for (int j = 0; j < i; j++)
             {
@@ -340,7 +340,6 @@ namespace BannerKings.Behaviours
         {
             AddDialogs(campaignGameStarter);
             UpdateAverageValues();
-            
         }
 
         internal bool IsWinnerSide(BattleSideEnum side, MapEvent mapEvent)
@@ -450,7 +449,7 @@ namespace BannerKings.Behaviours
                 bool isElite = false;
                 if (hero.Power >= 112f)
                 {
-                    float num = hero.Power * 0.0045f - 0.5f;
+                    float num = (hero.Power * 0.0045f) - 0.5f;
                     isElite = (hero.RandomFloat() < num);
                 }
 
@@ -1027,7 +1026,7 @@ namespace BannerKings.Behaviours
             if (flag)
             {
                 float distance2 = Campaign.Current.Models.MapDistanceModel.GetDistance(town.Owner.Settlement, caravanParty.HomeSettlement, false, false, MobileParty.NavigationType.Default);
-                AdjustVeryFarAddition(distance2, ((elapsedDaysUntilNow - 1f) * MathF.Sqrt(elapsedDaysUntilNow - 1f) - 1f) * 0.008f, ref num);
+                AdjustVeryFarAddition(distance2, (((elapsedDaysUntilNow - 1f) * MathF.Sqrt(elapsedDaysUntilNow - 1f)) - 1f) * 0.008f, ref num);
             }
             float num2 = 1f / (distance + num + 8f);
             if (distanceCut && (town.Owner.Settlement != caravanParty.HomeSettlement || !flag) && num2 < 1f / DistanceScoreDivider)
@@ -1037,14 +1036,14 @@ namespace BannerKings.Behaviours
             float num3 = 1f;
             if (caravanParty.HomeSettlement == town.Owner.Settlement)
             {
-                num3 = 1f + elapsedDaysUntilNow * 0.1f * (elapsedDaysUntilNow * 0.1f);
+                num3 = 1f + (elapsedDaysUntilNow * 0.1f * (elapsedDaysUntilNow * 0.1f));
             }
             TownMarketData marketData = town.MarketData;
             float num4 = 0f;
             for (int i = 0; i < caravanParty.Party.ItemRoster.Count; i++)
             {
                 ItemObject item = caravanParty.ItemRoster.GetElementCopyAtIndex(i).EquipmentElement.Item;
-                float limitValue = 1.1f - MathF.Sqrt((float)MathF.Min(_totalValueOfItemsAtCategory[item.ItemCategory], 5000) / 5000f) * 0.2f;
+                float limitValue = 1.1f - (MathF.Sqrt((float)MathF.Min(_totalValueOfItemsAtCategory[item.ItemCategory], 5000) / 5000f) * 0.2f);
                 num4 += CalculateTownSellScoreForCategory(caravanParty, marketData, i, limitValue);
             }
             num4 *= 0.3f + caravanFullness;
@@ -1057,7 +1056,7 @@ namespace BannerKings.Behaviours
                     num5 += CalculateTownBuyScoreForCategory(marketData, j);
                 }
             }
-            num5 *= MathF.Max(0.1f, 1f - (caravanFullness - 0.2f * MathF.Min(num4, 1000f) / 1000f));
+            num5 *= MathF.Max(0.1f, 1f - (caravanFullness - (0.2f * MathF.Min(num4, 1000f) / 1000f)));
             num5 = MathF.Min(num5, (float)((int)(0.5f * (float)caravanParty.PartyTradeGold)));
             float num6 = 1f; // NeedTargetReset removed in 1.3.x
             float num7 = (caravanParty.IsCurrentlyUsedByAQuest && town.Settlement == caravanParty.HomeSettlement && caravanParty.GetPosition2D.Distance(caravanParty.HomeSettlement.GatePosition.ToVec2()) < 3f) ? 0.1f : 1f;
@@ -1070,7 +1069,7 @@ namespace BannerKings.Behaviours
             ItemRosterElement itemRosterElement = party.Party.ItemRoster[i];
             ItemCategory itemCategory = itemRosterElement.EquipmentElement.Item.ItemCategory;
             BKCaravansBehavior.PriceIndexData categoryPriceData = GetCategoryPriceData(itemCategory);
-            float num = marketData.GetPriceFactor(itemCategory) - categoryPriceData.AverageBuySellPriceIndex * limitValue;
+            float num = marketData.GetPriceFactor(itemCategory) - (categoryPriceData.AverageBuySellPriceIndex * limitValue);
             if (num > 0f)
             {
                 int num2 = (itemRosterElement.EquipmentElement.Item.ItemCategory != DefaultItemCategories.PackAnimal) ? itemRosterElement.Amount : MathF.Max(0, itemRosterElement.Amount - party.MemberRoster.TotalManCount);
@@ -1109,7 +1108,7 @@ namespace BannerKings.Behaviours
             PriceIndexData categoryPriceData = GetCategoryPriceData(itemCategory);
             float priceFactor = marketData.GetPriceFactor(itemCategory);
             float num = categoryPriceData.AverageBuySellPriceIndex / priceFactor;
-            float num2 = num * num - 1.1f;
+            float num2 = (num * num) - 1.1f;
             if (num2 > 0f)
             {
                 // _averageValuesCached may not yet be populated when caravans tick
@@ -1157,8 +1156,8 @@ namespace BannerKings.Behaviours
         private void SellGoods(MobileParty caravanParty, Town town, float priceIndexSellLimit = 1.1f, bool toLoseWeight = false)
         {
             int gold = town.Gold;
-            int num = (int)((float)caravanParty.ItemRoster.NumberOfPackAnimals - (float)caravanParty.Party.NumberOfAllMembers * 0.6f);
-            int num2 = (int)((float)caravanParty.ItemRoster.NumberOfLivestockAnimals - (float)caravanParty.Party.NumberOfAllMembers * 0.6f);
+            int num = (int)((float)caravanParty.ItemRoster.NumberOfPackAnimals - ((float)caravanParty.Party.NumberOfAllMembers * 0.6f));
+            int num2 = (int)((float)caravanParty.ItemRoster.NumberOfLivestockAnimals - ((float)caravanParty.Party.NumberOfAllMembers * 0.6f));
             int itemAverageWeight = Campaign.Current.Models.InventoryCapacityModel.GetItemAverageWeight();
             RefreshTotalValueOfItemsAtCategoryForParty(caravanParty);
             List<ValueTuple<EquipmentElement, int>> list = new List<ValueTuple<EquipmentElement, int>>();
@@ -1182,10 +1181,10 @@ namespace BannerKings.Behaviours
                             float num5 = priceIndexSellLimit - num4;
                             if (num3 >= num5 || (num2 > 0 && flag2) || (num > 0 && flag))
                             {
-                                float num6 = 0.8f * priceIndexData.AverageBuySellPriceIndex + 0.2f * priceIndexData.MinBuySellPriceIndex;
+                                float num6 = (0.8f * priceIndexData.AverageBuySellPriceIndex) + (0.2f * priceIndexData.MinBuySellPriceIndex);
                                 if (priceFactor >= num6 * num5 || (num2 > 0 && flag2) || (num > 0 && flag))
                                 {
-                                    float num7 = priceFactor - num6 * num5;
+                                    float num7 = priceFactor - (num6 * num5);
                                     float num8 = num7 * (float)item.Value;
                                     float num9 = num7 * 200f;
                                     float num10 = num8 + num9;
@@ -1211,7 +1210,7 @@ namespace BannerKings.Behaviours
                                         }
                                         if (toLoseWeight && caravanParty.TotalWeightCarried - (float)(num14 * itemAverageWeight) < (float)caravanParty.InventoryCapacity)
                                         {
-                                            num14 = (int)((caravanParty.TotalWeightCarried - (float)caravanParty.InventoryCapacity) / (float)itemAverageWeight + 0.99f);
+                                            num14 = (int)(((caravanParty.TotalWeightCarried - (float)caravanParty.InventoryCapacity) / (float)itemAverageWeight) + 0.99f);
                                         }
                                         if (num14 > elementCopyAtIndex.Amount)
                                         {
@@ -1236,8 +1235,8 @@ namespace BannerKings.Behaviours
                                                 // sellers in 1.3.x. Skip the trade — caravan loses one transaction,
                                                 // not the whole campaign.
                                             }
-                                            num = (int)((float)caravanParty.ItemRoster.NumberOfPackAnimals - (float)caravanParty.Party.NumberOfAllMembers * 0.6f);
-                                            num2 = (int)((float)caravanParty.ItemRoster.NumberOfLivestockAnimals - (float)caravanParty.Party.NumberOfAllMembers * 0.6f);
+                                            num = (int)((float)caravanParty.ItemRoster.NumberOfPackAnimals - ((float)caravanParty.Party.NumberOfAllMembers * 0.6f));
+                                            num2 = (int)((float)caravanParty.ItemRoster.NumberOfLivestockAnimals - ((float)caravanParty.Party.NumberOfAllMembers * 0.6f));
                                         }
                                     }
                                 }
@@ -1272,7 +1271,6 @@ namespace BannerKings.Behaviours
         // Token: 0x060034AB RID: 13483 RVA: 0x000DEE0C File Offset: 0x000DD00C
         private void BuyGoods(MobileParty caravanParty, Town town)
         {
-
             CaravanTotalValue(caravanParty);
             List<ValueTuple<EquipmentElement, int>> list = new List<ValueTuple<EquipmentElement, int>>();
             float capacityFactor = CalculateCapacityFactor(caravanParty);
@@ -1375,9 +1373,9 @@ namespace BannerKings.Behaviours
                 {
                     num6 = 100;
                 }
-                if (!category.IsAnimal && caravanParty.TotalWeightCarried + (float)num6 * item.Weight > (float)caravanParty.InventoryCapacity)
+                if (!category.IsAnimal && caravanParty.TotalWeightCarried + ((float)num6 * item.Weight) > (float)caravanParty.InventoryCapacity)
                 {
-                    num6 = (int)(((float)caravanParty.InventoryCapacity * 0.8f - caravanParty.TotalWeightCarried) / item.Weight);
+                    num6 = (int)((((float)caravanParty.InventoryCapacity * 0.8f) - caravanParty.TotalWeightCarried) / item.Weight);
                 }
                 if (elementCopyAtIndex.EquipmentElement.Item.HorseComponent != null && (elementCopyAtIndex.EquipmentElement.Item.HorseComponent.IsLiveStock || elementCopyAtIndex.EquipmentElement.Item.HorseComponent.IsPackAnimal))
                 {
@@ -1424,7 +1422,6 @@ namespace BannerKings.Behaviours
             }
         }
 
-
         private int CaravanTotalValue(MobileParty caravanParty)
         {
             float num = 0f;
@@ -1459,7 +1456,7 @@ namespace BannerKings.Behaviours
             }
             float itemCategoryPriceIndex = town.GetItemCategoryPriceIndex(category);
             float averageBuySellPriceIndex = priceIndexData.AverageBuySellPriceIndex;
-            float num2 = averageBuySellPriceIndex * (1f - num) - itemCategoryPriceIndex;
+            float num2 = (averageBuySellPriceIndex * (1f - num)) - itemCategoryPriceIndex;
             float demand = town.MarketData.GetDemand(category);
             float num3 = 0.1f * MathF.Pow(demand, 0.5f);
             if (num2 < 0f)
@@ -1471,7 +1468,7 @@ namespace BannerKings.Behaviours
             float num5 = num2 * 200f;
             float num6 = averageBuySellPriceIndex / itemCategoryPriceIndex;
             float num7 = (category.Properties == ItemCategory.Property.BonusToFoodStores) ? 1.1f : 1f;
-            return ((category == DefaultItemCategories.PackAnimal) ? 1.5f : 1f) * num7 * num6 * num3 * (num4 * budgetFactor + num5 * capacityFactor);
+            return ((category == DefaultItemCategories.PackAnimal) ? 1.5f : 1f) * num7 * num6 * num3 * ((num4 * budgetFactor) + (num5 * capacityFactor));
         }
 
         // Token: 0x060034B1 RID: 13489 RVA: 0x000DF588 File Offset: 0x000DD788

@@ -1,4 +1,4 @@
-﻿using System.Collections.Generic;
+using System.Collections.Generic;
 using TaleWorlds.CampaignSystem;
 using TaleWorlds.SaveSystem;
 
@@ -6,7 +6,6 @@ namespace BannerKings.Behaviours.Marriage
 {
     public class HeroMarriage
     {
-
         public HeroMarriage()
         {
             Partners = new List<Hero>();

@@ -1,4 +1,4 @@
-﻿using BannerKings.Managers.Institutions.Religions;
+using BannerKings.Managers.Institutions.Religions;
 using BannerKings.Utils;
 using System.Collections.Generic;
 using System.Linq;
@@ -151,7 +151,7 @@ namespace BannerKings.Managers.Populations
             }
             else
             {
-                imported.Assimilation = imported.Assimilation * scale + arrivalFraction;
+                imported.Assimilation = (imported.Assimilation * scale) + arrivalFraction;
             }
 
             // Step 3: bump acceptance so the next-tick weight recompute carries
@@ -220,7 +220,6 @@ namespace BannerKings.Managers.Populations
                 {
                     data.Settlement.Culture = dominant;
                 }
-
             }, GetType().Name);
         }
 

@@ -1,4 +1,4 @@
-﻿using BannerKings.Managers.Titles;
+using BannerKings.Managers.Titles;
 using System.Linq;
 using TaleWorlds.CampaignSystem;
 using TaleWorlds.CampaignSystem.Actions;
@@ -39,7 +39,6 @@ namespace BannerKings.Actions
                 {
                     FeudalTitle title = BannerKingsConfig.Instance.TitleManager.GetTitle(settlement);
                     if (title != null) result = title.FullName;
-
                 }
             }
 

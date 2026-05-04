@@ -79,7 +79,6 @@ namespace BannerKings.Behaviours
                         float workshopCost = BannerKingsConfig.Instance.WorkshopModel.GetCostForPlayer(random);
                         if (ShouldHaveWorkshop(lord, (int)workshopCost))
                         {
-
                             if (random.Owner == Hero.MainHero)
                             {
                                 InformationManager.ShowInquiry(new InquiryData(new TextObject("{=HGHxECuY}Workshop Acquisition").ToString(),

@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using TaleWorlds.CampaignSystem;
 using TaleWorlds.Localization;
@@ -24,7 +24,6 @@ namespace BannerKings.Managers.Dynasties
                 },
                 new List<Legacy>()
                 {
-
                 });
         }
 

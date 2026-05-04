@@ -39,7 +39,6 @@ namespace BannerKings.Managers.Kingdoms.Contract
         }
 
         public override Clan DetermineChooser() => Kingdom.RulingClan;
-        
 
         public override IEnumerable<DecisionOutcome> DetermineInitialCandidates()
         {
@@ -51,9 +50,9 @@ namespace BannerKings.Managers.Kingdoms.Contract
         {
             var outcome = possibleOutcome as DemesneLawDecisionOutcome;
 
-            float egalitatian = 0.6f * (float)clan.Leader.GetTraitLevel(DefaultTraits.Egalitarian) - 0.9f * (float)clan.Leader.GetTraitLevel(DefaultTraits.Oligarchic);
-            float oligarchic = 0.6f * (float)clan.Leader.GetTraitLevel(DefaultTraits.Oligarchic) - 0.9f * (float)clan.Leader.GetTraitLevel(DefaultTraits.Egalitarian) - 0.5f * (float)clan.Leader.GetTraitLevel(DefaultTraits.Authoritarian);
-            float authoritarian = 0.8f * (float)clan.Leader.GetTraitLevel(DefaultTraits.Authoritarian) - 1.3f * (float)clan.Leader.GetTraitLevel(DefaultTraits.Oligarchic);
+            float egalitatian = (0.6f * (float)clan.Leader.GetTraitLevel(DefaultTraits.Egalitarian)) - (0.9f * (float)clan.Leader.GetTraitLevel(DefaultTraits.Oligarchic));
+            float oligarchic = (0.6f * (float)clan.Leader.GetTraitLevel(DefaultTraits.Oligarchic)) - (0.9f * (float)clan.Leader.GetTraitLevel(DefaultTraits.Egalitarian)) - (0.5f * (float)clan.Leader.GetTraitLevel(DefaultTraits.Authoritarian));
+            float authoritarian = (0.8f * (float)clan.Leader.GetTraitLevel(DefaultTraits.Authoritarian)) - (1.3f * (float)clan.Leader.GetTraitLevel(DefaultTraits.Oligarchic));
             
             if (clan.Kingdom.RulingClan == clan)
             {
@@ -66,7 +65,6 @@ namespace BannerKings.Managers.Kingdoms.Contract
             {
                 oligarchic += 0.2f;
             }
-
 
             if (clan.Tier <= 2)
             {
@@ -86,11 +84,10 @@ namespace BannerKings.Managers.Kingdoms.Contract
                 authoritarian += 0.5f;
                 egalitatian -= 0.6f;
             }
-            
-            
-            float support = outcome.Law.EgalitarianWeight * egalitatian + 
-                outcome.Law.OligarchicWeight * oligarchic + 
-                outcome.Law.AuthoritarianWeight * authoritarian;
+
+            float support = (outcome.Law.EgalitarianWeight * egalitatian) + 
+                (outcome.Law.OligarchicWeight * oligarchic) + 
+                (outcome.Law.AuthoritarianWeight * authoritarian);
 
             return support * 100;
         }
@@ -101,7 +98,6 @@ namespace BannerKings.Managers.Kingdoms.Contract
             textObject.SetTextVariable("KINGDOM", Kingdom.Name);
             return textObject;
         }
-
 
         public override TextObject GetChosenOutcomeText(DecisionOutcome chosenOutcome, SupportStatus supportStatus,
             bool isShortVersion = false)
@@ -138,7 +134,6 @@ namespace BannerKings.Managers.Kingdoms.Contract
                 {
                     decisionOutcome.SetSponsor(ProposerClan);
                 }
-
                 else
                 {
                     AssignDefaultSponsor(decisionOutcome);
@@ -148,7 +143,6 @@ namespace BannerKings.Managers.Kingdoms.Contract
 
         public override void ApplySecondaryEffects(MBReadOnlyList<DecisionOutcome> possibleOutcomes, DecisionOutcome chosenOutcome)
         {
-
         }
 
         public override DecisionOutcome GetQueriedDecisionOutcome(MBReadOnlyList<DecisionOutcome> possibleOutcomes)
@@ -164,7 +158,6 @@ namespace BannerKings.Managers.Kingdoms.Contract
             [SaveableProperty(200)] public DemesneLaw Law { get; set; }
             [SaveableProperty(201)] public bool Current { get; set; }
 
-
             public override TextObject GetDecisionTitle() => Law.Name;
 
             public override TextObject GetDecisionDescription()
@@ -178,7 +171,6 @@ namespace BannerKings.Managers.Kingdoms.Contract
                 return new TextObject("{=H5yaNxnY}We support the enactment of the demesne law {LAW}")
                     .SetTextVariable("LAW", Law.Name);
             }
-            
 
             public override string GetDecisionLink()
             {

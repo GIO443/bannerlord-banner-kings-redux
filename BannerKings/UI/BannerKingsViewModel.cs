@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using BannerKings.Managers.Policies;
 using BannerKings.Managers.Populations;
 using BannerKings.UI.Items;
@@ -22,7 +22,6 @@ namespace BannerKings.UI
 
         [DataSourceProperty] public bool IsVillage => data != null && data.Settlement.IsVillage;
 
-
         [DataSourceProperty]
         public bool IsSelected
         {
@@ -44,7 +43,6 @@ namespace BannerKings.UI
 
         protected string FormatFloatGainPercentage(float value)
         {
-
             string formatted = (value * 100f).ToString("0.00") + '%';
             if (value > 0f)
             {
@@ -56,7 +54,6 @@ namespace BannerKings.UI
 
         protected string FormatFloatGain(float value)
         {
-
             string formatted = value.ToString("0.00");
             if (value > 0f)
             {
@@ -87,7 +84,6 @@ namespace BannerKings.UI
                 selector.AddItem(item);
                 i++;
             }
-
 
             return selector;
         }

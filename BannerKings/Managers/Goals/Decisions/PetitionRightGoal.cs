@@ -1,4 +1,4 @@
-﻿using System.Collections.Generic;
+using System.Collections.Generic;
 using TaleWorlds.CampaignSystem.Actions;
 using TaleWorlds.CampaignSystem;
 using TaleWorlds.Core;
@@ -105,7 +105,7 @@ namespace BannerKings.Managers.Goals.Decisions
                     .ToString(),
                     null,
                     canFulfill && accept.ResultNumber >= 1f ,
-                    hint.ToString()));;
+                    hint.ToString()));
             }
 
             MBInformationManager.ShowMultiSelectionInquiry(new MultiSelectionInquiryData(

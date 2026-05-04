@@ -92,7 +92,7 @@ namespace BannerKings.Models.BKModels
             foreach (var notable in settlement.Notables)
             {
                 var powerShare = notable.Power / totalPower;
-                var relation = notable.GetRelation(settlement.OwnerClan.Leader) * 0.01f + 0.5f;
+                var relation = (notable.GetRelation(settlement.OwnerClan.Leader) * 0.01f) + 0.5f;
                 result.Add(relation * powerShare, notable.Name);
             }
 
@@ -242,7 +242,6 @@ namespace BannerKings.Models.BKModels
                     result.Add(1f, BKPerks.Instance.AugustKingOfKings.Name);
                 }
             }
-
 
             return result;
         }

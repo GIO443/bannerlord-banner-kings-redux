@@ -1,4 +1,4 @@
-﻿using Helpers;
+using Helpers;
 using BannerKings.Behaviours.Diplomacy;
 using BannerKings.Behaviours.Diplomacy.Wars;
 using BannerKings.Extensions;
@@ -193,7 +193,7 @@ namespace BannerKings.Models.Vanilla
             foreach (Clan clan in kingdom.Clans)
                 commanders += clan.CommanderLimit;
 
-            float baseResult = (kingdom.Fiefs.Count * 4f) - (kingdom.Fiefs.Count * commanders) * 12f;
+            float baseResult = (kingdom.Fiefs.Count * 4f) - ((kingdom.Fiefs.Count * commanders) * 12f);
             ExplainedNumber result = new ExplainedNumber(MathF.Max(baseResult, 0f), 
                 explanations,
                 new TextObject("{=!}{KINGDOM} needs more fighting forces").SetTextVariable("KINGDOM", kingdom.Name));
@@ -250,13 +250,13 @@ namespace BannerKings.Models.Vanilla
                     if (stance == FaithStance.Tolerated)
                     {
                         if (mercenaryClan.IsSect && rulerReligion.Faith.Equals(mercenaryReligion.Faith))
-                            result.Add(baseNumber * (1f * zealotry) + 15f, new TextObject("{=!}Shared faith (Sect)"));
-                        else result.Add(baseNumber * (0.25f * zealotry) + 15f, new TextObject("{=Pcy4iFnT}Shared faith"));
+                            result.Add((baseNumber * (1f * zealotry)) + 15f, new TextObject("{=!}Shared faith (Sect)"));
+                        else result.Add((baseNumber * (0.25f * zealotry)) + 15f, new TextObject("{=Pcy4iFnT}Shared faith"));
                     }
-                    else if (stance == FaithStance.Untolerated) result.Add(baseNumber * (-0.3f * zealotry) - 25f, new TextObject("{=!}Faith differences"));
-                    else result.Add(baseNumber * (-0.5f * zealotry) - 60f, new TextObject("{=!}Faith differences"));
+                    else if (stance == FaithStance.Untolerated) result.Add((baseNumber * (-0.3f * zealotry)) - 25f, new TextObject("{=!}Faith differences"));
+                    else result.Add((baseNumber * (-0.5f * zealotry)) - 60f, new TextObject("{=!}Faith differences"));
                 }
-                else result.Add(baseNumber * (-0.3f * zealotry) - 25f, new TextObject("{=!}Faith differences"));
+                else result.Add((baseNumber * (-0.3f * zealotry)) - 25f, new TextObject("{=!}Faith differences"));
             }
 
             if (mercenaryClan.Culture == kingdom.Culture) result.Add(baseNumber * 0.2f, GameTexts.FindText("str_culture"));
@@ -410,7 +410,7 @@ namespace BannerKings.Models.Vanilla
         public override ExplainedNumber MercenaryLeaveScore(Clan mercenaryClan, Kingdom kingdom, bool explanations = false)
         {
             float num = 0.005f * MathF.Min(200f, mercenaryClan.LastFactionChangeTime.ElapsedDaysUntilNow);
-            ExplainedNumber result = new ExplainedNumber(10000f * num - 5000f, explanations);
+            ExplainedNumber result = new ExplainedNumber((10000f * num) - 5000f, explanations);
             MercenaryCareer career = TaleWorlds.CampaignSystem.Campaign.Current.GetCampaignBehavior<BKMercenaryCareerBehavior>()
                 .GetCareer(mercenaryClan);
 
@@ -914,7 +914,6 @@ namespace BannerKings.Models.Vanilla
                     .SetTextVariable("FACTION", factionDeclaredWar.Name));
             }*/
 
-
             if (factionDeclaresWar.Fiefs.Count == 1 || factionDeclaredWar.CurrentTotalStrength >= factionDeclaresWar.CurrentTotalStrength * 1.4f)
             {
                 result.Add(-MathF.Abs(baseNumber) * 1.2f, new TextObject("{=fvd0nAa3}Defensive stance against {FACTION}")
@@ -1096,7 +1095,7 @@ namespace BannerKings.Models.Vanilla
         private WarStats CalculateWarStats(IFaction faction, IFaction targetFaction)
         {
             Clan rulingClan = faction.IsClan ? (faction as Clan) : (faction as Kingdom).RulingClan;
-            float valueOfSettlements = faction.Fiefs.Sum((Town f) => (float)(f.IsTown ? 2000 : 1000) + f.Prosperity * 0.33f) * 50f;
+            float valueOfSettlements = faction.Fiefs.Sum((Town f) => (float)(f.IsTown ? 2000 : 1000) + (f.Prosperity * 0.33f)) * 50f;
             float enemyStrength = 0f;
             foreach (StanceLink stanceLink in BannerKings.Utils.Helpers.GetFactionStances(faction))
             {

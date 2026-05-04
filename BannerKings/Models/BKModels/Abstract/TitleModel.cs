@@ -1,4 +1,4 @@
-﻿using BannerKings.Managers.Titles;
+using BannerKings.Managers.Titles;
 using BannerKings.Managers.Titles.Governments;
 using System.Collections.Generic;
 using System.Linq;
@@ -75,7 +75,7 @@ namespace BannerKings.Models.BKModels.Abstract
         public HashSet<Hero> GetSuccessionCandidates(Hero currentLeader, FeudalTitle title)
         {
             Succession succession = title.Contract.Succession;
-            return succession.GetSuccessionCandidates(currentLeader, title); ;
+            return succession.GetSuccessionCandidates(currentLeader, title);
         }
 
         public List<Hero> GetInheritanceCandidates(Hero currentLeader)

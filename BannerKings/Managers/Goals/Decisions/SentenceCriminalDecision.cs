@@ -34,7 +34,6 @@ namespace BannerKings.Managers.Goals.Decisions
 
         public override void DoAiDecision()
         {
-
         }
 
         public override void ApplyGoal()

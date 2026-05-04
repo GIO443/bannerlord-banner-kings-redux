@@ -1,4 +1,4 @@
-﻿using System.Collections.Generic;
+using System.Collections.Generic;
 using System.Linq;
 using TaleWorlds.CampaignSystem;
 using TaleWorlds.CampaignSystem.Actions;
@@ -140,8 +140,8 @@ namespace BannerKings.Managers.Goals.Decisions
             var cultureOptions = new List<InquiryElement>();
             foreach (var culture in TaleWorlds.CampaignSystem.Campaign.Current.ObjectManager.GetObjectTypeList<CultureObject>())
             {
-                if (culture.NotableTemplates != null && culture.NotableTemplates.Count > 0 ||
-                    culture.CanHaveSettlement && !culture.IsBandit && culture.IsMainCulture)
+                if ((culture.NotableTemplates != null && culture.NotableTemplates.Count > 0) ||
+                    (culture.CanHaveSettlement && !culture.IsBandit && culture.IsMainCulture))
                 {
                     cultureOptions.Add(new InquiryElement(culture,
                         culture.Name.ToString(),

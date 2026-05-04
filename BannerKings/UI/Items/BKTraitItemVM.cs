@@ -55,7 +55,6 @@ namespace BannerKings.UI.Items
             }
         }
 
-
         [DataSourceProperty]
         public HintViewModel Hint
         {

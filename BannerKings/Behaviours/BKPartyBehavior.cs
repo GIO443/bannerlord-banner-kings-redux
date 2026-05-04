@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using BannerKings.Components;
@@ -83,7 +83,7 @@ namespace BannerKings.Behaviours
 
             if (settlement.Town == null) return;
 
-            float space = mobileParty.InventoryCapacity * 0.8f - mobileParty.TotalWeightCarried;
+            float space = (mobileParty.InventoryCapacity * 0.8f) - mobileParty.TotalWeightCarried;
             if (space > 5f)
             {
                 // Snapshot — settlement.Party.ItemRoster is the same instance
@@ -740,7 +740,6 @@ namespace BannerKings.Behaviours
 
                 travelCache[origin] = list;
             }
-            
 
             return list;
         }
@@ -836,7 +835,6 @@ namespace BannerKings.Behaviours
             starter.AddDialogLine("traveller_noble_party_start", "start", "traveller_party_greeting",
                 "{=eetBXdvK}Yes? Please do not interfere with our caravan.",
                 traveller_noble_start_on_condition, null);
-
 
             starter.AddPlayerLine("traveller_party_loot", "traveller_party_greeting", "close_window",
                 new TextObject("{=dOcj05n6}Whatever you have, I'm taking it. Surrender or die!").ToString(),

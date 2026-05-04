@@ -163,7 +163,6 @@ namespace BannerKings.UI
             }
         }
 
-
         [HarmonyPatch(typeof(SettlementGovernorSelectionVM))]
         internal class AvailableGovernorsPatch
         {
@@ -295,7 +294,6 @@ namespace BannerKings.UI
             {
                 if (__instance.Character != null && !__instance.PlayerHasEnoughRelation)
                 {
-                   
                     InformationManager.ShowTooltip(typeof(List<TooltipProperty>), new object[]
                     {
                         UIHelper.GetRecruitToolTip(__instance.Character, __instance.Owner.OwnerHero, 
@@ -354,7 +352,6 @@ namespace BannerKings.UI
                 var select = __instance.GetType()
                     .GetMethod("OnPolicySelect", BindingFlags.Instance | BindingFlags.NonPublic);
 
-
                 if (title.Contract == null)
                 {
                     return;
@@ -411,7 +408,6 @@ namespace BannerKings.UI
                 __instance.VisualCode = code;
             }
         }
-
 
         [HarmonyPatch(typeof(RecruitmentVM), "OnDone")]
         internal class RecruitmentOnDonePatch
@@ -507,7 +503,6 @@ namespace BannerKings.UI
             }
         }
 
-
         [HarmonyPatch(typeof(EducationGainedPropertiesVM), MethodType.Constructor, typeof(Hero), typeof(int))]
         internal class EducationGainedPropertiesVMConstructorPatch
         {
@@ -597,10 +592,8 @@ namespace BannerKings.UI
                     MBInformationManager.AddQuickInformation(reason, 0);
                 }
 
-              
                 return canCreate;
             }
         }
-
     }
 }

@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using BannerKings.Managers.Buildings;
@@ -369,7 +369,7 @@ namespace BannerKings.Models.Vanilla
                     var garrisonNumber = town.GarrisonParty.Party.NumberOfAllMembers;
                     if (garrisonNumber > 0)
                     {
-                        var garrisonResult = garrisonNumber * (town.Security * 0.01f - 0.49f) * 0.1f;
+                        var garrisonResult = garrisonNumber * ((town.Security * 0.01f) - 0.49f) * 0.1f;
                         result.Add(garrisonResult, new TextObject("Idle garrison"));
                     }
                 }
@@ -406,7 +406,6 @@ namespace BannerKings.Models.Vanilla
                             result.AddFactor(DefaultPerks.Engineering.MilitaryPlanner.SecondaryBonus,
                                 DefaultPerks.Engineering.MilitaryPlanner.Name);
                         }
-
                         else if (town.IsTown && town.Governor.GetPerkValue(DefaultPerks.Engineering.Carpenters))
                         {
                             result.AddFactor(DefaultPerks.Engineering.Carpenters.SecondaryBonus,

@@ -1,10 +1,9 @@
-﻿using TaleWorlds.Localization;
+using TaleWorlds.Localization;
 
 namespace BannerKings.Settings
 {
     public class SettingsOption : BannerKingsObject
     {
-
         public SettingsOption(string id, TextObject name) : base(id)
         {
             Initialize(name, null);
@@ -19,6 +18,5 @@ namespace BannerKings.Settings
             return base.Equals(obj);
         }
         public override string ToString() => Name.ToString();
-        
     }
 }

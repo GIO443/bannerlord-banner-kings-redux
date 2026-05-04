@@ -1,4 +1,4 @@
-﻿using HarmonyLib;
+using HarmonyLib;
 using TaleWorlds.CampaignSystem.CampaignBehaviors;
 using TaleWorlds.CampaignSystem;
 
@@ -6,7 +6,6 @@ namespace BannerKings.Patches
 {
     internal class ReligionPatches
     {
-
         [HarmonyPatch(typeof(LordConversationsCampaignBehavior), "conversation_puritan_preacher_introduction_on_condition")]
         internal class PuritanPreacherPatch
         {

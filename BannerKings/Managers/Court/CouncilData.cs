@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using BannerKings.Extensions;
@@ -90,7 +90,6 @@ namespace BannerKings.Managers.Court
         [SaveableProperty(5)] public List<CouncilMember> Positions { get; private set; }
         [SaveableProperty(4)] public Peerage Peerage { get; private set; }
         [SaveableProperty(6)] public CourtGrace CourtGrace { get; private set; }
-
 
         public void SetCourtLocation(Town town, bool notify = true)
         {
@@ -328,7 +327,7 @@ namespace BannerKings.Managers.Court
                 if (position.IsValidCandidate(hero).Item1)
                 {
                     list.Add((hero, GetCompetence(hero, position) +
-                        Clan.Leader.GetRelation(hero) * 0.001f));
+                        (Clan.Leader.GetRelation(hero) * 0.001f)));
                 }
             }
 

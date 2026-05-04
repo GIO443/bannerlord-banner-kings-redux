@@ -1,4 +1,4 @@
-﻿using System.Collections.Generic;
+using System.Collections.Generic;
 using TaleWorlds.CampaignSystem;
 using TaleWorlds.CampaignSystem.Settlements;
 using TaleWorlds.ObjectSystem;
@@ -32,7 +32,6 @@ namespace BannerKings.Behaviors.Invasions
 
         public void StartInvasion()
         {
-
         }
     }
 }

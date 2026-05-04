@@ -1,4 +1,4 @@
-﻿using System.Collections.Generic;
+using System.Collections.Generic;
 using BannerKings.Behaviours.Criminality;
 using BannerKings.Behaviours.Diplomacy;
 using BannerKings.Behaviours.Diplomacy.Groups;
@@ -201,7 +201,6 @@ namespace BannerKings
             AddClassDefinition(typeof(CourtGrace), 142);
             AddClassDefinition(typeof(CourtExpense), 143);
 
-            
             AddClassDefinition(typeof(Era), 145);
           
             AddClassDefinition(typeof(Government), 147);

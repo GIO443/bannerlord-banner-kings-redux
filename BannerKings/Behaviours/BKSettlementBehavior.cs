@@ -582,7 +582,6 @@ namespace BannerKings.Behaviours
                 }
 
                 if (settlement.Town?.GarrisonParty == null) return;
-                
 
                 Building barracks = settlement.Town.Buildings.FirstOrDefault(x => x.BuildingType.StringId == BKBuildings.Instance.CastleRetinue.StringId);
                 if (barracks != null && barracks.CurrentLevel > 0)

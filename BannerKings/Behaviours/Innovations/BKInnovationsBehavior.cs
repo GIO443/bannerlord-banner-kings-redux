@@ -1,4 +1,4 @@
-﻿using BannerKings.Managers.Innovations;
+using BannerKings.Managers.Innovations;
 using TaleWorlds.CampaignSystem;
 
 namespace BannerKings.Behaviours.Innovations
@@ -34,7 +34,6 @@ namespace BannerKings.Behaviours.Innovations
 
         private void OnGameLoaded(CampaignGameStarter campaignGameStarter)
         {
-
         }
     }
 }

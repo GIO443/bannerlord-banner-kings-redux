@@ -72,7 +72,6 @@ namespace BannerKings.Managers.Kingdoms.Council
             }
         }
 
-
         public override IEnumerable<DecisionOutcome> DetermineInitialCandidates()
         {
             foreach (var hero in Data.GetCourtMembers())

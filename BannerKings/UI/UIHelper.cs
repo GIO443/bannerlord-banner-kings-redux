@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using BannerKings.Behaviours.PartyNeeds;
@@ -791,7 +791,7 @@ namespace BannerKings.UI
                 .SetTextVariable("CURRENT", MBRandom.RoundRandomized(supplies.AnimalProductsNeed).ToString())
                 .SetTextVariable("RATE", FormatFloatGain(supplies.GetAnimalProductsCurrentNeed().ResultNumber))
                 .ToString(),
-                0));;
+                0));
         }
 
         public static void AddWageSuppliesHint(ref List<TooltipProperty> list, PartySupplies supplies)

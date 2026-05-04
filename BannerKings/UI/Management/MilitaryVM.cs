@@ -148,7 +148,6 @@ namespace BannerKings.UI.Management
             }
         }
 
-
         [DataSourceProperty]
         public MBBindingList<InformationElement> DefenseInfo
         {
@@ -332,7 +331,6 @@ namespace BannerKings.UI.Management
                 GarrisonSelector = GetSelector(garrisonItem, garrisonItem.OnChange);
                 GarrisonSelector.SelectedIndex = garrisonItem.Selected;
                 GarrisonSelector.SetOnChangeAction(garrisonItem.OnChange);
-
 
                 var rationDecision = decisions.FirstOrDefault(x => x.GetIdentifier() == "decision_ration");
 

@@ -47,7 +47,6 @@ namespace BannerKings.Behaviours
             if (miningRevenues == null)
             {
                 miningRevenues = new Dictionary<Town, int>();
-                
             }
 
             if (materialExpenses == null)
@@ -355,7 +354,7 @@ namespace BannerKings.Behaviours
 
                 var data = BannerKingsConfig.Instance.PopulationManager.GetPopData(town.Settlement);
                 var pastures = data.LandData.Pastureland;
-                var horseLimit = (pastures / 10000f) + studs.CurrentLevel * 2f;
+                var horseLimit = (pastures / 10000f) + (studs.CurrentLevel * 2f);
                 var currentHorses = 0;
 
                 foreach (var element in town.Settlement.Stash)
@@ -372,7 +371,6 @@ namespace BannerKings.Behaviours
                         .FirstOrDefault(x => x.ItemCategory == DefaultItemCategories.WarHorse && x.Culture == town.Culture);
                     town.Settlement.Stash.AddToCounts(horse, 1);
                 }
-
             }, GetType().Name);
         }
 

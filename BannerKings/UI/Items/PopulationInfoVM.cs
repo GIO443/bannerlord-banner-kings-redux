@@ -20,7 +20,6 @@ namespace BannerKings.UI.Items
 
             private HintViewModel _hint { get; set; }
 
-
             [DataSourceProperty]
             public string Name
             {

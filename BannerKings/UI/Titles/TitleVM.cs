@@ -157,7 +157,6 @@ namespace BannerKings.UI.Titles
             }
         }
 
-
         [DataSourceProperty]
         public BasicTooltipViewModel Hint
         {

@@ -186,7 +186,6 @@ namespace BannerKings.UI.Management
                     .SetTextVariable("EXPLANATIONS", presence.GetExplanations())
                     .ToString()));
 
-
                 var acceptanceGain = heroCulture.AcceptanceGain;
                 CultureInfo.Add(new InformationElement(new TextObject("{=qKsaiPd0}Acceptance Gain:").ToString(),
                     FormatFloatGainPercentage(acceptanceGain.ResultNumber),

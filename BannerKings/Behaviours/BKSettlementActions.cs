@@ -377,7 +377,6 @@ namespace BannerKings.Behaviours
                 MenuGuildCondition,
                 MenuGuildManageConsequence);
 
-
             campaignGameStarter.AddGameMenuOption("bannerkings", "bannerkings_action", "{=NtkWYD54}Take an action",
                 delegate (MenuCallbackArgs args)
                 {
@@ -713,7 +712,6 @@ namespace BannerKings.Behaviours
             var progress = args.MenuContext.GameMenu.Progress;
             var diff = (int)actionStart.ElapsedHoursUntilNow;
 
-
             if (diff > 0)
             {
                 args.MenuContext.GameMenu.SetProgressOfWaitingInMenu(diff / totalHours);
@@ -738,7 +736,7 @@ namespace BannerKings.Behaviours
                 args.MenuContext.GameMenu.SetProgressOfWaitingInMenu(diff * 0.250f);
                 if (args.MenuContext.GameMenu.Progress != progress)
                 {
-                    var chance = Hero.MainHero.GetSkillValue(DefaultSkills.Charm) * 0.05f + 15f;
+                    var chance = (Hero.MainHero.GetSkillValue(DefaultSkills.Charm) * 0.05f) + 15f;
                     var random = MBRandom.RandomFloatRanged(1f, 100f);
                     if (random <= chance)
                     {
@@ -995,7 +993,6 @@ namespace BannerKings.Behaviours
                     .SetTextVariable("NAME", tuple.Item2)
                     .SetTextVariable("GOLD", cost);
 
-
                 elements.Add(new InquiryElement(roster, tuple.Item2.ToString(), identifier,
                     Hero.MainHero.Gold >= cost, hint.ToString()));
             }
@@ -1058,7 +1055,6 @@ namespace BannerKings.Behaviours
             args.MenuContext.GameMenu.SetProgressOfWaitingInMenu(0f);
             GameMenu.SwitchToMenu("bannerkings");
         }
-
 
         private static void MenuEstatesManageConsequence(MenuCallbackArgs args)
         {

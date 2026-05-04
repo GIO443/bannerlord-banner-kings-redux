@@ -111,8 +111,8 @@ namespace BannerKings.Models.BKModels
         {
             var foundAction = new TitleAction(ActionType.Found, null, founder)
             {
-                Gold = 500000 + BannerKingsConfig.Instance.ClanFinanceModel.CalculateClanIncome(founder.Clan).ResultNumber * CampaignTime.DaysInYear,
-                Influence = 1000 + BannerKingsConfig.Instance.InfluenceModel.CalculateInfluenceChange(founder.Clan).ResultNumber * CampaignTime.DaysInYear * 0.1f,
+                Gold = 500000 + (BannerKingsConfig.Instance.ClanFinanceModel.CalculateClanIncome(founder.Clan).ResultNumber * CampaignTime.DaysInYear),
+                Influence = 1000 + (BannerKingsConfig.Instance.InfluenceModel.CalculateInfluenceChange(founder.Clan).ResultNumber * CampaignTime.DaysInYear * 0.1f),
                 Renown = 100
             };
 
@@ -177,8 +177,8 @@ namespace BannerKings.Models.BKModels
         {
             var foundAction = new TitleAction(ActionType.Found, null, founder)
             {
-                Gold = 500000 + BannerKingsConfig.Instance.ClanFinanceModel.CalculateClanIncome(founder.Clan).ResultNumber * CampaignTime.DaysInYear,
-                Influence = 1000 + BannerKingsConfig.Instance.InfluenceModel.CalculateInfluenceChange(founder.Clan).ResultNumber * CampaignTime.DaysInYear * 0.1f,
+                Gold = 500000 + (BannerKingsConfig.Instance.ClanFinanceModel.CalculateClanIncome(founder.Clan).ResultNumber * CampaignTime.DaysInYear),
+                Influence = 1000 + (BannerKingsConfig.Instance.InfluenceModel.CalculateInfluenceChange(founder.Clan).ResultNumber * CampaignTime.DaysInYear * 0.1f),
                 Renown = 100
             };
 
@@ -399,7 +399,6 @@ namespace BannerKings.Models.BKModels
 
             revokeAction.Influence = GetInfluenceUsurpCost(title) * 0.8f;
             revokeAction.Renown = GetRenownUsurpCost(title) * 0.6f;
-
 
             if (title.deJure == null)
             {

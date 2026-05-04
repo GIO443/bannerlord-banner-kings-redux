@@ -99,7 +99,6 @@ namespace BannerKings.Managers.Helpers
             return inheritanceDic;
         }
 
-
         private static Hero GetHeirInternal(Hero victim, FeudalContract contract)
         {
             Hero heir = null;

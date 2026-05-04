@@ -315,7 +315,6 @@ namespace BannerKings.Models.Vanilla
         public override ExplainedNumber CalculateTradePower(Settlement settlement, bool descriptions = false) =>
             CalculateTradePower(settlement.PopulationData(), descriptions);
 
-
         public override float CalculatePopulationConsumptionDemand(ConsumptionType type, PopType population)
         {
             if (type == ConsumptionType.Food) return 0.1f;

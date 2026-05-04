@@ -1,4 +1,4 @@
-﻿using BannerKings.Behaviours.Diplomacy.Groups.Demands;
+using BannerKings.Behaviours.Diplomacy.Groups.Demands;
 using BannerKings.Utils.Models;
 using Helpers;
 using System.Collections.Generic;
@@ -161,8 +161,8 @@ namespace BannerKings.Behaviours.Diplomacy.Wars
         }
 
         public bool IsInternalWar() => Attacker.IsClan && Defender.IsClan && Sovereign != null;
-        public bool IsMatchingWar(IFaction faction1, IFaction faction2) => faction1 == Attacker && faction2 == Defender ||
-            faction2 == Attacker && faction1 == Defender;
+        public bool IsMatchingWar(IFaction faction1, IFaction faction2) => (faction1 == Attacker && faction2 == Defender) ||
+            (faction2 == Attacker && faction1 == Defender);
 
         public void Update()
         {
@@ -177,7 +177,6 @@ namespace BannerKings.Behaviours.Diplomacy.Wars
 
             if (StartDate == default(CampaignTime)) StartDate = CampaignTime.Now;
 
-          
             if (Attacker is Kingdom)
             {
                 float fatigue = BannerKingsConfig.Instance.WarModel.CalculateFatigue(this, Attacker).ResultNumber;

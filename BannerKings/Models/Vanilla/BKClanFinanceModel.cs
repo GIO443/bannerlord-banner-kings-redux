@@ -256,7 +256,6 @@ namespace BannerKings.Models.Vanilla
                 result.Add(taxes, new TextObject("{=L0Dwod0e}Council wages"));
             }
 
-
             var suzerain = BannerKingsConfig.Instance.TitleManager.CalculateHeroSuzerain(clan.Leader);
             if (suzerain == null || suzerain.deJure == null)
             {
@@ -279,7 +278,6 @@ namespace BannerKings.Models.Vanilla
             {
                 var amount = dictionary[clan].Aggregate(0f, (current, title) => current + (int)title.DueTax);
                 result.Add(-amount, new TextObject("{=rU692V1m}Taxes to {SUZERAIN}").SetTextVariable("SUZERAIN", suzerain.deJure.Name));
-
             }
         }
     }

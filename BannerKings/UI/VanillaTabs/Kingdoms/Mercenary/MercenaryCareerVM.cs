@@ -1,4 +1,4 @@
-﻿using BannerKings.Behaviours.Mercenary;
+using BannerKings.Behaviours.Mercenary;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -93,7 +93,6 @@ namespace BannerKings.UI.VanillaTabs.Kingdoms.Mercenary
 
                 LevyVisible = false;
                 ProfessionalVisible = false;
-
 
                 var privilegesList = Career.GetPrivileges(Career.Kingdom);
                 foreach (var privilege in privilegesList)

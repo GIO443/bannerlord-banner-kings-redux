@@ -165,7 +165,6 @@ namespace BannerKings.Models.Vanilla
             var rulingClan2 = kingdom2.RulingClan;
             // Alliances removed in 1.3.x; clanStance.IsAllied no longer exists
 
-
             var diplomacy = TaleWorlds.CampaignSystem.Campaign.Current.GetCampaignBehavior<BKDiplomacyBehavior>().GetKingdomDiplomacy(kingdom1);
             if (diplomacy != null && diplomacy.HasValidTruce(kingdom2))
             {

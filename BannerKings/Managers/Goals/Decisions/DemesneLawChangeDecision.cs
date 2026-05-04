@@ -64,7 +64,6 @@ namespace BannerKings.Managers.Goals.Decisions
                 failedReasons.Add(new TextObject("{=nsQZHLQf}A contract-altering proposal is already being voted on."));
             }
 
-
             return failedReasons.IsEmpty();
         }
 
@@ -103,7 +102,6 @@ namespace BannerKings.Managers.Goals.Decisions
             {
                 elements.Add(new InquiryElement(option, option.Name.ToString(), null, option.Enabled, option.Description.ToString()));
             }
-
 
             MBInformationManager.ShowMultiSelectionInquiry(new MultiSelectionInquiryData(
                 new TextObject("{=1z57WDgP}Demesne Law Change").ToString(),
@@ -167,7 +165,6 @@ namespace BannerKings.Managers.Goals.Decisions
                     {
                         Decision.UpdateDecision((DemesneLaw)x[0].Identifier);
                         Clan.PlayerClan.Kingdom.AddDecision(Decision, false);
-                        
                     }, null, string.Empty));
             }
         }

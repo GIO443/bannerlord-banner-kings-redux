@@ -197,7 +197,6 @@ namespace BannerKings.Models.BKModels
             return result;
         }
 
-
         public float GetNotableFactor(Hero notable, Settlement settlement)
         {
             var totalPower = 0f;
@@ -208,7 +207,6 @@ namespace BannerKings.Models.BKModels
 
             return (settlement.Notables.Count * 15f) * (notable.Power / totalPower);
         }
-
 
         public override ExplainedNumber CalculateEffect(Settlement settlement, CultureDataClass data)
         {
@@ -271,7 +269,6 @@ namespace BannerKings.Models.BKModels
                 {
                     result.Add(-0.005f, new TextObject("{=HuoR2sGE}Over limit"));
                 }
-
                 else
                 {
                     return result;
@@ -294,7 +291,6 @@ namespace BannerKings.Models.BKModels
                     result.Add(assimChange);
                 }
             }
-
 
             return result;
         }

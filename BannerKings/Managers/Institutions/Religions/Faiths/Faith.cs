@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using BannerKings.Managers.Institutions.Religions.Doctrines;
 using BannerKings.Managers.Institutions.Religions.Doctrines.Marriage;
@@ -95,7 +95,6 @@ namespace BannerKings.Managers.Institutions.Religions.Faiths
         }
 
         public void AddPreset(int rank, CharacterObject preset) => presets[rank] = preset;
-            
 
         public CharacterObject GetPreset(int rank)
         {

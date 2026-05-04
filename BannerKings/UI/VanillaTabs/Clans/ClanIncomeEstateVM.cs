@@ -110,7 +110,7 @@ namespace BannerKings.UI.VanillaTabs.Clans
                         sb.AppendLine();
                     }
                     sb.AppendLine($"Estimated steady-state daily payout: {estDaily} denar");
-                    sb.AppendLine($"  effective acres = {(Estate.Farmland + Estate.Pastureland * 0.5f + Estate.Woodland * 0.15f):0.0}");
+                    sb.AppendLine($"  effective acres = {(Estate.Farmland + (Estate.Pastureland * 0.5f) + (Estate.Woodland * 0.15f)):0.0}");
                     sb.AppendLine($"  workforce saturation = {(Estate.WorkforceSaturation * 100f):0}%");
                     sb.AppendLine($"  keep rate after tax = {((1f - Estate.TaxRatio.ResultNumber) * 100f):0}%");
                     sb.AppendLine();
@@ -165,7 +165,6 @@ namespace BannerKings.UI.VanillaTabs.Clans
                 false,
                 ref price))
                ));
-            
 
             ItemProperties.Add(new SelectableItemPropertyVM(new TextObject("Workforce", null).ToString(),
                (Estate.Population + Estate.Slaves).ToString(),

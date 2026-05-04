@@ -237,7 +237,6 @@ namespace BannerKings.UI.VanillaTabs.Character
             criminalDecisions.Count > 0,
             new TextObject("{=kyB8tkgY}Criminal decisions relate to carrying out sentences or crimes. Captured criminals can be sentenced with a criminal decision.").ToString()));
 
-
             options.Add(new InquiryElement(
             new DecisionCategoryOption(
                 new TextObject("{=8MLr4eSD}Unique"),

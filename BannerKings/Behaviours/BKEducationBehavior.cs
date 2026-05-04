@@ -137,7 +137,6 @@ namespace BannerKings.Behaviours
 
         private void OnDailyTick(Hero hero)
         {
-
             if (hero == null || hero.Culture == null)
             {
                 return;
@@ -145,7 +144,6 @@ namespace BannerKings.Behaviours
 
             BannerKingsConfig.Instance.EducationManager.UpdateHeroData(hero);
             ApplyScholarshipBedTimeStoryEffect(hero);
-
 
             if (hero.IsNotable || hero.IsLord)
             {
@@ -255,7 +253,6 @@ namespace BannerKings.Behaviours
 
                         currentEducation.AddLanguageWithProgress(tuple.Key, tuple.Value);
                     }
-                   
                 }
                 return;
             }
@@ -358,7 +355,6 @@ namespace BannerKings.Behaviours
 
         private void OnGameLoaded(CampaignGameStarter campaignGameStarter)
         {
-           
         }
 
         private void OnSessionLaunched(CampaignGameStarter campaignGameStarter)
@@ -453,7 +449,6 @@ namespace BannerKings.Behaviours
                 }
             }
 
-
             return TaleWorlds.CampaignSystem.Campaign.Current.ConversationManager.CurrentConversationIsFirst && speakslLanguage;
         }
 
@@ -486,7 +481,6 @@ namespace BannerKings.Behaviours
                 hint += Environment.NewLine + new TextObject("{=1c9TOPzH}{GOLD_AMOUNT}{GOLD_ICON}")
                     .SetTextVariable("GOLD_AMOUNT", price)
                 .ToString();
-
 
                 elements.Add(new InquiryElement(book, new TextObject("{=e8KTkKtX}{BOOK} ({LANGUAGE})")
                     .SetTextVariable("BOOK", item.Name)

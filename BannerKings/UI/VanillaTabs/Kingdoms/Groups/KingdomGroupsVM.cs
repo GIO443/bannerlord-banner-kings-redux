@@ -72,7 +72,6 @@ namespace BannerKings.UI.VanillaTabs.Kingdoms.Groups
             CurrentGroup.IsSelected = true;
         }
 
-
         [DataSourceProperty]
         public GroupItemVM CurrentGroup
         {

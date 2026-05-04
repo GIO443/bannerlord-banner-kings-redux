@@ -147,7 +147,6 @@ namespace BannerKings.UI.Management
             }
         }
 
-
         [DataSourceProperty]
         public HeroVM DeJure
         {

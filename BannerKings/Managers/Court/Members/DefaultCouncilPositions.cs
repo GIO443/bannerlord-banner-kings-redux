@@ -620,7 +620,6 @@ namespace BannerKings.Managers.Court.Members
                     var id = member.Culture.StringId;
                     if (member.IsRoyal)
                     {
-
                         if (id == "battania") return new TextObject("{=PkQ9BKTk}Ard Draoidh");
                         if (id == "sturgia") return new TextObject("{=ogAzFznn}Volkhvs");
                         if (id == "aserai") return new TextObject("{=!Murshid");

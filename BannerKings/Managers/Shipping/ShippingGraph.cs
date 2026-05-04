@@ -560,7 +560,6 @@ namespace BannerKings.Managers.Shipping
             }
         }
 
-
         // Dijkstra on the land-only subgraph induced by EdgeKind.Land. Used
         // during Build() to evaluate "could the caravan walk this instead"
         // before adding a sea shortcut. Operates against a partially-built

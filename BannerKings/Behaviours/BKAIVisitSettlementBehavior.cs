@@ -1,4 +1,4 @@
-﻿using Helpers;
+using Helpers;
 using System;
 using System.Collections.Generic;
 using TaleWorlds.CampaignSystem.CampaignBehaviors;
@@ -155,8 +155,8 @@ namespace BannerKings.Behaviours
                 num12 = HeroHelper.StartRecruitingMoneyLimit(leaderHero);
             }
             float num13 = Campaign.Current.GetAverageDistanceBetweenClosestTwoTownsWithNavigationType(MobileParty.NavigationType.Default) * 0.4f;
-            float num14 = (84f + Campaign.Current.GetAverageDistanceBetweenClosestTwoTownsWithNavigationType(MobileParty.NavigationType.Default) * 1.5f) * 0.5f;
-            float num15 = (424f + 7.57f * Campaign.Current.GetAverageDistanceBetweenClosestTwoTownsWithNavigationType(MobileParty.NavigationType.Default)) * 0.5f;
+            float num14 = (84f + (Campaign.Current.GetAverageDistanceBetweenClosestTwoTownsWithNavigationType(MobileParty.NavigationType.Default) * 1.5f)) * 0.5f;
+            float num15 = (424f + (7.57f * Campaign.Current.GetAverageDistanceBetweenClosestTwoTownsWithNavigationType(MobileParty.NavigationType.Default))) * 0.5f;
             foreach (KeyValuePair<ValueTuple<float, int>, Settlement> keyValuePair2 in sortedList)
             {
                 Settlement value2 = keyValuePair2.Value;
@@ -215,9 +215,9 @@ namespace BannerKings.Behaviours
                     {
                         float num28 = (float)((int)(num4 * ((num27 < 1f && value2.IsVillage) ? Campaign.Current.Models.PartyFoodBuyingModel.MinimumDaysFoodToLastWhileBuyingFoodFromVillage : Campaign.Current.Models.PartyFoodBuyingModel.MinimumDaysFoodToLastWhileBuyingFoodFromTown)) + 1);
                         float num29 = 3f - Math.Min(3f, Math.Max(0f, num27 - 1f));
-                        float num30 = num28 + 20f * (float)(value2.IsTown ? 2 : 1) * ((num18 > 100f) ? 1f : (num18 / 100f));
+                        float num30 = num28 + (20f * (float)(value2.IsTown ? 2 : 1) * ((num18 > 100f) ? 1f : (num18 / 100f)));
                         int val = (int)((float)(num5 - 100) / Campaign.Current.Models.PartyFoodBuyingModel.LowCostFoodPriceAverage);
-                        num26 += num29 * num29 * 0.093f * ((num27 < 2f) ? (1f + 0.5f * (2f - num27)) : 1f) * (float)Math.Pow((double)(Math.Min(num30, (float)Math.Min(val, value2.ItemRoster.TotalFood)) / num30), 0.5);
+                        num26 += num29 * num29 * 0.093f * ((num27 < 2f) ? (1f + (0.5f * (2f - num27))) : 1f) * (float)Math.Pow((double)(Math.Min(num30, (float)Math.Min(val, value2.ItemRoster.TotalFood)) / num30), 0.5);
                     }
                     float num31 = 0f;
                     int num32 = 0;
@@ -254,7 +254,7 @@ namespace BannerKings.Behaviours
                     }
                     float num36 = num31 * num19 / MathF.Sqrt((float)(1 + num32 + num33));
                     float num37 = (num36 < 1f) ? num36 : ((float)Math.Pow((double)num36, (double)num2));
-                    float num38 = Math.Max(Math.Min(1f, num26), Math.Max((mapFaction == value2.MapFaction) ? 0.25f : 0.16f, num * Math.Max(1f, Math.Min(2f, num)) * num37 * (1f - 0.9f * num23) * (1f - 0.9f * num23)));
+                    float num38 = Math.Max(Math.Min(1f, num26), Math.Max((mapFaction == value2.MapFaction) ? 0.25f : 0.16f, num * Math.Max(1f, Math.Min(2f, num)) * num37 * (1f - (0.9f * num23)) * (1f - (0.9f * num23))));
                     if (mobileParty.Army != null)
                     {
                         num38 /= (float)mobileParty.Army.LeaderPartyAndAttachedPartiesCount;
@@ -268,7 +268,7 @@ namespace BannerKings.Behaviours
                     float num39 = 1f;
                     if (num31 > 0f)
                     {
-                        num39 = 1f + ((mobileParty.DefaultBehavior == AiBehavior.GoToSettlement && value2 != currentSettlementOfMobilePartyForAICalculation && num17 < num13) ? (0.1f * MathF.Min(5f, num31) - 0.1f * MathF.Min(5f, num31) * (num17 / num13) * (num17 / num13)) : 0f);
+                        num39 = 1f + ((mobileParty.DefaultBehavior == AiBehavior.GoToSettlement && value2 != currentSettlementOfMobilePartyForAICalculation && num17 < num13) ? ((0.1f * MathF.Min(5f, num31)) - (0.1f * MathF.Min(5f, num31) * (num17 / num13) * (num17 / num13))) : 0f);
                     }
                     //float num40 = value2.IsCastle ? 1.4f : 1f;
                     num16 *= (value2.Town != null ? num7 : 1f) * num39;
@@ -312,7 +312,7 @@ namespace BannerKings.Behaviours
                             }
                         }
                     }
-                    float num44 = value2.IsFortification ? (1f + 2f * (float)(num41 / num8)) : 1f;
+                    float num44 = value2.IsFortification ? (1f + (2f * (float)(num41 / num8))) : 1f;
                     float num45 = 1f;
                     // NumberOfRecentFleeingFromAParty removed in 1.3.x
                     float num47 = 1f;
@@ -331,7 +331,7 @@ namespace BannerKings.Behaviours
                     else
                     {
                         float num52 = MathF.Sqrt(num10);
-                        num51 = ((num52 > num15) ? (1f + 7f * MathF.Min(1f, num26 - 0.5f)) : (1f + 7f * (num52 / num15) * MathF.Min(1f, num26 - 0.5f)));
+                        num51 = ((num52 > num15) ? (1f + (7f * MathF.Min(1f, num26 - 0.5f))) : (1f + (7f * (num52 / num15) * MathF.Min(1f, num26 - 0.5f))));
                     }
                     num16 *= num45 * num51 * num25 * num42 * num44 * num43 * num47 * num49 * num48 * num50;
                 }
@@ -390,7 +390,7 @@ namespace BannerKings.Behaviours
                     num += (float)(itemRosterElement.Amount * itemRosterElement.EquipmentElement.Item.Value);
                 }
             }
-            float num3 = (num2 > (float)mobileParty.LeaderHero.Gold * 0.1f) ? MathF.Min(3f, MathF.Pow((num2 + 1000f) / ((float)mobileParty.LeaderHero.Gold * 0.1f + 1000f), 0.33f)) : 1f;
+            float num3 = (num2 > (float)mobileParty.LeaderHero.Gold * 0.1f) ? MathF.Min(3f, MathF.Pow((num2 + 1000f) / (((float)mobileParty.LeaderHero.Gold * 0.1f) + 1000f), 0.33f)) : 1f;
             float num4 = 1f + MathF.Min(3f, MathF.Pow(num / (((float)mobileParty.MemberRoster.TotalManCount + 5f) * 100f), 0.33f));
             float num5 = num3 * num4;
             if (mobileParty.Army != null)
@@ -449,7 +449,7 @@ namespace BannerKings.Behaviours
                 ItemRosterElement itemRosterElement = mobileParty.ItemRoster[i];
                 num += itemRosterElement.Amount * itemRosterElement.EquipmentElement.Item.Value;
             }
-            float num2 = 1f + 4f * Math.Min((float)num, 1000f) / 1000f;
+            float num2 = 1f + (4f * Math.Min((float)num, 1000f) / 1000f);
             int num3 = 0;
             MBReadOnlyList<Hideout> allHideouts = Campaign.Current.ObjectManager.GetObjectTypeList<Hideout>();
             foreach (Hideout hideout in allHideouts)
@@ -459,11 +459,11 @@ namespace BannerKings.Behaviours
                     num3++;
                 }
             }
-            float num4 = 1f + 4f * (float)Math.Sqrt((double)(mobileParty.PrisonRoster.TotalManCount / mobileParty.Party.PrisonerSizeLimit));
+            float num4 = 1f + (4f * (float)Math.Sqrt((double)(mobileParty.PrisonRoster.TotalManCount / mobileParty.Party.PrisonerSizeLimit)));
             int numberOfMinimumBanditPartiesInAHideoutToInfestIt = Campaign.Current.Models.BanditDensityModel.NumberOfMinimumBanditPartiesInAHideoutToInfestIt;
             int numberOfMaximumBanditPartiesInEachHideout = Campaign.Current.Models.BanditDensityModel.NumberOfMaximumBanditPartiesInEachHideout;
             int numberOfMaximumHideoutsAtEachBanditFaction = Campaign.Current.Models.BanditDensityModel.NumberOfMaximumHideoutsAtEachBanditFaction;
-            float num5 = (424f + 7.57f * Campaign.Current.GetAverageDistanceBetweenClosestTwoTownsWithNavigationType(MobileParty.NavigationType.Default)) / 2f;
+            float num5 = (424f + (7.57f * Campaign.Current.GetAverageDistanceBetweenClosestTwoTownsWithNavigationType(MobileParty.NavigationType.Default))) / 2f;
             foreach (Hideout hideout2 in allHideouts)
             {
                 Settlement settlement = hideout2.Settlement;
@@ -484,11 +484,11 @@ namespace BannerKings.Behaviours
                     if (num8 < numberOfMinimumBanditPartiesInAHideoutToInfestIt)
                     {
                         float num9 = (float)(numberOfMaximumHideoutsAtEachBanditFaction - num3) / (float)numberOfMaximumHideoutsAtEachBanditFaction;
-                        num10 = ((num3 < numberOfMaximumHideoutsAtEachBanditFaction) ? (0.25f + 0.75f * num9) : 0f);
+                        num10 = ((num3 < numberOfMaximumHideoutsAtEachBanditFaction) ? (0.25f + (0.75f * num9)) : 0f);
                     }
                     else
                     {
-                        num10 = Math.Max(0f, 1f * (1f - (float)(Math.Min(numberOfMaximumBanditPartiesInEachHideout, num8) - numberOfMinimumBanditPartiesInAHideoutToInfestIt) / (float)(numberOfMaximumBanditPartiesInEachHideout - numberOfMinimumBanditPartiesInAHideoutToInfestIt)));
+                        num10 = Math.Max(0f, 1f * (1f - ((float)(Math.Min(numberOfMaximumBanditPartiesInEachHideout, num8) - numberOfMinimumBanditPartiesInAHideoutToInfestIt) / (float)(numberOfMaximumBanditPartiesInEachHideout - numberOfMinimumBanditPartiesInAHideoutToInfestIt))));
                     }
                     float num11 = (mobileParty.DefaultBehavior == AiBehavior.GoToSettlement && mobileParty.TargetSettlement == settlement) ? 1f : (MBRandom.RandomFloat * MBRandom.RandomFloat * MBRandom.RandomFloat * MBRandom.RandomFloat * MBRandom.RandomFloat * MBRandom.RandomFloat * MBRandom.RandomFloat * MBRandom.RandomFloat);
                     float visitingNearbySettlementScore = num7 * num10 * num2 * num11 * num4;
@@ -527,7 +527,7 @@ namespace BannerKings.Behaviours
                         num2 = 1f + MathF.Pow((float)num5, 0.67f);
                         if (mobileParty.Army != null && mobileParty.Army.LeaderParty == mobileParty)
                         {
-                            num2 = 1f + (num2 - 1f) / MathF.Sqrt((float)mobileParty.Army.Parties.Count);
+                            num2 = 1f + ((num2 - 1f) / MathF.Sqrt((float)mobileParty.Army.Parties.Count));
                         }
                     }
                 }
@@ -537,11 +537,11 @@ namespace BannerKings.Behaviours
                 float num6 = leaderHero.HomeSettlement.IsCastle ? 1.5f : 1f;
                 if (currentSettlement == settlement)
                 {
-                    num3 += 3000f * num6 / (250f + leaderHero.PassedTimeAtHomeSettlement * leaderHero.PassedTimeAtHomeSettlement);
+                    num3 += 3000f * num6 / (250f + (leaderHero.PassedTimeAtHomeSettlement * leaderHero.PassedTimeAtHomeSettlement));
                 }
                 else
                 {
-                    num3 += 1000f * num6 / (250f + leaderHero.PassedTimeAtHomeSettlement * leaderHero.PassedTimeAtHomeSettlement);
+                    num3 += 1000f * num6 / (250f + (leaderHero.PassedTimeAtHomeSettlement * leaderHero.PassedTimeAtHomeSettlement));
                 }
             }
             if (settlement != currentSettlement)
@@ -582,8 +582,8 @@ namespace BannerKings.Behaviours
                         {
                             num14 *= 0.5f;
                         }
-                        float num15 = 1f - num8 / num13;
-                        item = 1f + num14 * distanceScorePure * distanceScorePure * averagePartySizeRatioToMaximumSize * num15 * num15 * num15 * num7;
+                        float num15 = 1f - (num8 / num13);
+                        item = 1f + (num14 * distanceScorePure * distanceScorePure * averagePartySizeRatioToMaximumSize * num15 * num15 * num15 * num7);
                     }
                 }
             }
@@ -593,7 +593,7 @@ namespace BannerKings.Behaviours
         // Token: 0x06003F11 RID: 16145 RVA: 0x00138AE4 File Offset: 0x00136CE4
         private float CalculateMergeScoreForDisbandingParty(MobileParty disbandParty, Settlement settlement, float distance)
         {
-            float num = MathF.Pow(3.5f - 0.95f * (Math.Min(Campaign.MapDiagonal, distance) / Campaign.MapDiagonal), 3f);
+            float num = MathF.Pow(3.5f - (0.95f * (Math.Min(Campaign.MapDiagonal, distance) / Campaign.MapDiagonal)), 3f);
             Hero owner = disbandParty.Party.Owner;
             float num2;
             if (((owner != null) ? owner.Clan : null) != settlement.OwnerClan)
@@ -623,7 +623,7 @@ namespace BannerKings.Behaviours
             {
                 return -1.6f;
             }
-            float num = MathF.Pow(3.5f - 0.95f * (Math.Min(Campaign.MapDiagonal, distance) / Campaign.MapDiagonal), 3f);
+            float num = MathF.Pow(3.5f - (0.95f * (Math.Min(Campaign.MapDiagonal, distance) / Campaign.MapDiagonal)), 3f);
             float num2;
             if (leaderlessParty.ActualClan != settlement.OwnerClan)
             {

@@ -145,7 +145,6 @@ namespace BannerKings.Managers.Titles.Governments
                     return suzerain.Clan.Fiefs.Any(x => x.LastCapturedBy == vassal.Clan);
                 });
 
-
             Geld.Initialize(new TextObject("{=ROqmFxKG}Geld"),
                 new TextObject("{=ju3k6y7Y}The Geld is the traditional taxation form of the Wilunding. It is calculated on the assessment of productive land, which they divide in the so called Hides, and each of these hides is taxed a given amount of gold. While relatively simple to be calculated, the Geld completely ignores the productive value of the land, and thus can be unfairly assessed on a fief of particularly unproductive acreage or lacking in farmlands, inherently most productive acreage type. The geld may be levied up to 2 times a year, but it is not popular - each levy induces a diplomatic penalty."),
                 new TextObject("{=!}Your suzerain, {SUZERAIN}, calls upon you to provide them the Geld. They are entitled to {RESULT} in payment."),

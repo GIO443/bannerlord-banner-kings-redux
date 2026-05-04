@@ -47,7 +47,6 @@ namespace BannerKings.Settings
             DefaultSettings.Instance.NamingNoTitles
         }, selectedIndex: 0);
 
-
         [SettingPropertyFloatingInteger("{=9G8cJYQd}Tax Income", minValue: 0.2f, maxValue: 2f, "#0%", RequireRestart = false, HintText = "{=VFRd9aNe}Affects the volume of settlement taxes. May SEVERELY impact AI and it's ability to recruit/keep troops. Default: 100%.")]
         [SettingPropertyGroup("{=2oJQ4Snn}Economy")]
         public float TaxIncome { get; set; } = 1f;

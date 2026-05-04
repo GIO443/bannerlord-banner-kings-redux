@@ -1,4 +1,4 @@
-﻿using BannerKings.Managers.Titles;
+using BannerKings.Managers.Titles;
 using System.Collections.Generic;
 using System.Linq;
 using System.Xml;
@@ -23,7 +23,7 @@ namespace BannerKings.Managers.Helpers
                 name != null ? name : faction.Name, 
                 contract, 
                 stringId, 
-                fullName);;
+                fullName);
             BannerKingsConfig.Instance.TitleManager.ExecuteAddTitle(title);
             BannerKingsConfig.Instance.TitleManager.Kingdoms[title] = faction;
             return title;
@@ -342,7 +342,6 @@ namespace BannerKings.Managers.Helpers
             string genderLaw = kingdom.Attributes["genderLaw"].Value;
             var contract = GenerateContract(government, succession, inheritance, genderLaw);
             if (contract == null) return;
-            
 
             if (kingdom.ChildNodes != null)
             {

@@ -93,12 +93,10 @@ namespace BannerKings.UI.Crafting
                 new("", Item.Name.ToString(), 0, false, TooltipProperty.TooltipPropertyFlags.Title)
             };
 
-
             MBTextManager.SetTextVariable("LEFT", GameTexts.FindText("str_tooltip_label_type"));
             list.Add(new TooltipProperty(GameTexts.FindText("str_LEFT_ONLY").ToString(), GameTexts
                 .FindText("str_inventory_type_" + (int) Item.ItemType)
                 .ToString(), 0));
-
 
             if (Item.Culture != null && Item.Culture.Name != null)
             {
@@ -123,7 +121,6 @@ namespace BannerKings.UI.Crafting
                 list.Add(new TooltipProperty(GameTexts.FindText("str_LEFT_ONLY").ToString(),
                     Item.ArmorComponent.MaterialType.ToString(), 0));
 
-
                 UIHelper.TooltipAddEmptyLine(list);
                 list.Add(new TooltipProperty(new TextObject("{=xuzbT4GO}Armor").ToString(), " ", 0));
                 UIHelper.TooltipAddSeperator(list);
@@ -145,11 +142,9 @@ namespace BannerKings.UI.Crafting
                     Item.ArmorComponent.ArmArmor.ToString(), 0));
             }
 
-
             UIHelper.TooltipAddEmptyLine(list);
             list.Add(new TooltipProperty(GameTexts.FindText("str_crafting").ToString(), " ", 0));
             UIHelper.TooltipAddSeperator(list);
-
 
             MBTextManager.SetTextVariable("LEFT", GameTexts.FindText("str_crafting_difficulty"));
             list.Add(new TooltipProperty(GameTexts.FindText("str_LEFT_ONLY").ToString(), Difficulty.ToString(), 0));
@@ -157,7 +152,6 @@ namespace BannerKings.UI.Crafting
             list.Add(new TooltipProperty(new TextObject("{=mBSXX0zj}Botching Chance").ToString(),
                 FormatValue(
                     BannerKingsConfig.Instance.SmithingModel.CalculateBotchingChance(armorCrafting.Hero, Difficulty)), 0));
-
 
             UIHelper.TooltipAddEmptyLine(list);
             list.Add(new TooltipProperty(new TextObject("{=4aKx5Pj9}Materials").ToString(), " ", 0));
@@ -183,7 +177,6 @@ namespace BannerKings.UI.Crafting
 
                 list.Add(new TooltipProperty(name, materials[l].ToString(), 0));
             }
-
 
             return list;
         }

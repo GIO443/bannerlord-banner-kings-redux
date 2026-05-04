@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using TaleWorlds.CampaignSystem;
 using TaleWorlds.Localization;
@@ -46,7 +46,6 @@ namespace BannerKings.Managers.Titles.Governments
             if (isAdequate != null) isAdequate(kingdom);
             return true;
         }
-
 
         public TextObject CandidatesText { get; private set; }
         public TextObject ScoreText { get; private set; }

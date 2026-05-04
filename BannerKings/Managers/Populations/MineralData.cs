@@ -112,7 +112,6 @@ namespace BannerKings.Managers.Populations
                 {
                     options.Add(new(MineralType.IRON, 20f));
                 }
-                  
 
                 MineralType result = MBRandom.ChooseWeighted(options);
                 mineral2 = result;
@@ -192,7 +191,6 @@ namespace BannerKings.Managers.Populations
 
         internal override void Update(PopulationData data)
         {
-            
         }
     }
 

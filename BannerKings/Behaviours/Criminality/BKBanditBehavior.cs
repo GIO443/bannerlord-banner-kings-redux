@@ -1,4 +1,4 @@
-﻿using BannerKings.Components;
+using BannerKings.Components;
 using BannerKings.Settings;
 using HarmonyLib;
 using Helpers;
@@ -50,7 +50,6 @@ namespace BannerKings.Behaviours
 
         private void OnRaidCompleted(BattleSideEnum winnerSide, RaidEventComponent raidEvent)
         {
-
         }
 
         private void OnHeroKilled(Hero victim, Hero killer, KillCharacterAction.KillCharacterActionDetail detail,

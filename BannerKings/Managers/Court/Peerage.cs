@@ -8,7 +8,6 @@ namespace BannerKings.Managers.Court
 {
     public class Peerage
     {
-
         public Peerage(TextObject name, bool vote, bool election, bool knighthood, bool fiefs, bool council, bool boostsVotes)
         {
             Name = name;
@@ -26,7 +25,6 @@ namespace BannerKings.Managers.Court
             {
                 return new Peerage(new TextObject("{=RjMW9nuO}No Peerage"), false, false, false, false, false, false);
             }
-
 
             if (clan.Kingdom != null)
             {

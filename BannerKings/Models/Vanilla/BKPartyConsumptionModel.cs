@@ -159,7 +159,7 @@ namespace BannerKings.Models.Vanilla
                 var data = BannerKingsConfig.Instance.EducationManager.GetHeroEducation(leader);
                 var faceTerrainType = TaleWorlds.CampaignSystem.Campaign.Current.MapSceneWrapper.GetFaceTerrainType(party.CurrentNavigationFace);
 
-                if (data.HasPerk(BKPerks.Instance.KheshigRaider) && faceTerrainType == TerrainType.Plain ||
+                if ((data.HasPerk(BKPerks.Instance.KheshigRaider) && faceTerrainType == TerrainType.Plain) ||
                        faceTerrainType == TerrainType.Steppe)
                 {
                     var cow = Game.Current.ObjectManager.GetObject<ItemObject>("cow");
