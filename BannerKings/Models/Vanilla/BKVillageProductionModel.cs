@@ -138,6 +138,18 @@ namespace BannerKings.Models.Vanilla
                                     DefaultCulturalFeats.VlandianCastleVillageProductionFeat.EffectBonus,
                                     GameTexts.FindText("str_culture"));
                             }
+
+                            // Cavalry-culture warhorse offset: vanilla applies a -48% factor to
+                            // Tier-2 mounts (BKVillageProductionModel.AddAnimalProcution), which
+                            // starves heavy cavalry empires. Khuzait + Vlandia get a targeted
+                            // bump on the WarHorse category only — stacks with the broad Khuzait
+                            // animal feat by design (they are the horse culture).
+                            if (item.ItemCategory == DefaultItemCategories.WarHorse &&
+                                (characterObject.Culture.StringId == "khuzait" ||
+                                 characterObject.Culture.StringId == "vlandia"))
+                            {
+                                explainedNumber.AddFactor(0.35f, GameTexts.FindText("str_culture"));
+                            }
                         }
 
                         if (villageData.CurrentBuilding.BuildingType.StringId == DefaultVillageBuildings.Instance.DailyProduction.StringId)

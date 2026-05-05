@@ -114,6 +114,28 @@ Notes for finding stock:
 A future scriptorium / book workshop will give papyrus + ink real
 demand; for now they exist as luxury cargo.
 
+### Cavalry-culture warhorse boost
+
+Vanilla applies a heavy tier penalty to mount production, which leaves
+heavy-cavalry empires chronically short of warhorses. BK gives Khuzait
+and Vlandia village owners a **+35 % factor on warhorse output only**
+(Tier-2 mounts; doesn't touch regular horses, sheep, cattle, or pack
+animals).
+
+- **Khuzait** — stacks with the existing Khuzait *Animal Production*
+  cultural feat, so a Khuzait-owned herding village produces noticeably
+  more warhorses than any other culture. They are the horse culture by
+  design.
+- **Vlandia** — gets the +35 % cleanly, giving Vlandian fiefs a real
+  reason to hold pasture-rich villages for the lance squadrons.
+- **Other cultures** — no change. If you're playing an empire that
+  fields heavy cavalry but isn't Khuzait or Vlandia, you'll still need
+  to import warhorses or seize a cavalry-culture fief.
+
+What you should see in-game: open a Khuzait or Vlandian herding
+village's production tooltip — the warhorse line will show a
+**+35 % "Culture"** modifier on top of the base pasture math.
+
 ---
 
 ← [Getting started](Getting-Started) · [Home](Home) · [Player guide →](Player-Guide)

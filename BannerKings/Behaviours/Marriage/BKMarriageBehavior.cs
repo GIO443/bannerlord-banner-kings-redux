@@ -322,15 +322,26 @@ namespace BannerKings.Behaviours.Marriage
 
             starter.AddDialogLine("lord_start_courtship_response_3",
                 "bk_marriage_offered_not_accepted",
-                "lord_pretalk", 
-                "{=htd0GSac}{OFFER_NOT_ACCEPTED}", 
+                "lord_pretalk",
+                "{=htd0GSac}{OFFER_NOT_ACCEPTED}",
                 () =>
                 {
+                    var convo = Hero.OneToOneConversationHero;
+                    var convoClan = convo?.Clan;
+                    var convoLeader = convoClan?.Leader;
+                    if (convoLeader == null || Hero.MainHero.Clan == null)
+                    {
+                        MBTextManager.SetTextVariable("OFFER_NOT_ACCEPTED",
+                            new TextObject("{=e5MpCH3G}It is not in my position to accept an offer. You may speak to {LEADER}, the head of our family.")
+                                .SetTextVariable("LEADER", convoClan?.Name ?? new TextObject("{=!}our family")));
+                        return true;
+                    }
+
                     TextObject text;
 
                     bool isPlayerHigherRanking = false;
                     var playerTitle = BannerKingsConfig.Instance.TitleManager.GetHighestTitle(Hero.MainHero);
-                    var proposedTitle = BannerKingsConfig.Instance.TitleManager.GetHighestTitle(Hero.OneToOneConversationHero.Clan.Leader);
+                    var proposedTitle = BannerKingsConfig.Instance.TitleManager.GetHighestTitle(convoLeader);
                     int playerRank = int.MaxValue;
                     if (playerTitle != null)
                     {
@@ -344,31 +355,31 @@ namespace BannerKings.Behaviours.Marriage
                     }
 
                     isPlayerHigherRanking = playerRank < proposedRank;
-                    int relations = Hero.OneToOneConversationHero.Clan.GetRelationWithClan(Clan.PlayerClan);
+                    int relations = convoClan.GetRelationWithClan(Clan.PlayerClan);
 
                     if (relations >= 50)
                     {
                         if (isPlayerHigherRanking) text = new TextObject("{=ixhPCwdF}{TITLE}, I am honored by your most generous request. However, I am not in the position to accept an offer. Please speak to {LEADER}, the head of our family.")
                             .SetTextVariable("TITLE", GameTexts.FindText(Hero.MainHero.IsFemale ? "str_my_lady" :  "str_my_lord"))
-                            .SetTextVariable("LEADER", Hero.OneToOneConversationHero.Clan.Leader.Name);
+                            .SetTextVariable("LEADER", convoLeader.Name);
                         else text = new TextObject("{=UB0oinVR}{TITLE}, I am honored by your request. However, I am not in the position to accept an offer. You may speak to {LEADER}, the head of our family.")
                             .SetTextVariable("TITLE", GameTexts.FindText(Hero.MainHero.IsFemale ? "str_my_lady" : "str_my_lord"))
-                            .SetTextVariable("LEADER", Hero.OneToOneConversationHero.Clan.Leader.Name);
+                            .SetTextVariable("LEADER", convoLeader.Name);
                     }
                     else if (relations >= 0)
                     {
                         if (isPlayerHigherRanking) text = new TextObject("{=ogAieLQE}{TITLE}, I am not in the position to accept an offer. Please speak to {LEADER}, the head of our family.")
                             .SetTextVariable("TITLE", GameTexts.FindText(Hero.MainHero.IsFemale ? "str_my_lady" : "str_my_lord"))
-                            .SetTextVariable("LEADER", Hero.OneToOneConversationHero.Clan.Leader.Name);
+                            .SetTextVariable("LEADER", convoLeader.Name);
                         else text = new TextObject("{=e5MpCH3G}It is not in my position to accept an offer. You may speak to {LEADER}, the head of our family.")
-                            .SetTextVariable("LEADER", Hero.OneToOneConversationHero.Clan.Leader.Name);
-                    } 
+                            .SetTextVariable("LEADER", convoLeader.Name);
+                    }
                     else if (relations >= -49)
                     {
                         if (isPlayerHigherRanking) text = new TextObject("{=qJ30OzLa}\"{TITLE}\", I am not in the position to accept an offer. Yet, dare I say, we are not looking for any.")
                             .SetTextVariable("TITLE", GameTexts.FindText(Hero.MainHero.IsFemale ? "str_my_lady" : "str_my_lord"));
                         else text = new TextObject("{=T8qzYXR5}A marriage? Do jesters such as yourself get married?")
-                            .SetTextVariable("LEADER", Hero.OneToOneConversationHero.Clan.Leader.Name);
+                            .SetTextVariable("LEADER", convoLeader.Name);
                     }
                     else
                     {
@@ -376,7 +387,7 @@ namespace BannerKings.Behaviours.Marriage
                             .SetTextVariable("TITLE", GameTexts.FindText(Hero.MainHero.IsFemale ? "str_my_lady" : "str_my_lord"))
                             .SetTextVariable("CLAN", Hero.MainHero.Clan.Name);
                         else text = new TextObject("{=XMMjS27Y}No, you idiot. Get out of my sight.")
-                            .SetTextVariable("LEADER", Hero.OneToOneConversationHero.Clan.Leader.Name);
+                            .SetTextVariable("LEADER", convoLeader.Name);
                     }
 
                     MBTextManager.SetTextVariable("OFFER_NOT_ACCEPTED", text);

@@ -191,7 +191,10 @@ namespace BannerKings.UI.Marriages
                     .SetTextVariable("REASON", willAccept.GetExplanations());
 
                 Clan finalClan = GetFinalClan();
-                FinalClanText = finalClan.Name.ToString();
+                if (finalClan != null)
+                {
+                    FinalClanText = finalClan.Name.ToString();
+                }
 
                 var influence = BannerKingsConfig.Instance.MarriageModel.GetInfluenceCost(ProposerHero.Hero, ProposedHero.Hero, true);
                 InfluenceCostText = ((int)influence.ResultNumber).ToString();
