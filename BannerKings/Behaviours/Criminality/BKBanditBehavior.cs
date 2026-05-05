@@ -281,14 +281,20 @@ namespace BannerKings.Behaviours
             return id;
         }
 
+        // Spawn enough bandit parties at the hideout that the bandit-hero's
+        // home is "infested" rather than empty. The previous multiplier of
+        // 6× the vanilla minimum was excessive — it meant every CreateBanditHero
+        // event dumped 12+ parties at once, on top of vanilla's existing
+        // hideout-tick spawn. 2× still produces a populated hideout but
+        // keeps the worldwide bandit count from snowballing.
         private void InfestHieout(Hideout hideout, Clan clan)
         {
-            int num = 0;
-            while ((float)num < TaleWorlds.CampaignSystem.Campaign.Current.Models.BanditDensityModel.NumberOfMinimumBanditPartiesInAHideoutToInfestIt * 6)
+            int target = TaleWorlds.CampaignSystem.Campaign.Current.Models.BanditDensityModel
+                .NumberOfMinimumBanditPartiesInAHideoutToInfestIt * 2;
+            for (int i = 0; i < target; i++)
             {
                 TaleWorlds.CampaignSystem.Campaign.Current.GetCampaignBehavior<BanditSpawnCampaignBehavior>()
                     .AddBanditToHideout(hideout, clan.DefaultPartyTemplate, false);
-                num++;
             }
         }
     }

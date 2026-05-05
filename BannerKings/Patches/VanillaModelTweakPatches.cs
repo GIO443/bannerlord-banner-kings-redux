@@ -145,18 +145,29 @@ namespace BannerKings.Patches
         [HarmonyPatch(typeof(DefaultBanditDensityModel))]
         internal static class BKBanditTweakPatches
         {
+            // Cap per-clan looter limit at the MCM slider value, but never RAISE
+            // vanilla's natural cap (which scales with settlement / faction
+            // size). The previous unconditional overwrite turned a 30-80 limit
+            // into a 150 ceiling per clan × ~6 bandit clans → hundreds of
+            // bandit parties stacking up across the map. Math.Min lets the
+            // slider only thin the population, not balloon it.
             [HarmonyPostfix]
             [HarmonyPatch(nameof(DefaultBanditDensityModel.GetMaxSupportedNumberOfLootersForClan))]
             private static void GetMaxSupportedNumberOfLootersForClanPostfix(Clan clan, ref int __result)
             {
-                __result = BannerKingsSettings.Instance.BanditPartiesLimit;
+                int limit = BannerKingsSettings.Instance.BanditPartiesLimit;
+                if (limit > 0 && limit < __result) __result = limit;
             }
 
+            // Small bump on vanilla's hideout cap rather than a hardcoded 20.
+            // Vanilla's value is in the 5-7 range; +2 keeps a slight BK
+            // flavour without producing the 20-parties-per-hideout cluster
+            // that drove the daily-tick load.
             [HarmonyPostfix]
             [HarmonyPatch(nameof(DefaultBanditDensityModel.NumberOfMaximumBanditPartiesAroundEachHideout), MethodType.Getter)]
             private static void NumberOfMaximumBanditPartiesAroundEachHideoutPostfix(ref int __result)
             {
-                __result = 20;
+                __result += 2;
             }
         }
 

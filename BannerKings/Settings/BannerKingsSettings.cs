@@ -221,12 +221,12 @@ namespace BannerKings.Settings
         [SettingPropertyGroup("{=k2Vw7iNm}Bandits")]
         public int HideoutSpotDifficulty { get; set; } = 5;
 
-        [SettingPropertyInteger("{=00bG9Ube}Bandit Parties Limit", 150, 600, "{=4tnEdJNu}0 Parties ",
+        [SettingPropertyInteger("{=00bG9Ube}Bandit Parties Limit", 20, 300, "{=4tnEdJNu}0 Parties ",
             Order = 1,
             RequireRestart = false,
-            HintText = "{=gDK2LRib}Maximum number of bandit parties in the world map. Vanilla is 150. Default: 150.")]
+            HintText = "{=gDK2LRib}Hard upper bound on the parties any single bandit clan can field. Acts as a ceiling on vanilla's natural cap (which scales with settlement count, typically 30-80). Lower this to thin the bandit population if too many bandits are choking the map. Default: 60.")]
         [SettingPropertyGroup("{=k2Vw7iNm}Bandits")]
-        public int BanditPartiesLimit { get; set; } = 150;
+        public int BanditPartiesLimit { get; set; } = 60;
 
         [SettingPropertyFloatingInteger("{=!}Radical Groups Factor", minValue: 0.2f, maxValue: 0.5f, "#0%", RequireRestart = false,
             HintText = "{=!}Defines the base 'reluctance' factor for AI joining or creating radical groups. The bigger, the less they partake in groups. Default: 15%.")]
