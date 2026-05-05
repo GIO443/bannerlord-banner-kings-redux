@@ -4,123 +4,58 @@ using System.Linq;
 using TaleWorlds.CampaignSystem;
 using TaleWorlds.CampaignSystem.Settlements;
 using TaleWorlds.Core;
-using TaleWorlds.Localization;
 
 namespace BannerKings.CampaignContent
 {
+    // BK no longer registers its own VillageTypes. Instead we attach BK custom
+    // trade goods (limestone, marble, mead, garum, etc.) as bonus productions
+    // on vanilla DefaultVillageTypes. This way every village of that type
+    // contributes some BK supply, and the goods enter normal village/caravan
+    // economic flow. See docs/wiki/Shipping-and-Trade.md for the mapping.
     public class BKVillageTypes : DefaultTypeInitializer<BKVillageTypes, VillageType>
     {
-        public VillageType SpiceFarm { get; set; }
-        public VillageType Limestone { get; set; }
-        public VillageType Marble { get; set; }
-        public VillageType Whale { get; set; }
-        public VillageType Garum { get; set; }
-        public VillageType Papyrus { get; set; }
-        public VillageType PurpleDye { get; set; }
-
-        public override IEnumerable<VillageType> All => throw new NotImplementedException();
+        public override IEnumerable<VillageType> All => Enumerable.Empty<VillageType>();
 
         public override void Initialize()
         {
-            SpiceFarm = Game.Current.ObjectManager.RegisterPresumedObject(new VillageType("SpiceFarm"));
-            SpiceFarm.Initialize(new TextObject("{=JnKofObL}Spice Farm"),
-                "spice_sack",
-                "silk_plant_ucon",
-                "silk_plant_burned",
-                new ValueTuple<ItemObject, float>[]
-                {
-                    new ValueTuple<ItemObject, float>(DefaultItems.Grain, 3f)
-                });
+            // Stone & precious metals — attach to vanilla quarry/mine types.
+            AddProductions(DefaultVillageTypes.ClayMine,
+                ("limestone", 8f));
 
-            AddProductions(SpiceFarm,
-                new ValueTuple<string, float>[]
-                {
-                    new ValueTuple<string, float>("spice", 4f)
-                });
+            AddProductions(DefaultVillageTypes.SilverMine,
+                ("marble", 0.8f),
+                ("gold_ore", 0.2f));
 
-            Papyrus = Game.Current.ObjectManager.RegisterPresumedObject(new VillageType("Papyrus"));
-            Papyrus.Initialize(new TextObject("{=RVm9TTU6}Damarian Farm"),
-                "wheat_farm", "wheat_farm_ucon", "wheat_farm_burned",
-                new ValueTuple<ItemObject, float>[]
-                {
-                    new ValueTuple<ItemObject, float>(DefaultItems.Grain, 50f)
-                });
+            // Forest products. Honey is intentionally omitted here — already
+            // produced by Lumberjack/trapper villages in PopulationManager.cs.
+            AddProductions(DefaultVillageTypes.Lumberjack,
+                ("mead", 2f));
 
-            AddProductions(Papyrus,
-                new ValueTuple<string, float>[]
-                {
-                    new ValueTuple<string, float>("cow", 0.2f),
-                    new ValueTuple<string, float>("sheep", 0.4f),
-                    new ValueTuple<string, float>("Papyrus", 5f)
-                });
+            // Coastal fisheries.
+            AddProductions(DefaultVillageTypes.Fisherman,
+                ("garum", 2f),
+                ("WhaleMeat", 1.5f),
+                ("PurpleDye", 0.05f));
 
-            Whale = Game.Current.ObjectManager.RegisterPresumedObject(new VillageType("Whale"));
-            Whale.Initialize(new TextObject("{=T0oGcX47}Whaler"),
-                "fisherman", "fisherman_ucon", "fisherman_burned",
-                new ValueTuple<ItemObject, float>[]
-                {
-                    new ValueTuple<ItemObject, float>(DefaultItems.Grain, 3f)
-                });
+            // Aserai desert luxuries.
+            AddProductions(DefaultVillageTypes.DateFarm,
+                ("spice", 0.5f));
 
-            AddProductions(Whale,
-                new ValueTuple<string, float>[]
-                {
-                    new ValueTuple<string, float>("fish", 28f),
-                    new ValueTuple<string, float>("WhaleMeat", 6f)
-                });
+            // Grain belts get papyrus as a secondary fibre crop.
+            AddProductions(DefaultVillageTypes.WheatFarm,
+                ("Papyrus", 0.5f));
 
-            PurpleDye = Game.Current.ObjectManager.RegisterPresumedObject(new VillageType("PurpleDye"));
-            PurpleDye.Initialize(new TextObject("{=dDruSq5J}Perassic Fishers"),
-                "fisherman", "fisherman_ucon", "fisherman_burned",
-                new ValueTuple<ItemObject, float>[]
-                {
-                    new ValueTuple<ItemObject, float>(DefaultItems.Grain, 3f)
-                });
-
-            AddProductions(PurpleDye,
-                new ValueTuple<string, float>[]
-                {
-                    new ValueTuple<string, float>("fish", 28f),
-                    new ValueTuple<string, float>("PurpleDye", 0.2f)
-                });
-
-            Limestone = Game.Current.ObjectManager.RegisterPresumedObject(new VillageType("Limestone"));
-            Limestone.Initialize(new TextObject("{=nSLhrHWX}Limestone Quarry"),
-                "spice_sack",
-                "silk_plant_ucon",
-                "silk_plant_burned",
-                new ValueTuple<ItemObject, float>[]
-                {
-                    new ValueTuple<ItemObject, float>(DefaultItems.Grain, 3f)
-                });
-
-            AddProductions(Limestone,
-                new ValueTuple<string, float>[]
-                {
-                    new ValueTuple<string, float>("limestone", 20f)
-                });
-
-            Marble = Game.Current.ObjectManager.RegisterPresumedObject(new VillageType("Marble"));
-            Marble.Initialize(new TextObject("{=4DcWaY9q}Marble Quarry"),
-                "spice_sack",
-                "silk_plant_ucon",
-                "silk_plant_burned",
-                new ValueTuple<ItemObject, float>[]
-                {
-                    new ValueTuple<ItemObject, float>(DefaultItems.Grain, 3f)
-                });
-
-            AddProductions(Marble,
-                new ValueTuple<string, float>[]
-                {
-                    new ValueTuple<string, float>("marble", 8f)
-                });
+            // Mixed farms with poultry.
+            AddProductions(DefaultVillageTypes.CattleRange,
+                ("Egg", 1.5f));
         }
 
-        private void AddProductions(VillageType villageType, ValueTuple<string, float>[] productions)
+        private static void AddProductions(VillageType villageType, params ValueTuple<string, float>[] productions)
         {
             villageType.AddProductions(from p in productions
-                                       select new ValueTuple<ItemObject, float>(Game.Current.ObjectManager.GetObject<ItemObject>(p.Item1), p.Item2));
+                                       select new ValueTuple<ItemObject, float>(
+                                           Game.Current.ObjectManager.GetObject<ItemObject>(p.Item1),
+                                           p.Item2));
         }
     }
 }

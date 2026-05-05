@@ -73,6 +73,47 @@ You set these directly from the BK settlement panel. They take effect daily.
 | Workforce | Construction / Production / Martial |
 | Criminal | Lenient / Standard / Strict |
 
+## BK trade goods — where to find them
+
+BK adds a layer of trade goods on top of vanilla. They appear naturally
+in the same village and town markets you already use, attached to vanilla
+village types as bonus productions.
+
+| Good | Find it in villages of type | Daily output | What it's used for |
+|---|---|---|---|
+| Limestone | Clay-mine villages | 8 | Construction (fortifications, marketplaces, theaters, waterworks) |
+| Marble | Silver-mine villages | 0.8 | High-tier prestige builds (theater lvl 3, waterworks lvl 3) |
+| Gold ore | Silver-mine villages | 0.2 | High-tier court extravagance; resale luxury |
+| Mead | Lumberjack villages | 2 | Party alcohol supply (alongside wine and beer) |
+| Honey | Lumberjack villages | 0.5 + skeps bonus | Party animal-products supply |
+| Garum | Fisherman villages | 2 | Party animal-products supply (fermented fish) |
+| Whale meat | Fisherman villages | 1.5 | Party animal-products supply (counts as meat) |
+| Purple dye | Fisherman villages | 0.05 | Pure luxury good — extremely rare, high resale |
+| Spice | Date-farm villages | 0.5 | Luxury good — caravan AI prices it heavily |
+| Papyrus | Wheat-farm villages | 0.5 | Luxury trade good *(no in-game consumer yet)* |
+| Eggs | Cattle-range villages | 1.5 | Party animal-products supply (also drops from your own flocks) |
+
+Notes for finding stock:
+
+- **Limestone is the workhorse.** Every clay-mine village in the world
+  produces it. If you're constructing a fortification and the materials
+  panel shows missing limestone, the closest source is the nearest
+  clay-mine village to the fief.
+- **Marble is rare on purpose.** Only silver-mine villages produce it,
+  at less than 1 per day each. Stock up before queuing a theater or
+  waterworks lvl 3 — you may need to caravan-import.
+- **Mead, garum, and honey go fast.** Parties consume them, so village
+  stocks turn over quickly. Buy when you see a load.
+- **Workshop "mines"** in towns (vanilla mines workshop) is a separate
+  source: a town's local mineral composition (random per settlement)
+  produces limestone/marble/iron/etc. independently of which villages
+  feed it. So even towns with no nearby quarry village can produce
+  small amounts of limestone or marble through their own mine
+  workshop, depending on the local rock.
+
+A future scriptorium / book workshop will give papyrus + ink real
+demand; for now they exist as luxury cargo.
+
 ---
 
 ← [Getting started](Getting-Started) · [Home](Home) · [Player guide →](Player-Guide)

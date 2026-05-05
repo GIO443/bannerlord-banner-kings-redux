@@ -32,9 +32,8 @@ namespace BannerKings.Extensions
         {
             var type = village.VillageType;
             return type == DefaultVillageTypes.WheatFarm || type == DefaultVillageTypes.DateFarm ||
-                type == DefaultVillageTypes.FlaxPlant || type == DefaultVillageTypes.SilkPlant || 
-                type == DefaultVillageTypes.OliveTrees || type == DefaultVillageTypes.VineYard ||
-                type == BKVillageTypes.Instance.Papyrus;
+                type == DefaultVillageTypes.FlaxPlant || type == DefaultVillageTypes.SilkPlant ||
+                type == DefaultVillageTypes.OliveTrees || type == DefaultVillageTypes.VineYard;
         }
 
         public static bool IsAnimalVillage(this Village village)

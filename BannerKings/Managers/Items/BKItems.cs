@@ -109,6 +109,12 @@ namespace BannerKings.Managers.Items
                 "merchandise_meat", 
                 DefaultItemCategories.Meat, 50, 10f, ItemObject.ItemTypeEnum.Goods, true);
 
+            // Papyrus + Ink currently have no consumer — they exist as luxury
+            // trade goods only. Reserved for a future Scriptorium / book
+            // workshop feature that would consume both as inputs to produce
+            // BookCategory items. Until then, papyrus is produced as a
+            // secondary good on WheatFarm villages (see BKVillageTypes.cs)
+            // and ink remains manufactured-only (no village production).
             Papyrus = Game.Current.ObjectManager.RegisterPresumedObject(new ItemObject("Papyrus"));
             InitializeTradeGood(Papyrus,
                 new TextObject("{=fowoOOL4}Papyrus{@Plural}rolls of papyrus{\\@}"), "lib_scroll_a",

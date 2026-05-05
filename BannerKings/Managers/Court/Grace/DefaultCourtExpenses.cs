@@ -1,3 +1,4 @@
+using BannerKings.Managers.Items;
 using System;
 using System.Collections.Generic;
 using TaleWorlds.Core;
@@ -244,7 +245,8 @@ namespace BannerKings.Managers.Court.Grace
                     { DefaultItemCategories.Salt, 8 },
                     { DefaultItemCategories.Fur, 3 },
                     { DefaultItemCategories.Velvet, 2 },
-                    { DefaultItemCategories.Jewelry, 1 }
+                    { DefaultItemCategories.Jewelry, 1 },
+                    { BKItemCategories.Instance.Gold, 1 }
                 },
                 true,
                 CourtExpense.ExpenseType.Extravagance);

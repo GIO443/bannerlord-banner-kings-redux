@@ -53,14 +53,15 @@ namespace BannerKings.Behaviours.PartyNeeds
                 BKItemCategories.Instance.Mead
             };
 
-            animalProductsCategories = new List<ItemCategory>(4)
+            animalProductsCategories = new List<ItemCategory>(7)
             {
                 DefaultItemCategories.Meat,
                 DefaultItemCategories.Cheese,
                 DefaultItemCategories.Butter,
                 DefaultItemCategories.Fish,
                 BKItemCategories.Instance.Honey,
-                BKItemCategories.Instance.Eggs
+                BKItemCategories.Instance.Eggs,
+                BKItemCategories.Instance.Garum
             };
 
             toolsCategories = new List<ItemCategory>(1)
