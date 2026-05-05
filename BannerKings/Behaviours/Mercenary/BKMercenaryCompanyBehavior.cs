@@ -11,10 +11,11 @@ namespace BannerKings.Behaviours.Mercenary
     {
         public override void RegisterEvents()
         {
-            CampaignEvents.DailyTickTownEvent.AddNonSerializedListener(this, (Town town) =>
-            {
-                //FreeCompanyComponent.CreateFreeCompany(town.Settlement);
-            });
+            CampaignEvents.DailyTickTownEvent.AddNonSerializedListener(this,
+                BannerKings.Utils.TickTrace.WrapTown("BKMercCompany.DailyTickTown", (Town town) =>
+                {
+                    //FreeCompanyComponent.CreateFreeCompany(town.Settlement);
+                }));
 
             CampaignEvents.OnGameLoadedEvent.AddNonSerializedListener(this, (CampaignGameStarter game) =>
             {

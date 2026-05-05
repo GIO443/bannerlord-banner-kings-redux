@@ -108,15 +108,16 @@ namespace BannerKings.Behaviours.Marriage
                         marriage.Value.PrimarySpouse = null;
             });
 
-            CampaignEvents.DailyTickHeroEvent.AddNonSerializedListener(this, (Hero hero) =>
-            {
-                if (hero.IsFemale && !CampaignOptions.IsLifeDeathCycleDisabled && hero.IsAlive && hero.Age > (float)Campaign.Current.Models.AgeModel.HeroComesOfAge && (hero.Clan == null || !hero.Clan.IsRebelClan))
+            CampaignEvents.DailyTickHeroEvent.AddNonSerializedListener(this,
+                BannerKings.Utils.TickTrace.WrapHero("BKMarriage.DailyTickHero", (Hero hero) =>
                 {
-                    HeroMarriage marriage = GetHeroMarriage(hero);
-                    if (hero.Age > 18f && marriage.PrimarySpouse != null && marriage.PrimarySpouse.IsAlive && !hero.IsPregnant)
-                        RefreshSpouseVisit(hero, marriage.PrimarySpouse);
-                }
-            });
+                    if (hero.IsFemale && !CampaignOptions.IsLifeDeathCycleDisabled && hero.IsAlive && hero.Age > (float)Campaign.Current.Models.AgeModel.HeroComesOfAge && (hero.Clan == null || !hero.Clan.IsRebelClan))
+                    {
+                        HeroMarriage marriage = GetHeroMarriage(hero);
+                        if (hero.Age > 18f && marriage.PrimarySpouse != null && marriage.PrimarySpouse.IsAlive && !hero.IsPregnant)
+                            RefreshSpouseVisit(hero, marriage.PrimarySpouse);
+                    }
+                }));
         }
 
         public override void SyncData(IDataStore dataStore)

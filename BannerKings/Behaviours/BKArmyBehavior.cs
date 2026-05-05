@@ -24,7 +24,8 @@ namespace BannerKings.Behaviours
 
         public override void RegisterEvents()
         {
-            CampaignEvents.DailyTickPartyEvent.AddNonSerializedListener(this, OnPartyDailyTick);
+            CampaignEvents.DailyTickPartyEvent.AddNonSerializedListener(this,
+                BannerKings.Utils.TickTrace.WrapParty("BKArmy.DailyTickParty", OnPartyDailyTick));
             CampaignEvents.OnPartyJoinedArmyEvent.AddNonSerializedListener(this, OnPartyJoinedArmyEvent);
             CampaignEvents.ArmyCreated.AddNonSerializedListener(this, OnArmyCreated);
             CampaignEvents.ArmyDispersed.AddNonSerializedListener(this, OnArmyDispersed);

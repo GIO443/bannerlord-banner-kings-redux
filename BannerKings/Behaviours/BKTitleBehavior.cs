@@ -19,8 +19,10 @@ namespace BannerKings.Behaviours
     {
         public override void RegisterEvents()
         {
-            CampaignEvents.DailyTickHeroEvent.AddNonSerializedListener(this, OnDailyTickHero);
-            CampaignEvents.DailyTickEvent.AddNonSerializedListener(this, OnDailyTick);
+            CampaignEvents.DailyTickHeroEvent.AddNonSerializedListener(this,
+                BannerKings.Utils.TickTrace.WrapHero("BKTitle.DailyTickHero", OnDailyTickHero));
+            CampaignEvents.DailyTickEvent.AddNonSerializedListener(this,
+                BannerKings.Utils.TickTrace.Wrap("BKTitle.DailyTick", OnDailyTick));
             CampaignEvents.BeforeHeroKilledEvent.AddNonSerializedListener(this, OnHeroKilled);
             CampaignEvents.OnClanDestroyedEvent.AddNonSerializedListener(this, OnClanDestroyed);
             CampaignEvents.OnSettlementOwnerChangedEvent.AddNonSerializedListener(this, OnOwnerChanged);

@@ -13,7 +13,8 @@ namespace BannerKings.Behaviors.Invasions
         private List<Invasion> invasions;
         public override void RegisterEvents()
         {
-            CampaignEvents.DailyTickEvent.AddNonSerializedListener(this, OnDailyTick);
+            CampaignEvents.DailyTickEvent.AddNonSerializedListener(this,
+                BannerKings.Utils.TickTrace.Wrap("Invasion.DailyTick", OnDailyTick));
         }
 
         public override void SyncData(IDataStore dataStore)

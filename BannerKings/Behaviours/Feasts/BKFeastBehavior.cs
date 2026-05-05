@@ -24,7 +24,8 @@ namespace BannerKings.Behaviours.Feasts
             //CampaignEvents.DailyTickClanEvent.AddNonSerializedListener(this, OnDailyTickClan);
             if (BannerKingsSettings.Instance.Feasts)
             {
-                CampaignEvents.DailyTickTownEvent.AddNonSerializedListener(this, OnDailyTickTown);
+                CampaignEvents.DailyTickTownEvent.AddNonSerializedListener(this,
+                    BannerKings.Utils.TickTrace.WrapTown("BKFeast.DailyTickTown", OnDailyTickTown));
                 CampaignEvents.HourlyTickSettlementEvent.AddNonSerializedListener(this, OnSettlementHourlyTick);
                 CampaignEvents.OnMissionStartedEvent.AddNonSerializedListener(this, OnMissionStarted);
                 CampaignEvents.HourlyTickPartyEvent.AddNonSerializedListener(this, HourlyTickParty);

@@ -24,7 +24,8 @@ namespace BannerKings.Behaviours.PartyNeeds
 
         public override void RegisterEvents()
         {
-            CampaignEvents.DailyTickPartyEvent.AddNonSerializedListener(this, OnPartyDailyTick);
+            CampaignEvents.DailyTickPartyEvent.AddNonSerializedListener(this,
+                BannerKings.Utils.TickTrace.WrapParty("BKPartyNeeds.DailyTickParty", OnPartyDailyTick));
             CampaignEvents.MobilePartyDestroyed.AddNonSerializedListener(this, OnPartyDestroyed);
             CampaignEvents.OnGameLoadedEvent.AddNonSerializedListener(this, OnGameLoaded);
             CampaignEvents.SettlementEntered.AddNonSerializedListener(this, OnSettlementEntered);

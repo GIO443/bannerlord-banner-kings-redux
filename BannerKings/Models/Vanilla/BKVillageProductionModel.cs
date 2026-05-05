@@ -278,10 +278,16 @@ namespace BannerKings.Models.Vanilla
                 var maxWorkforce = acres * landData.GetRequiredLabor("wood");
                 var workforce = Math.Min(maxWorkforce, serfs + slaves);
                 result.Add(workforce * landData.GetAcreOutput("wood") * (item.StringId is "hardwood" ? 10f : 5f));
-                var serfFactor = serfs / slaves;
-                if (serfFactor > 0f)
+                // Slaves can be zero (no slavery on this fief); a raw serfs/slaves
+                // divide produced +Infinity which propagated NaN through the
+                // ExplainedNumber and into vanilla daily-tick consumers.
+                if (slaves > 0f)
                 {
-                    result.AddFactor(serfFactor * 0.5f);
+                    var serfFactor = serfs / slaves;
+                    if (serfFactor > 0f)
+                    {
+                        result.AddFactor(serfFactor * 0.5f);
+                    }
                 }
             }
 

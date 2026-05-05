@@ -10,7 +10,8 @@ namespace BannerKings.Behaviours
     {
         public override void RegisterEvents()
         {
-            CampaignEvents.DailyTickEvent.AddNonSerializedListener(this, DailyTick);
+            CampaignEvents.DailyTickEvent.AddNonSerializedListener(this,
+                BannerKings.Utils.TickTrace.Wrap("BKRepublic.DailyTick", DailyTick));
         }
 
         public override void SyncData(IDataStore dataStore)

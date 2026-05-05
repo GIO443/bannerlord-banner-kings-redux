@@ -41,7 +41,8 @@ namespace BannerKings.Behaviours
         {
             CampaignEvents.SettlementEntered.AddNonSerializedListener(this, new Action<MobileParty, Settlement, Hero>(OnSettlementEntered));
             CampaignEvents.OnSettlementLeftEvent.AddNonSerializedListener(this, new Action<MobileParty, Settlement>(OnSettlementLeft));
-            CampaignEvents.DailyTickEvent.AddNonSerializedListener(this, new Action(DailyTick));
+            CampaignEvents.DailyTickEvent.AddNonSerializedListener(this,
+                BannerKings.Utils.TickTrace.Wrap("BKCaravans.DailyTick", DailyTick));
             // Daily caravan-spawn handler intentionally NOT registered.
             // Vanilla CaravansCampaignBehavior.DailyTickHero now drives daily
             // caravan spawning (it's no longer removed); BK's duplicate path

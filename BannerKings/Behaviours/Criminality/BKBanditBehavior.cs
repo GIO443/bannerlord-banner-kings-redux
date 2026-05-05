@@ -23,10 +23,12 @@ namespace BannerKings.Behaviours
         public override void RegisterEvents()
         {
             CampaignEvents.DailyTickClanEvent.AddNonSerializedListener(this, OnClanTick);
-            CampaignEvents.DailyTickHeroEvent.AddNonSerializedListener(this, OnDailyTickHero);
+            CampaignEvents.DailyTickHeroEvent.AddNonSerializedListener(this,
+                BannerKings.Utils.TickTrace.WrapHero("BKBandit.DailyTickHero", OnDailyTickHero));
             CampaignEvents.OnSettlementLeftEvent.AddNonSerializedListener(this, OnSettlementLeft);
             CampaignEvents.HourlyTickPartyEvent.AddNonSerializedListener(this, OnPartyHourlyTick);
-            CampaignEvents.DailyTickPartyEvent.AddNonSerializedListener(this, OnPartyDailyTick);
+            CampaignEvents.DailyTickPartyEvent.AddNonSerializedListener(this,
+                BannerKings.Utils.TickTrace.WrapParty("BKBandit.DailyTickParty", OnPartyDailyTick));
             CampaignEvents.RaidCompletedEvent.AddNonSerializedListener(this, OnRaidCompleted);
             CampaignEvents.HeroKilledEvent.AddNonSerializedListener(this, OnHeroKilled);
             CampaignEvents.MobilePartyDestroyed.AddNonSerializedListener(this, (MobileParty party, PartyBase destroyerParty) =>

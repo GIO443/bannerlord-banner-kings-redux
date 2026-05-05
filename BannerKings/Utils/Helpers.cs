@@ -379,31 +379,42 @@ namespace BannerKings.Utils
             };
         }
 
+        // Walks the EliteBasicTroop upgrade chain looking for `character`.
+        // Cycle-protected: a custom troop tree (XML mods, NavalDLC, BK
+        // injected nobles) can have UpgradeTargets[0] eventually loop back
+        // to a node we've already visited. Without the guard this `while`
+        // is the same shape as the v1.6.10-fixed recruit RNG loops — TryCatch
+        // does not catch infinite loops, so the daily tick hangs.
+        // The HashSet covers the cycle case; the iteration cap covers
+        // pathological depth (a chain longer than 64 troops would already be
+        // a content bug, not a real upgrade tree).
         public static bool IsRetinueTroop(CharacterObject character)
         {
             var nobleRecruit = character?.Culture?.EliteBasicTroop;
-            bool result = false;
-
             if (nobleRecruit == null || nobleRecruit.UpgradeTargets == null)
             {
                 return false;
             }
 
+            bool result = false;
             ExceptionUtils.TryCatch(() =>
             {
-                while (nobleRecruit.UpgradeTargets != null && nobleRecruit.UpgradeTargets.Count() > 0)
+                var visited = new HashSet<CharacterObject>();
+                int iter = 0;
+                while (nobleRecruit != null
+                    && nobleRecruit.UpgradeTargets != null
+                    && nobleRecruit.UpgradeTargets.Count() > 0
+                    && iter++ < 64)
                 {
-                    result = character == nobleRecruit || nobleRecruit.UpgradeTargets.Contains(character);
-                    if (result)
+                    if (!visited.Add(nobleRecruit)) break; // cycle detected
+                    if (character == nobleRecruit || nobleRecruit.UpgradeTargets.Contains(character))
                     {
+                        result = true;
                         break;
                     }
-                    else
-                    {
-                        nobleRecruit = nobleRecruit.UpgradeTargets[0];
-                    }
+                    nobleRecruit = nobleRecruit.UpgradeTargets[0];
                 }
-            }, 
+            },
             Type.GetType("BannerKings.Utils.Helpers").Name,
             false);
 

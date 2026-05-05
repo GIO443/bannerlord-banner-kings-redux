@@ -74,7 +74,8 @@ namespace BannerKings.Behaviours
             CampaignEvents.OnSiegeEventStartedEvent.AddNonSerializedListener(this, OnSiegeStarted);
             CampaignEvents.OnGameLoadedEvent.AddNonSerializedListener(this, OnGameLoaded);
             CampaignEvents.OnSettlementLeftEvent.AddNonSerializedListener(this, OnSettlementLeft);
-            CampaignEvents.DailyTickPartyEvent.AddNonSerializedListener(this, OnDailyTick);
+            CampaignEvents.DailyTickPartyEvent.AddNonSerializedListener(this,
+                BannerKings.Utils.TickTrace.WrapParty("BKParty.DailyTickParty", OnDailyTick));
         }
 
         private void OnSettlementLeft(MobileParty mobileParty, Settlement settlement)

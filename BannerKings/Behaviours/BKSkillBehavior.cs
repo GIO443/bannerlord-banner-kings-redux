@@ -29,7 +29,8 @@ namespace BannerKings.Behaviours
 
         public override void RegisterEvents()
         {
-            CampaignEvents.DailyTickPartyEvent.AddNonSerializedListener(this, OnDailyTickParty);
+            CampaignEvents.DailyTickPartyEvent.AddNonSerializedListener(this,
+                BannerKings.Utils.TickTrace.WrapParty("BKSkill.DailyTickParty", OnDailyTickParty));
             CampaignEvents.HeroComesOfAgeEvent.AddNonSerializedListener(this, OnComesOfAge);
             CampaignEvents.OnGameLoadedEvent.AddNonSerializedListener(this, OnGameLoaded);
             // Fresh new games don't fire OnGameLoadedEvent, so the bulk seeder

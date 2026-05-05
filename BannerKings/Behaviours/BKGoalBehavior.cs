@@ -15,7 +15,8 @@ namespace BannerKings.Behaviours
         {
             CampaignEvents.OnCharacterCreationIsOverEvent.AddNonSerializedListener(this, OnCreationEnded);
             CampaignEvents.OnGameLoadedEvent.AddNonSerializedListener(this, OnGameLoaded);
-            CampaignEvents.DailyTickHeroEvent.AddNonSerializedListener(this, OnDailyTickHeroEvent);
+            CampaignEvents.DailyTickHeroEvent.AddNonSerializedListener(this,
+                BannerKings.Utils.TickTrace.WrapHero("BKGoal.DailyTickHero", OnDailyTickHeroEvent));
         }
 
         private void OnCreationEnded()

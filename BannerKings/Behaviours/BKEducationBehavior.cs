@@ -30,7 +30,8 @@ namespace BannerKings.Behaviours
             CampaignEvents.HeroLevelledUp.AddNonSerializedListener(this, OnHeroLevelledUp);
             CampaignEvents.HeroCreated.AddNonSerializedListener(this, OnHeroCreated);
             CampaignEvents.HeroComesOfAgeEvent.AddNonSerializedListener(this, OnHeroComesOfAge);
-            CampaignEvents.DailyTickHeroEvent.AddNonSerializedListener(this, OnDailyTick);
+            CampaignEvents.DailyTickHeroEvent.AddNonSerializedListener(this,
+                BannerKings.Utils.TickTrace.WrapHero("BKEducation.DailyTickHero", OnDailyTick));
             CampaignEvents.WeeklyTickEvent.AddNonSerializedListener(this, OnWeeklyTick);
             CampaignEvents.SettlementEntered.AddNonSerializedListener(this, OnSettlementEntered);
             CampaignEvents.HeroKilledEvent.AddNonSerializedListener(this, OnHeroKilled);

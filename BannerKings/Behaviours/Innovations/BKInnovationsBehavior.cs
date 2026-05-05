@@ -8,7 +8,8 @@ namespace BannerKings.Behaviours.Innovations
         public override void RegisterEvents()
         {
             CampaignEvents.OnGameLoadedEvent.AddNonSerializedListener(this, OnGameLoaded);
-            CampaignEvents.DailyTickEvent.AddNonSerializedListener(this, OnDailyTick);
+            CampaignEvents.DailyTickEvent.AddNonSerializedListener(this,
+                BannerKings.Utils.TickTrace.Wrap("BKInnovations.DailyTick", OnDailyTick));
             CampaignEvents.OnGameLoadFinishedEvent.AddNonSerializedListener(this, () =>
             {
                 foreach (var culture in Campaign.Current.ObjectManager.GetObjectTypeList<CultureObject>())

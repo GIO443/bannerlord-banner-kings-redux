@@ -32,7 +32,8 @@ namespace BannerKings.Behaviours
         public override void RegisterEvents()
         {
             CampaignEvents.OnSessionLaunchedEvent.AddNonSerializedListener(this, OnSessionLaunched);
-            CampaignEvents.DailyTickHeroEvent.AddNonSerializedListener(this, OnHeroDailyTick);
+            CampaignEvents.DailyTickHeroEvent.AddNonSerializedListener(this,
+                BannerKings.Utils.TickTrace.WrapHero("BKKnighthood.DailyTickHero", OnHeroDailyTick));
         }
 
         public override void SyncData(IDataStore dataStore)
