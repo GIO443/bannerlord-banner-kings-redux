@@ -25,7 +25,8 @@ namespace BannerKings.Behaviours
                 BannerKings.Utils.TickTrace.Wrap("BKTitle.DailyTick", OnDailyTick));
             CampaignEvents.BeforeHeroKilledEvent.AddNonSerializedListener(this, OnHeroKilled);
             CampaignEvents.OnClanDestroyedEvent.AddNonSerializedListener(this, OnClanDestroyed);
-            CampaignEvents.OnSettlementOwnerChangedEvent.AddNonSerializedListener(this, OnOwnerChanged);
+            CampaignEvents.OnSettlementOwnerChangedEvent.AddNonSerializedListener(this,
+                BannerKings.Utils.TickTrace.WrapOwnerChanged("BKTitle.OwnerChanged", OnOwnerChanged));
         }
 
         public override void SyncData(IDataStore dataStore)

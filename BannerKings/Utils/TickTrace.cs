@@ -1,5 +1,6 @@
 using System;
 using TaleWorlds.CampaignSystem;
+using TaleWorlds.CampaignSystem.Actions;
 using TaleWorlds.CampaignSystem.Party;
 using TaleWorlds.CampaignSystem.Settlements;
 
@@ -74,6 +75,25 @@ namespace BannerKings.Utils
             var sw = BannerKings.Behaviours.Shipping.BKShippingBehavior.TraceEnter(
                 label != null ? handlerName + ":" + label : handlerName);
             try { body(t); }
+            finally { BannerKings.Behaviours.Shipping.BKShippingBehavior.TraceExit(handlerName, sw); }
+        };
+
+        // OnSettlementOwnerChangedEvent has 6 args: settlement, openToClaim,
+        // newOwner, oldOwner, capturerHero, detail. Bracket the call so a
+        // freeze in the post-mutation window names which BK subscriber +
+        // settlement was being processed. State-mutation events are the
+        // strongest correlate of freezes in the Lebanese-* and the user's
+        // own-save logs (rebellion / siege capture immediately precede
+        // every BK-trace-clean freeze observed in this session).
+        public static Action<Settlement, bool, Hero, Hero, Hero, ChangeOwnerOfSettlementAction.ChangeOwnerOfSettlementDetail>
+            WrapOwnerChanged(string handlerName,
+                Action<Settlement, bool, Hero, Hero, Hero, ChangeOwnerOfSettlementAction.ChangeOwnerOfSettlementDetail> body)
+            => (settlement, openToClaim, newOwner, oldOwner, capturerHero, detail) =>
+        {
+            var label = settlement?.Name?.ToString();
+            var sw = BannerKings.Behaviours.Shipping.BKShippingBehavior.TraceEnter(
+                label != null ? handlerName + ":" + label : handlerName);
+            try { body(settlement, openToClaim, newOwner, oldOwner, capturerHero, detail); }
             finally { BannerKings.Behaviours.Shipping.BKShippingBehavior.TraceExit(handlerName, sw); }
         };
     }

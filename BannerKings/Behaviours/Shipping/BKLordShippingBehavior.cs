@@ -189,11 +189,19 @@ namespace BannerKings.Behaviours.Shipping
                 // Gated on naval-capable + on-land + entered a port —
                 // narrow enough not to spam AI think for non-naval
                 // visits, broad enough to catch every potential naval
-                // embark candidate.
+                // embark candidate. The HasPort gate matters: naval-cap
+                // lords whose patrol target is an inland castle (e.g.
+                // Yathan @ Car Banseth in the user's own-save log) were
+                // getting Rethink primed even though vanilla's
+                // PatrolAroundSettlement won't initiate a port-side
+                // embark from a non-port. Unnecessary AI-think pressure
+                // on the post-mutation window where every freeze landed.
                 try
                 {
+                    bool hasPort = false; try { hasPort = settlement.HasPort; } catch { }
                     if (party.HasNavalNavigationCapability
                         && !party.IsCurrentlyAtSea
+                        && hasPort
                         && party.Ai != null
                         && !party.Ai.RethinkAtNextHourlyTick)
                     {

@@ -246,7 +246,8 @@ namespace BannerKings.Behaviours.Diplomacy
             CampaignEvents.OnNewGameCreatedEvent.AddNonSerializedListener(this, OnNewGameCreated);
             CampaignEvents.OnGameLoadedEvent.AddNonSerializedListener(this, OnNewGameCreated);
             CampaignEvents.KingdomCreatedEvent.AddNonSerializedListener(this, OnKingdomCreated);
-            CampaignEvents.OnSettlementOwnerChangedEvent.AddNonSerializedListener(this, OnOwnerChanged);
+            CampaignEvents.OnSettlementOwnerChangedEvent.AddNonSerializedListener(this,
+                BannerKings.Utils.TickTrace.WrapOwnerChanged("BKDiplomacy.OwnerChanged", OnOwnerChanged));
             CampaignEvents.OnGameLoadedEvent.AddNonSerializedListener(this, OnGameLoaded);
             CampaignEvents.RulingClanChanged.AddNonSerializedListener(this, OnRulerChanged);
             CampaignEvents.MakePeace.AddNonSerializedListener(this, OnMakePeace);

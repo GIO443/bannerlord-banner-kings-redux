@@ -156,13 +156,16 @@ namespace BannerKings.Behaviours.Relations
             });
 
             CampaignEvents.OnSettlementOwnerChangedEvent.AddNonSerializedListener(this,
+                BannerKings.Utils.TickTrace.WrapOwnerChanged("BKRelations.OwnerChanged",
                 (settlement, openToClaim, newOwner, oldOwner, capturerHero, detail) =>
                 {
                     if (detail != ChangeOwnerOfSettlementAction.ChangeOwnerOfSettlementDetail.BySiege) return;
+                    if (newOwner == null || capturerHero == null) return;
 
                     Religion rel = BannerKingsConfig.Instance.ReligionsManager.GetHeroReligion(newOwner);
                     foreach (Hero notable in settlement.Notables)
                     {
+                        if (notable == null || notable.Culture == null) continue;
                         float relation = 0;
                         Religion notableRel = BannerKingsConfig.Instance.ReligionsManager.GetHeroReligion(notable);
                         FaithStance stance = FaithStance.Tolerated;
@@ -178,7 +181,10 @@ namespace BannerKings.Behaviours.Relations
                         if (stance == FaithStance.Untolerated) relation -= 15f;
                         else if (stance == FaithStance.Hostile) relation -= 30f;
 
-                        if (oldOwner.Culture == notable.Culture)
+                        // oldOwner can be null on a no-prior-owner siege (e.g. a
+                        // hideout-style or rebelled settlement); guard before deref.
+                        var oldCulture = oldOwner?.Culture;
+                        if (oldCulture != null && oldCulture == notable.Culture)
                         {
                             if (newOwner.Culture != notable.Culture)
                             {
@@ -193,7 +199,7 @@ namespace BannerKings.Behaviours.Relations
                         relation *= MBRandom.RandomFloatRanged(0.75f, 1.25f);
                         ChangeRelationAction.ApplyRelationChangeBetweenHeroes(capturerHero, notable, (int)relation);
                     }
-                });
+                }));
         }
 
         public override void SyncData(IDataStore dataStore)

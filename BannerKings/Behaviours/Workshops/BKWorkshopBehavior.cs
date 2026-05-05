@@ -32,7 +32,8 @@ namespace BannerKings.Behaviours.Workshops
             CampaignEvents.DailyTickTownEvent.AddNonSerializedListener(this, OnTownDailyTick);
             CampaignEvents.OnSessionLaunchedEvent.AddNonSerializedListener(this, OnSessionLaunched);
             CampaignEvents.WarDeclared.AddNonSerializedListener(this, OnWarDeclared);
-            CampaignEvents.OnSettlementOwnerChangedEvent.AddNonSerializedListener(this, OnOwnerChanged);
+            CampaignEvents.OnSettlementOwnerChangedEvent.AddNonSerializedListener(this,
+                BannerKings.Utils.TickTrace.WrapOwnerChanged("BKWorkshop.OwnerChanged", OnOwnerChanged));
             CampaignEvents.WorkshopOwnerChangedEvent.AddNonSerializedListener(this, OnWorkshopChange);
         }
 

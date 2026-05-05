@@ -31,7 +31,8 @@ namespace BannerKings.Behaviours.Feasts
                 CampaignEvents.HourlyTickPartyEvent.AddNonSerializedListener(this, HourlyTickParty);
                 CampaignEvents.AfterSettlementEntered.AddNonSerializedListener(this, OnSettlementEntered);
                 CampaignEvents.WarDeclared.AddNonSerializedListener(this, OnWarDeclared);
-                CampaignEvents.OnSettlementOwnerChangedEvent.AddNonSerializedListener(this, OnOwnerChanged);
+                CampaignEvents.OnSettlementOwnerChangedEvent.AddNonSerializedListener(this,
+                    BannerKings.Utils.TickTrace.WrapOwnerChanged("BKFeast.OwnerChanged", OnOwnerChanged));
                 CampaignEvents.HeroKilledEvent.AddNonSerializedListener(this, OnHeroKilled);
             }
         }
