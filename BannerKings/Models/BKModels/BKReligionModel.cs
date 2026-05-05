@@ -31,21 +31,40 @@ namespace BannerKings.Models.BKModels
             {
                 ExceptionUtils.TryCatch(() =>
                 {
-                    foreach (var tuple in rel.Faith.Traits)
+                    // Per-block sub-traces. Lebanese-4 pinned the freeze on
+                    // BKReligions.DailyTickHero for hero "Voleos of Atphynia"
+                    // 28 seconds after a rebel-kingdom creation event
+                    // (County of Razih). Voleos had ticked through this same
+                    // handler successfully many times earlier in the session;
+                    // the post-rebellion state shift is the runtime trigger.
+                    // The blocks below all touch state the rebellion would
+                    // have just reshuffled (Faith.Traits dict, hero.Clan
+                    // membership, settlement ownership, Council/Title trees,
+                    // mercenary kingdom links). Per-block trace pins which.
+                    var __piety_sw1 = BannerKings.Behaviours.Shipping.BKShippingBehavior.TraceEnter("Piety.TraitsLoop");
+                    try
                     {
-                        TraitObject trait = tuple.Key;
-                        int traitLevel = hero.GetTraitLevel(trait);
-                        if (traitLevel != 0)
+                        foreach (var tuple in rel.Faith.Traits)
                         {
-                            result.Add(traitLevel * 0.2f * (tuple.Value ? 1f : -1f) * rel.Faith.VirtueFactor, trait.Name);
+                            TraitObject trait = tuple.Key;
+                            int traitLevel = hero.GetTraitLevel(trait);
+                            if (traitLevel != 0)
+                            {
+                                result.Add(traitLevel * 0.2f * (tuple.Value ? 1f : -1f) * rel.Faith.VirtueFactor, trait.Name);
+                            }
                         }
+                        result.Add(hero.GetTraitLevel(BKTraits.Instance.Zealous) * 0.2f, BKTraits.Instance.Zealous.Name);
                     }
+                    finally { BannerKings.Behaviours.Shipping.BKShippingBehavior.TraceExit("Piety.TraitsLoop", __piety_sw1); }
 
-                    result.Add(hero.GetTraitLevel(BKTraits.Instance.Zealous) * 0.2f, BKTraits.Instance.Zealous.Name);
-
-                    SkillHelper.AddSkillBonusForCharacter(BKSkillEffects.Instance.PietyGain,
-                        hero.CharacterObject,
-                        ref result);
+                    var __piety_sw2 = BannerKings.Behaviours.Shipping.BKShippingBehavior.TraceEnter("Piety.SkillHelper");
+                    try
+                    {
+                        SkillHelper.AddSkillBonusForCharacter(BKSkillEffects.Instance.PietyGain,
+                            hero.CharacterObject,
+                            ref result);
+                    }
+                    finally { BannerKings.Behaviours.Shipping.BKShippingBehavior.TraceExit("Piety.SkillHelper", __piety_sw2); }
 
                     if (rel.FavoredCultures.Contains(hero.Culture))
                     {
@@ -59,20 +78,25 @@ namespace BannerKings.Models.BKModels
 
                     if (hero.Clan != null && rel.HasDoctrine(DefaultDoctrines.Instance.Animism))
                     {
-                        var acres = 0f;
-                        foreach (var settlement in hero.Clan.Settlements)
+                        var __piety_sw3 = BannerKings.Behaviours.Shipping.BKShippingBehavior.TraceEnter("Piety.Animism");
+                        try
                         {
-                            var data = BannerKingsConfig.Instance.PopulationManager.GetPopData(settlement);
-                            if (data != null && data.LandData != null)
+                            var acres = 0f;
+                            foreach (var settlement in hero.Clan.Settlements)
                             {
-                                acres += data.LandData.Woodland;
+                                var data = BannerKingsConfig.Instance.PopulationManager.GetPopData(settlement);
+                                if (data != null && data.LandData != null)
+                                {
+                                    acres += data.LandData.Woodland;
+                                }
+                            }
+
+                            if (acres != 0f)
+                            {
+                                result.Add(acres / 10000f, DefaultDoctrines.Instance.Animism.Name);
                             }
                         }
-
-                        if (acres != 0f)
-                        {
-                            result.Add(acres / 10000f, DefaultDoctrines.Instance.Animism.Name);
-                        }
+                        finally { BannerKings.Behaviours.Shipping.BKShippingBehavior.TraceExit("Piety.Animism", __piety_sw3); }
                     }
 
                     if (hero.Clan != null && rel.HasDoctrine(DefaultDoctrines.Instance.AncestorWorship))
@@ -95,25 +119,46 @@ namespace BannerKings.Models.BKModels
 
                     if (rel.HasDoctrine(DefaultDoctrines.Instance.Esotericism))
                     {
-                        result.Add(hero.GetAttributeValue(BKAttributes.Instance.Wisdom) * 0.1f, 
+                        result.Add(hero.GetAttributeValue(BKAttributes.Instance.Wisdom) * 0.1f,
                             DefaultDoctrines.Instance.Esotericism.Name);
                     }
 
                     if (hero.Clan != null)
                     {
-                        if (BannerKingsConfig.Instance.CourtManager.HasCurrentTask(hero.Clan,
-                                              DefaultCouncilTasks.Instance.CultivatePiety,
-                                              out float pietyCompetence))
+                        var __piety_sw4 = BannerKings.Behaviours.Shipping.BKShippingBehavior.TraceEnter("Piety.CouncilTask");
+                        try
                         {
-                            result.Add(1f * pietyCompetence, DefaultCouncilTasks.Instance.CultivatePiety.Name);
+                            if (BannerKingsConfig.Instance.CourtManager.HasCurrentTask(hero.Clan,
+                                                  DefaultCouncilTasks.Instance.CultivatePiety,
+                                                  out float pietyCompetence))
+                            {
+                                result.Add(1f * pietyCompetence, DefaultCouncilTasks.Instance.CultivatePiety.Name);
+                            }
                         }
+                        finally { BannerKings.Behaviours.Shipping.BKShippingBehavior.TraceExit("Piety.CouncilTask", __piety_sw4); }
 
                         if (hero.Clan.IsUnderMercenaryService)
                         {
-                            if (rel.Equals(BannerKingsConfig.Instance.ReligionsManager.GetHeroReligion(hero.Clan.Kingdom.Leader)))
+                            var __piety_sw5 = BannerKings.Behaviours.Shipping.BKShippingBehavior.TraceEnter("Piety.MercenaryKingdomReligion");
+                            try
                             {
-                                Utils.Helpers.ApplyPerk(BKPerks.Instance.TheologySect, hero, ref result, false);
+                                // Defensive: hero.Clan.Kingdom can be null on a freshly-
+                                // rebelled / freshly-released mercenary clan even when
+                                // IsUnderMercenaryService is still true for one tick.
+                                // The original code dereffed Kingdom.Leader unguarded,
+                                // which was the only NRE-bait left in this method —
+                                // but TryCatch catches NRE, so it's a per-tick disk-
+                                // append cost, not a hang. Keep the guard anyway so
+                                // a noisy bk-exception.log doesn't grow per hero per
+                                // day after every rebellion.
+                                var kingdom = hero.Clan.Kingdom;
+                                var leader = kingdom != null ? kingdom.Leader : null;
+                                if (leader != null && rel.Equals(BannerKingsConfig.Instance.ReligionsManager.GetHeroReligion(leader)))
+                                {
+                                    Utils.Helpers.ApplyPerk(BKPerks.Instance.TheologySect, hero, ref result, false);
+                                }
                             }
+                            finally { BannerKings.Behaviours.Shipping.BKShippingBehavior.TraceExit("Piety.MercenaryKingdomReligion", __piety_sw5); }
                         }
                     }
                 },
