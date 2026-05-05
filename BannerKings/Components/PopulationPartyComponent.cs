@@ -255,7 +255,12 @@ namespace BannerKings.Components
             var totalValue = 0;
             var valueMax = partySize * (type == PopType.Serfs ? 30 : type == PopType.Craftsmen ? 100 : 300);
 
-            while (party.TotalWeightCarried < party.InventoryCapacity && totalValue < valueMax)
+            // Cap the spawn loop. Both exit conditions depend on items
+            // contributing weight or value; if the per-good ChooseWeighted
+            // happens to keep landing on a zero-weight zero-value item,
+            // neither cap advances and the loop hangs the spawn caller.
+            int giveItemsIter = 0;
+            while (party.TotalWeightCarried < party.InventoryCapacity && totalValue < valueMax && giveItemsIter++ < 256)
             {
                 if (type == PopType.Craftsmen)
                 {

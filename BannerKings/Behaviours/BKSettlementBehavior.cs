@@ -139,11 +139,22 @@ namespace BannerKings.Behaviours
                 int toKill = killTotal;
                 var weights = GetDesiredPopTypes(settlement).Select(pair => new ValueTuple<PopType, float>(pair.Key, pair.Value[0])).ToList();
 
-                while (toKill > 0)
+                // ChooseWeighted can land on a target whose GetTypeCount is
+                // zero (population type with high desired-share but no actual
+                // members), in which case finalNum clamps to 0 and toKill
+                // never decrements — the loop hangs the daily settlement
+                // tick. Guard with a stall counter: if we go 8 iterations
+                // without making progress, give up. Also cap absolute
+                // iterations in case ChooseWeighted misbehaves on bad weights.
+                int stall = 0;
+                int iter = 0;
+                while (toKill > 0 && iter++ < 256)
                 {
                     var random = MBRandom.RandomInt(10, 20);
                     var target = MBRandom.ChooseWeighted(weights);
                     var finalNum = MBMath.ClampInt(random, 0, data.GetTypeCount(target));
+                    if (finalNum == 0) { if (++stall >= 8) break; continue; }
+                    stall = 0;
                     data.UpdatePopType(target, -finalNum);
                     toKill -= finalNum;
                 }

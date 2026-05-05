@@ -524,7 +524,13 @@ namespace BannerKings.Behaviours.Shipping
 
             if (party == MobileParty.MainParty)
             {
-                while (TaleWorlds.CampaignSystem.Campaign.Current.CurrentMenuContext != null)
+                // Hard cap the menu-pop loop. ExitToLast() is supposed to
+                // pop the active menu, but if a custom menu (another mod's,
+                // or a leaked context) refuses to exit, CurrentMenuContext
+                // stays non-null and we'd hang the player on the shipping
+                // call. Real menu stacks are at most a handful deep.
+                int popIter = 0;
+                while (TaleWorlds.CampaignSystem.Campaign.Current.CurrentMenuContext != null && popIter++ < 16)
                     GameMenu.ExitToLast();
                 GameMenu.SwitchToMenu("bk_shipping_wait");
 
@@ -547,7 +553,9 @@ namespace BannerKings.Behaviours.Shipping
             MobileParty party = travel.Party;
             if (party == MobileParty.MainParty)
             {
-                while (TaleWorlds.CampaignSystem.Campaign.Current.CurrentMenuContext != null)
+                // Same hang shield as in SetTravel above.
+                int popIter = 0;
+                while (TaleWorlds.CampaignSystem.Campaign.Current.CurrentMenuContext != null && popIter++ < 16)
                     GameMenu.ExitToLast();
             }
 

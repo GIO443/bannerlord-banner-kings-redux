@@ -406,7 +406,13 @@ namespace BannerKings.Behaviours
                     float num3 = 0f;
                     if (totalWeight - num3 > (float)inventoryCapacity)
                     {
-                        while (totalWeight - num3 > (float)inventoryCapacity)
+                        // Iteration cap + zero-weight bail. Without these the
+                        // loop hangs when the lightest non-mountable item
+                        // happens to have Weight == 0 (custom BK trade goods,
+                        // a malformed XML mod) — num3 never advances, and the
+                        // loop never reaches the test-condition exit.
+                        int overweightIter = 0;
+                        while (totalWeight - num3 > (float)inventoryCapacity && overweightIter++ < 256)
                         {
                             int num4 = 10000;
                             ItemRosterElement itemRosterElement3 = partyBase.MobileParty.ItemRoster[0];
@@ -422,9 +428,10 @@ namespace BannerKings.Behaviours
                                     }
                                 }
                             }
-                            int val = MathF.Ceiling((totalWeight - num3 - (float)inventoryCapacity) / itemRosterElement3.EquipmentElement.Weight);
-                            int num5 = Math.Max(1, Math.Min(itemRosterElement3.Amount, val));
                             float weight = itemRosterElement3.EquipmentElement.Weight;
+                            if (weight <= 0f) break;
+                            int val = MathF.Ceiling((totalWeight - num3 - (float)inventoryCapacity) / weight);
+                            int num5 = Math.Max(1, Math.Min(itemRosterElement3.Amount, val));
                             mobileParty.ItemRoster.AddToCounts(itemRosterElement3.EquipmentElement, -num5);
                             num3 += weight * (float)num5;
                         }
