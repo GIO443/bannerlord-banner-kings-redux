@@ -945,8 +945,11 @@ namespace BannerKings.Behaviours.Shipping
         //        caravan AI if on land).
         //
         //   C. Boat on land
-        //      - IsCurrentlyAtSea && terrain is unambiguously inland
+        //      - IsCurrentlyAtSea && face terrain is unambiguously inland
         //        (Plain/Forest/Steppe/Desert/Snow/Mountain/Dune/Swamp)
+        //        AND Position.IsOnLand. Both signals required: face under
+        //        a port's PortPosition is RuralArea/Beach, so face-only
+        //        flagged convoys legitimately at-sea at their port.
         //      - Cause: pre-v1.6.4.9 port-redirect set NavigationType.All
         //        on at-sea convoys, which gave the land pathfinder a target.
         //      - Fix: IsCurrentlyAtSea=false.
@@ -1028,13 +1031,28 @@ namespace BannerKings.Behaviours.Shipping
                     bool needReset = false;
                     string reason = "";
 
-                    // Mismatch C: AtSea-flag on a non-water terrain face.
+                    // Mismatch C: AtSea-flag on a non-water terrain face AND
+                    // a land position. Both signals are required because the
+                    // face under a port's PortPosition is typically
+                    // RuralArea/Beach (water-adjacent land face) even though
+                    // the party is rendering on water — face-terrain alone
+                    // false-positive-rescues naval-only NavalDLC convoys
+                    // legitimately at sea at their port. Mirrors F2 below:
+                    // a party is "on water" if EITHER the face says water
+                    // OR Position.IsOnLand says water; only a non-water
+                    // face combined with a land position is a true desync.
                     if (wrapper != null && party.IsCurrentlyAtSea)
                     {
                         try
                         {
                             var t = wrapper.GetFaceTerrainType(party.CurrentNavigationFace);
-                            if (!IsOpenWater(t)) { needReset = true; reason = $"AtSea over {t}"; }
+                            bool onWaterByTerrain = IsOpenWater(t);
+                            bool onWaterByPosition = false;
+                            try { onWaterByPosition = !party.Position.IsOnLand; } catch { }
+                            if (!onWaterByTerrain && !onWaterByPosition)
+                            {
+                                needReset = true; reason = $"AtSea over {t}";
+                            }
                         }
                         catch { }
                     }
