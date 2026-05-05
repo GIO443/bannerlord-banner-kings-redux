@@ -762,17 +762,27 @@ namespace BannerKings.Behaviours
 
         private void RotRosterFood(ItemRoster roster, float factor)
         {
+            // Snapshot first — `roster.AddToCounts` mutates the underlying
+            // ItemRoster list while we'd still be enumerating it. Vanilla's
+            // ItemRoster enumerator behaviour on mid-iteration mutation is
+            // undefined (re-iterates / skips / throws depending on internal
+            // implementation), so build a value-copy of the elements we
+            // want to rot and apply the AddToCounts after the iteration.
+            List<ItemRosterElement> snapshot = null;
             foreach (ItemRosterElement element in roster)
             {
                 if (element.Amount < 10) continue;
-
                 ItemCategory category = element.EquipmentElement.Item.ItemCategory;
                 if (category.Properties != ItemCategory.Property.BonusToFoodStores) continue;
-
                 if (!rottingRates.ContainsKey(category)) continue;
-
                 if (rottingRates[category] * factor < MBRandom.RandomFloat) continue;
-
+                snapshot ??= new List<ItemRosterElement>();
+                snapshot.Add(element);
+            }
+            if (snapshot == null) return;
+            foreach (var element in snapshot)
+            {
+                ItemCategory category = element.EquipmentElement.Item.ItemCategory;
                 var result = (int)MBRandom.RandomFloatRanged(1f, element.Amount * rottingRates[category]);
                 roster.AddToCounts(element.EquipmentElement.Item, -result);
             }

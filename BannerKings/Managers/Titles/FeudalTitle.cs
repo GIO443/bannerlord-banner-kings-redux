@@ -182,29 +182,33 @@ namespace BannerKings.Managers.Titles
         public Dictionary<Hero, int> GetDeFactoHolders()
         {
             Dictionary<Hero, int> holders = new Dictionary<Hero, int>(10);
-            AddContestantsFromVassals(this, holders);
+            // Cycle-guarded vassal walk. The recursion terminates only via
+            // the title-tree being a real tree; if a save or a faulty title-
+            // transfer ever creates a cycle in the vassal graph (A is a
+            // vassal of B, B is a vassal of A), this would stack-overflow.
+            // The visited set converts the cycle into a clean single visit.
+            AddContestantsFromVassals(this, holders, new HashSet<FeudalTitle>());
             return holders;
         }
 
-        private void AddContestantsFromVassals(FeudalTitle title, Dictionary<Hero, int> contestants)
+        private void AddContestantsFromVassals(FeudalTitle title, Dictionary<Hero, int> contestants, HashSet<FeudalTitle> visited)
         {
+            if (title == null || !visited.Add(title)) return;
             if (title.Vassals != null && title.Vassals.Count > 0)
             {
                 foreach (var vassal in title.Vassals)
                 {
+                    if (vassal == null) continue;
                     Hero defacto = vassal.DeFacto;
                     if (defacto != null)
                     {
                         if (contestants.ContainsKey(defacto)) contestants[defacto] += 1;
                         else contestants.Add(defacto, 1);
                     }
-                    var results = vassal.GetDeFactoHolders();
-                    foreach (var result in results)
-                    {
-                        if (result.Key == null) continue;
-                        if (contestants.ContainsKey(result.Key)) contestants[result.Key] += result.Value;
-                        else contestants.Add(result.Key, result.Value);
-                    }
+                    // Inline the recursion through the same visited set —
+                    // calling vassal.GetDeFactoHolders() would start a fresh
+                    // visited HashSet and miss cross-branch cycles.
+                    AddContestantsFromVassals(vassal, contestants, visited);
                 }
             }
         }
