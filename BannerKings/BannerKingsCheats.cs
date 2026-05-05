@@ -1823,14 +1823,95 @@ namespace BannerKings
             }
         }
 
+        // Per-file in-memory buffers for the diagnostic logs. The original
+        // implementation was synchronous open-write-flush-close per line —
+        // fine at the 800 lines/sec the legacy trace produced, fatal at the
+        // ~5000 lines/sec the v1.6.9.7 daily-tick-wrapper expansion pushed
+        // it to. Disk-sync rate that high stalls the game loop and produces
+        // a freeze symptom indistinguishable from a real hang. Buffering
+        // batches writes so we hit the disk ~once per real-time second per
+        // file (or sooner if the buffer hits 64 KB). On a hard crash the
+        // last second of trace can be lost; for a game-loop diagnostic
+        // logger that trade is fine.
+        private static readonly Dictionary<string, StringBuilder> _diagBuffers
+            = new Dictionary<string, StringBuilder>();
+        private static readonly object _diagLock = new object();
+        private static string _diagLastStamp;
+        private const int DIAG_FLUSH_BYTES = 64 * 1024;
+
         public static void AppendDiagnosticLine(string filename, string line)
         {
             try
             {
-                if (!Directory.Exists(DiagnosticDir)) Directory.CreateDirectory(DiagnosticDir);
                 string stamp = DateTime.Now.ToString("HH:mm:ss");
-                File.AppendAllText(Path.Combine(DiagnosticDir, "BK_" + filename),
-                    $"[{stamp}] {line}{Environment.NewLine}");
+                string formatted = $"[{stamp}] {line}{Environment.NewLine}";
+                string key = "BK_" + filename;
+                Dictionary<string, string> toFlush = null;
+                lock (_diagLock)
+                {
+                    if (!_diagBuffers.TryGetValue(key, out var sb))
+                    {
+                        sb = new StringBuilder(8192);
+                        _diagBuffers[key] = sb;
+                    }
+                    sb.Append(formatted);
+
+                    bool secondTick = _diagLastStamp != null && stamp != _diagLastStamp;
+                    bool sizeTick = sb.Length >= DIAG_FLUSH_BYTES;
+                    if (secondTick || sizeTick)
+                    {
+                        toFlush = new Dictionary<string, string>(_diagBuffers.Count);
+                        foreach (var pair in _diagBuffers)
+                        {
+                            if (pair.Value.Length > 0)
+                            {
+                                toFlush[pair.Key] = pair.Value.ToString();
+                                pair.Value.Clear();
+                            }
+                        }
+                    }
+                    _diagLastStamp = stamp;
+                }
+                if (toFlush != null && toFlush.Count > 0)
+                {
+                    if (!Directory.Exists(DiagnosticDir)) Directory.CreateDirectory(DiagnosticDir);
+                    foreach (var pair in toFlush)
+                    {
+                        try { File.AppendAllText(Path.Combine(DiagnosticDir, pair.Key), pair.Value); } catch { }
+                    }
+                }
+            }
+            catch { }
+        }
+
+        // Force-flush every diagnostic buffer to disk. Hook this to save /
+        // load / shutdown so the buffered tail isn't dropped between
+        // sessions; ClearSessionDiagnostics also flushes (then empties the
+        // in-memory buffers) so a stale buffer can't bleed into the
+        // wiped-on-load file from the previous session.
+        public static void FlushDiagnosticBuffers()
+        {
+            Dictionary<string, string> toFlush;
+            lock (_diagLock)
+            {
+                toFlush = new Dictionary<string, string>(_diagBuffers.Count);
+                foreach (var pair in _diagBuffers)
+                {
+                    if (pair.Value.Length > 0)
+                    {
+                        toFlush[pair.Key] = pair.Value.ToString();
+                        pair.Value.Clear();
+                    }
+                }
+            }
+            if (toFlush.Count == 0) return;
+            try
+            {
+                if (!Directory.Exists(DiagnosticDir)) Directory.CreateDirectory(DiagnosticDir);
+                foreach (var pair in toFlush)
+                {
+                    try { File.AppendAllText(Path.Combine(DiagnosticDir, pair.Key), pair.Value); } catch { }
+                }
             }
             catch { }
         }
@@ -1852,6 +1933,14 @@ namespace BannerKings
         // header banner.
         public static void ClearSessionDiagnostics()
         {
+            // Drop the in-memory diagnostic buffers from the previous
+            // session so their tail bytes don't get re-flushed into the
+            // freshly-deleted files on the next AppendDiagnosticLine call.
+            lock (_diagLock)
+            {
+                _diagBuffers.Clear();
+                _diagLastStamp = null;
+            }
             try
             {
                 if (!Directory.Exists(DiagnosticDir)) return;
