@@ -353,25 +353,41 @@ namespace BannerKings.Behaviours
         {
             if (hero == null || hero.IsChild) return;
 
-            TickFaithXp(hero);
+            // Sub-trace each branch of this handler. The wrapping
+            // BKReligions.DailyTickHero ENTER/EXIT only tells us "the religion
+            // hero tick hung"; in the Lebanese-3+1 freeze it landed on a
+            // single deserter hero ("Voleos of Atphynia") while every other
+            // hero in the same Imperial Deserters clan finished cleanly,
+            // so the hang is conditional on hero state. Sub-brackets pin
+            // which of the three sub-steps actually hangs next time.
+            var __sw1 = BannerKings.Behaviours.Shipping.BKShippingBehavior.TraceEnter(
+                "BKReligions.DailyTickHero.TickFaithXp:" + (hero?.Name?.ToString() ?? "?"));
+            try { TickFaithXp(hero); }
+            finally { BannerKings.Behaviours.Shipping.BKShippingBehavior.TraceExit("BKReligions.DailyTickHero.TickFaithXp", __sw1); }
+
             if (hero.Clan != null && hero.Clan == Clan.PlayerClan) return;
 
             var rel = BannerKingsConfig.Instance.ReligionsManager.GetHeroReligion(hero);
             if (rel == null)
             {
-
                 if (hero.Clan != null && hero != hero.Clan.Leader)
                 {
                     var leaderRel = BannerKingsConfig.Instance.ReligionsManager.GetHeroReligion(hero.Clan.Leader);
                     if (leaderRel != null)
                     {
-                        ReligionsManager.AddToReligion(hero, leaderRel);
+                        var __sw2 = BannerKings.Behaviours.Shipping.BKShippingBehavior.TraceEnter(
+                            "BKReligions.DailyTickHero.InheritFromLeader:" + (hero?.Name?.ToString() ?? "?"));
+                        try { ReligionsManager.AddToReligion(hero, leaderRel); }
+                        finally { BannerKings.Behaviours.Shipping.BKShippingBehavior.TraceExit("BKReligions.DailyTickHero.InheritFromLeader", __sw2); }
                         return;
                     }
                 }
 
-                AddHeroToIdealReligion(hero);
-            } 
+                var __sw3 = BannerKings.Behaviours.Shipping.BKShippingBehavior.TraceEnter(
+                    "BKReligions.DailyTickHero.AddIdeal:" + (hero?.Name?.ToString() ?? "?"));
+                try { AddHeroToIdealReligion(hero); }
+                finally { BannerKings.Behaviours.Shipping.BKShippingBehavior.TraceExit("BKReligions.DailyTickHero.AddIdeal", __sw3); }
+            }
         }
 
         private void TickFaithXp(Hero hero)
