@@ -200,12 +200,20 @@ namespace BannerKings.Patches
 {
     internal class EconomyPatches
     {
-        [HarmonyPatch(typeof(DefaultVillageTypes))]
-        internal class DefaultVillageTypesPatches
+        [HarmonyPatch(typeof(Campaign))]
+        internal class CampaignDefaultObjectsPatches
         {
+            // Wire BK bonus productions onto vanilla village types. We deliberately
+            // do NOT postfix DefaultVillageTypes.InitializeAll: that method runs
+            // from inside the DefaultVillageTypes constructor, BEFORE Campaign.
+            // Current.DefaultVillageTypes is assigned. The static accessors
+            // (DefaultVillageTypes.ClayMine etc.) route through that field, so
+            // they NRE in any postfix on InitializeAll. Postfixing
+            // InitializeDefaultCampaignObjects fires after every default-type
+            // singleton is fully assigned, so static accessors work cleanly.
             [HarmonyPostfix]
-            [HarmonyPatch("InitializeAll")]
-            private static void InitializeAll()
+            [HarmonyPatch("InitializeDefaultCampaignObjects")]
+            private static void InitializeDefaultCampaignObjectsPostfix()
             {
                 BKVillageTypes.Instance.Initialize();
             }
