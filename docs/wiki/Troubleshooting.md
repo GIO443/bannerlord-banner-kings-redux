@@ -82,6 +82,21 @@
   already (see [Reporting bugs](#reporting-bugs) below) and read the
   inner exception in the crash report — it usually names the offending
   mod by its patch method, and you can disable that mod and continue.
+- **"Save load crashes with a BannerKings GetPopData NRE"** — fixed in
+  v1.6.9.25. Cause: vanilla `Clan.AfterLoad` recomputes party strength
+  early in the load sequence, which reaches `Town.FoodChange` →
+  BK's food model → `PopulationManager.GetPopData` before BK's
+  population caches are wired up, so the lookup NRE'd. The fix is a
+  null-guard: BK's food calc cleanly falls back to vanilla until
+  `PostInitialize` runs, then takes over. Update to v1.6.9.25 or newer.
+- **"Crash entering any town with a `MountCreationKey.GetRandomMountKey`
+  NRE in `MissionHelper.SpawnCows`"** — fixed in v1.6.9.25. Cause:
+  BK's price-adjust pass on game create/load was calling
+  `ItemObject.InitializeTradeGood` on the vanilla cow item, which is
+  the wrong helper for items with a `HorseComponent` and stripped the
+  cow's mount data. Vanilla town-center scenes then NRE'd trying to
+  spawn cows. The fix is to leave the vanilla cow item alone; cow
+  pricing falls back to vanilla. Update to v1.6.9.25 or newer.
 
 ---
 

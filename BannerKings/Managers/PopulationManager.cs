@@ -50,10 +50,7 @@ namespace BannerKings.Managers
 
         public void PostInitialize()
         {
-            if (Estates == null)
-            {
-                Estates = new Dictionary<Hero, List<Estate>>();
-            }
+            Estates = new Dictionary<Hero, List<Estate>>();
 
             CastleCache = new Dictionary<Settlement, PopulationData>(Town.AllCastles.Count);
             TownsCache = new Dictionary<Settlement, PopulationData>(Town.AllTowns.Count);
@@ -62,13 +59,25 @@ namespace BannerKings.Managers
             {
                 data.VillageData?.ReInitializeBuildings();
                 if (data.EstateData != null)
+                {
                     foreach (var estate in data.EstateData.Estates)
+                    {
                         estate.PostInitialize();
+                        var owner = estate.Owner;
+                        if (owner == null) continue;
+                        if (!Estates.TryGetValue(owner, out var list))
+                        {
+                            list = new List<Estate>();
+                            Estates[owner] = list;
+                        }
+                        if (!list.Contains(estate)) list.Add(estate);
+                    }
+                }
 
                 Settlement settlement = data.Settlement;
                 if (settlement.IsVillage) VillagesCache[settlement] = data;
                 else if (settlement.IsTown) TownsCache[settlement] = data;
-                else if (settlement.IsCastle) VillagesCache[settlement] = data;
+                else if (settlement.IsCastle) CastleCache[settlement] = data;
             }
         }
 
@@ -96,7 +105,16 @@ namespace BannerKings.Managers
         {
             try
             {
-                if (!settlement.IsVillage && !settlement.IsTown && !settlement.IsCastle)
+                if (settlement == null || (!settlement.IsVillage && !settlement.IsTown && !settlement.IsCastle))
+                {
+                    return null;
+                }
+
+                // Vanilla Clan.AfterLoad recomputes party strength → morale →
+                // IsGarrisonStarving → Town.FoodChange before BK's PostInitialize
+                // runs, so the caches can still be null on the very first read.
+                // Bail out cleanly; BKFoodModel falls back to vanilla.
+                if (Populations == null || VillagesCache == null || TownsCache == null || CastleCache == null)
                 {
                     return null;
                 }

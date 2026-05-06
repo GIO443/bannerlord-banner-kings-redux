@@ -375,14 +375,11 @@ namespace BannerKings.Managers.Items
                 10f,
                 ItemObject.ItemTypeEnum.Goods);
 
-            InitializeTradeGood(items.First(x => x.StringId == "cow"),
-                new TextObject("{=QWqvGa1P}Cow{@Plural}head of cattle{\\@}"),
-                "cow",
-                DefaultItemCategories.Cow,
-                400,
-                200,
-                ItemObject.ItemTypeEnum.Animal);
-
+            // NOTE: do NOT call ItemObject.InitializeTradeGood on the vanilla
+            // "cow" item. That helper is for component-less trade goods and
+            // strips the HorseComponent from the cow, which causes
+            // MissionHelper.SpawnCows → Mission.SpawnMonster →
+            // MountCreationKey.GetRandomMountKey to NRE on town entry.
 
             if (BannerKingsSettings.Instance.ExperimentalPrices)
             {
