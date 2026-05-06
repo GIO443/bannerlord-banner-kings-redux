@@ -183,31 +183,44 @@ namespace BannerKings.Behaviours
                 return;
             }
 
-            KillBandits(settlement);
-            TickSettlementData(settlement);
-            TickRotting(settlement);
-            TickManagement(settlement);
-            TickTown(settlement);
-            TickCastle(settlement);
-            TickVillage(settlement);
-            HandleMarketGold(settlement);
-            HandleIssues(settlement);
+            // Sub-traces around each step so the next freeze repro names the
+            // exact sub-call that hung. v1.6.9.20 freeze pinned the outer
+            // BKSettlement.DailySettlementTick:Gamardan ENTER without EXIT;
+            // the body has 10 sub-calls and we need to know which.
+            string label = settlement.Name?.ToString() ?? "?";
+            RunStep("KillBandits", label, () => KillBandits(settlement));
+            RunStep("TickSettlementData", label, () => TickSettlementData(settlement));
+            RunStep("TickRotting", label, () => TickRotting(settlement));
+            RunStep("TickManagement", label, () => TickManagement(settlement));
+            RunStep("TickTown", label, () => TickTown(settlement));
+            RunStep("TickCastle", label, () => TickCastle(settlement));
+            RunStep("TickVillage", label, () => TickVillage(settlement));
+            RunStep("HandleMarketGold", label, () => HandleMarketGold(settlement));
+            RunStep("HandleIssues", label, () => HandleIssues(settlement));
 
             // Estates derive daily production income from their farmland /
             // pastureland / woodland in addition to their share of villager
-            // trade tax. Trade-tax share alone was producing < 1 denar/day
-            // for low-population estates; production-based income gives
-            // owners a meaningful return on the up-front estate purchase
-            // cost. Villages only — castles and towns don't have estates.
+            // trade tax. Villages only — castles and towns don't have estates.
             if (settlement.IsVillage)
             {
-                try
+                RunStep("EstateProductionIncome", label, () =>
                 {
-                    var data = BannerKingsConfig.Instance.PopulationManager?.GetPopData(settlement);
-                    data?.EstateData?.DailyProductionIncome();
-                }
-                catch { /* never throw out of a daily tick */ }
+                    try
+                    {
+                        var data = BannerKingsConfig.Instance.PopulationManager?.GetPopData(settlement);
+                        data?.EstateData?.DailyProductionIncome();
+                    }
+                    catch { /* never throw out of a daily tick */ }
+                });
             }
+        }
+
+        private static void RunStep(string step, string label, System.Action body)
+        {
+            var __sw = BannerKings.Behaviours.Shipping.BKShippingBehavior.TraceEnter(
+                "BKSettlement." + step + ":" + label);
+            try { body(); }
+            finally { BannerKings.Behaviours.Shipping.BKShippingBehavior.TraceExit("BKSettlement." + step, __sw); }
         }
 
         private void KillBandits(Settlement settlement)
