@@ -58,7 +58,20 @@ namespace BannerKings.Managers
         // OnDailyTickHero). Plain Dictionary<,> resize races freeze the
         // reader inside FindEntry — same failure mode as TitleManager's
         // DeJuresCache. Lock guards every read/write site.
-        private readonly object _heroesCacheLock = new object();
+        // Lazy-initialised: the save deserializer skips the ctor and field
+        // initializers, so a readonly init left this null on load. Vanilla
+        // AfterLoad paths can call into BK postfixes that read the cache
+        // before BK's OnGameLoaded heals state.
+        private object _heroesCacheLock;
+        private object HeroesCacheLock
+        {
+            get
+            {
+                if (_heroesCacheLock == null)
+                    System.Threading.Interlocked.CompareExchange(ref _heroesCacheLock, new object(), null);
+                return _heroesCacheLock;
+            }
+        }
 
         public List<Religion> GetReligions() => Religions.Keys.ToList();
 
@@ -169,7 +182,7 @@ namespace BannerKings.Managers
 
         public void RefreshCaches()
         {
-            lock (_heroesCacheLock)
+            lock (HeroesCacheLock)
             {
                 HeroesCache ??= new Dictionary<Hero, Religion>();
 
@@ -212,7 +225,7 @@ namespace BannerKings.Managers
                 {
                     Religions[rel].Remove(hero);
                 } 
-                lock (_heroesCacheLock)
+                lock (HeroesCacheLock)
                 {
                     if (HeroesCache != null && HeroesCache.ContainsKey(hero))
                     {
@@ -227,7 +240,7 @@ namespace BannerKings.Managers
             if (!Religions[religion].ContainsKey(hero))
             {
                 Religions[religion].Add(hero, new FaithfulData(0f));
-                lock (_heroesCacheLock)
+                lock (HeroesCacheLock)
                 {
                     if (HeroesCache != null)
                     {
@@ -356,7 +369,7 @@ namespace BannerKings.Managers
                 return null;
             }
 
-            lock (_heroesCacheLock)
+            lock (HeroesCacheLock)
             {
                 if (HeroesCache != null && HeroesCache.TryGetValue(hero, out var cached))
                 {

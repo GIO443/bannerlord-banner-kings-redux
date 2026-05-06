@@ -57,11 +57,24 @@ namespace BannerKings.Managers
         // Populations dict (which gets mutated lazily via
         // InitializeSettlementPops on first access from GetPopData).
         // Estates also racy on settlement-owner-changed events.
-        private readonly object _popLock = new object();
+        // Lazy-initialised: the save deserializer skips the ctor and field
+        // initializers, so a readonly init left this null on load. Vanilla
+        // AfterLoad paths can reach BK postfixes that touch population
+        // caches before BK's OnGameLoaded heals state.
+        private object _popLock;
+        private object PopLock
+        {
+            get
+            {
+                if (_popLock == null)
+                    System.Threading.Interlocked.CompareExchange(ref _popLock, new object(), null);
+                return _popLock;
+            }
+        }
 
         public void PostInitialize()
         {
-            lock (_popLock)
+            lock (PopLock)
             {
                 Estates = new Dictionary<Hero, List<Estate>>();
 
@@ -101,7 +114,7 @@ namespace BannerKings.Managers
             if (settlement.StringId.Contains("Ruin") || settlement.StringId.Contains("tutorial")) return false;
             if (!settlement.IsVillage && !settlement.IsTown && !settlement.IsCastle) return false;
 
-            lock (_popLock)
+            lock (PopLock)
             {
                 return Populations != null && Populations.ContainsKey(settlement);
             }
@@ -117,7 +130,7 @@ namespace BannerKings.Managers
                 }
 
                 PopulationData data = null;
-                lock (_popLock)
+                lock (PopLock)
                 {
                     // Vanilla Clan.AfterLoad recomputes party strength → morale →
                     // IsGarrisonStarving → Town.FoodChange before BK's PostInitialize
@@ -140,7 +153,7 @@ namespace BannerKings.Managers
                 // mutates Populations. Re-check after init under the lock.
                 InitializeSettlementPops(settlement);
 
-                lock (_popLock)
+                lock (PopLock)
                 {
                     if (Populations == null) return null;
                     var equal = Populations.FirstOrDefault(x => x.Key.StringId == settlement.StringId).Key;
@@ -164,7 +177,7 @@ namespace BannerKings.Managers
 
         public void AddSettlementData(Settlement settlement, PopulationData data)
         {
-            lock (_popLock)
+            lock (PopLock)
             {
                 if (Populations != null && !Populations.ContainsKey(settlement))
                 {
@@ -175,7 +188,7 @@ namespace BannerKings.Managers
 
         public void ChangeEstateOwner(Estate estate, Hero owner)
         {
-            lock (_popLock)
+            lock (PopLock)
             {
                 var currentOwner = estate.Owner;
                 if (currentOwner != null && Estates != null && Estates.TryGetValue(currentOwner, out var oldList))
@@ -194,7 +207,7 @@ namespace BannerKings.Managers
 
         public void AddEstate(Estate estate)
         {
-            lock (_popLock)
+            lock (PopLock)
             {
                 var currentOwner = estate.Owner;
                 if (currentOwner != null)
@@ -215,7 +228,7 @@ namespace BannerKings.Managers
         public List<Estate> GetEstates(Hero owner)
         {
             if (owner == null) return new List<Estate>();
-            lock (_popLock)
+            lock (PopLock)
             {
                 if (Estates != null && Estates.TryGetValue(owner, out var list))
                 {
@@ -379,7 +392,7 @@ namespace BannerKings.Managers
         public void InitializeSettlementPops(Settlement settlement)
         {
             if (settlement.StringId.Contains("Ruin") || settlement.StringId.Contains("tutorial")) return;
-            lock (_popLock)
+            lock (PopLock)
             {
                 if (Populations != null && Populations.ContainsKey(settlement)) return;
             }

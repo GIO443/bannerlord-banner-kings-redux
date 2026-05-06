@@ -50,13 +50,27 @@ namespace BannerKings.Managers
         // a write spins forever inside Dictionary.FindEntry. That race
         // matches the BK-trace-clean freezes observed in title-mutating
         // scenarios. All cache access goes through this lock.
-        private readonly object _cacheLock = new object();
+        // Lazy-initialised: the save deserializer skips the ctor and field
+        // initializers, and Clan.AfterLoad fires the BK PartyLimit postfix
+        // (→ GetHighestTitle → GetAllDeJure) before BK's OnGameLoaded gets
+        // a chance to run RefreshCaches. A plain readonly init left this
+        // field null on load and crashed Monitor.Enter.
+        private object _cacheLock;
+        private object CacheLock
+        {
+            get
+            {
+                if (_cacheLock == null)
+                    System.Threading.Interlocked.CompareExchange(ref _cacheLock, new object(), null);
+                return _cacheLock;
+            }
+        }
 
         internal List<FeudalTitle> AllTitles => Titles;
 
         public void RefreshCaches()
         {
-            lock (_cacheLock)
+            lock (CacheLock)
             {
                 SettlementCache ??= new Dictionary<Settlement, FeudalTitle>();
 
@@ -113,7 +127,7 @@ namespace BannerKings.Managers
 
         public bool IsHeroTitleHolder(Hero hero)
         {
-            lock (_cacheLock)
+            lock (CacheLock)
             {
                 if (DeJuresCache != null && DeJuresCache.TryGetValue(hero, out var list))
                 {
@@ -129,7 +143,7 @@ namespace BannerKings.Managers
         {
             try
             {
-                lock (_cacheLock)
+                lock (CacheLock)
                 {
                     if (SettlementCache != null && SettlementCache.TryGetValue(settlement, out var cached))
                     {
@@ -241,7 +255,7 @@ namespace BannerKings.Managers
                 if (deJure)
                 {
                     title.deJure = newOwner;
-                    lock (_cacheLock)
+                    lock (CacheLock)
                     {
                         if (oldOwner != null && DeJuresCache != null && DeJuresCache.TryGetValue(oldOwner, out var oldList))
                         {
@@ -817,7 +831,7 @@ namespace BannerKings.Managers
 
         public List<FeudalTitle> GetAllDeJure(Hero hero)
         {
-            lock (_cacheLock)
+            lock (CacheLock)
             {
                 if (DeJuresCache != null)
                 {
