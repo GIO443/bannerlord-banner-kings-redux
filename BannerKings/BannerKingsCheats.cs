@@ -1779,9 +1779,33 @@ namespace BannerKings
         // echo for multi-line strings) are persistently readable while the
         // game is running. Files are named BK_<diagname>.txt and overwritten
         // on each cheat invocation.
+        // PATH CHOICE — DO NOT MOVE BACK TO MyDocuments.
+        //
+        // We deliberately write diagnostic logs to %LOCALAPPDATA% (never
+        // synced) instead of MyDocuments\Mount and Blade II Bannerlord\
+        // Configs\ModLogs (the vanilla mod-log convention), because most
+        // Windows users today have MyDocuments redirected to OneDrive.
+        // OneDrive's sync engine periodically locks files for cloud
+        // upload — for a steady-state file like BK_tick_trace.txt that
+        // grows by thousands of lines per real-time second, the lock
+        // contention coincides with the buffered-flush calls we issue
+        // ~once per second. AppendAllText / File.Open block until
+        // OneDrive releases the file. The campaign loop is single-
+        // threaded; that block IS the freeze.
+        //
+        // Confirmed pattern across user-reported freezes:
+        //   - Same trigger (siege capture) reproducibly freezes
+        //   - One time it didn't — i.e. OneDrive sync timing is
+        //     non-deterministic
+        //   - Hang location varies (BKPartyNeeds, BKSettlement, BKBandit)
+        //     because whichever BK function happens to call
+        //     AppendDiagnosticLine when OneDrive locks the file is the
+        //     one that hangs
+        //
+        // %LOCALAPPDATA% is local-only. Always.
         public static readonly string DiagnosticDir = Path.Combine(
-            Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments),
-            "Mount and Blade II Bannerlord", "Configs", "ModLogs");
+            Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+            "BannerKings", "ModLogs");
 
         public static string LastWriteResult = "(no diagnostic file written yet)";
 
