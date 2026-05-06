@@ -155,11 +155,23 @@ namespace BannerKings.Behaviours.PartyNeeds
 
         private void OnPartyDailyTick(MobileParty party)
         {
-            AddPartyNeeds(party);
+            // Freeze pinning: Freeze-* trace pinned this handler hung on
+            // "Estate Retinue from Mag Arba". Body is short (3 calls); the
+            // sub-brackets below identify which one is stuck on the next
+            // repro. Each call wrapped in try/finally so an exception still
+            // emits EXIT.
+            var __sw1 = BannerKings.Behaviours.Shipping.BKShippingBehavior.TraceEnter(
+                "BKPartyNeeds.DailyTickParty.AddNeeds:" + (party?.Name?.ToString() ?? "?"));
+            try { AddPartyNeeds(party); }
+            finally { BannerKings.Behaviours.Shipping.BKShippingBehavior.TraceExit("BKPartyNeeds.DailyTickParty.AddNeeds", __sw1); }
+
             if (partyNeeds.ContainsKey(party))
             {
-                partyNeeds[party].Tick();
-            }    
+                var __sw2 = BannerKings.Behaviours.Shipping.BKShippingBehavior.TraceEnter(
+                    "BKPartyNeeds.DailyTickParty.Tick:" + (party?.Name?.ToString() ?? "?"));
+                try { partyNeeds[party].Tick(); }
+                finally { BannerKings.Behaviours.Shipping.BKShippingBehavior.TraceExit("BKPartyNeeds.DailyTickParty.Tick", __sw2); }
+            }
         }
 
         private void OnPartyDestroyed(MobileParty party, PartyBase destroyer)

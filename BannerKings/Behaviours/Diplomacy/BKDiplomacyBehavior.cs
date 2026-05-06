@@ -444,7 +444,15 @@ namespace BannerKings.Behaviours.Diplomacy
 
                 if (kingdom.IsEliminated)
                 {
-                    OnKingdomDestroyed(kingdom);
+                    // Vanilla's KingdomDestroyedEvent already fires
+                    // OnKingdomDestroyed exactly once when the kingdom
+                    // becomes IsEliminated. Re-firing it here every daily
+                    // tick was emitting "kingdom DESTROYED" log lines for
+                    // the same eliminated kingdom indefinitely (e.g. the
+                    // Freeze-* log shows County of Razih destroyed 4 times
+                    // in 3 minutes) and was a per-tick walk over wars +
+                    // kingdomDiplomacies dicts that had nothing left to
+                    // remove. Skip eliminated kingdoms entirely.
                     continue;
                 }
                 else if (kingdom.Clans.Count == 0) DestroyKingdomAction.Apply(kingdom);
