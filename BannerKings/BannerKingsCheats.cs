@@ -2085,6 +2085,83 @@ namespace BannerKings
         private static string _diagLastStamp;
         private const int DIAG_FLUSH_BYTES = 64 * 1024;
 
+        // Async disk-write queue. The campaign loop is single-threaded, so
+        // ANY File.AppendAllText call on the campaign thread blocks the
+        // game until the OS file lock releases. Antivirus scans (Defender
+        // included), Windows search indexer, system backup, file-watcher
+        // services — all routinely lock files for milliseconds-to-seconds.
+        // For a steady-state file like BK_tick_trace.txt that grows by
+        // thousands of lines per real-time second, even a brief lock
+        // collision freezes the campaign loop.
+        //
+        // Solution: a single background thread drains a write queue.
+        // Campaign thread enqueues string + path and returns instantly;
+        // disk I/O happens off-thread. If the writer thread blocks for 10
+        // seconds the queue grows by ~10k entries (cheap — strings are
+        // already-built) and game keeps running. Worst case on a hard
+        // crash: queued writes are lost. Same data-loss risk as the
+        // previous in-memory buffer, just resilient to disk stalls.
+        //
+        // Thread is IsBackground=true so it doesn't keep the process alive
+        // on game exit. Started lazily on first append.
+        private static readonly System.Collections.Concurrent.ConcurrentQueue<(string path, string content)>
+            _diagWriteQueue = new System.Collections.Concurrent.ConcurrentQueue<(string, string)>();
+        private static volatile bool _diagWriterStarted;
+        private static readonly object _diagWriterStartLock = new object();
+        private static System.Threading.ManualResetEventSlim _diagWriterWake
+            = new System.Threading.ManualResetEventSlim(false);
+
+        private static void EnsureDiagWriter()
+        {
+            if (_diagWriterStarted) return;
+            lock (_diagWriterStartLock)
+            {
+                if (_diagWriterStarted) return;
+                var t = new System.Threading.Thread(DiagWriterLoop)
+                {
+                    IsBackground = true,
+                    Name = "BK Diag Writer",
+                };
+                t.Start();
+                _diagWriterStarted = true;
+            }
+        }
+
+        private static void DiagWriterLoop()
+        {
+            while (true)
+            {
+                try
+                {
+                    if (_diagWriteQueue.TryDequeue(out var item))
+                    {
+                        try { File.AppendAllText(item.path, item.content); }
+                        catch { /* disk error — drop, don't crash the writer */ }
+                    }
+                    else
+                    {
+                        // Wait for either signal or a short timeout. If the
+                        // wake event is signaled, reset and check the queue.
+                        _diagWriterWake.Wait(100);
+                        _diagWriterWake.Reset();
+                    }
+                }
+                catch
+                {
+                    // Last-resort guard: the writer thread MUST stay alive.
+                    // Sleep briefly to avoid a busy-fail loop.
+                    try { System.Threading.Thread.Sleep(100); } catch { }
+                }
+            }
+        }
+
+        private static void EnqueueDiagWrite(string path, string content)
+        {
+            if (string.IsNullOrEmpty(content)) return;
+            _diagWriteQueue.Enqueue((path, content));
+            try { _diagWriterWake.Set(); } catch { }
+        }
+
         public static void AppendDiagnosticLine(string filename, string line)
         {
             try
@@ -2120,21 +2197,23 @@ namespace BannerKings
                 }
                 if (toFlush != null && toFlush.Count > 0)
                 {
-                    if (!Directory.Exists(DiagnosticDir)) Directory.CreateDirectory(DiagnosticDir);
+                    EnsureDiagWriter();
+                    try { if (!Directory.Exists(DiagnosticDir)) Directory.CreateDirectory(DiagnosticDir); } catch { }
                     foreach (var pair in toFlush)
                     {
-                        try { File.AppendAllText(Path.Combine(DiagnosticDir, pair.Key), pair.Value); } catch { }
+                        EnqueueDiagWrite(Path.Combine(DiagnosticDir, pair.Key), pair.Value);
                     }
                 }
             }
             catch { }
         }
 
-        // Force-flush every diagnostic buffer to disk. Hook this to save /
-        // load / shutdown so the buffered tail isn't dropped between
-        // sessions; ClearSessionDiagnostics also flushes (then empties the
-        // in-memory buffers) so a stale buffer can't bleed into the
-        // wiped-on-load file from the previous session.
+        // Force-flush every diagnostic buffer to the writer queue. The
+        // queue itself is processed by the background writer thread, so
+        // this still does NOT block the campaign thread on disk I/O.
+        // On graceful save/load/shutdown there's a small window where
+        // the writer might not have drained the queue yet — acceptable
+        // for diagnostic data.
         public static void FlushDiagnosticBuffers()
         {
             Dictionary<string, string> toFlush;
@@ -2151,15 +2230,12 @@ namespace BannerKings
                 }
             }
             if (toFlush.Count == 0) return;
-            try
+            EnsureDiagWriter();
+            try { if (!Directory.Exists(DiagnosticDir)) Directory.CreateDirectory(DiagnosticDir); } catch { }
+            foreach (var pair in toFlush)
             {
-                if (!Directory.Exists(DiagnosticDir)) Directory.CreateDirectory(DiagnosticDir);
-                foreach (var pair in toFlush)
-                {
-                    try { File.AppendAllText(Path.Combine(DiagnosticDir, pair.Key), pair.Value); } catch { }
-                }
+                EnqueueDiagWrite(Path.Combine(DiagnosticDir, pair.Key), pair.Value);
             }
-            catch { }
         }
 
         // Per-save log cleaner. Called from BKShippingBehavior on
