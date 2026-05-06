@@ -1823,6 +1823,111 @@ namespace BannerKings
             }
         }
 
+        // Force-fire BKPartyNeedsBehavior.OnPartyDailyTick on a named party
+        // so a freeze in that handler can be reproduced on demand instead of
+        // waiting for the vanilla daily-tick window. Times each sub-step
+        // (AddPartyNeeds, Tick) and writes the results to BK_partyneeds_test.txt
+        // plus returns a one-line summary to chat. If the cheat call itself
+        // hangs, you've found the freeze — note which party name was used
+        // and grab the partial trace.
+        //
+        // Usage:
+        //   bannerkings.test_partyneeds_tick Mag Arba
+        //   bannerkings.test_partyneeds_tick Estate Retinue from Mag Arba
+        // First MobileParty whose Name contains the joined argument string
+        // (case-insensitive) is the target.
+        [CommandLineFunctionality.CommandLineArgumentFunction("test_partyneeds_tick", "bannerkings")]
+        public static string TestPartyNeedsTick(List<string> strings)
+        {
+            if (!CampaignCheats.CheckCheatUsage(ref CampaignCheats.ErrorType)) return CampaignCheats.ErrorType;
+            if (strings == null || strings.Count == 0)
+                return "Usage: bannerkings.test_partyneeds_tick <party_name_substring>";
+
+            string query = string.Join(" ", strings).Trim();
+            if (string.IsNullOrEmpty(query))
+                return "Usage: bannerkings.test_partyneeds_tick <party_name_substring>";
+
+            MobileParty party = null;
+            try
+            {
+                party = MobileParty.All.FirstOrDefault(p =>
+                {
+                    try { return (p?.Name?.ToString() ?? "").IndexOf(query, StringComparison.OrdinalIgnoreCase) >= 0; }
+                    catch { return false; }
+                });
+            }
+            catch (Exception lookupEx)
+            {
+                return $"Party lookup threw: {lookupEx.GetType().Name}: {lookupEx.Message}";
+            }
+            if (party == null) return $"No party found matching '{query}'";
+
+            var behavior = TaleWorlds.CampaignSystem.Campaign.Current
+                ?.GetCampaignBehavior<BannerKings.Behaviours.PartyNeeds.BKPartyNeedsBehavior>();
+            if (behavior == null) return "BKPartyNeedsBehavior not registered";
+
+            // Reflect the private OnPartyDailyTick to invoke directly.
+            var method = HarmonyLib.AccessTools.Method(
+                typeof(BannerKings.Behaviours.PartyNeeds.BKPartyNeedsBehavior),
+                "OnPartyDailyTick");
+            if (method == null) return "OnPartyDailyTick method not found via reflection";
+
+            // Snapshot pre-state for diagnostic.
+            string preState;
+            try
+            {
+                bool isLord = false; try { isLord = party.IsLordParty; } catch { }
+                int troops = 0; try { troops = party.MemberRoster?.TotalManCount ?? 0; } catch { }
+                string component = party.PartyComponent?.GetType()?.Name ?? "(null)";
+                string leader = party.LeaderHero?.Name?.ToString() ?? "(null)";
+                string clan = party.ActualClan?.Name?.ToString() ?? "(null)";
+                string current = party.CurrentSettlement?.Name?.ToString() ?? "(none)";
+                string mapFaction = "(unknown)";
+                try { mapFaction = party.MapFaction?.Name?.ToString() ?? "(null)"; } catch (Exception ex) { mapFaction = $"(threw {ex.GetType().Name})"; }
+                preState = $"  Component={component} IsLord={isLord} Troops={troops} Leader={leader} Clan={clan} MapFaction={mapFaction} Current={current}";
+            }
+            catch (Exception preEx)
+            {
+                preState = $"  pre-state read threw: {preEx.GetType().Name}: {preEx.Message}";
+            }
+
+            AppendDiagnosticLine("partyneeds_test.txt",
+                $"=== test_partyneeds_tick: {party.Name?.ToString() ?? "?"} ===");
+            AppendDiagnosticLine("partyneeds_test.txt", preState);
+
+            // Fire the handler with a stopwatch. If anything throws, the
+            // reflection invoker wraps the exception in TargetInvocationException;
+            // we unwrap to the real cause.
+            var sw = System.Diagnostics.Stopwatch.StartNew();
+            try
+            {
+                method.Invoke(behavior, new object[] { party });
+                sw.Stop();
+                string msg = $"OnPartyDailyTick OK: {party.Name} | {sw.Elapsed.TotalMilliseconds:0.0} ms";
+                AppendDiagnosticLine("partyneeds_test.txt", msg);
+                FlushDiagnosticBuffers();
+                return msg;
+            }
+            catch (System.Reflection.TargetInvocationException tie)
+            {
+                sw.Stop();
+                var inner = tie.InnerException ?? tie;
+                string msg = $"OnPartyDailyTick THREW: {inner.GetType().Name}: {inner.Message} | {sw.Elapsed.TotalMilliseconds:0.0} ms";
+                AppendDiagnosticLine("partyneeds_test.txt", msg);
+                AppendDiagnosticLine("partyneeds_test.txt", inner.StackTrace ?? "(no stack)");
+                FlushDiagnosticBuffers();
+                return msg;
+            }
+            catch (Exception ex)
+            {
+                sw.Stop();
+                string msg = $"OnPartyDailyTick THREW outer: {ex.GetType().Name}: {ex.Message} | {sw.Elapsed.TotalMilliseconds:0.0} ms";
+                AppendDiagnosticLine("partyneeds_test.txt", msg);
+                FlushDiagnosticBuffers();
+                return msg;
+            }
+        }
+
         // Per-file in-memory buffers for the diagnostic logs. The original
         // implementation was synchronous open-write-flush-close per line —
         // fine at the 800 lines/sec the legacy trace produced, fatal at the
