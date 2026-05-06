@@ -48,57 +48,63 @@ namespace BannerKings.Managers
         private Dictionary<Settlement, PopulationData> CastleCache { get; set; }
         private Dictionary<Hero, List<Estate>> Estates { get; set; }
 
+        // GetPopData / IsSettlementPopulated / GetEstates are called from
+        // both campaign-thread daily ticks AND UI-thread VM rendering
+        // (population tab, estate tab, settlement panels). Plain
+        // Dictionary<,> resize races freeze the reader inside FindEntry —
+        // same failure mode as TitleManager's caches. Lock guards every
+        // read/write site for the four runtime caches and the saveable
+        // Populations dict (which gets mutated lazily via
+        // InitializeSettlementPops on first access from GetPopData).
+        // Estates also racy on settlement-owner-changed events.
+        private readonly object _popLock = new object();
+
         public void PostInitialize()
         {
-            Estates = new Dictionary<Hero, List<Estate>>();
-
-            CastleCache = new Dictionary<Settlement, PopulationData>(Town.AllCastles.Count);
-            TownsCache = new Dictionary<Settlement, PopulationData>(Town.AllTowns.Count);
-            VillagesCache = new Dictionary<Settlement, PopulationData>(Village.All.Count);
-            foreach (var data in Populations.Values)
+            lock (_popLock)
             {
-                data.VillageData?.ReInitializeBuildings();
-                if (data.EstateData != null)
-                {
-                    foreach (var estate in data.EstateData.Estates)
-                    {
-                        estate.PostInitialize();
-                        var owner = estate.Owner;
-                        if (owner == null) continue;
-                        if (!Estates.TryGetValue(owner, out var list))
-                        {
-                            list = new List<Estate>();
-                            Estates[owner] = list;
-                        }
-                        if (!list.Contains(estate)) list.Add(estate);
-                    }
-                }
+                Estates = new Dictionary<Hero, List<Estate>>();
 
-                Settlement settlement = data.Settlement;
-                if (settlement.IsVillage) VillagesCache[settlement] = data;
-                else if (settlement.IsTown) TownsCache[settlement] = data;
-                else if (settlement.IsCastle) CastleCache[settlement] = data;
+                CastleCache = new Dictionary<Settlement, PopulationData>(Town.AllCastles.Count);
+                TownsCache = new Dictionary<Settlement, PopulationData>(Town.AllTowns.Count);
+                VillagesCache = new Dictionary<Settlement, PopulationData>(Village.All.Count);
+                foreach (var data in Populations.Values)
+                {
+                    data.VillageData?.ReInitializeBuildings();
+                    if (data.EstateData != null)
+                    {
+                        foreach (var estate in data.EstateData.Estates)
+                        {
+                            estate.PostInitialize();
+                            var owner = estate.Owner;
+                            if (owner == null) continue;
+                            if (!Estates.TryGetValue(owner, out var list))
+                            {
+                                list = new List<Estate>();
+                                Estates[owner] = list;
+                            }
+                            if (!list.Contains(estate)) list.Add(estate);
+                        }
+                    }
+
+                    Settlement settlement = data.Settlement;
+                    if (settlement.IsVillage) VillagesCache[settlement] = data;
+                    else if (settlement.IsTown) TownsCache[settlement] = data;
+                    else if (settlement.IsCastle) CastleCache[settlement] = data;
+                }
             }
         }
 
         public bool IsSettlementPopulated(Settlement settlement)
         {
-            if (Populations != null)
+            if (settlement == null) return false;
+            if (settlement.StringId.Contains("Ruin") || settlement.StringId.Contains("tutorial")) return false;
+            if (!settlement.IsVillage && !settlement.IsTown && !settlement.IsCastle) return false;
+
+            lock (_popLock)
             {
-                if (settlement.StringId.Contains("Ruin") || settlement.StringId.Contains("tutorial"))
-                {
-                    return false;
-                }
-
-                if (!settlement.IsVillage && !settlement.IsTown && !settlement.IsCastle)
-                {
-                    return false;
-                }
-
-                return Populations.ContainsKey(settlement);
+                return Populations != null && Populations.ContainsKey(settlement);
             }
-
-            return false;
         }
 
         public PopulationData GetPopData(Settlement settlement)
@@ -110,23 +116,33 @@ namespace BannerKings.Managers
                     return null;
                 }
 
-                // Vanilla Clan.AfterLoad recomputes party strength → morale →
-                // IsGarrisonStarving → Town.FoodChange before BK's PostInitialize
-                // runs, so the caches can still be null on the very first read.
-                // Bail out cleanly; BKFoodModel falls back to vanilla.
-                if (Populations == null || VillagesCache == null || TownsCache == null || CastleCache == null)
+                PopulationData data = null;
+                lock (_popLock)
                 {
-                    return null;
+                    // Vanilla Clan.AfterLoad recomputes party strength → morale →
+                    // IsGarrisonStarving → Town.FoodChange before BK's PostInitialize
+                    // runs, so the caches can still be null on the very first read.
+                    // Bail out cleanly; BKFoodModel falls back to vanilla.
+                    if (Populations == null || VillagesCache == null || TownsCache == null || CastleCache == null)
+                    {
+                        return null;
+                    }
+
+                    if (settlement.IsVillage) VillagesCache.TryGetValue(settlement, out data);
+                    else if (settlement.IsTown) TownsCache.TryGetValue(settlement, out data);
+                    else if (settlement.IsCastle) CastleCache.TryGetValue(settlement, out data);
+
+                    if (data != null) return data;
                 }
 
-                PopulationData data = null;
-                if (settlement.IsVillage) VillagesCache.TryGetValue(settlement, out data);
-                else if (settlement.IsTown) TownsCache.TryGetValue(settlement, out data);
-                else if (settlement.IsCastle) CastleCache.TryGetValue(settlement, out data);
+                // Cache miss — fall through to lazy init outside the lock so
+                // InitializeSettlementPops can take the lock itself when it
+                // mutates Populations. Re-check after init under the lock.
+                InitializeSettlementPops(settlement);
 
-                if (data == null)
+                lock (_popLock)
                 {
-                    InitializeSettlementPops(settlement);
+                    if (Populations == null) return null;
                     var equal = Populations.FirstOrDefault(x => x.Key.StringId == settlement.StringId).Key;
                     if (equal != null)
                     {
@@ -148,69 +164,67 @@ namespace BannerKings.Managers
 
         public void AddSettlementData(Settlement settlement, PopulationData data)
         {
-            if (!Populations.ContainsKey(settlement))
+            lock (_popLock)
             {
-                Populations.Add(settlement, data);
+                if (Populations != null && !Populations.ContainsKey(settlement))
+                {
+                    Populations.Add(settlement, data);
+                }
             }
         }
 
         public void ChangeEstateOwner(Estate estate, Hero owner)
         {
-            var currentOwner = estate.Owner;
-            if (currentOwner != null && Estates.ContainsKey(currentOwner))
+            lock (_popLock)
             {
-                if (Estates[currentOwner].Contains(estate))
+                var currentOwner = estate.Owner;
+                if (currentOwner != null && Estates != null && Estates.TryGetValue(currentOwner, out var oldList))
                 {
-                    Estates[currentOwner].Remove(estate);
+                    oldList.Remove(estate);
                 }
-            }
 
-            if (owner != null)
-            {
-                if (Estates.ContainsKey(owner))
+                if (owner != null)
                 {
-                    Estates[owner].Add(estate);
-                }
-                else
-                {
-                    Estates.Add(owner, new List<Estate>() { estate });
+                    Estates ??= new Dictionary<Hero, List<Estate>>();
+                    if (Estates.TryGetValue(owner, out var newList)) newList.Add(estate);
+                    else Estates.Add(owner, new List<Estate>() { estate });
                 }
             }
         }
 
-        public void AddEstate(Estate estate) 
+        public void AddEstate(Estate estate)
         {
-            var currentOwner = estate.Owner;
-            if (currentOwner != null) 
+            lock (_popLock)
             {
-                if (Estates.ContainsKey(currentOwner))
+                var currentOwner = estate.Owner;
+                if (currentOwner != null)
                 {
-                    if (!Estates[currentOwner].Contains(estate))
+                    Estates ??= new Dictionary<Hero, List<Estate>>();
+                    if (Estates.TryGetValue(currentOwner, out var list))
                     {
-                        Estates[currentOwner].Add(estate);
+                        if (!list.Contains(estate)) list.Add(estate);
+                    }
+                    else
+                    {
+                        Estates.Add(currentOwner, new List<Estate>() { estate });
                     }
                 }
-                else
-                {
-                    Estates.Add(currentOwner, new List<Estate>() { estate });
-                }
-            } 
+            }
         }
 
         public List<Estate> GetEstates(Hero owner)
         {
-            var list = new List<Estate>();
-            if (owner == null)
+            if (owner == null) return new List<Estate>();
+            lock (_popLock)
             {
-                return list;
+                if (Estates != null && Estates.TryGetValue(owner, out var list))
+                {
+                    // Snapshot under the lock so callers can iterate without
+                    // racing with ChangeEstateOwner mutating the inner list.
+                    return new List<Estate>(list);
+                }
             }
-
-            if (Estates.ContainsKey(owner))
-            {
-                list = Estates[owner];
-            }
-
-            return list;
+            return new List<Estate>();
         }
 
         public List<(ItemObject, float)> GetProductions(PopulationData data)
@@ -364,9 +378,10 @@ namespace BannerKings.Managers
 
         public void InitializeSettlementPops(Settlement settlement)
         {
-            if (settlement.StringId.Contains("Ruin") || settlement.StringId.Contains("tutorial") || Populations.ContainsKey(settlement))
+            if (settlement.StringId.Contains("Ruin") || settlement.StringId.Contains("tutorial")) return;
+            lock (_popLock)
             {
-                return;
+                if (Populations != null && Populations.ContainsKey(settlement)) return;
             }
 
             var popQuantityRef = GetDesiredTotalPop(settlement);

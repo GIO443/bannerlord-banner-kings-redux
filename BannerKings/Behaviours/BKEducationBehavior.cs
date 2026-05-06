@@ -338,7 +338,12 @@ namespace BannerKings.Behaviours
                 candidates.Add((book, weight));
             }
 
-            while (results.Count < 4)
+            // Cap iterations: ChooseWeighted re-rolls and the HashSet
+            // dedupes, so if there are fewer than 4 distinct candidates
+            // results.Count plateaus and the loop never terminates. 64
+            // attempts is enough for any realistic culture book pool.
+            int bookIter = 0;
+            while (results.Count < 4 && bookIter++ < 64)
             {
                 results.Add(MBRandom.ChooseWeighted(candidates).Item);
             }

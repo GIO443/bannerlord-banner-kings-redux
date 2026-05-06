@@ -52,6 +52,14 @@ namespace BannerKings.Managers
 
         private Dictionary<Hero, Religion> HeroesCache { get; set; }
 
+        // GetHeroReligion is called from VM rendering paths (religion icon
+        // beside hero portraits, clan religion tab, etc.) on the UI thread,
+        // and from campaign-thread events (conversion, hero death,
+        // OnDailyTickHero). Plain Dictionary<,> resize races freeze the
+        // reader inside FindEntry — same failure mode as TitleManager's
+        // DeJuresCache. Lock guards every read/write site.
+        private readonly object _heroesCacheLock = new object();
+
         public List<Religion> GetReligions() => Religions.Keys.ToList();
 
         public void ExecuteRite(Rite rite, Hero hero)
@@ -161,22 +169,25 @@ namespace BannerKings.Managers
 
         public void RefreshCaches()
         {
-            HeroesCache ??= new Dictionary<Hero, Religion>();
-
-            foreach (var pair in Religions)
+            lock (_heroesCacheLock)
             {
-                var heroes = pair.Value.Keys.ToList();
-                foreach (var hero in heroes)
-                {
-                    if (!HeroesCache.ContainsKey(hero))
-                    {
-                        HeroesCache.Add(hero, pair.Key);
-                        continue;
-                    }
+                HeroesCache ??= new Dictionary<Hero, Religion>();
 
-                    if (!HeroesCache.ContainsValue(pair.Key))
+                foreach (var pair in Religions)
+                {
+                    var heroes = pair.Value.Keys.ToList();
+                    foreach (var hero in heroes)
                     {
-                        HeroesCache[hero] = pair.Key;
+                        if (!HeroesCache.ContainsKey(hero))
+                        {
+                            HeroesCache.Add(hero, pair.Key);
+                            continue;
+                        }
+
+                        if (!HeroesCache.ContainsValue(pair.Key))
+                        {
+                            HeroesCache[hero] = pair.Key;
+                        }
                     }
                 }
             }
@@ -201,9 +212,12 @@ namespace BannerKings.Managers
                 {
                     Religions[rel].Remove(hero);
                 } 
-                if (HeroesCache != null && HeroesCache.ContainsKey(hero))
+                lock (_heroesCacheLock)
                 {
-                    HeroesCache.Remove(hero);
+                    if (HeroesCache != null && HeroesCache.ContainsKey(hero))
+                    {
+                        HeroesCache.Remove(hero);
+                    }
                 }
             }
         }
@@ -213,9 +227,12 @@ namespace BannerKings.Managers
             if (!Religions[religion].ContainsKey(hero))
             {
                 Religions[religion].Add(hero, new FaithfulData(0f));
-                if (HeroesCache != null)
+                lock (_heroesCacheLock)
                 {
-                    HeroesCache[hero] = religion;
+                    if (HeroesCache != null)
+                    {
+                        HeroesCache[hero] = religion;
+                    }
                 }
             }
         }
@@ -339,9 +356,12 @@ namespace BannerKings.Managers
                 return null;
             }
 
-            if (HeroesCache != null && HeroesCache.ContainsKey(hero))
+            lock (_heroesCacheLock)
             {
-                return HeroesCache[hero];
+                if (HeroesCache != null && HeroesCache.TryGetValue(hero, out var cached))
+                {
+                    return cached;
+                }
             }
             return Religions.FirstOrDefault(pair => pair.Value != null && pair.Value.ContainsKey(hero)).Key;
         }

@@ -26,6 +26,24 @@ namespace BannerKings.Utils
     // Wrap to keep method-group conversions unambiguous at the call site.
     public static class TickTrace
     {
+        // Hang-safe label helpers. Use these for INLINE TraceEnter sub-traces
+        // (where the wrapper itself isn't in play). They read StringId only —
+        // Name accessors on Hero / PartyComponent / Settlement chain through
+        // patched property getters or vanilla components that the firstchance
+        // log shows can NRE; if any one of those hangs (rather than throws)
+        // the trace label construction blocks the whole tick. StringId is a
+        // plain readonly string field, never hangs, never throws.
+        public static string IdOf(Hero h)
+        { try { return h?.StringId ?? "?"; } catch { return "?"; } }
+        public static string IdOf(Clan c)
+        { try { return c?.StringId ?? "?"; } catch { return "?"; } }
+        public static string IdOf(MobileParty p)
+        { try { return p?.StringId ?? "?"; } catch { return "?"; } }
+        public static string IdOf(Settlement s)
+        { try { return s?.StringId ?? "?"; } catch { return "?"; } }
+        public static string IdOf(Town t)
+        { try { return t?.Settlement?.StringId ?? "?"; } catch { return "?"; } }
+
         public static Action Wrap(string handlerName, Action body) => () =>
         {
             var sw = BannerKings.Behaviours.Shipping.BKShippingBehavior.TraceEnter(handlerName);
@@ -65,6 +83,18 @@ namespace BannerKings.Utils
 
         public static Action<MobileParty> WrapParty(string handlerName, Action<MobileParty> body) => p =>
         {
+            // RAW-ENTER probe — emitted BEFORE StringId access. Distinguishes
+            // three failure modes when the trace ends just before this
+            // handler's normal ENTER:
+            //   1. No RAW-ENTER for this handler → dispatch never reached us;
+            //      hang is in vanilla MbEvent.InvokeList iteration or in an
+            //      untraced subscriber registered before us at this event.
+            //   2. RAW-ENTER but no ENTER → hang is in StringId access (rare
+            //      but possible if a mod patches the StringId getter).
+            //   3. ENTER but no EXIT → hang is in body.
+            // No matching exit by design — RAW is asymmetric on purpose so
+            // the unmatched line is the localizing signal.
+            BannerKings.Behaviours.Shipping.BKShippingBehavior.TraceEnter(handlerName + ".RAW");
             // StringId only. p.Name → PartyComponent.Name → for bandit
             // parties this is BanditPartyComponent.get_Name() which the
             // firstchance log shows NRE'ing intermittently — and if it

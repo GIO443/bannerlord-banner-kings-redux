@@ -193,18 +193,24 @@ namespace BannerKings.UI
             // Cache the _name field once instead of GetField per call.
             private static readonly FieldInfo Hero_Name = AccessTools.Field(typeof(Hero), "_name");
 
-            private static Dictionary<Hero, TextObject> names = new Dictionary<Hero, TextObject>();
+            // Thread-safe cache. The vanilla Hero.Name getter is read from
+            // the campaign thread (every trace label, every daily-tick
+            // subscriber that touches a hero's display name) AND from the
+            // UI thread (encyclopedia, dialogue rendering, every VM
+            // constructor with a hero arg). A plain Dictionary<,> is NOT
+            // thread-safe; a concurrent read during a resize triggered by
+            // AddName from another thread can spin forever inside
+            // Dictionary.FindEntry. The 10% RNG-rebuild branch makes this
+            // worse — it walks TitleManager state, can return new TextObjects,
+            // and races with concurrent reads of the same key.
+            // Switch to ConcurrentDictionary so reads and writes are atomic.
+            private static System.Collections.Concurrent.ConcurrentDictionary<Hero, TextObject> names
+                = new System.Collections.Concurrent.ConcurrentDictionary<Hero, TextObject>();
 
             private static void AddName(Hero hero, TextObject name)
             {
-                if (names.ContainsKey(hero))
-                {
-                    names[hero] = name;
-                }
-                else
-                {
-                    names.Add(hero, name);
-                }
+                if (hero == null || name == null) return;
+                names[hero] = name;
             }
 
             [HarmonyPostfix]
@@ -224,9 +230,9 @@ namespace BannerKings.UI
                 if (__instance == null) return;
                 try
                 {
-                    if (names.ContainsKey(__instance) && MBRandom.RandomFloat > 0.1f)
+                    if (MBRandom.RandomFloat > 0.1f && names.TryGetValue(__instance, out var cached))
                     {
-                        __result = names[__instance];
+                        __result = cached;
                         return;
                     }
 

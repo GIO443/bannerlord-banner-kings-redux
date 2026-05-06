@@ -178,7 +178,14 @@ namespace BannerKings.Behaviours
                 }
             }
 
-            while (party.Food < limit)
+            // Cap iterations: RoundRandomized of (size * 1/value * 16 *
+            // RandomFloat^4) can return 0 every iteration for small parties,
+            // leaving party.Food < limit and spinning forever. 256 outer
+            // passes are way more than enough to fill any reasonable party
+            // — falling out is harmless, the player just starts with
+            // slightly less food than the soft cap.
+            int foodFillIter = 0;
+            while (party.Food < limit && foodFillIter++ < 256)
             {
                 foreach (var itemObject in Items.All)
                 {

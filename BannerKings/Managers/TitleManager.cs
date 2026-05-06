@@ -39,44 +39,60 @@ namespace BannerKings.Managers
         private Dictionary<Hero, List<FeudalTitle>> DeJuresCache { get; set; }
         private Dictionary<Settlement, FeudalTitle> SettlementCache { get; set; }
 
+        // The two caches above are read from BOTH the campaign thread (BK
+        // behaviors, daily-tick subscribers, AI scoring) AND the UI thread
+        // (the Hero.Name postfix has a 10% RNG-rebuild branch that calls
+        // GetHighestTitle → GetAllDeJure → reads DeJuresCache; vanilla VM
+        // rendering reads Hero.Name on the UI thread). They're written
+        // from the campaign thread (RefreshCaches, ExecuteOwnershipChange
+        // when settlement ownership changes). Plain Dictionary<,> isn't
+        // thread-safe — a concurrent read during a resize triggered by
+        // a write spins forever inside Dictionary.FindEntry. That race
+        // matches the BK-trace-clean freezes observed in title-mutating
+        // scenarios. All cache access goes through this lock.
+        private readonly object _cacheLock = new object();
+
         internal List<FeudalTitle> AllTitles => Titles;
 
         public void RefreshCaches()
         {
-            SettlementCache ??= new Dictionary<Settlement, FeudalTitle>();
+            lock (_cacheLock)
+            {
+                SettlementCache ??= new Dictionary<Settlement, FeudalTitle>();
 
-            if (DeJuresCache == null)
-            {
-                DeJuresCache = new Dictionary<Hero, List<FeudalTitle>>();
-            }
-            else
-            {
-                SettlementCache.Clear();
-                DeJuresCache.Clear();
-            }
-
-            foreach (FeudalTitle title in Titles)
-            {
-                Hero hero = title.deJure;
-                if (hero != null)
+                if (DeJuresCache == null)
                 {
-                    if (!DeJuresCache.ContainsKey(hero))
+                    DeJuresCache = new Dictionary<Hero, List<FeudalTitle>>();
+                }
+                else
+                {
+                    SettlementCache.Clear();
+                    DeJuresCache.Clear();
+                }
+
+                foreach (FeudalTitle title in Titles)
+                {
+                    Hero hero = title.deJure;
+                    if (hero != null)
                     {
-                        DeJuresCache.Add(hero, new List<FeudalTitle> { title });
+                        if (!DeJuresCache.ContainsKey(hero))
+                        {
+                            DeJuresCache.Add(hero, new List<FeudalTitle> { title });
+                        }
+                        else
+                        {
+                            DeJuresCache[hero].Add(title);
+                        }
                     }
-                    else
+
+                    if (title.Fief != null)
                     {
-                        DeJuresCache[hero].Add(title);
+                        SettlementCache.Add(title.Fief, title);
                     }
                 }
 
-                if (title.Fief != null)
-                {
-                    SettlementCache.Add(title.Fief, title);
-                }
+                Knights ??= new Dictionary<Hero, float>();
             }
-
-            Knights ??= new Dictionary<Hero, float>();
         }
 
         public void PostInitialize()
@@ -97,12 +113,14 @@ namespace BannerKings.Managers
 
         public bool IsHeroTitleHolder(Hero hero)
         {
-            if (DeJuresCache.ContainsKey(hero))
+            lock (_cacheLock)
             {
-                return DeJuresCache[hero].Count > 0;
+                if (DeJuresCache != null && DeJuresCache.TryGetValue(hero, out var list))
+                {
+                    return list.Count > 0;
+                }
+                return false;
             }
-
-            return false;
         }
 
         public bool IsKnight(Hero hero) => Knights.ContainsKey(hero);
@@ -111,9 +129,12 @@ namespace BannerKings.Managers
         {
             try
             {
-                if (SettlementCache != null && SettlementCache.ContainsKey(settlement))
+                lock (_cacheLock)
                 {
-                    return SettlementCache[settlement];
+                    if (SettlementCache != null && SettlementCache.TryGetValue(settlement, out var cached))
+                    {
+                        return cached;
+                    }
                 }
 
                 return Titles.Find(x => x.Fief != null && x.Fief.StringId == settlement.StringId);
@@ -220,23 +241,30 @@ namespace BannerKings.Managers
                 if (deJure)
                 {
                     title.deJure = newOwner;
-                    if (oldOwner != null)
+                    lock (_cacheLock)
                     {
-                        DeJuresCache[oldOwner].Remove(title);
-                        if (DeJuresCache[oldOwner].Count == 0)
+                        if (oldOwner != null && DeJuresCache != null && DeJuresCache.TryGetValue(oldOwner, out var oldList))
                         {
-                            DeJuresCache.Remove(oldOwner);
-                            if (Knights.ContainsKey(oldOwner))
+                            oldList.Remove(title);
+                            if (oldList.Count == 0)
                             {
-                                Knights.Remove(oldOwner);
+                                DeJuresCache.Remove(oldOwner);
+                                if (Knights != null && Knights.ContainsKey(oldOwner))
+                                {
+                                    Knights.Remove(oldOwner);
+                                }
                             }
                         }
-                    }                
-                    
-                    if (DeJuresCache.ContainsKey(newOwner)) DeJuresCache[newOwner].Add(title);
-                    else DeJuresCache.Add(newOwner, new List<FeudalTitle> {title});
+
+                        if (newOwner != null)
+                        {
+                            DeJuresCache ??= new Dictionary<Hero, List<FeudalTitle>>();
+                            if (DeJuresCache.TryGetValue(newOwner, out var newList)) newList.Add(title);
+                            else DeJuresCache.Add(newOwner, new List<FeudalTitle> { title });
+                        }
+                    }
                 }
-                else title.deFacto = newOwner;   
+                else title.deFacto = newOwner;
             }
         }
 
@@ -789,13 +817,21 @@ namespace BannerKings.Managers
 
         public List<FeudalTitle> GetAllDeJure(Hero hero)
         {
-            if (DeJuresCache != null)
+            lock (_cacheLock)
             {
-                DeJuresCache.TryGetValue(hero, out var titleList);
-                if (titleList == null)
-                    titleList = new List<FeudalTitle>();
+                if (DeJuresCache != null)
+                {
+                    DeJuresCache.TryGetValue(hero, out var titleList);
+                    if (titleList == null)
+                        return new List<FeudalTitle>();
 
-                return titleList;
+                    // Snapshot under the lock so callers can iterate without
+                    // racing with ExecuteOwnershipChange mutating the inner
+                    // list. The lock protects the dictionary; the inner list
+                    // would still be mutated unsynchronized otherwise. A
+                    // fresh List is cheap and safe.
+                    return new List<FeudalTitle>(titleList);
+                }
             }
 
             var list = new List<FeudalTitle>();
