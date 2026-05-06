@@ -1928,6 +1928,123 @@ namespace BannerKings
             }
         }
 
+        // Bulk-test: fire OnPartyDailyTick on every MobileParty in sequence,
+        // timing each. Any party whose tick takes more than slowMs (default
+        // 100 ms) is logged as suspect. Designed to find the next freeze
+        // party WITHOUT knowing the name in advance — load a save where the
+        // freeze reproduces, run this cheat, and any pathologically slow
+        // party gets flagged.
+        //
+        // Usage:
+        //   bannerkings.test_partyneeds_all          (default 100 ms threshold)
+        //   bannerkings.test_partyneeds_all 50       (50 ms threshold)
+        //
+        // Output: BK_partyneeds_test.txt gets a per-party line for parties
+        // exceeding the threshold, plus a summary count. The chat reply
+        // shows the slowest 5.
+        [CommandLineFunctionality.CommandLineArgumentFunction("test_partyneeds_all", "bannerkings")]
+        public static string TestPartyNeedsAll(List<string> strings)
+        {
+            if (!CampaignCheats.CheckCheatUsage(ref CampaignCheats.ErrorType)) return CampaignCheats.ErrorType;
+
+            int slowMs = 100;
+            if (strings != null && strings.Count > 0 && int.TryParse(strings[0], out var parsed) && parsed > 0)
+                slowMs = parsed;
+
+            var behavior = TaleWorlds.CampaignSystem.Campaign.Current
+                ?.GetCampaignBehavior<BannerKings.Behaviours.PartyNeeds.BKPartyNeedsBehavior>();
+            if (behavior == null) return "BKPartyNeedsBehavior not registered";
+
+            var method = HarmonyLib.AccessTools.Method(
+                typeof(BannerKings.Behaviours.PartyNeeds.BKPartyNeedsBehavior),
+                "OnPartyDailyTick");
+            if (method == null) return "OnPartyDailyTick method not found";
+
+            AppendDiagnosticLine("partyneeds_test.txt",
+                $"=== test_partyneeds_all (threshold {slowMs} ms) at {DateTime.Now:HH:mm:ss} ===");
+
+            var slowList = new List<(string name, double ms, string preState, string error)>();
+            int total = 0, ran = 0, errored = 0;
+            var totalSw = System.Diagnostics.Stopwatch.StartNew();
+
+            try
+            {
+                foreach (var party in MobileParty.All)
+                {
+                    if (party == null) continue;
+                    total++;
+
+                    string name = "?";
+                    try { name = party.Name?.ToString() ?? "(unnamed)"; } catch { }
+
+                    string preState = "(pre-state read failed)";
+                    try
+                    {
+                        bool isLord = false; try { isLord = party.IsLordParty; } catch { }
+                        int troops = 0; try { troops = party.MemberRoster?.TotalManCount ?? 0; } catch { }
+                        string component = party.PartyComponent?.GetType()?.Name ?? "(null)";
+                        preState = $"Component={component} IsLord={isLord} Troops={troops}";
+                    }
+                    catch { }
+
+                    var sw = System.Diagnostics.Stopwatch.StartNew();
+                    string error = null;
+                    try
+                    {
+                        method.Invoke(behavior, new object[] { party });
+                        ran++;
+                    }
+                    catch (System.Reflection.TargetInvocationException tie)
+                    {
+                        errored++;
+                        var inner = tie.InnerException ?? tie;
+                        error = $"{inner.GetType().Name}: {inner.Message}";
+                    }
+                    catch (Exception ex)
+                    {
+                        errored++;
+                        error = $"outer {ex.GetType().Name}: {ex.Message}";
+                    }
+                    sw.Stop();
+
+                    double ms = sw.Elapsed.TotalMilliseconds;
+                    if (ms >= slowMs || error != null)
+                    {
+                        slowList.Add((name, ms, preState, error));
+                        AppendDiagnosticLine("partyneeds_test.txt",
+                            $"{ms:0.0} ms  {name}  | {preState}{(error != null ? " | THREW " + error : "")}");
+                    }
+
+                    // Hard cap: if a single party tick takes >30 seconds, abort
+                    // the bulk run rather than freezing the chat command.
+                    if (totalSw.Elapsed.TotalSeconds > 60)
+                    {
+                        AppendDiagnosticLine("partyneeds_test.txt",
+                            $"ABORT after {totalSw.Elapsed.TotalSeconds:0} sec — at party {name}");
+                        FlushDiagnosticBuffers();
+                        return $"ABORTED at {name} after 60 sec total — see partyneeds_test.txt";
+                    }
+                }
+            }
+            catch (Exception walkEx)
+            {
+                AppendDiagnosticLine("partyneeds_test.txt",
+                    $"walk threw: {walkEx.GetType().Name}: {walkEx.Message}");
+            }
+            totalSw.Stop();
+
+            slowList.Sort((a, b) => b.ms.CompareTo(a.ms));
+            AppendDiagnosticLine("partyneeds_test.txt",
+                $"=== summary: {total} parties, {ran} ran, {errored} threw, {slowList.Count} slow >= {slowMs}ms, total {totalSw.Elapsed.TotalSeconds:0.0} sec ===");
+            FlushDiagnosticBuffers();
+
+            if (slowList.Count == 0)
+                return $"All {total} parties OK in {totalSw.Elapsed.TotalSeconds:0.0} sec — no party >= {slowMs} ms";
+
+            var top = slowList.Take(5).Select(x => $"{x.ms:0}ms {x.name}").ToList();
+            return $"{slowList.Count} suspect / {total} parties. Top: {string.Join(", ", top)}";
+        }
+
         // Per-file in-memory buffers for the diagnostic logs. The original
         // implementation was synchronous open-write-flush-close per line —
         // fine at the 800 lines/sec the legacy trace produced, fatal at the
