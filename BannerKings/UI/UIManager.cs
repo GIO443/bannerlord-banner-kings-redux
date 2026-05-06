@@ -211,16 +211,29 @@ namespace BannerKings.UI
             [HarmonyPatch("Name", MethodType.Getter)]
             internal static void GetterPostfix(Hero __instance, ref TextObject __result)
             {
-                if (names.ContainsKey(__instance) && MBRandom.RandomFloat > 0.1f)
+                // Defensive: this getter fires from EVERY trace label
+                // construction, EVERY UI text variable, EVERY dialog token.
+                // An exception or hang in the title-lookup path cascades
+                // into hundreds of code paths that rely on Hero.Name being
+                // safe. The 10% RNG-rebuild branch below walks
+                // TitleManager state which can be transiently inconsistent
+                // for a few seconds after a settlement-owner-change event;
+                // freezes observed showing clean BK ENTER/EXIT but no
+                // next-subscriber ENTER are consistent with this rebuild
+                // path hanging on freshly-mutated title state.
+                if (__instance == null) return;
+                try
                 {
-                    __result = names[__instance];
-                    return;
-                }
+                    if (names.ContainsKey(__instance) && MBRandom.RandomFloat > 0.1f)
+                    {
+                        __result = names[__instance];
+                        return;
+                    }
 
-                var namingSetting = BannerKingsSettings.Instance.Naming.SelectedValue;
-                if (__instance.IsLord && namingSetting != DefaultSettings.Instance.NamingNoTitles &&
-                    BannerKingsConfig.Instance.TitleManager != null)
-                {
+                    var namingSetting = BannerKingsSettings.Instance.Naming.SelectedValue;
+                    if (!__instance.IsLord || namingSetting == DefaultSettings.Instance.NamingNoTitles ||
+                        BannerKingsConfig.Instance.TitleManager == null) return;
+
                     var title = BannerKingsConfig.Instance.TitleManager.GetHighestTitle(__instance);
                     if (title != null)
                     {
@@ -271,9 +284,9 @@ namespace BannerKings.UI
                                     .SetTextVariable("NAME", name);
                                 AddName(__instance, __result);
                             }
-                            else if (leaderTitle.Contract.Government != DefaultGovernments.Instance.Republic && leaderTitle.IsSovereignLevel && 
+                            else if (leaderTitle.Contract.Government != DefaultGovernments.Instance.Republic && leaderTitle.IsSovereignLevel &&
                                 (leader.Children.Contains(__instance) || leader.Siblings.Contains(__instance)))
-                            { 
+                            {
                                 var honorary = Utils.TextHelper.GetPrinceTitles(__instance.IsFemale,
                                     clan != null ? clan.Culture : __instance.Culture);
 
@@ -284,6 +297,12 @@ namespace BannerKings.UI
                             }
                         }
                     }
+                }
+                catch
+                {
+                    // Swallow — leave __result as the vanilla value the
+                    // getter already produced. Better a missing title
+                    // honorific than a hung daily-tick iteration.
                 }
             }
         }
