@@ -228,7 +228,16 @@ namespace BannerKings.Behaviours
                 }
                 if (dest != null)
                 {
-                    caravan.SetMoveGoToSettlement(dest, MobileParty.NavigationType.Default, false);
+                    // Convoy invariant: a naval-capable caravan must navigate
+                    // water-only with isTargetingThePort=true so vanilla
+                    // pathfinder routes it across water faces and aims at
+                    // PortPosition. Default nav lets the engine pick a land
+                    // path for HasNaval+HasLand templates — visible "boat
+                    // walking on land" bug.
+                    bool isNavalRel = false;
+                    try { isNavalRel = caravan.HasNavalNavigationCapability; } catch { }
+                    var relNav = isNavalRel ? MobileParty.NavigationType.Naval : MobileParty.NavigationType.Default;
+                    caravan.SetMoveGoToSettlement(dest, relNav, isNavalRel);
                     // Invalidate BKShipping's redirect cache so the next
                     // hourly TickParty re-evaluates from scratch instead
                     // of skipping for up to 6 hours on a stale cached
@@ -704,6 +713,19 @@ namespace BannerKings.Behaviours
                 // on land tiles. Re-think next hour when state has settled.
                 if (caravanParty.IsTransitionInProgress) return;
 
+                // Vanilla-parity early-outs. The vanilla
+                // CaravansCampaignBehavior.HourlyTickParty bailed silently
+                // on these states; since BK now owns the hourly target
+                // decision wholesale (vanilla's HourlyTickParty is skipped
+                // by CaravansCampaignBehaviorPatches), we mirror its bail
+                // conditions exactly. Without these, BK could re-think
+                // a caravan that vanilla would have left alone — issuing
+                // SetMoveGoToSettlement against a raft-state party or a
+                // party whose DefaultBehavior is MoveToNearestLandOrPort
+                // (the engine's last-resort beach-recovery behavior).
+                if (caravanParty.IsInRaftState) return;
+                if (caravanParty.DefaultBehavior == TaleWorlds.CampaignSystem.Party.AiBehavior.MoveToNearestLandOrPort) return;
+
                 // Hold-mode safety net. Runs BEFORE the IsPartyTradeActive
                 // gate below so a caravan stuck in Hold from a missed
                 // siege-end release path (or any other code that called
@@ -818,7 +840,14 @@ namespace BannerKings.Behaviours
                             {
                                 _previouslyChangedCaravanTargetsDueToEnemyOnWay[caravanParty].Add(caravanParty.TargetSettlement);
                             }
-                            caravanParty.SetMoveGoToSettlement(town2.Settlement, MobileParty.NavigationType.Default, false);
+                            // Convoy invariant: a naval-capable caravan must
+                            // navigate water-only with isTargetingThePort=true.
+                            // Default would let vanilla pathfinder pick a land
+                            // path (the Udris-on-Plain bug).
+                            bool isNavalRedirect = false;
+                            try { isNavalRedirect = caravanParty.HasNavalNavigationCapability; } catch { }
+                            var redirectNav = isNavalRedirect ? MobileParty.NavigationType.Naval : MobileParty.NavigationType.Default;
+                            caravanParty.SetMoveGoToSettlement(town2.Settlement, redirectNav, isNavalRedirect);
                         }
                         else
                         {
@@ -868,7 +897,10 @@ namespace BannerKings.Behaviours
                                 }
                                 if (fallback != null && fallback != currentTarget)
                                 {
-                                    caravanParty.SetMoveGoToSettlement(fallback, MobileParty.NavigationType.Default, false);
+                                    bool isNavalFb = false;
+                                    try { isNavalFb = caravanParty.HasNavalNavigationCapability; } catch { }
+                                    var fbNav = isNavalFb ? MobileParty.NavigationType.Naval : MobileParty.NavigationType.Default;
+                                    caravanParty.SetMoveGoToSettlement(fallback, fbNav, isNavalFb);
                                 }
                             }
                         }
@@ -876,7 +908,10 @@ namespace BannerKings.Behaviours
                     Town destinationForMobileParty2 = GetDestinationForMobileParty(caravanParty);
                     if (caravanParty.CurrentSettlement == null && destinationForMobileParty2 != null && caravanParty.TargetSettlement != destinationForMobileParty2.Settlement)
                     {
-                        caravanParty.SetMoveGoToSettlement(destinationForMobileParty2.Settlement, MobileParty.NavigationType.Default, false);
+                        bool isNavalDmp = false;
+                        try { isNavalDmp = caravanParty.HasNavalNavigationCapability; } catch { }
+                        var dmpNav = isNavalDmp ? MobileParty.NavigationType.Naval : MobileParty.NavigationType.Default;
+                        caravanParty.SetMoveGoToSettlement(destinationForMobileParty2.Settlement, dmpNav, isNavalDmp);
                     }
                 }
             }
