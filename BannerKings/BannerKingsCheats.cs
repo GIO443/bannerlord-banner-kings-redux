@@ -2587,6 +2587,73 @@ namespace BannerKings
             }
         }
 
+        // bannerkings.dump_food_status — for every town, dump the
+        // ClusterFoodDeficitDays counter, stagnation status, and which
+        // bound villages are eating the penalty.
+        [CommandLineFunctionality.CommandLineArgumentFunction("dump_food_status", "bannerkings")]
+        public static string DumpFoodStatus(List<string> strings)
+        {
+            try
+            {
+                var sb = new StringBuilder();
+                sb.AppendLine("# BK cluster food deficit dump");
+                sb.AppendLine($"# captured at year {CampaignTime.Now.GetYear} day {CampaignTime.Now.GetDayOfYear}");
+                sb.AppendLine($"# enter threshold = {ClusterFoodTracker.StagnationEnterThreshold} days, exit = {ClusterFoodTracker.StagnationExitThreshold}");
+                sb.AppendLine();
+
+                int rows = 0, stagnant = 0, recovering = 0;
+                var towns = Settlement.All.Where(x => x != null && x.IsTown)
+                                          .OrderBy(x => x.StringId).ToList();
+                foreach (var s in towns)
+                {
+                    var data = BannerKingsConfig.Instance.PopulationManager?.GetPopData(s);
+                    if (data?.EconomicData == null) continue;
+                    rows++;
+                    int days = data.EconomicData.ClusterFoodDeficitDays;
+                    bool isStagnant = ClusterFoodTracker.IsClusterStagnant(s.Town);
+                    if (isStagnant) stagnant++;
+                    else if (days > 0 && days < ClusterFoodTracker.StagnationEnterThreshold) recovering++;
+                    string state = isStagnant ? "STAGNANT" : days > 0 ? "deficit" : "ok";
+                    sb.AppendLine($"  {s.StringId,-32} foodChange={s.Town.FoodChange,7:0.0}  stocks={s.Town.FoodStocks,7:0}  deficit={days,3}d  {state}");
+                }
+                sb.AppendLine();
+                sb.AppendLine($"## summary: {rows} towns, {stagnant} stagnant, {recovering} accumulating deficit");
+
+                WriteDiagnosticFile("food_status.txt", sb.ToString());
+                string summary = $"dump_food_status: {rows} towns, {stagnant} stagnant, {recovering} accumulating. {LastWriteResult}";
+                InformationManager.DisplayMessage(new InformationMessage(summary, Color.FromUint(0xFFFFD700)));
+                return summary;
+            }
+            catch (Exception ex)
+            {
+                string err = "dump_food_status failed: " + ex.GetType().Name + ": " + ex.Message;
+                InformationManager.DisplayMessage(new InformationMessage(err, Color.FromUint(0xFFFF4040)));
+                return err;
+            }
+        }
+
+        // bannerkings.test_force_deficit <town_id> [days] — set the
+        // ClusterFoodDeficitDays counter directly for testing the
+        // stagnation gate without waiting for an actual food crisis.
+        [CommandLineFunctionality.CommandLineArgumentFunction("test_force_deficit", "bannerkings")]
+        public static string TestForceDeficit(List<string> strings)
+        {
+            if (strings == null || strings.Count < 1)
+                return "usage: bannerkings.test_force_deficit <town_id> [days]";
+            string id = strings[0];
+            int days = ClusterFoodTracker.StagnationEnterThreshold + 1;
+            if (strings.Count >= 2 && int.TryParse(strings[1], out var parsedDays)) days = parsedDays;
+
+            var s = Settlement.Find(id);
+            if (s == null || !s.IsTown) return $"test_force_deficit: {id} not found or not a town";
+            var data = BannerKingsConfig.Instance.PopulationManager?.GetPopData(s);
+            if (data?.EconomicData == null) return $"test_force_deficit: {id} has no BK economic data";
+            data.EconomicData.ClusterFoodDeficitDays = days;
+            string msg = $"test_force_deficit: {id} ClusterFoodDeficitDays = {days} (stagnant: {ClusterFoodTracker.IsClusterStagnant(s.Town)})";
+            InformationManager.DisplayMessage(new InformationMessage(msg, Color.FromUint(0xFFFFD700)));
+            return msg;
+        }
+
         // bannerkings.classify_village <village_id> — re-runs DefaultVillageClasses
         // on a single village and prints the path it took. Useful when a
         // village shows Unset and you want to see why.

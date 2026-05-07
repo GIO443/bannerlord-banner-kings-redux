@@ -286,10 +286,30 @@ demesne-law cap). >180-day runway → −5%. No other signal.
       No save schema changes (cluster computed on-demand, not
       persisted). Phase 5 caching with invalidation hooks if profiling
       shows the recompute is hot. Town panel UI deferred to Phase 7.
-- [ ] **Phase 4 — food deficit gating.** Hooks the food rework
-      (Phase 2 of food sim). Negative cluster food balance → Extractive /
-      Fibre / Stud estates take stagnation penalty. Cluster food
-      surplus → exportable.
+- [x] **Phase 4 — food deficit gating.** ✅ Landed on `economy-phase-4`
+      branch. `ClusterFoodTracker` daily-ticks every town: increments
+      `EconomicData.ClusterFoodDeficitDays` (new SaveableProperty 6)
+      when `town.FoodChange < 0 && FoodStocks < 25%`, decrements on
+      surplus days. Hysteresis via separate enter/exit thresholds
+      (14d / 7d). Counter capped at 3× enter threshold so recovery is
+      bounded.
+      Stagnation factor (`ClusterFoodTracker.StagnationFactor`) wired
+      into `EstateYieldCalculator.Breakdown.Stagnation` — multiplied
+      into `Final` after IndustryDemand. 0.7× for non-food classes
+      (Extractive/FibreFarm/StudFarm) when cluster is stagnant; 1.0×
+      always for food-positive classes (Cropland/Pastoral/Coastal —
+      they're the way out of the crisis, not the cause).
+      Detection signal is **vanilla `town.FoodChange`** — not the
+      Phase 3 cluster.FoodBalance, which is estate-side only. Vanilla
+      already counts town consumption + village inflow + workshop
+      consumption; we just observe its sign.
+      Validation cheats:
+        - `bannerkings.dump_food_status` → BK_food_status.txt with
+          per-town foodChange, stocks, deficit days, state. Summary
+          counts stagnant + recovering.
+        - `bannerkings.test_force_deficit <town_id> [days]` — sets
+          counter directly to test the gate without waiting for a
+          real famine.
 - [ ] **Phase 5 — inter-cluster trade.** Extend slave-caravan
       primitive to ship raw goods between food-surplus and
       food-deficit clusters. Naval clusters via shipping graph.

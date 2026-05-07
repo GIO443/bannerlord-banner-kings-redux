@@ -37,6 +37,15 @@ namespace BannerKings.Managers.Populations
         // industry archetype.
         [SaveableProperty(5)] public TownIndustry TownIndustry { get; set; } = TownIndustry.Unset;
 
+        // Phase 4 — food deficit gating. Daily ticked counter of how many
+        // consecutive days the town has been in a food deficit (vanilla
+        // FoodChange < 0 + FoodStocks below a threshold). When ≥ the
+        // stagnation threshold, non-food bound villages take a yield
+        // penalty until the deficit closes. Decrements on surplus days
+        // (one-step-back-per-good-day) so a brief famine doesn't
+        // permanently scar the cluster.
+        [SaveableProperty(6)] public int ClusterFoodDeficitDays { get; set; } = 0;
+
         public Guild Guild => guild;
         public float Tariff => BannerKingsConfig.Instance.TaxModel.GetTownTaxRatio(settlement.Town);
         public float TradePower { get; private set; } = 1f;

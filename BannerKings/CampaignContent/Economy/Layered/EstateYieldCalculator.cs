@@ -50,7 +50,8 @@ namespace BannerKings.CampaignContent.Economy.Layered
             public float SpecVolume;       // EstateYieldTables.SpecOutput.Volume
             public float SpecQuality;      // EstateYieldTables.SpecOutput.Quality
             public float WorkerFitMean;    // pop-weighted average of WorkerFit
-            public float IndustryDemand;   // 1.0 baseline; cluster-fit applied in Phase 3
+            public float IndustryDemand;   // cluster-fit factor (Phase 3)
+            public float Stagnation;       // food-deficit penalty for non-food classes (Phase 4)
             public float Final;            // product of all of the above
         }
 
@@ -63,7 +64,7 @@ namespace BannerKings.CampaignContent.Economy.Layered
             var br = new Breakdown
             {
                 SpecVolume = 1f, SpecQuality = 1f,
-                WorkerFitMean = 1f, IndustryDemand = 1f, Final = 1f
+                WorkerFitMean = 1f, IndustryDemand = 1f, Stagnation = 1f, Final = 1f
             };
             if (estate == null) return br;
 
@@ -97,7 +98,15 @@ namespace BannerKings.CampaignContent.Economy.Layered
             // Cropland village gets 0.85.
             br.IndustryDemand = EconomicCluster.IndustryDemandFactor(estate);
 
-            br.Final = br.SpecVolume * br.SpecQuality * br.WorkerFitMean * br.IndustryDemand;
+            // Phase 4 stagnation gate: when the bound town's cluster has
+            // been in food deficit ≥ StagnationEnterThreshold days, non-
+            // food estates take a 0.7× penalty until the deficit closes.
+            // Food-positive classes (Cropland/Pastoral/Coastal) are
+            // exempt — they're the cluster's way out of the crisis,
+            // penalizing them would deepen the spiral.
+            br.Stagnation = ClusterFoodTracker.StagnationFactor(cls, settlement.Village?.GetClusterTown());
+
+            br.Final = br.SpecVolume * br.SpecQuality * br.WorkerFitMean * br.IndustryDemand * br.Stagnation;
             return br;
         }
 
