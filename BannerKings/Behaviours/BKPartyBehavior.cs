@@ -76,6 +76,59 @@ namespace BannerKings.Behaviours
             CampaignEvents.OnSettlementLeftEvent.AddNonSerializedListener(this, OnSettlementLeft);
             CampaignEvents.DailyTickPartyEvent.AddNonSerializedListener(this,
                 BannerKings.Utils.TickTrace.WrapParty("BKParty.DailyTickParty", OnDailyTick));
+            CampaignEvents.WeeklyTickEvent.AddNonSerializedListener(this, OnWeeklyCaravanLedger);
+        }
+
+        // Weekly informational summary of player-owned caravans' carried
+        // trade gold. Closes the "no reporting" half of the player-caravan-
+        // profit complaint: when RealisticCaravanIncome is on, daily clan
+        // finance shows 0 from caravans (because the deposit is one-shot
+        // on settlement entry, not a daily flow). Between deposits the
+        // player has no signal that caravans are working. This message
+        // tells them how much is in transit and roughly when it'll land.
+        //
+        // Silent when total carried is small (< 1000) so the panel doesn't
+        // get noise from a freshly-spawned caravan that hasn't had a chance
+        // to accumulate. Silent when toggle is off (vanilla daily flow path
+        // is doing the reporting itself).
+        private static void OnWeeklyCaravanLedger()
+        {
+            if (Hero.MainHero == null) return;
+            if (!BannerKingsSettings.Instance.RealisticCaravanIncome) return;
+
+            int totalCarried = 0;
+            int caravanCount = 0;
+            try
+            {
+                foreach (var caravan in MobileParty.AllCaravanParties)
+                {
+                    if (caravan == null || !caravan.IsActive) continue;
+                    if (caravan.Owner != Hero.MainHero) continue;
+                    int carried = caravan.PartyTradeGold - 10000;
+                    if (carried <= 0) continue;
+                    totalCarried += carried;
+                    caravanCount++;
+                }
+            }
+            catch { /* defensive — never throw from a weekly tick */ }
+
+            if (totalCarried < 1000) return;
+
+            try
+            {
+                // "Trade balance" rather than "profits" — PartyTradeGold
+                // is the caravan's working capital after wages, food, and
+                // shipping fees, not gross revenue. The number shown here
+                // matches exactly what AddRealisticIncome would deposit if
+                // the caravan reached an eligible settlement this tick:
+                //   MathF.Max(0, PartyTradeGold - 10000).
+                var msg = new TextObject("{=BKCarriedCaravanGold}Your {COUNT} active caravan(s) are carrying {GOLD}{GOLD_ICON} in trade balance, awaiting deposit on next visit to your home or owned settlement.")
+                    .SetTextVariable("COUNT", caravanCount)
+                    .SetTextVariable("GOLD", totalCarried)
+                    .ToString();
+                InformationManager.DisplayMessage(new InformationMessage(msg, Color.FromUint(0xFFE0C060)));
+            }
+            catch { /* defensive */ }
         }
 
         private void OnSettlementLeft(MobileParty mobileParty, Settlement settlement)
@@ -712,8 +765,25 @@ namespace BannerKings.Behaviours
             if (party.IsCaravan && BannerKingsSettings.Instance.RealisticCaravanIncome)
             {
                 var caravanOwner = party.Owner;
+                // Deposit triggers — caravan delivers earnings when it
+                // arrives at one of:
+                //   1. a settlement the owner owns (landed lord / town owner)
+                //   2. a settlement where the owner is staying without a party
+                //   3. a settlement where the owner's mobile party is currently
+                //   4. the owner's HomeSettlement (vanilla-resolved cultural /
+                //      strategic seat — works for unlanded players whose
+                //      Clan.HomeSettlement falls back to FindMostSuitableHomeSettlement)
+                //
+                // Without (4), an unlanded player's caravan accumulates
+                // PartyTradeGold forever and the deposit never fires unless
+                // the player happens to be at the same settlement on the
+                // same tick. Adding HomeSettlement gives caravans a stable
+                // periodic deposit point regardless of land status.
+                bool atOwnerHome = caravanOwner.HomeSettlement != null
+                                && target == caravanOwner.HomeSettlement;
                 if (target.Owner == caravanOwner || target.HeroesWithoutParty.Contains(caravanOwner) ||
-                    (caravanOwner.PartyBelongedTo != null && target.Parties.Contains(caravanOwner.PartyBelongedTo)))
+                    (caravanOwner.PartyBelongedTo != null && target.Parties.Contains(caravanOwner.PartyBelongedTo)) ||
+                    atOwnerHome)
                 {
                     int income = MathF.Max(0, party.PartyTradeGold - 10000);
                     if (income > 0)
