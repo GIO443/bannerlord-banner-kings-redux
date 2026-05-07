@@ -307,6 +307,21 @@ namespace BannerKings.Behaviours.Shipping
             CampaignEvents.HourlyTickPartyEvent.AddNonSerializedListener(this, TickParty);
             CampaignEvents.DailyTickEvent.AddNonSerializedListener(this,
                 BannerKings.Utils.TickTrace.Wrap("BKShipping.DailyNavalActivityProbe", DailyNavalActivityProbe));
+            // In-session convoy beaching sweep. LoadCleanup catches the
+            // signatures on save load, but mid-session a beach can persist
+            // for the entire play session because there's no other detector
+            // running. Daily cadence is conservative — too low to risk the
+            // oscillation problems that disabled the old hourly
+            // UnifiedRescueSweep, high enough that a beached convoy gets
+            // unstuck within a game-day instead of waiting for save reload.
+            //
+            // Scoped to caravans only (Convoy invariant per the design memo:
+            // naval-capable lords legitimately spend most of the campaign on
+            // land between voyages). Reuses the same Mismatch G + C1 detection
+            // as LoadCleanup so the in-session and on-load rescues stay in
+            // sync.
+            CampaignEvents.DailyTickEvent.AddNonSerializedListener(this,
+                BannerKings.Utils.TickTrace.Wrap("BKShipping.DailyConvoyBeachingCheck", DailyConvoyBeachingCheck));
             // 2026-05-02: no automatic mid-game rescue or flag-correction.
             //
             // Root cause of the AtSea-on-land state: the engine's per-tick
@@ -2098,6 +2113,168 @@ namespace BannerKings.Behaviours.Shipping
         //   land-unreachable from their current position? These are
         //   the parties that MUST sail to reach their goal — the upper
         //   bound on visible sea-travel demand.
+        // Daily in-session convoy beaching detector. Mirrors LoadCleanup's
+        // Mismatch G + C1 signatures, scoped to caravans, scoped to whether
+        // we believe the party is on a land tile. When detected, route to
+        // nearest port via EnterSettlementAction and re-pin the target with
+        // Naval navigation so the convoy resumes water-only routing.
+        //
+        // Why daily not hourly: an hourly sweep used to oscillate against
+        // BK's own redirect logic — rescue a party into a port, BK redirect
+        // routes them out, vanilla pathfinder hits a dead-end tile, rescue
+        // fires again. Daily is far enough below redirect-cache TTL (6h)
+        // that the rescue + redirect pair settles before re-evaluation.
+        //
+        // Scoped to caravans (Convoy invariant): naval-capable lords
+        // legitimately walk on land between voyages — only auto-rescue
+        // caravans, where the naming convention is the canonical mode.
+        private void DailyConvoyBeachingCheck()
+        {
+            int rescued = 0;
+            try
+            {
+                var wrapper = TaleWorlds.CampaignSystem.Campaign.Current?.MapSceneWrapper;
+                if (wrapper == null) return;
+
+                foreach (var party in MobileParty.AllCaravanParties)
+                {
+                    if (party == null || !party.IsActive) continue;
+                    if (party.CurrentSettlement != null) continue;
+                    if (party.MapEvent != null) continue;
+                    if (party.IsTransitionInProgress) continue;
+
+                    bool naval = false;
+                    try { naval = party.HasNavalNavigationCapability; } catch { }
+                    if (!naval) continue;
+
+                    // Cooldown so a freshly-rescued convoy doesn't re-trigger
+                    // mid-walk-out from the haven port. RescueCooldownHours
+                    // is the same window used by other rescue paths.
+                    long nowHour;
+                    try { nowHour = (long)CampaignTime.Now.ToHours; } catch { continue; }
+                    if (lastRescueHour.TryGetValue(party, out long lastHour)
+                        && nowHour - lastHour < RescueCooldownHours) continue;
+
+                    bool needRescue = false;
+                    string reason = null;
+
+                    // Mismatch C1: AtSea=true on interior land terrain
+                    // (Plain / Forest / Steppe / etc). Unambiguous boat-on-
+                    // land — Position.IsOnLand can lie post-cancelled-
+                    // transition so we don't require it for interior faces.
+                    try
+                    {
+                        var t = wrapper.GetFaceTerrainType(party.CurrentNavigationFace);
+                        if (party.IsCurrentlyAtSea && IsClearlyLand(t))
+                        {
+                            needRescue = true;
+                            reason = $"AtSea over interior {t}";
+                        }
+                        else if (party.IsCurrentlyAtSea && !IsOpenWater(t))
+                        {
+                            // Mismatch C2: water-adjacent face (Beach /
+                            // RuralArea / Bridge). Need both signals to
+                            // avoid false-positive at PortPosition where
+                            // the party is legitimately on water.
+                            bool onWaterByPosition = false;
+                            try { onWaterByPosition = !party.Position.IsOnLand; } catch { }
+                            if (!onWaterByPosition)
+                            {
+                                needRescue = true;
+                                reason = $"AtSea over {t} (water-adjacent + Position-on-land)";
+                            }
+                        }
+                        else if (!needRescue)
+                        {
+                            // Mismatch G: naval-capable caravan on a land
+                            // face regardless of AtSea. Convoy invariant —
+                            // a caravan with naval cap should never be
+                            // walking on land tiles.
+                            if (IsClearlyLand(t))
+                            {
+                                needRescue = true;
+                                reason = $"Convoy on interior {t}";
+                            }
+                            else if (!IsOpenWater(t))
+                            {
+                                bool onWaterByPosition = false;
+                                try { onWaterByPosition = !party.Position.IsOnLand; } catch { }
+                                if (!onWaterByPosition)
+                                {
+                                    needRescue = true;
+                                    reason = $"Convoy on {t} (water-adjacent + Position-on-land)";
+                                }
+                            }
+                        }
+                    }
+                    catch { /* defensive */ }
+
+                    if (!needRescue) continue;
+
+                    Settlement haven = FindNearestPort(party, party.GetPosition2D);
+                    // Require a real port. FindNearestPort falls back to
+                    // FindNearestRescueTown which returns ANY town — a
+                    // landlocked inland town would be the same desync we're
+                    // trying to fix (Naval-routed convoy parked on land
+                    // tile). If no port is reachable this tick, skip the
+                    // rescue and try again tomorrow; LoadCleanup catches
+                    // it on next save load.
+                    if (haven == null || !haven.HasPort) continue;
+
+                    try
+                    {
+                        // Pre-clear stale BK state — see LoadCleanup for the
+                        // duplicate-source-of-truth rationale (clear before
+                        // EnterSettlementAction so AfterSettlementEntered's
+                        // re-route runs on a clean slate).
+                        try { InvalidateRedirectCache(party); } catch { }
+                        try { if (lastPortLeft.ContainsKey(party)) lastPortLeft.Remove(party); } catch { }
+                        try { if (lastRescueTown.ContainsKey(party)) lastRescueTown.Remove(party); } catch { }
+
+                        bool hasLand = false;
+                        try { hasLand = party.HasLandNavigationCapability; } catch { }
+                        if (hasLand)
+                        {
+                            try { party.IsCurrentlyAtSea = false; } catch { }
+                        }
+                        // EnterSettlementAction synchronously fires
+                        // AfterSettlementEntered_Caravan which already calls
+                        // RouteCaravanHopByHop with naval-aware routing for
+                        // a Convoy. A post-Enter SetMoveGoToSettlement(haven,
+                        // Naval) here would OVERWRITE that hop's target,
+                        // pinning the convoy at the haven instead of letting
+                        // it resume hop-by-hop traversal. Trust the existing
+                        // re-route inside the action. Note: rescueHistory
+                        // and bkOptOutUntilHour are intentionally untouched
+                        // — this rescue is not the oscillation pattern those
+                        // tracks; oscillation guard is via lastRescueHour
+                        // cooldown.
+                        TaleWorlds.CampaignSystem.Actions.EnterSettlementAction.ApplyForParty(party, haven);
+
+                        try { if (party.Ai != null) party.Ai.RethinkAtNextHourlyTick = true; } catch { }
+
+                        lastRescueHour[party] = nowHour;
+                        lastRescueTown[party] = haven;
+                        rescued++;
+                        LogRescue(party, $"daily-sweep: ENTER {haven.Name} ({reason})");
+                    }
+                    catch { /* skip parties the engine refuses */ }
+                }
+            }
+            catch { /* never crash a daily tick */ }
+
+            if (rescued > 0)
+            {
+                try
+                {
+                    TaleWorlds.Library.Debug.Print(
+                        $"[BK] Daily convoy sweep: {rescued} beached caravan(s) rescued",
+                        color: TaleWorlds.Library.Debug.DebugColor.Yellow);
+                }
+                catch { }
+            }
+        }
+
         private void DailyNavalActivityProbe()
         {
             try

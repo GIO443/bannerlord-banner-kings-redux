@@ -45,6 +45,33 @@ namespace BannerKings.UI.Management.Villages
             List<Building> buildings = new List<Building>();
             Settlement currentSettlement = Settlement.CurrentSettlement;
 
+            // Vanilla SettlementProjectVM..ctor calls
+            //   BuildingHelper.GetProgressOfBuilding(building, settlement.Town)
+            // which NREs on `town.Buildings` when settlement is a Village
+            // (Village.Town is null — only Town settlements have a non-null
+            // Town property). Pass the village's bound TOWN to satisfy the
+            // vanilla contract; vanilla then iterates the town's buildings,
+            // can't find the village's building, returns 0f via a dev-only
+            // FailedAssert (no-op in shipping). Progress for village buildings
+            // is tracked through villageData on BK's side, not via the
+            // vanilla town's progress, so the 0% value the parent ctor reads
+            // is harmless — VillageBuildingProjectVM overrides
+            // RefreshProductionText() to a no-op anyway.
+            //
+            // Fallback: if the player somehow isn't in a settlement (e.g.
+            // opened the UI from a non-standard menu path) or the village
+            // has no bound town, use the current settlement directly. The
+            // already-existing villageData null-check above bails out
+            // before this code runs, so reaching here means we have a
+            // village; the .Bound check below is the defensive shim.
+            Settlement bridgeSettlement = currentSettlement;
+            if (currentSettlement != null
+                && currentSettlement.IsVillage
+                && currentSettlement.Village?.Bound != null)
+            {
+                bridgeSettlement = currentSettlement.Village.Bound;
+            }
+
             foreach (var b in villageData.Buildings)
             {
                 buildings.Add(b);
@@ -59,7 +86,7 @@ namespace BannerKings.UI.Management.Villages
                     new Action<SettlementProjectVM>(OnCurrentProjectSet),
                     new Action(OnResetCurrentProject),
                     building,
-                    Hero.MainHero.CurrentSettlement);
+                    bridgeSettlement);
                 AvailableProjects.Add(VillageBuildingProjectVM);
                 if (VillageBuildingProjectVM.Building.BuildingType.StringId == villageData.CurrentBuilding.BuildingType.StringId)
                 {
@@ -77,7 +104,7 @@ namespace BannerKings.UI.Management.Villages
                         new Action<SettlementProjectVM>(OnCurrentProjectSet),
                         new Action(OnResetCurrentProject),
                         building2,
-                        Hero.MainHero.CurrentSettlement);
+                        bridgeSettlement);
                     DailyDefaultList.Add(VillageBuildingDailyProjectVM);
                     if (VillageBuildingDailyProjectVM.Building.BuildingType.StringId ==
                         villageData.CurrentDefault.BuildingType.StringId)

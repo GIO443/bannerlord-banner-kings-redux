@@ -555,13 +555,22 @@ namespace BannerKings.UI
             }
         }
 
+        // Skips vanilla SettlementProjectVM.RefreshValues for village
+        // VMs. Companion to the constructor-side fix in
+        // VillageProjectSelection.cs:RefreshValues — that fix passes the
+        // village's bound town to the parent ctor so the initial
+        // BuildingHelper.GetProgressOfBuilding(building, _settlement.Town)
+        // call no longer NREs. THIS prefix prevents vanilla's RefreshValues
+        // from re-triggering the same lookup on subsequent UI refreshes
+        // when Settlement.CurrentSettlement is a village. Removing this
+        // prefix would re-introduce the village-UI crash on every refresh.
         [HarmonyPatch(typeof(SettlementProjectVM), "RefreshValues")]
         internal class SettlementProjectVMRefreshPatch
         {
             private static bool Prefix()
             {
                 var settlement = Settlement.CurrentSettlement;
-                if (!settlement.IsVillage)
+                if (settlement == null || !settlement.IsVillage)
                 {
                     return true;
                 }
