@@ -29,6 +29,14 @@ namespace BannerKings.Managers.Populations
         [SaveableProperty(3)] private float stateSlaves { get; set; }
         [SaveableProperty(4)] public int ConsumedValue { get; set; }
 
+        // Phase 1 of village/estate/town economy rework. Defaults to Unset
+        // on existing saves; LayeredEconomyAssignmentBehavior populates it
+        // from DefaultTownIndustries.InferIndustry on session start. After
+        // Phase 1 lands this is the single source of truth for the town's
+        // industry archetype.
+        [SaveableProperty(5)] public BannerKings.CampaignContent.Economy.Layered.TownIndustry TownIndustry { get; set; }
+            = BannerKings.CampaignContent.Economy.Layered.TownIndustry.Unset;
+
         public Guild Guild => guild;
         public float Tariff => BannerKingsConfig.Instance.TaxModel.GetTownTaxRatio(settlement.Town);
         public float TradePower { get; private set; } = 1f;

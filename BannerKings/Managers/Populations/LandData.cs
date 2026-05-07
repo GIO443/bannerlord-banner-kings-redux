@@ -37,6 +37,14 @@ namespace BannerKings.Managers.Populations
 
         [SaveableProperty(7)] private float[] composition { get; set; }
 
+        // Phase 1 of village/estate/town economy rework. Defaults to Unset
+        // on existing saves; LayeredEconomyAssignmentBehavior populates it
+        // from DefaultVillageClasses on session start. After Phase 1 lands
+        // this is the SINGLE source of truth for "what does this village
+        // produce" — never read VillageType for class purposes.
+        [SaveableProperty(8)] public BannerKings.CampaignContent.Economy.Layered.VillageClass VillageClass { get; set; }
+            = BannerKings.CampaignContent.Economy.Layered.VillageClass.Unset;
+
         public float[] Composition => composition;
 
         public TerrainType Terrain => TaleWorlds.CampaignSystem.Campaign.Current.MapSceneWrapper != null ? 

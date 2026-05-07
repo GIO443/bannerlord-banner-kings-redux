@@ -232,6 +232,11 @@ namespace BannerKings
             AddClassDefinition(typeof(RaidCapturePolicyManager), 1101);
             AddEnumDefinition(typeof(RaidCaptureMode), 1102);
             AddEnumDefinition(typeof(CaptiveDisposition), 1103);
+
+            // Layered village/estate/town economy rework — Phase 1.
+            AddEnumDefinition(typeof(BannerKings.CampaignContent.Economy.Layered.VillageClass), 1110);
+            AddEnumDefinition(typeof(BannerKings.CampaignContent.Economy.Layered.TownIndustry), 1111);
+            AddEnumDefinition(typeof(BannerKings.CampaignContent.Economy.Layered.EstateSpec), 1112);
         }
 
         protected override void DefineContainerDefinitions()

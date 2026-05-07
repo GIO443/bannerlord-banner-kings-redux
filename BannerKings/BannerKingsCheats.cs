@@ -2294,5 +2294,184 @@ namespace BannerKings
             }
             catch { /* defensive: never throw out of a load-time hook */ }
         }
+
+        // ----- Layered economy rework — Phase 1 validation cheats ------
+        //
+        // bannerkings.dump_economy_state — write every village's class,
+        // every town's industry, every estate's spec to BK_economy_state.txt.
+        // Use this after a fresh load to verify the assignment behavior
+        // ran (counts of Unset should be ~0 except for modded settlements
+        // with unrecognized vanilla types).
+        [CommandLineFunctionality.CommandLineArgumentFunction("dump_economy_state", "bannerkings")]
+        public static string DumpEconomyState(List<string> strings)
+        {
+            try
+            {
+                var sb = new StringBuilder();
+                sb.AppendLine("# BK layered economy state dump");
+                sb.AppendLine($"# captured at {CampaignTime.Now} (current game time)");
+                sb.AppendLine();
+
+                int villageCount = 0, townCount = 0, estateCount = 0;
+                int villageUnset = 0, townUnset = 0, estateUnset = 0;
+                var classHist = new Dictionary<BannerKings.CampaignContent.Economy.Layered.VillageClass, int>();
+                var indHist = new Dictionary<BannerKings.CampaignContent.Economy.Layered.TownIndustry, int>();
+                var specHist = new Dictionary<BannerKings.CampaignContent.Economy.Layered.EstateSpec, int>();
+
+                sb.AppendLine("## villages");
+                foreach (var s in Settlement.All)
+                {
+                    if (s == null || !s.IsVillage) continue;
+                    villageCount++;
+                    var data = BannerKingsConfig.Instance.PopulationManager?.GetPopData(s);
+                    var cls = data?.LandData?.VillageClass ?? BannerKings.CampaignContent.Economy.Layered.VillageClass.Unset;
+                    if (cls == BannerKings.CampaignContent.Economy.Layered.VillageClass.Unset) villageUnset++;
+                    classHist.TryGetValue(cls, out var n); classHist[cls] = n + 1;
+                    var vt = s.Village?.VillageType?.StringId ?? "?";
+                    var bound = s.Village?.TradeBound?.StringId ?? "?";
+                    sb.AppendLine($"  {s.StringId,-32} {cls,-18} vanilla={vt,-22} tradeBound={bound}");
+                }
+
+                sb.AppendLine();
+                sb.AppendLine("## towns");
+                foreach (var s in Settlement.All)
+                {
+                    if (s == null || !s.IsTown) continue;
+                    townCount++;
+                    var data = BannerKingsConfig.Instance.PopulationManager?.GetPopData(s);
+                    var ind = data?.EconomicData?.TownIndustry ?? BannerKings.CampaignContent.Economy.Layered.TownIndustry.Unset;
+                    if (ind == BannerKings.CampaignContent.Economy.Layered.TownIndustry.Unset) townUnset++;
+                    indHist.TryGetValue(ind, out var n); indHist[ind] = n + 1;
+                    var workshopMix = (s.Town?.Workshops != null)
+                        ? string.Join(",", s.Town.Workshops.Where(w => w?.WorkshopType != null).Select(w => w.WorkshopType.StringId))
+                        : "";
+                    sb.AppendLine($"  {s.StringId,-32} {ind,-14} workshops=[{workshopMix}]");
+                }
+
+                sb.AppendLine();
+                sb.AppendLine("## estates");
+                foreach (var s in Settlement.All)
+                {
+                    if (s == null) continue;
+                    var data = BannerKingsConfig.Instance.PopulationManager?.GetPopData(s);
+                    var estates = data?.EstateData?.Estates;
+                    if (estates == null) continue;
+                    foreach (var estate in estates)
+                    {
+                        if (estate == null) continue;
+                        estateCount++;
+                        var spec = estate.Spec;
+                        if (spec == BannerKings.CampaignContent.Economy.Layered.EstateSpec.Unset) estateUnset++;
+                        specHist.TryGetValue(spec, out var n); specHist[spec] = n + 1;
+                        var ownerName = estate.Owner?.StringId ?? "(unowned)";
+                        var ownerOcc = estate.Owner?.Occupation.ToString() ?? "?";
+                        sb.AppendLine($"  {s.StringId,-32} owner={ownerName,-30} occ={ownerOcc,-15} spec={spec}");
+                    }
+                }
+
+                sb.AppendLine();
+                sb.AppendLine("## summary");
+                sb.AppendLine($"  villages: {villageCount} total, {villageUnset} Unset");
+                foreach (var kv in classHist) sb.AppendLine($"    {kv.Key,-18} {kv.Value}");
+                sb.AppendLine($"  towns: {townCount} total, {townUnset} Unset");
+                foreach (var kv in indHist) sb.AppendLine($"    {kv.Key,-14} {kv.Value}");
+                sb.AppendLine($"  estates: {estateCount} total, {estateUnset} Unset");
+                foreach (var kv in specHist) sb.AppendLine($"    {kv.Key,-12} {kv.Value}");
+
+                WriteDiagnosticFile("economy_state.txt", sb.ToString());
+                string summary = $"dump_economy_state: villages={villageCount}({villageUnset} unset), towns={townCount}({townUnset} unset), estates={estateCount}({estateUnset} unset). {LastWriteResult}";
+                InformationManager.DisplayMessage(new InformationMessage(summary, Color.FromUint(0xFFFFD700)));
+                return summary;
+            }
+            catch (Exception ex)
+            {
+                string err = "dump_economy_state failed: " + ex.GetType().Name + ": " + ex.Message;
+                InformationManager.DisplayMessage(new InformationMessage(err, Color.FromUint(0xFFFF4040)));
+                return err;
+            }
+        }
+
+        // bannerkings.snapshot_clan_income [tag] — capture per-clan daily
+        // income at this moment to BK_clan_income_<tag>.txt for regression
+        // testing across phase boundaries. Tag is freeform; suggested:
+        // "phase0", "phase1", etc. Run before each phase ships, diff after.
+        [CommandLineFunctionality.CommandLineArgumentFunction("snapshot_clan_income", "bannerkings")]
+        public static string SnapshotClanIncome(List<string> strings)
+        {
+            try
+            {
+                string tag = (strings != null && strings.Count > 0) ? strings[0] : "now";
+                var sb = new StringBuilder();
+                sb.AppendLine($"# clan-income snapshot tag={tag} time={CampaignTime.Now}");
+                sb.AppendLine($"# columns: clan_id  tier  gold  daily_change  estates_owned");
+                sb.AppendLine();
+
+                int rows = 0;
+                foreach (var clan in Clan.All)
+                {
+                    if (clan == null || clan.IsEliminated) continue;
+                    int estatesOwned = 0;
+                    try
+                    {
+                        if (clan.Heroes != null)
+                        {
+                            foreach (var h in clan.Heroes)
+                            {
+                                foreach (var s in Settlement.All)
+                                {
+                                    var data = BannerKingsConfig.Instance.PopulationManager?.GetPopData(s);
+                                    var estates = data?.EstateData?.Estates;
+                                    if (estates == null) continue;
+                                    foreach (var e in estates)
+                                        if (e?.Owner == h) estatesOwned++;
+                                }
+                            }
+                        }
+                    }
+                    catch { /* tolerate per-clan failure */ }
+
+                    float dailyChange = 0f;
+                    try
+                    {
+                        var fin = TaleWorlds.CampaignSystem.Campaign.Current?.Models?.ClanFinanceModel;
+                        if (fin != null) dailyChange = fin.CalculateClanIncome(clan).ResultNumber - fin.CalculateClanExpenses(clan).ResultNumber;
+                    }
+                    catch { /* tolerate */ }
+
+                    sb.AppendLine($"{clan.StringId,-30}  {clan.Tier}  {clan.Gold,8}  {dailyChange,+8:n0}  {estatesOwned}");
+                    rows++;
+                }
+
+                WriteDiagnosticFile("clan_income_" + tag + ".txt", sb.ToString());
+                string summary = $"snapshot_clan_income: {rows} clans → BK_clan_income_{tag}.txt. {LastWriteResult}";
+                InformationManager.DisplayMessage(new InformationMessage(summary, Color.FromUint(0xFFFFD700)));
+                return summary;
+            }
+            catch (Exception ex)
+            {
+                string err = "snapshot_clan_income failed: " + ex.GetType().Name + ": " + ex.Message;
+                InformationManager.DisplayMessage(new InformationMessage(err, Color.FromUint(0xFFFF4040)));
+                return err;
+            }
+        }
+
+        // bannerkings.classify_village <village_id> — re-runs DefaultVillageClasses
+        // on a single village and prints the path it took. Useful when a
+        // village shows Unset and you want to see why.
+        [CommandLineFunctionality.CommandLineArgumentFunction("classify_village", "bannerkings")]
+        public static string ClassifyVillage(List<string> strings)
+        {
+            if (strings == null || strings.Count < 1)
+                return "usage: bannerkings.classify_village <village_id>";
+            string id = strings[0];
+            var s = Settlement.Find(id);
+            if (s == null || !s.IsVillage)
+                return $"classify_village: {id} not found or not a village";
+            var vt = s.Village?.VillageType;
+            var cls = BannerKings.CampaignContent.Economy.Layered.DefaultVillageClasses.GetClass(vt);
+            string msg = $"classify_village {id}: vanillaType={vt?.StringId ?? "(null)"} → BK class={cls}";
+            InformationManager.DisplayMessage(new InformationMessage(msg, Color.FromUint(0xFFFFD700)));
+            return msg;
+        }
     }
 }

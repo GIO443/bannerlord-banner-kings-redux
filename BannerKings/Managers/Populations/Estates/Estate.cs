@@ -260,6 +260,12 @@ namespace BannerKings.Managers.Populations.Estates
         [SaveableProperty(13)] public int LastIncome { get; set; }
         [SaveableProperty(14)] public MobileParty Retinue { get; private set; }
 
+        // Phase 1 of village/estate/town economy rework. Defaults to Unset
+        // on existing saves; LayeredEconomyAssignmentBehavior populates it
+        // from DefaultEstateSpecs.ForOwner on session start.
+        [SaveableProperty(15)] public BannerKings.CampaignContent.Economy.Layered.EstateSpec Spec { get; set; }
+            = BannerKings.CampaignContent.Economy.Layered.EstateSpec.Unset;
+
         public void AddSlaves(int slaves) => Slaves += slaves;
 
         public void SetParty(MobileParty party) => Retinue = party;

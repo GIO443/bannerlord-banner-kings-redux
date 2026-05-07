@@ -215,16 +215,32 @@ demesne-law cap). >180-day runway → −5%. No other signal.
       Build clean (0 errors). Nothing wired yet. Spec balance
       rebalanced post-review (Yield 1.60×0.85=1.36, Quality
       0.80×1.60=1.28).
-- [ ] **Phase 1 — assignment.** AI picks `VillageClass` from vanilla
-      type at session start; `TownIndustry` from workshop mix; estate
-      spec defaults (notable role → spec). Class/Industry/Spec badges
-      in UI. **Income unchanged** — only labels visible.
-      ⚠ Add a regression test: dump per-clan daily income before
-      Phase 1 ships and after; confirm zero drift before Phase 2 muddies
-      the picture. Single access point: `village.GetVillageClass()` /
-      `data.LandData.SetVillageClass()`. No code reads `VillageType`
-      for class purposes after Phase 1 — that's a duplicate-source-of-
-      truth violation.
+- [x] **Phase 1 — assignment.** ✅ Landed on `economy-phase-1` branch.
+      `LayeredEconomyAssignmentBehavior` walks all settlements +
+      estates on `OnGameLoaded` / `OnSessionLaunched` and writes
+      `VillageClass` / `TownIndustry` / `EstateSpec` from
+      `Default*` lookups when the persisted field is `Unset`.
+      Idempotent. SaveableProperty fields added on `LandData` (idx 8),
+      `EconomicData` (idx 5), `Estate` (idx 15); enums registered in
+      SaveDefiner (1110/1111/1112). `LayeredEconomyExtensions` is
+      the single read access point — `village.GetVillageClass()`,
+      `town.GetTownIndustry()`, `estate.GetSpec()`,
+      `village.GetClusterTown()`. Yield-side math NOT touched
+      (Phase 2 wires it). UI badges deferred to Phase 7 (where all
+      UI lands together).
+      Validation cheats:
+        - `bannerkings.dump_economy_state` → BK_economy_state.txt
+          (every village class, town industry, estate spec + summary)
+        - `bannerkings.snapshot_clan_income <tag>` → BK_clan_income_<tag>.txt
+          (regression baseline; run before/after each phase)
+        - `bannerkings.classify_village <id>` (one-shot diagnostic)
+      Behavior also writes daily-summary lines to BK_economy_assignment.txt
+      on every assignment pass (load / session / owner-change events).
+      ⏳ NOT YET DONE: refactor `VillageExtensions.IsMineVillage` /
+      `IsFarmingVillage` / `IsAnimalVillage` / `IsHorseRanch` to
+      delegate to `village.GetVillageClass()`. Deferred to Phase 2
+      when those callers' yield math also gets routed; the behavioral
+      change should land with the math, not before it.
 - [ ] **Phase 2 — yields.** Spec + class + worker-fit math feeds BK
       income/pop calcs through one `EstateYieldCalculator`. Compare
       total yields against pre-rework baseline; tune to match within
