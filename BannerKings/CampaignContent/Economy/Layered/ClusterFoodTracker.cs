@@ -1,6 +1,9 @@
+using System.Linq;
 using TaleWorlds.CampaignSystem;
+using TaleWorlds.CampaignSystem.Party;
 using TaleWorlds.CampaignSystem.Settlements;
 using BannerKings.Behaviours;
+using BannerKings.Components;
 
 namespace BannerKings.CampaignContent.Economy.Layered
 {
@@ -33,6 +36,15 @@ namespace BannerKings.CampaignContent.Economy.Layered
         // Days the counter must drop to before stagnation lifts. Below
         // the enter threshold by design — no flapping at the boundary.
         public const int StagnationExitThreshold = 7;
+
+        // Phase 5 inter-cluster dispatch: at most one food caravan per
+        // source town per cooldown window. Prevents a chronically
+        // surplus town from spawning a parade of caravans every day.
+        // Cooldown lives in-memory (rebuild on load — caravans in flight
+        // satisfy the "already responded" intent until they arrive).
+        private static readonly System.Collections.Generic.Dictionary<Town, CampaignTime> _lastDispatch
+            = new System.Collections.Generic.Dictionary<Town, CampaignTime>();
+        private static readonly CampaignTime DispatchCooldown = CampaignTime.Days(3);
 
         public override void RegisterEvents()
         {
@@ -87,6 +99,73 @@ namespace BannerKings.CampaignContent.Economy.Layered
             {
                 if (days >= StagnationEnterThreshold) data.EconomicData.ClusterIsStagnant = true;
             }
+
+            // Phase 5 inter-cluster dispatch: when this surplus town can
+            // help a stagnant neighbor, send a food caravan. Gate on the
+            // same MCM toggle as the rest of the layered yields so the
+            // rework stays opt-in until playtest.
+            if (BannerKings.Settings.BannerKingsSettings.Instance?.LayeredEconomyYields == true)
+            {
+                TryDispatchFoodCaravan(settlement.Town);
+            }
+        }
+
+        private static void TryDispatchFoodCaravan(Town source)
+        {
+            if (source == null) return;
+            // Source must have surplus to share — positive FoodChange and
+            // stocks above 50% upper limit (we don't bleed a marginally-
+            // healthy town's reserves).
+            if (source.FoodChange <= 0f) return;
+            float upperLimit = source.FoodStocksUpperLimit();
+            if (source.FoodStocks < upperLimit * 0.5f) return;
+
+            // Cooldown enforcement.
+            if (_lastDispatch.TryGetValue(source, out var lastTime))
+            {
+                if (lastTime + DispatchCooldown > CampaignTime.Now) return;
+            }
+
+            // Find nearest stagnant town in same kingdom (no aiding the
+            // enemy in war). Distance via MapDistanceModel — vanilla
+            // primitive, BK doesn't compute pathing.
+            Town target = null;
+            float bestDist = float.MaxValue;
+            var dist = TaleWorlds.CampaignSystem.Campaign.Current?.Models?.MapDistanceModel;
+            if (dist == null) return;
+
+            foreach (var s in Settlement.All)
+            {
+                if (s == null || !s.IsTown || s == source.Settlement) continue;
+                var t = s.Town;
+                if (t == null) continue;
+                if (s.MapFaction != source.Settlement.MapFaction) continue;
+                var data = BannerKingsConfig.Instance.PopulationManager?.GetPopData(s);
+                if (data?.EconomicData == null) continue;
+                if (!data.EconomicData.ClusterIsStagnant) continue;
+                float d = dist.GetDistance(s, source.Settlement, false, false, MobileParty.NavigationType.Default);
+                if (d < bestDist) { bestDist = d; target = t; }
+            }
+            if (target == null) return;
+
+            // Cap the dispatch volume so a single shipment doesn't crater
+            // the source's stockpile. 10% of the surplus above lower
+            // 50% line, or 25 units, whichever is larger.
+            int amount = System.Math.Max(25, (int)((source.FoodStocks - upperLimit * 0.5f) * 0.10f));
+            if (amount <= 0) return;
+
+            var caravan = PopulationPartyComponent.CreateFoodCaravan(
+                source.Settlement, target.Settlement, amount);
+            if (caravan == null) return;
+
+            // Deduct from origin so we're not creating food from nothing.
+            source.ChangeGold(0); // touch model so any derived caches notice
+            source.FoodStocks = System.Math.Max(0f, source.FoodStocks - amount);
+
+            _lastDispatch[source] = CampaignTime.Now;
+            BannerKings.BannerKingsCheats.AppendDiagnosticLine(
+                "food_caravans.txt",
+                $"dispatch source={source.StringId} target={target.StringId} amount={amount} dist={bestDist:0.0}");
         }
 
         // Stagnation state for a town's cluster, with hysteresis.

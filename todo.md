@@ -310,15 +310,39 @@ demesne-law cap). >180-day runway → −5%. No other signal.
         - `bannerkings.test_force_deficit <town_id> [days]` — sets
           counter directly to test the gate without waiting for a
           real famine.
-- [ ] **Phase 5 — inter-cluster trade.** Extend slave-caravan
-      primitive to ship raw goods between food-surplus and
-      food-deficit clusters. Naval clusters via shipping graph.
-      ⚠ Add a `Travel.Kind` (or equivalent discriminator) to the
-      caravan struct so the existing slave-caravan rescue logic
-      (`BKShippingBehavior` LoadCleanup slave-orphan branch, etc.)
-      doesn't accidentally clean up raw-goods caravans. Audit every
-      `slavecaravan_` StringId check site before adding new cargo
-      kinds.
+- [x] **Phase 5 — inter-cluster trade.** ✅ Landed on `economy-phase-5`
+      branch. `CargoKind` enum (Slaves / Food / Raw / Finished /
+      Unset) is the new discriminator on `PopulationPartyComponent`
+      (SaveableProperty 10). `EffectiveKind` accessor falls back to
+      the legacy `SlaveCaravan` bool for pre-Phase-5 saves —
+      backward-compat without a save migration step.
+      `CreateSlaveCaravan` now stamps `Kind=Slaves` on forward
+      saves; new `CreateFoodCaravan(origin, target, amount)` uses
+      same overland primitive but stamps `Kind=Food` and stocks
+      grain in the ItemRoster.
+      Existing slave-caravan rescue paths in `BKShippingBehavior`
+      (lines ~1029, ~1538) updated to gate on
+      `EffectiveKind == CargoKind.Slaves` instead of the bool —
+      raw-goods caravans are explicitly excluded from slave-caravan
+      cleanup logic.
+      Auto-dispatch in `ClusterFoodTracker.TryDispatchFoodCaravan`:
+      surplus town (FoodChange > 0, FoodStocks > 50%) sends ≥25-unit
+      food caravan to its nearest stagnant town in same kingdom,
+      gated on the `LayeredEconomyYields` MCM toggle. 3-day per-town
+      cooldown in static dict (rebuild on load — in-flight caravans
+      satisfy intent until they arrive).
+      Validation cheats:
+        - `bannerkings.dump_trade_caravans` → BK_trade_caravans.txt
+          listing every `PopulationPartyComponent` party with its
+          `CargoKind`, origin, target, AT_SEA flag, plus histogram
+          summary.
+        - `bannerkings.test_dispatch_food_caravan <from> <to> [amount]`
+          — manual dispatch bypassing surplus/cooldown checks.
+      `BK_food_caravans.txt` (auto-written) logs every organic
+      dispatch.
+      Naval clusters via shipping graph: deferred — current
+      implementation is land-only, sea route via shipping graph is
+      a follow-up if playtest shows naval food trade matters.
 - [ ] **Phase 6 — AI policy.** `EstatePolicyAI` lord decision module
       with the 6-priority trigger ladder + 30-day cadence + hysteresis.
       AI village-owner tax adjustment. AI town-industry annual review.

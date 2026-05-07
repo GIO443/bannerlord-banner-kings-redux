@@ -2654,6 +2654,73 @@ namespace BannerKings
             return msg;
         }
 
+        // bannerkings.dump_trade_caravans — every PopulationPartyComponent
+        // party in the world with its CargoKind / origin / target. Phase 5
+        // validation: confirm slave caravans show Slaves, food caravans
+        // show Food, and nothing weird shows up as Unset.
+        [CommandLineFunctionality.CommandLineArgumentFunction("dump_trade_caravans", "bannerkings")]
+        public static string DumpTradeCaravans(List<string> strings)
+        {
+            try
+            {
+                var sb = new StringBuilder();
+                sb.AppendLine("# BK trade caravan dump");
+                sb.AppendLine($"# captured at year {CampaignTime.Now.GetYear} day {CampaignTime.Now.GetDayOfYear}");
+                sb.AppendLine();
+
+                int rows = 0;
+                var hist = new Dictionary<CargoKind, int>();
+                foreach (var party in MobileParty.All.OrderBy(p => p?.StringId))
+                {
+                    if (party?.PartyComponent is not BannerKings.Components.PopulationPartyComponent ppc) continue;
+                    rows++;
+                    var kind = ppc.EffectiveKind;
+                    hist.TryGetValue(kind, out var n); hist[kind] = n + 1;
+                    var origin = ppc.HomeSettlement?.StringId ?? "?";
+                    var target = ppc.TargetSettlement?.StringId ?? "?";
+                    var atSea = party.IsCurrentlyAtSea ? "AT_SEA" : "";
+                    sb.AppendLine($"  {party.StringId,-40} kind={kind,-10} {origin,-24} → {target,-24} {atSea}");
+                }
+                sb.AppendLine();
+                sb.AppendLine("## summary");
+                foreach (var kv in hist.OrderBy(kv => (int)kv.Key)) sb.AppendLine($"  {kv.Key,-10} {kv.Value}");
+                sb.AppendLine($"  total {rows}");
+
+                WriteDiagnosticFile("trade_caravans.txt", sb.ToString());
+                string summary = $"dump_trade_caravans: {rows} parties dumped. {LastWriteResult}";
+                InformationManager.DisplayMessage(new InformationMessage(summary, Color.FromUint(0xFFFFD700)));
+                return summary;
+            }
+            catch (Exception ex)
+            {
+                string err = "dump_trade_caravans failed: " + ex.GetType().Name + ": " + ex.Message;
+                InformationManager.DisplayMessage(new InformationMessage(err, Color.FromUint(0xFFFF4040)));
+                return err;
+            }
+        }
+
+        // bannerkings.test_dispatch_food_caravan <from_town> <to_town> [amount]
+        // — manually spawn a food caravan, bypassing surplus / stagnation /
+        // cooldown checks. Useful for verifying the primitive without
+        // waiting for an organic dispatch.
+        [CommandLineFunctionality.CommandLineArgumentFunction("test_dispatch_food_caravan", "bannerkings")]
+        public static string TestDispatchFoodCaravan(List<string> strings)
+        {
+            if (strings == null || strings.Count < 2)
+                return "usage: bannerkings.test_dispatch_food_caravan <from_town> <to_town> [amount]";
+            var from = Settlement.Find(strings[0]);
+            var to = Settlement.Find(strings[1]);
+            int amount = 50;
+            if (strings.Count >= 3 && int.TryParse(strings[2], out var parsed)) amount = parsed;
+            if (from == null || !from.IsTown) return $"from {strings[0]} not found / not a town";
+            if (to == null || !to.IsTown) return $"to {strings[1]} not found / not a town";
+            var caravan = BannerKings.Components.PopulationPartyComponent.CreateFoodCaravan(from, to, amount);
+            if (caravan == null) return "CreateFoodCaravan returned null (no land template?)";
+            string msg = $"test_dispatch_food_caravan: spawned {caravan.StringId} from {from.StringId} → {to.StringId} amount={amount}";
+            InformationManager.DisplayMessage(new InformationMessage(msg, Color.FromUint(0xFFFFD700)));
+            return msg;
+        }
+
         // bannerkings.classify_village <village_id> — re-runs DefaultVillageClasses
         // on a single village and prints the path it took. Useful when a
         // village shows Unset and you want to see why.

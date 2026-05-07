@@ -46,6 +46,27 @@ namespace BannerKings.Components
 
         [SaveableProperty(9)] public Hero CaptorHero { get; private set; }
 
+        // Phase 5 of the layered-economy rework. Single discriminator
+        // for "what kind of cargo is this caravan carrying" so rescue/
+        // cleanup paths can target only the kind they intend to. Old
+        // saves have Kind = Unset; the EffectiveKind property below
+        // falls back to legacy SlaveCaravan bool for those.
+        [SaveableProperty(10)] public BannerKings.CampaignContent.Economy.Layered.CargoKind Kind { get; set; }
+            = BannerKings.CampaignContent.Economy.Layered.CargoKind.Unset;
+
+        // Read this everywhere instead of `SlaveCaravan` or raw `Kind`.
+        // Backwards-compatible: legacy slave caravans persisted with
+        // SlaveCaravan=true and no Kind field still report Slaves.
+        public BannerKings.CampaignContent.Economy.Layered.CargoKind EffectiveKind
+        {
+            get
+            {
+                if (Kind != BannerKings.CampaignContent.Economy.Layered.CargoKind.Unset) return Kind;
+                if (SlaveCaravan) return BannerKings.CampaignContent.Economy.Layered.CargoKind.Slaves;
+                return BannerKings.CampaignContent.Economy.Layered.CargoKind.Unset;
+            }
+        }
+
         // Override so the rendered name is derived from component flags
         // rather than the saved stringName field. Saves written by older
         // BK builds occasionally come back with stringName=null and the
@@ -145,10 +166,63 @@ namespace BannerKings.Components
                 target,
                 "{=cCzJ9Nk6}Slave Caravan from {ORIGIN}",
                 PopType.None);
+            // Phase 5: stamp the cargo discriminator. Forward saves now
+            // identify slave caravans via Kind, not just the legacy bool.
+            // Old saves' caravans have Kind=Unset and EffectiveKind falls
+            // back to the SlaveCaravan bool — same outward behavior.
+            if (caravan.PartyComponent is PopulationPartyComponent ppc)
+                ppc.Kind = BannerKings.CampaignContent.Economy.Layered.CargoKind.Slaves;
             caravan.AddPrisoner(CharacterObject.All.FirstOrDefault(x => x.StringId == "looter"), slaves);
             caravan.InitializeMobilePartyAtPosition(template, origin.GatePosition);
             GiveMounts(ref caravan);
             GiveFood(ref caravan);
+        }
+
+        // Phase 5 — inter-cluster food caravan. Same overland primitive
+        // as CreateSlaveCaravan; differs in cargo (food items in the
+        // ItemRoster instead of slave prisoners) and in the Kind tag
+        // (CargoKind.Food). When the caravan arrives at target, vanilla
+        // settlement-entry handling absorbs the food into the town's
+        // FoodStocks naturally — no special arrival handler needed.
+        //
+        // Caller responsibilities:
+        //   - origin must have FoodStocks high enough to deduct `amount`
+        //     without zeroing out (caller deducts from origin manually
+        //     after this returns; this method only spawns the carrier).
+        //   - amount > 0; we don't validate.
+        public static MobileParty CreateFoodCaravan(Settlement origin, Settlement target, int foodAmount)
+        {
+            if (origin == null || target == null || foodAmount <= 0) return null;
+            var culture = origin.Culture;
+            PartyTemplateObject template = null;
+            System.Func<PartyTemplateObject, bool> isLand =
+                t => t != null && (t.ShipHulls == null || t.ShipHulls.Count == 0);
+            if (culture?.EliteCaravanPartyTemplates != null && culture.EliteCaravanPartyTemplates.Count > 0)
+                template = culture.EliteCaravanPartyTemplates.GetRandomElementWithPredicate(t => isLand(t));
+            if (template == null && culture?.CaravanPartyTemplates != null && culture.CaravanPartyTemplates.Count > 0)
+                template = culture.CaravanPartyTemplates.GetRandomElementWithPredicate(t => isLand(t));
+            if (template == null) return null;
+
+            var caravan = CreateParty("foodcaravan_" + origin.Name, origin,
+                false,                  // SlaveCaravan = false — Kind tag is the new authority
+                target,
+                "Food Caravan from {ORIGIN}",
+                PopType.None);
+            if (caravan.PartyComponent is PopulationPartyComponent ppc)
+                ppc.Kind = BannerKings.CampaignContent.Economy.Layered.CargoKind.Food;
+
+            // Stock the food. Use vanilla grain item by StringId —
+            // available across all 1.3.x DLC variants. "Grain" item
+            // belongs to the Grain ItemCategory which vanilla town-
+            // entry handlers absorb into FoodStocks naturally.
+            var grain = TaleWorlds.ObjectSystem.MBObjectManager.Instance?
+                .GetObject<TaleWorlds.Core.ItemObject>("grain");
+            if (grain != null) caravan.ItemRoster.AddToCounts(grain, foodAmount);
+
+            caravan.InitializeMobilePartyAtPosition(template, origin.GatePosition);
+            GiveMounts(ref caravan);
+            GiveFood(ref caravan);
+            return caravan;
         }
 
         public static MobileParty CreateTravellerParty(string id, Settlement origin, Settlement target, string name, int count,

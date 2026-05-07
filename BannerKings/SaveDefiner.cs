@@ -238,6 +238,7 @@ namespace BannerKings
             AddEnumDefinition(typeof(VillageClass), 1110);
             AddEnumDefinition(typeof(TownIndustry), 1111);
             AddEnumDefinition(typeof(EstateSpec), 1112);
+            AddEnumDefinition(typeof(CargoKind), 1113);
         }
 
         protected override void DefineContainerDefinitions()
