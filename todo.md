@@ -267,10 +267,25 @@ demesne-law cap). >180-day runway → −5%. No other signal.
       GetVillageDailyConsumption`) — still deferred. The food rework's
       Phase 2 will land that helper; both layered economy and the
       food sim should route through it then.
-- [ ] **Phase 3 — cluster aggregation.** Town panel shows cluster
-      overview: bound village classes, food balance, industry-fit %.
-      Apply cluster bonuses/penalties based on industry × class
-      alignment.
+- [x] **Phase 3 — cluster aggregation.** ✅ Landed on `economy-phase-3`
+      branch. `EconomicCluster.Compute(town)` aggregates a town with
+      its bound villages: collects classes, computes IndustryFit
+      ([0..1+] weighted average of `IndustryDemand(industry, cls)`
+      across bound villages), sums daily food balance across all
+      estates in the cluster. `EconomicCluster.IndustryDemandFactor(estate)`
+      returns the per-estate cluster-fit multiplier (banded:
+      1.20/1.10/1.00/0.85 by demand weight). Wired into
+      `EstateYieldCalculator.GoldMultiplier` — Phase 2's placeholder
+      `IndustryDemand=1.0` is now the cluster-fit value, applied
+      under the same MCM toggle.
+      Validation cheat:
+        - `bannerkings.dump_clusters` → BK_clusters.txt with industry,
+          IndustryFit, FoodBalance, bound village count, class
+          distribution per town. Summary line counts healthy
+          (fit≥0.75), mismatch (fit≤0.25), food-deficit clusters.
+      No save schema changes (cluster computed on-demand, not
+      persisted). Phase 5 caching with invalidation hooks if profiling
+      shows the recompute is hot. Town panel UI deferred to Phase 7.
 - [ ] **Phase 4 — food deficit gating.** Hooks the food rework
       (Phase 2 of food sim). Negative cluster food balance → Extractive /
       Fibre / Stud estates take stagnation penalty. Cluster food

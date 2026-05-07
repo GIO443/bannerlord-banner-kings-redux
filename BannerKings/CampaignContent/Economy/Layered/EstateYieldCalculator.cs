@@ -88,6 +88,15 @@ namespace BannerKings.CampaignContent.Economy.Layered
                 br.WorkerFitMean = ComputePopWeightedFit(settlement, cls, estate);
             }
 
+            // IndustryDemand: cluster-fit factor. Placeholder 1.0 in Phase 2;
+            // Phase 3 EconomicCluster.IndustryDemandFactor returns the
+            // banded multiplier (1.20 / 1.10 / 1.00 / 0.85) based on how
+            // well the village's class matches the bound town's industry
+            // demand. A Foundry town pulling iron from an Extractive
+            // bound village gets the full 1.20; pulling iron from a
+            // Cropland village gets 0.85.
+            br.IndustryDemand = EconomicCluster.IndustryDemandFactor(estate);
+
             br.Final = br.SpecVolume * br.SpecQuality * br.WorkerFitMean * br.IndustryDemand;
             return br;
         }

@@ -2534,6 +2534,50 @@ namespace BannerKings
             }
         }
 
+        // bannerkings.dump_clusters — for every town, dump the cluster
+        // overview: town industry, bound village classes, IndustryFit
+        // score, food balance. Phase 3 of the layered economy rework.
+        [CommandLineFunctionality.CommandLineArgumentFunction("dump_clusters", "bannerkings")]
+        public static string DumpClusters(List<string> strings)
+        {
+            try
+            {
+                var sb = new StringBuilder();
+                sb.AppendLine("# BK economic cluster dump");
+                sb.AppendLine($"# captured at year {CampaignTime.Now.GetYear} day {CampaignTime.Now.GetDayOfYear}");
+                sb.AppendLine();
+
+                int rows = 0;
+                int healthy = 0, mismatch = 0, foodNeg = 0;
+                foreach (var s in Settlement.All)
+                {
+                    if (s == null || !s.IsTown) continue;
+                    var cluster = EconomicCluster.Compute(s.Town);
+                    rows++;
+                    if (cluster.IndustryFit >= 0.75f) healthy++;
+                    else if (cluster.IndustryFit <= 0.25f) mismatch++;
+                    if (cluster.FoodBalance < 0) foodNeg++;
+
+                    var classMix = string.Join(",", cluster.ClassCounts.OrderBy(kv => (int)kv.Key).Select(kv => $"{kv.Key}={kv.Value}"));
+                    sb.AppendLine($"  {s.StringId,-32} {cluster.Industry,-12} fit={cluster.IndustryFit,5:0.00}  food={cluster.FoodBalance:+0.00;-0.00;0.00}/d  bound={cluster.BoundVillages.Count}  [{classMix}]");
+                }
+
+                sb.AppendLine();
+                sb.AppendLine($"## summary: {rows} clusters, {healthy} healthy (fit≥0.75), {mismatch} mismatch (fit≤0.25), {foodNeg} food-deficit");
+
+                WriteDiagnosticFile("clusters.txt", sb.ToString());
+                string summary = $"dump_clusters: {rows} clusters dumped — {healthy} healthy, {mismatch} mismatch, {foodNeg} food-deficit. {LastWriteResult}";
+                InformationManager.DisplayMessage(new InformationMessage(summary, Color.FromUint(0xFFFFD700)));
+                return summary;
+            }
+            catch (Exception ex)
+            {
+                string err = "dump_clusters failed: " + ex.GetType().Name + ": " + ex.Message;
+                InformationManager.DisplayMessage(new InformationMessage(err, Color.FromUint(0xFFFF4040)));
+                return err;
+            }
+        }
+
         // bannerkings.classify_village <village_id> — re-runs DefaultVillageClasses
         // on a single village and prints the path it took. Useful when a
         // village shows Unset and you want to see why.
