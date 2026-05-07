@@ -434,7 +434,7 @@ namespace BannerKings.Behaviours
                null);
 
             starter.AddPlayerLine("lord_meet_player_response3", "lord_meet_player_response", "lord_introduction",
-                "{=bgvjNfX3}My name is {PLAYER.NAME}, {?CONVERSATION_NPC.GENDER}madam{?}sir{\\?}. May I ask your name?. (You ask in {NPC_LANGUAGE})",
+                "{=bgvjNfX3}My name is {PLAYER.NAME}, {?CONVERSATION_CHARACTER.GENDER}madam{?}sir{\\?}. May I ask your name?. (You ask in {NPC_LANGUAGE})",
                 OnMeetLanguageCondition,
                 OnMeetLanguageConsequence);
         }

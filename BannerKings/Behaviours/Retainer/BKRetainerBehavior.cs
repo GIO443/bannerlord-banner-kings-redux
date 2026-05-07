@@ -272,7 +272,7 @@ namespace BannerKings.Behaviours.Retainer
             starter.AddPlayerLine("bk_retainer_start", 
                 "lord_talk_speak_diplomacy_2",
                 "bk_retainer_reason",
-                "{=a48kCRRf}I would like to join your service, {?CONVERSATION_NPC.GENDER}my lady{?}my lord{\\?}.", 
+                "{=a48kCRRf}I would like to join your service, {?CONVERSATION_CHARACTER.GENDER}my lady{?}my lord{\\?}.",
                 () => CharacterObject.OneToOneConversationCharacter.HeroObject != null && 
                 CharacterObject.OneToOneConversationCharacter.HeroObject.PartyBelongedTo != null && 
                 CharacterObject.OneToOneConversationCharacter.HeroObject.PartyBelongedTo.LeaderHero == CharacterObject.OneToOneConversationCharacter.HeroObject && 
