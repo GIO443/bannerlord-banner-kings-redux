@@ -82,13 +82,41 @@ namespace BannerKings.CampaignContent.Economy.Layered
 
         private void OnHeroKilled(Hero victim, Hero killer, KillCharacterAction.KillCharacterActionDetail detail, bool showNotification)
         {
-            // Notable death triggers a re-spec sweep on the settlement
-            // they belonged to — when the replacement notable spawns
-            // (vanilla notable-replacement campaign behavior), their
-            // OnHeroOccupationChanged fires and we re-derive there.
-            // No work needed here for now; the hook is registered for
-            // future use if vanilla doesn't always fire occupation-
-            // changed on replacements.
+            // Vanilla replaces a dead notable with a NEW Hero instance
+            // whose Occupation is set in the constructor — that path
+            // never fires HeroOccupationChangedEvent, so the
+            // OnHeroOccupationChanged listener above is inert against
+            // the most common notable-replacement case (death). Hook
+            // OnHeroKilled directly: clear the dead notable's estate
+            // spec back to Unset so LayeredEconomyAssignmentBehavior
+            // re-derives it from whichever notable inherits the slot
+            // on the next pass.
+            if (victim == null || !victim.IsNotable) return;
+            try
+            {
+                foreach (var s in Settlement.All)
+                {
+                    var data = BannerKingsConfig.Instance.PopulationManager?.GetPopData(s);
+                    var estates = data?.EstateData?.Estates;
+                    if (estates == null) continue;
+                    foreach (var estate in estates)
+                    {
+                        if (estate?.Owner != victim) continue;
+                        // Reset to Unset so the next assignment pass
+                        // (or LayeredEconomyExtensions.GetSpec read
+                        // fallback) re-derives from whoever inherits.
+                        // LastSpecChange untouched — the cooldown
+                        // doesn't gate this code path; assignment
+                        // doesn't read it.
+                        var oldSpec = estate.Spec;
+                        estate.Spec = EstateSpec.Unset;
+                        BannerKings.BannerKingsCheats.AppendDiagnosticLine(
+                            "ai_estate_decisions.txt",
+                            $"notable-death-clear hero={victim.StringId} settlement={s.StringId} {oldSpec}→Unset (await reassignment)");
+                    }
+                }
+            }
+            catch { /* never throw out of an event handler */ }
         }
 
         private static void ReSpecNotableEstates(Hero notable, string reason)
@@ -233,12 +261,18 @@ namespace BannerKings.CampaignContent.Economy.Layered
 
         private static bool IsAtWarAnywhere(Clan clan)
         {
-            var kingdom = clan.Kingdom;
-            if (kingdom == null) return false;
+            // Read MapFaction rather than Kingdom directly: mercenary
+            // clans (Kingdom == null but employed under another kingdom)
+            // are conceptually always at war via their employer, and
+            // independent clans use their own MapFaction. Without this,
+            // the trigger ladder was inert for mercs — the population
+            // most likely to need wartime/levy biases.
+            var faction = clan.MapFaction;
+            if (faction == null) return false;
             foreach (var other in Kingdom.All)
             {
-                if (other == kingdom || other.IsEliminated) continue;
-                if (kingdom.IsAtWarWith(other)) return true;
+                if (other == faction || other.IsEliminated) continue;
+                if (faction.IsAtWarWith(other)) return true;
             }
             return false;
         }
