@@ -2782,6 +2782,58 @@ namespace BannerKings
             return msg;
         }
 
+        // bannerkings.start_growth_decree <village_id> — start a 2-year
+        // Growth decree on the named village. Output halves; hearth
+        // grows ~2× faster across the period. Mutually exclusive with
+        // ClassTransition.
+        [CommandLineFunctionality.CommandLineArgumentFunction("start_growth_decree", "bannerkings")]
+        public static string StartGrowthDecree(List<string> strings)
+        {
+            if (strings == null || strings.Count < 1) return "usage: bannerkings.start_growth_decree <village_id>";
+            var s = Settlement.Find(strings[0]);
+            if (s == null || !s.IsVillage) return $"{strings[0]} not found / not a village";
+            bool ok = VillageDecreeManager.StartDecree(s, DecreeKind.Growth);
+            string msg = ok
+                ? $"start_growth_decree: {s.StringId} now under Growth decree (2 in-game years)"
+                : $"start_growth_decree: refused — already has an active decree?";
+            InformationManager.DisplayMessage(new InformationMessage(msg, Color.FromUint(0xFFFFD700)));
+            return msg;
+        }
+
+        // bannerkings.start_class_transition <village_id> <new_class>
+        // — start a 2-year class transition. Output halves until
+        // completion; on completion, VillageClass swaps to new_class.
+        [CommandLineFunctionality.CommandLineArgumentFunction("start_class_transition", "bannerkings")]
+        public static string StartClassTransition(List<string> strings)
+        {
+            if (strings == null || strings.Count < 2)
+                return "usage: bannerkings.start_class_transition <village_id> <Cropland|FibreFarm|Pastoral|StudFarm|Extractive|CoastalFishery>";
+            var s = Settlement.Find(strings[0]);
+            if (s == null || !s.IsVillage) return $"{strings[0]} not found / not a village";
+            if (!Enum.TryParse<VillageClass>(strings[1], true, out var target) || target == VillageClass.Unset)
+                return $"target class {strings[1]} invalid";
+            bool ok = VillageDecreeManager.StartDecree(s, DecreeKind.ClassTransition, target);
+            string msg = ok
+                ? $"start_class_transition: {s.StringId} → {target} in 2 in-game years"
+                : $"start_class_transition: refused — already has an active decree?";
+            InformationManager.DisplayMessage(new InformationMessage(msg, Color.FromUint(0xFFFFD700)));
+            return msg;
+        }
+
+        // bannerkings.cancel_decree <village_id> — abort any active
+        // decree. No refund of progress.
+        [CommandLineFunctionality.CommandLineArgumentFunction("cancel_decree", "bannerkings")]
+        public static string CancelDecree(List<string> strings)
+        {
+            if (strings == null || strings.Count < 1) return "usage: bannerkings.cancel_decree <village_id>";
+            var s = Settlement.Find(strings[0]);
+            if (s == null || !s.IsVillage) return $"{strings[0]} not found / not a village";
+            VillageDecreeManager.CancelDecree(s);
+            string msg = $"cancel_decree: {s.StringId}";
+            InformationManager.DisplayMessage(new InformationMessage(msg, Color.FromUint(0xFFFFD700)));
+            return msg;
+        }
+
         // bannerkings.test_eval_clan <clan_id> — force-run EstatePolicyAI
         // on the named clan immediately, ignoring the 30-day cadence
         // gate. Logs decision trace to BK_ai_estate_decisions.txt.

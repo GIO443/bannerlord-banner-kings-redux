@@ -52,6 +52,7 @@ namespace BannerKings.CampaignContent.Economy.Layered
             public float WorkerFitMean;    // pop-weighted average of WorkerFit
             public float IndustryDemand;   // cluster-fit factor (Phase 3)
             public float Stagnation;       // food-deficit penalty for non-food classes (Phase 4)
+            public float Decree;           // active village decree (Growth/ClassTransition) penalty (Phase 8)
             public float Final;            // product of all of the above
         }
 
@@ -64,7 +65,7 @@ namespace BannerKings.CampaignContent.Economy.Layered
             var br = new Breakdown
             {
                 SpecVolume = 1f, SpecQuality = 1f,
-                WorkerFitMean = 1f, IndustryDemand = 1f, Stagnation = 1f, Final = 1f
+                WorkerFitMean = 1f, IndustryDemand = 1f, Stagnation = 1f, Decree = 1f, Final = 1f
             };
             if (estate == null) return br;
 
@@ -106,7 +107,12 @@ namespace BannerKings.CampaignContent.Economy.Layered
             // penalizing them would deepen the spiral.
             br.Stagnation = ClusterFoodTracker.StagnationFactor(cls, settlement.Village?.GetClusterTown());
 
-            br.Final = br.SpecVolume * br.SpecQuality * br.WorkerFitMean * br.IndustryDemand * br.Stagnation;
+            // Phase 8 decree gate: active Growth or ClassTransition
+            // applies a flat output penalty across the decree's
+            // 2-year window. Returns 1.0 when no decree active.
+            br.Decree = VillageDecreeManager.OutputMultiplier(settlement);
+
+            br.Final = br.SpecVolume * br.SpecQuality * br.WorkerFitMean * br.IndustryDemand * br.Stagnation * br.Decree;
             return br;
         }
 

@@ -379,9 +379,27 @@ demesne-law cap). >180-day runway → −5%. No other signal.
       enable cheats can already drive every decision.
       ⏳ Tax-rate slider — uses existing BK estate `TaxRatio` (not
       a new lever); will surface in the same UI pass.
-- [ ] **Phase 8 — village-class transition + Growth decree.** Long-form
-      multi-year policies. Cropland ↔ Pastoral / Cropland → Cropland
-      Growth-mode / etc. Reuses demesne-law contract change cadence.
+- [x] **Phase 8 — village-class transition + Growth decree.** ✅
+      Landed on `economy-phase-8` branch. `DecreeKind` enum (None /
+      Growth / ClassTransition); `VillageDecreeManager` daily-tick
+      tracker; SaveableProperty 9/10/11 on LandData (ActiveDecree,
+      DecreeStartTime, DecreeTargetClass).
+      Decree mechanics:
+        - Duration: 2 in-game years
+        - Output multiplier during: 0.5× (`Breakdown.Decree`,
+          multiplied into `Final` after Stagnation)
+        - Growth-only daily side-effect: `+0.5 hearth/day` on top of
+          vanilla growth (compounds to ~+365 hearth across 2 years)
+        - ClassTransition completion swaps `LandData.VillageClass`
+          to `DecreeTargetClass`
+        - Mutually exclusive: only one decree per village at a time
+      Validation cheats:
+        - `bannerkings.start_growth_decree <village_id>`
+        - `bannerkings.start_class_transition <village_id> <new_class>`
+        - `bannerkings.cancel_decree <village_id>`
+      Auto-logs every start/cancel/complete to BK_village_decrees.txt.
+      `DecreeKind` registered in SaveDefiner (1114).
+      Gated on the `LayeredEconomyYields` MCM toggle.
 
 Each phase is reviewable on its own merits and save-compatible
 (new fields default to `Unset` → AI picks on next eval).

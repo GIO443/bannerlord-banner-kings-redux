@@ -45,6 +45,15 @@ namespace BannerKings.Managers.Populations
         // produce" — never read VillageType for class purposes.
         [SaveableProperty(8)] public VillageClass VillageClass { get; set; } = VillageClass.Unset;
 
+        // Phase 8 — village-level long-form decrees (Growth, class
+        // transition). Mutually exclusive; only one active at a time.
+        // ActiveDecree=None when nothing is in flight; DecreeStartTime
+        // is CampaignTime.Zero in that case. DecreeTargetClass is only
+        // meaningful for ClassTransition.
+        [SaveableProperty(9)] public DecreeKind ActiveDecree { get; set; } = DecreeKind.None;
+        [SaveableProperty(10)] public CampaignTime DecreeStartTime { get; set; } = CampaignTime.Zero;
+        [SaveableProperty(11)] public VillageClass DecreeTargetClass { get; set; } = VillageClass.Unset;
+
         public float[] Composition => composition;
 
         public TerrainType Terrain => TaleWorlds.CampaignSystem.Campaign.Current.MapSceneWrapper != null ? 
