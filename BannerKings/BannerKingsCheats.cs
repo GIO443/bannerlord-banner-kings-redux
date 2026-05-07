@@ -2727,8 +2727,13 @@ namespace BannerKings
         // village-level Growth/class transition decree (Phase 8).
 
         // bannerkings.set_estate_spec <settlement_id> <owner_string_id> <spec>
-        // — change the player-owned estate's spec. Stamps LastSpecChange
-        // so the AI cooldown applies symmetrically.
+        // — change ANY estate's spec by owner StringId (player-owned,
+        // notable-owned, AI-lord-owned). Stamps LastSpecChange so the
+        // AI's 60-day cooldown gates the next AI re-spec attempt.
+        // The cheat itself is intentionally ungated — the UI lever in
+        // Phase 7-UI will enforce the cooldown for player decisions.
+        // Cluster-fit + yield math observes the change on the next
+        // economic read; no explicit invalidation needed.
         [CommandLineFunctionality.CommandLineArgumentFunction("set_estate_spec", "bannerkings")]
         public static string SetEstateSpec(List<string> strings)
         {
@@ -2768,7 +2773,7 @@ namespace BannerKings
             var s = Settlement.Find(strings[0]);
             if (s == null || !s.IsTown) return $"{strings[0]} not found / not a town";
             if (!Enum.TryParse<TownIndustry>(strings[1], true, out var ind) || ind == TownIndustry.Unset)
-                return $"industry {strings[1]} invalid";
+                return $"industry {strings[1]} invalid (Granary|Foundry|Loomhouse|Stable|CaravanHub)";
             var data = BannerKingsConfig.Instance.PopulationManager?.GetPopData(s);
             if (data?.EconomicData == null) return $"{strings[0]} has no BK economic data";
             data.EconomicData.TownIndustry = ind;
