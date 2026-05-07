@@ -2721,6 +2721,62 @@ namespace BannerKings
             return msg;
         }
 
+        // ----- Phase 7 player levers (console-driven for now; UI is a -----
+        // follow-up branch). The triad below covers every player-side
+        // decision in the rework: estate spec, town industry, and the
+        // village-level Growth/class transition decree (Phase 8).
+
+        // bannerkings.set_estate_spec <settlement_id> <owner_string_id> <spec>
+        // — change the player-owned estate's spec. Stamps LastSpecChange
+        // so the AI cooldown applies symmetrically.
+        [CommandLineFunctionality.CommandLineArgumentFunction("set_estate_spec", "bannerkings")]
+        public static string SetEstateSpec(List<string> strings)
+        {
+            if (strings == null || strings.Count < 3)
+                return "usage: bannerkings.set_estate_spec <settlement_id> <owner_id> <Yield|Quality|Sustained|Levy>";
+            var s = Settlement.Find(strings[0]);
+            if (s == null) return $"settlement {strings[0]} not found";
+            if (!Enum.TryParse<EstateSpec>(strings[2], true, out var newSpec) || newSpec == EstateSpec.Unset)
+                return $"spec {strings[2]} invalid (Yield|Quality|Sustained|Levy)";
+            var data = BannerKingsConfig.Instance.PopulationManager?.GetPopData(s);
+            var estates = data?.EstateData?.Estates;
+            if (estates == null) return "no estates on this settlement";
+            int matched = 0;
+            foreach (var e in estates)
+            {
+                if (e?.Owner == null) continue;
+                if (e.Owner.StringId != strings[1]) continue;
+                e.Spec = newSpec;
+                e.LastSpecChange = CampaignTime.Now;
+                matched++;
+            }
+            if (matched == 0) return $"no estate owned by {strings[1]} on {strings[0]}";
+            string msg = $"set_estate_spec: {matched} estate(s) on {strings[0]} owned by {strings[1]} → {newSpec}";
+            InformationManager.DisplayMessage(new InformationMessage(msg, Color.FromUint(0xFFFFD700)));
+            return msg;
+        }
+
+        // bannerkings.set_town_industry <town_id> <industry> — change
+        // the town's industry tag. Phase 7 hard-flips it (no gradual
+        // workshop conversion); a future polish pass would walk the
+        // workshop list and gradually convert types over months.
+        [CommandLineFunctionality.CommandLineArgumentFunction("set_town_industry", "bannerkings")]
+        public static string SetTownIndustry(List<string> strings)
+        {
+            if (strings == null || strings.Count < 2)
+                return "usage: bannerkings.set_town_industry <town_id> <Granary|Foundry|Loomhouse|Stable|CaravanHub>";
+            var s = Settlement.Find(strings[0]);
+            if (s == null || !s.IsTown) return $"{strings[0]} not found / not a town";
+            if (!Enum.TryParse<TownIndustry>(strings[1], true, out var ind) || ind == TownIndustry.Unset)
+                return $"industry {strings[1]} invalid";
+            var data = BannerKingsConfig.Instance.PopulationManager?.GetPopData(s);
+            if (data?.EconomicData == null) return $"{strings[0]} has no BK economic data";
+            data.EconomicData.TownIndustry = ind;
+            string msg = $"set_town_industry: {strings[0]} → {ind}";
+            InformationManager.DisplayMessage(new InformationMessage(msg, Color.FromUint(0xFFFFD700)));
+            return msg;
+        }
+
         // bannerkings.test_eval_clan <clan_id> — force-run EstatePolicyAI
         // on the named clan immediately, ignoring the 30-day cadence
         // gate. Logs decision trace to BK_ai_estate_decisions.txt.

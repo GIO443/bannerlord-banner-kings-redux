@@ -363,9 +363,22 @@ demesne-law cap). >180-day runway → −5%. No other signal.
           flip with old/new spec + reason
       ⏳ Deferred: AI village-owner tax adjustment, AI town-industry
       annual review, religion-aware spec — follow-up tuning.
-- [ ] **Phase 7 — player levers.** UI for estate spec pick (with
-      cluster-aware suggestion), village tax rate slider (within
-      demesne-law bounds), Growth decree menu, Town Industry pick.
+- [x] **Phase 7 — player levers (cheat-driven).** ✅ Landed on
+      `economy-phase-7` branch. Cheats provide every player decision
+      surface:
+        - `bannerkings.set_estate_spec <settlement> <owner> <spec>`
+          — change spec on a player-or-notable estate; stamps
+          `LastSpecChange` so the AI cooldown applies symmetrically
+        - `bannerkings.set_town_industry <town> <industry>` —
+          hard-flip a town's industry tag (no gradual workshop
+          conversion in Phase 7; that's a polish-pass follow-up)
+      ⏳ DEFERRED: proper UIExtenderEx-based UI on the existing
+      Estate / Town / Village panels. Hours of UIExtender mixin
+      work + XML overlay; lands on `economy-phase-7-ui` follow-up.
+      The cheat surface is the testbed until then; players who
+      enable cheats can already drive every decision.
+      ⏳ Tax-rate slider — uses existing BK estate `TaxRatio` (not
+      a new lever); will surface in the same UI pass.
 - [ ] **Phase 8 — village-class transition + Growth decree.** Long-form
       multi-year policies. Cropland ↔ Pastoral / Cropland → Cropland
       Growth-mode / etc. Reuses demesne-law contract change cadence.
