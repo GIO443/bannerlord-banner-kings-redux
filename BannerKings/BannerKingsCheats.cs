@@ -2828,8 +2828,12 @@ namespace BannerKings
             if (strings == null || strings.Count < 1) return "usage: bannerkings.cancel_decree <village_id>";
             var s = Settlement.Find(strings[0]);
             if (s == null || !s.IsVillage) return $"{strings[0]} not found / not a village";
+            var data = BannerKingsConfig.Instance.PopulationManager?.GetPopData(s);
+            var was = data?.LandData?.ActiveDecree ?? DecreeKind.None;
             VillageDecreeManager.CancelDecree(s);
-            string msg = $"cancel_decree: {s.StringId}";
+            string msg = was == DecreeKind.None
+                ? $"cancel_decree: {s.StringId} had no active decree (no-op)"
+                : $"cancel_decree: {s.StringId} {was} aborted";
             InformationManager.DisplayMessage(new InformationMessage(msg, Color.FromUint(0xFFFFD700)));
             return msg;
         }
