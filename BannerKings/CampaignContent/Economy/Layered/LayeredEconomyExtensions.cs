@@ -23,24 +23,44 @@ namespace BannerKings.CampaignContent.Economy.Layered
         {
             if (village == null) return VillageClass.Unset;
             var data = BKPopData(village.Settlement);
-            var stored = data?.LandData?.VillageClass ?? VillageClass.Unset;
+            if (data?.LandData == null) return DefaultVillageClasses.GetClass(village.VillageType);
+            var stored = data.LandData.VillageClass;
             if (stored != VillageClass.Unset) return stored;
-            return DefaultVillageClasses.GetClass(village.VillageType);
+            // Write-back: persist the derived class on first read so two
+            // readers can never see different fallbacks. Closes the
+            // divergence window between settlement creation and the next
+            // assignment-behavior pass. Idempotent (always derives the
+            // same value from the same VillageType).
+            var derived = DefaultVillageClasses.GetClass(village.VillageType);
+            data.LandData.VillageClass = derived;
+            return derived;
         }
 
         public static TownIndustry GetTownIndustry(this Town town)
         {
             if (town == null) return TownIndustry.Unset;
             var data = BKPopData(town.Settlement);
-            var stored = data?.EconomicData?.TownIndustry ?? TownIndustry.Unset;
+            if (data?.EconomicData == null) return DefaultTownIndustries.InferIndustry(town);
+            var stored = data.EconomicData.TownIndustry;
             if (stored != TownIndustry.Unset) return stored;
-            return DefaultTownIndustries.InferIndustry(town);
+            // Same write-back pattern as VillageClass. Note that
+            // InferIndustry can return Unset on towns whose workshops are
+            // 100% modded or 100% "artisans"; we persist Unset in that
+            // case so the next workshop change can re-evaluate cleanly.
+            var derived = DefaultTownIndustries.InferIndustry(town);
+            data.EconomicData.TownIndustry = derived;
+            return derived;
         }
 
         public static EstateSpec GetSpec(this Estate estate)
         {
             if (estate == null) return EstateSpec.Unset;
             if (estate.Spec != EstateSpec.Unset) return estate.Spec;
+            // Intentional NO write-back here. An unowned estate would
+            // otherwise lock in the Sustained default before any notable
+            // arrives — the assignment behavior deliberately skips
+            // Owner == null cases for the same reason. Read-only fallback
+            // keeps the unowned slot derivable but never persisted.
             return DefaultEstateSpecs.ForOwner(estate.Owner);
         }
 

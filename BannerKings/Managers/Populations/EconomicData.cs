@@ -1,4 +1,5 @@
 using BannerKings.Behaviours.Diplomacy;
+using BannerKings.CampaignContent.Economy.Layered;
 using BannerKings.Managers.Institutions.Guilds;
 using TaleWorlds.CampaignSystem;
 using TaleWorlds.CampaignSystem.Party;
@@ -34,8 +35,7 @@ namespace BannerKings.Managers.Populations
         // from DefaultTownIndustries.InferIndustry on session start. After
         // Phase 1 lands this is the single source of truth for the town's
         // industry archetype.
-        [SaveableProperty(5)] public BannerKings.CampaignContent.Economy.Layered.TownIndustry TownIndustry { get; set; }
-            = BannerKings.CampaignContent.Economy.Layered.TownIndustry.Unset;
+        [SaveableProperty(5)] public TownIndustry TownIndustry { get; set; } = TownIndustry.Unset;
 
         public Guild Guild => guild;
         public float Tariff => BannerKingsConfig.Instance.TaxModel.GetTownTaxRatio(settlement.Town);

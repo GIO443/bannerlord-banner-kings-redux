@@ -1,5 +1,6 @@
 ﻿using BannerKings.Behaviours;
 using BannerKings.Behaviours.Criminality;
+using BannerKings.CampaignContent.Economy.Layered;
 using BannerKings.Behaviours.Raids;
 using BannerKings.Behaviours.Diplomacy;
 using BannerKings.Behaviours.Feasts;
@@ -107,7 +108,7 @@ namespace BannerKings
 
             campaignStarter.AddBehavior(new BKManagerBehavior());
             // Layered village/estate/town economy rework — Phase 1.
-            campaignStarter.AddBehavior(new BannerKings.CampaignContent.Economy.Layered.LayeredEconomyAssignmentBehavior());
+            campaignStarter.AddBehavior(new LayeredEconomyAssignmentBehavior());
             campaignStarter.AddBehavior(new BKEducationBehavior());
             campaignStarter.AddBehavior(new BKSettlementActions());
             campaignStarter.AddBehavior(new BKKnighthoodBehavior());

@@ -41,33 +41,19 @@ namespace BannerKings.CampaignContent.Economy.Layered
             Hero newOwner, Hero oldOwner, Hero capturerHero,
             ChangeOwnerOfSettlementAction.ChangeOwnerOfSettlementDetail detail)
         {
-            // Re-eval just this settlement's town industry on owner change.
-            // Village class doesn't depend on owner; estate spec doesn't
-            // either (notable estates are owner-bound by Occupation, not
-            // by the kingdom-hierarchy lord). Town industry stays sticky
-            // across ownership in code — but if a future patch ever wants
-            // to re-derive on transfer, that hook lives here.
-            //
-            // Phase 1 only logs the event; no behavior change. Phase 6
-            // AI policy will hook here for re-spec triggers.
-            try
-            {
-                if (settlement?.IsTown == true)
-                {
-                    BannerKings.BannerKingsCheats.AppendDiagnosticLine(
-                        "economy_assignment.txt",
-                        $"owner-change town={settlement.StringId} new={newOwner?.StringId ?? "?"} old={oldOwner?.StringId ?? "?"} detail={detail}");
-                }
-            }
-            catch (Exception ex)
-            {
-                BannerKings.BannerKingsCheats.AppendDiagnosticLine(
-                    "economy_assignment.txt",
-                    $"owner-change handler threw: {ex.GetType().Name}: {ex.Message}");
-            }
+            // Phase 1 only logs the event; no behavior change. Phase 3
+            // cluster aggregation cares because TradeBound can flip; Phase 6
+            // AI policy will hook here for re-spec triggers. Logged for
+            // both towns and villages (and castles) so we can verify the
+            // event surface is firing as expected when those phases land.
+            if (settlement == null) return;
+            string kind = settlement.IsTown ? "town" : settlement.IsVillage ? "village" : settlement.IsCastle ? "castle" : "other";
+            BannerKings.BannerKingsCheats.AppendDiagnosticLine(
+                "economy_assignment.txt",
+                $"owner-change {kind}={settlement.StringId} new={newOwner?.StringId ?? "?"} old={oldOwner?.StringId ?? "?"} detail={detail}");
         }
 
-        public static void RunAssignment(string reason)
+        private void RunAssignment(string reason)
         {
             var pm = BannerKingsConfig.Instance.PopulationManager;
             if (pm == null)
@@ -118,20 +104,22 @@ namespace BannerKings.CampaignContent.Economy.Layered
                         {
                             townsSkipped++;
                         }
-
-                        // Walk this town's estates (BK estates live on the
-                        // PopulationData of villages; nothing to do at the
-                        // town level for estates).
                     }
 
                     // Estates live on PopulationData.EstateData regardless
-                    // of settlement type; iterate them per-settlement.
+                    // of settlement type — towns, villages, and castles can
+                    // all carry estates. Walk them per-settlement. Skip
+                    // estates with no owner: persisting a Sustained default
+                    // for an unowned estate would lock it in even after a
+                    // GangLeader notable shows up later, since the assignment
+                    // pass only writes when the field is Unset.
                     var estates = data.EstateData?.Estates;
                     if (estates != null)
                     {
                         foreach (var estate in estates)
                         {
                             if (estate == null) continue;
+                            if (estate.Owner == null) continue;
                             if (estate.Spec == EstateSpec.Unset)
                             {
                                 estate.Spec = DefaultEstateSpecs.ForOwner(estate.Owner);

@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using BannerKings.CampaignContent.Economy.Layered;
 using BannerKings.Managers.Innovations;
 using BannerKings.Managers.Institutions.Religions.Doctrines;
 using BannerKings.Managers.Policies;
@@ -42,8 +43,7 @@ namespace BannerKings.Managers.Populations
         // from DefaultVillageClasses on session start. After Phase 1 lands
         // this is the SINGLE source of truth for "what does this village
         // produce" — never read VillageType for class purposes.
-        [SaveableProperty(8)] public BannerKings.CampaignContent.Economy.Layered.VillageClass VillageClass { get; set; }
-            = BannerKings.CampaignContent.Economy.Layered.VillageClass.Unset;
+        [SaveableProperty(8)] public VillageClass VillageClass { get; set; } = VillageClass.Unset;
 
         public float[] Composition => composition;
 

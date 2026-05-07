@@ -323,6 +323,11 @@ later phases are tagged with their target phase.
 
 ### Phase 2 obligations
 
+- ⏳ **InferIndustry fallback for Unset towns.** Towns whose workshops
+  are 100% modded or 100% "artisans" infer `TownIndustry.Unset`. Phase 1
+  persists Unset and Phase 2 yield math will have to either tolerate
+  Unset (treat as vanilla pass-through) or pick a per-culture fallback.
+  Decide which when wiring `EstateYieldCalculator`.
 - ⏳ **#6 Single food-calibration helper.** Add
   `BKFoodConsumptionModel.GetVillageDailyConsumption(pop, classMix)`
   and route both `EstateYieldTables.FoodBalancePer100` and the food
@@ -349,6 +354,12 @@ later phases are tagged with their target phase.
 
 ### Phase 6 obligations
 
+- ⏳ **Notable death/replacement re-spec hook.** When a notable dies and
+  a new one of a different `Occupation` spawns into their estate, the
+  persisted `Spec` stays the dead notable's value. Phase 1 has no
+  `OnHeroDestroyed` / occupation-change listener; Phase 6 AI policy
+  module should add one and re-derive via `DefaultEstateSpecs.ForNotable`
+  on the replacement.
 - ⏳ **#3 Trigger #3 fires only with food-class villages in cluster.**
   Documented in priority list above. AI policy must check cluster
   has at least one Cropland/Pastoral/Coastal village before

@@ -1,4 +1,5 @@
 ﻿using BannerKings.Behaviours;
+using BannerKings.CampaignContent.Economy.Layered;
 using BannerKings.Managers.Helpers;
 using BannerKings.Managers.Innovations;
 using BannerKings.Managers.Court;
@@ -2309,14 +2310,14 @@ namespace BannerKings
             {
                 var sb = new StringBuilder();
                 sb.AppendLine("# BK layered economy state dump");
-                sb.AppendLine($"# captured at {CampaignTime.Now} (current game time)");
+                sb.AppendLine($"# captured at year {CampaignTime.Now.GetYear} day {CampaignTime.Now.GetDayOfYear}");
                 sb.AppendLine();
 
                 int villageCount = 0, townCount = 0, estateCount = 0;
                 int villageUnset = 0, townUnset = 0, estateUnset = 0;
-                var classHist = new Dictionary<BannerKings.CampaignContent.Economy.Layered.VillageClass, int>();
-                var indHist = new Dictionary<BannerKings.CampaignContent.Economy.Layered.TownIndustry, int>();
-                var specHist = new Dictionary<BannerKings.CampaignContent.Economy.Layered.EstateSpec, int>();
+                var classHist = new Dictionary<VillageClass, int>();
+                var indHist = new Dictionary<TownIndustry, int>();
+                var specHist = new Dictionary<EstateSpec, int>();
 
                 sb.AppendLine("## villages");
                 foreach (var s in Settlement.All)
@@ -2324,8 +2325,8 @@ namespace BannerKings
                     if (s == null || !s.IsVillage) continue;
                     villageCount++;
                     var data = BannerKingsConfig.Instance.PopulationManager?.GetPopData(s);
-                    var cls = data?.LandData?.VillageClass ?? BannerKings.CampaignContent.Economy.Layered.VillageClass.Unset;
-                    if (cls == BannerKings.CampaignContent.Economy.Layered.VillageClass.Unset) villageUnset++;
+                    var cls = data?.LandData?.VillageClass ?? VillageClass.Unset;
+                    if (cls == VillageClass.Unset) villageUnset++;
                     classHist.TryGetValue(cls, out var n); classHist[cls] = n + 1;
                     var vt = s.Village?.VillageType?.StringId ?? "?";
                     var bound = s.Village?.TradeBound?.StringId ?? "?";
@@ -2339,8 +2340,8 @@ namespace BannerKings
                     if (s == null || !s.IsTown) continue;
                     townCount++;
                     var data = BannerKingsConfig.Instance.PopulationManager?.GetPopData(s);
-                    var ind = data?.EconomicData?.TownIndustry ?? BannerKings.CampaignContent.Economy.Layered.TownIndustry.Unset;
-                    if (ind == BannerKings.CampaignContent.Economy.Layered.TownIndustry.Unset) townUnset++;
+                    var ind = data?.EconomicData?.TownIndustry ?? TownIndustry.Unset;
+                    if (ind == TownIndustry.Unset) townUnset++;
                     indHist.TryGetValue(ind, out var n); indHist[ind] = n + 1;
                     var workshopMix = (s.Town?.Workshops != null)
                         ? string.Join(",", s.Town.Workshops.Where(w => w?.WorkshopType != null).Select(w => w.WorkshopType.StringId))
@@ -2361,7 +2362,7 @@ namespace BannerKings
                         if (estate == null) continue;
                         estateCount++;
                         var spec = estate.Spec;
-                        if (spec == BannerKings.CampaignContent.Economy.Layered.EstateSpec.Unset) estateUnset++;
+                        if (spec == EstateSpec.Unset) estateUnset++;
                         specHist.TryGetValue(spec, out var n); specHist[spec] = n + 1;
                         var ownerName = estate.Owner?.StringId ?? "(unowned)";
                         var ownerOcc = estate.Owner?.Occupation.ToString() ?? "?";
@@ -2372,11 +2373,17 @@ namespace BannerKings
                 sb.AppendLine();
                 sb.AppendLine("## summary");
                 sb.AppendLine($"  villages: {villageCount} total, {villageUnset} Unset");
-                foreach (var kv in classHist) sb.AppendLine($"    {kv.Key,-18} {kv.Value}");
+                // Sort histogram rows by enum value for stable diffs across
+                // snapshots — Dictionary iteration order is otherwise an
+                // implementation detail.
+                foreach (var kv in classHist.OrderBy(kv => (int)kv.Key))
+                    sb.AppendLine($"    {kv.Key,-18} {kv.Value}");
                 sb.AppendLine($"  towns: {townCount} total, {townUnset} Unset");
-                foreach (var kv in indHist) sb.AppendLine($"    {kv.Key,-14} {kv.Value}");
+                foreach (var kv in indHist.OrderBy(kv => (int)kv.Key))
+                    sb.AppendLine($"    {kv.Key,-14} {kv.Value}");
                 sb.AppendLine($"  estates: {estateCount} total, {estateUnset} Unset");
-                foreach (var kv in specHist) sb.AppendLine($"    {kv.Key,-12} {kv.Value}");
+                foreach (var kv in specHist.OrderBy(kv => (int)kv.Key))
+                    sb.AppendLine($"    {kv.Key,-12} {kv.Value}");
 
                 WriteDiagnosticFile("economy_state.txt", sb.ToString());
                 string summary = $"dump_economy_state: villages={villageCount}({villageUnset} unset), towns={townCount}({townUnset} unset), estates={estateCount}({estateUnset} unset). {LastWriteResult}";
@@ -2406,29 +2413,35 @@ namespace BannerKings
                 sb.AppendLine($"# columns: clan_id  tier  gold  daily_change  estates_owned");
                 sb.AppendLine();
 
+                // Pre-build a Hero -> estate-count map in one pass over
+                // Settlement.All. Avoids the O(clans × heroes × settlements)
+                // explosion when invoked on a mature campaign.
+                var estateCountByOwner = new Dictionary<Hero, int>();
+                foreach (var s in Settlement.All)
+                {
+                    var data = BannerKingsConfig.Instance.PopulationManager?.GetPopData(s);
+                    var estates = data?.EstateData?.Estates;
+                    if (estates == null) continue;
+                    foreach (var e in estates)
+                    {
+                        if (e?.Owner == null) continue;
+                        estateCountByOwner.TryGetValue(e.Owner, out var n);
+                        estateCountByOwner[e.Owner] = n + 1;
+                    }
+                }
+
                 int rows = 0;
                 foreach (var clan in Clan.All)
                 {
                     if (clan == null || clan.IsEliminated) continue;
                     int estatesOwned = 0;
-                    try
+                    if (clan.Heroes != null)
                     {
-                        if (clan.Heroes != null)
+                        foreach (var h in clan.Heroes)
                         {
-                            foreach (var h in clan.Heroes)
-                            {
-                                foreach (var s in Settlement.All)
-                                {
-                                    var data = BannerKingsConfig.Instance.PopulationManager?.GetPopData(s);
-                                    var estates = data?.EstateData?.Estates;
-                                    if (estates == null) continue;
-                                    foreach (var e in estates)
-                                        if (e?.Owner == h) estatesOwned++;
-                                }
-                            }
+                            if (h != null && estateCountByOwner.TryGetValue(h, out var n)) estatesOwned += n;
                         }
                     }
-                    catch { /* tolerate per-clan failure */ }
 
                     float dailyChange = 0f;
                     try
@@ -2468,7 +2481,7 @@ namespace BannerKings
             if (s == null || !s.IsVillage)
                 return $"classify_village: {id} not found or not a village";
             var vt = s.Village?.VillageType;
-            var cls = BannerKings.CampaignContent.Economy.Layered.DefaultVillageClasses.GetClass(vt);
+            var cls = DefaultVillageClasses.GetClass(vt);
             string msg = $"classify_village {id}: vanillaType={vt?.StringId ?? "(null)"} → BK class={cls}";
             InformationManager.DisplayMessage(new InformationMessage(msg, Color.FromUint(0xFFFFD700)));
             return msg;

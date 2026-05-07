@@ -1,3 +1,4 @@
+using BannerKings.CampaignContent.Economy.Layered;
 using BannerKings.Components;
 using BannerKings.Managers.Recruits;
 using System.Collections.Generic;
@@ -263,8 +264,7 @@ namespace BannerKings.Managers.Populations.Estates
         // Phase 1 of village/estate/town economy rework. Defaults to Unset
         // on existing saves; LayeredEconomyAssignmentBehavior populates it
         // from DefaultEstateSpecs.ForOwner on session start.
-        [SaveableProperty(15)] public BannerKings.CampaignContent.Economy.Layered.EstateSpec Spec { get; set; }
-            = BannerKings.CampaignContent.Economy.Layered.EstateSpec.Unset;
+        [SaveableProperty(15)] public EstateSpec Spec { get; set; } = EstateSpec.Unset;
 
         public void AddSlaves(int slaves) => Slaves += slaves;
 
