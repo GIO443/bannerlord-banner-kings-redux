@@ -2549,13 +2549,22 @@ namespace BannerKings
 
                 int rows = 0;
                 int healthy = 0, mismatch = 0, foodNeg = 0;
-                foreach (var s in Settlement.All)
+                // Sort by StringId so diffs across saves are stable.
+                var towns = Settlement.All.Where(x => x != null && x.IsTown)
+                                          .OrderBy(x => x.StringId)
+                                          .ToList();
+                foreach (var s in towns)
                 {
-                    if (s == null || !s.IsTown) continue;
                     var cluster = EconomicCluster.Compute(s.Town);
                     rows++;
-                    if (cluster.IndustryFit >= 0.75f) healthy++;
-                    else if (cluster.IndustryFit <= 0.25f) mismatch++;
+                    // bound=0 clusters (freshly captured / mid-rebellion)
+                    // shouldn't pollute the mismatch tally — IndustryFit is
+                    // 0 by definition there with no signal to interpret.
+                    if (cluster.BoundVillages.Count > 0)
+                    {
+                        if (cluster.IndustryFit >= 0.75f) healthy++;
+                        else if (cluster.IndustryFit <= 0.25f) mismatch++;
+                    }
                     if (cluster.FoodBalance < 0) foodNeg++;
 
                     var classMix = string.Join(",", cluster.ClassCounts.OrderBy(kv => (int)kv.Key).Select(kv => $"{kv.Key}={kv.Value}"));
@@ -2563,7 +2572,7 @@ namespace BannerKings
                 }
 
                 sb.AppendLine();
-                sb.AppendLine($"## summary: {rows} clusters, {healthy} healthy (fit≥0.75), {mismatch} mismatch (fit≤0.25), {foodNeg} food-deficit");
+                sb.AppendLine($"## summary: {rows} clusters, {healthy} healthy (fit≥0.75, bound>0), {mismatch} mismatch (fit≤0.25, bound>0), {foodNeg} food-deficit");
 
                 WriteDiagnosticFile("clusters.txt", sb.ToString());
                 string summary = $"dump_clusters: {rows} clusters dumped — {healthy} healthy, {mismatch} mismatch, {foodNeg} food-deficit. {LastWriteResult}";

@@ -26,10 +26,19 @@ namespace BannerKings.CampaignContent.Economy.Layered
     //
     // Computed on-demand from current state. NOT persisted —
     // TradeBound, VillageClass, EstateSpec, town workshop mix can all
-    // change. Cache lives only for the duration of one read+use cycle;
-    // a per-town cache with invalidation hooks (OnSettlementOwnerChanged,
-    // OnWorkshopChanged) is a future optimization if profiling shows
-    // the recomputation is too hot.
+    // change. Cache lives only for the duration of one read+use cycle.
+    //
+    // ⚠ Phase 4 obligation: Compute() walks Settlement.All to find
+    // bound villages — O(N_settlements) per call. The per-estate
+    // multiplier in EstateYieldCalculator.GoldMultiplier currently
+    // routes through IndustryDemandFactor which uses
+    // Village.GetClusterTown directly (NOT Compute), so the daily
+    // production tick stays O(N_estates). Phase 4's food-deficit
+    // gating WILL want to call Compute on the per-tick path; before
+    // that ships, add a per-town per-day memo (Dictionary<Town,
+    // (CampaignTime, EconomicCluster)>) keyed off CampaignTime.Now,
+    // or pass a pre-built {Town → bound villages} map into Compute
+    // via overload.
     public struct EconomicCluster
     {
         public Town Town;
@@ -131,11 +140,16 @@ namespace BannerKings.CampaignContent.Economy.Layered
             // 0 as a small penalty (0.85) rather than zero, because the
             // estate still produces *something* the cluster's market
             // can use, just at the floor of marginal demand.
+            // Bands deliberately asymmetric in penalty direction — cluster
+            // mismatch should pressure reorganization, not just shave.
+            // Bonus 1.20 on perfect supply; penalty 0.70 on off-mission.
+            // Per-estate; matches the post-Phase-3-review design intent
+            // that cluster-fit play *matters*.
             float demand = EstateYieldTables.IndustryDemand(industry, cls);
             if (demand >= 1f) return 1.20f;
             if (demand >= 0.5f) return 1.10f;
             if (demand >= 0.2f) return 1.00f;
-            return 0.85f;
+            return 0.70f;
         }
     }
 }
