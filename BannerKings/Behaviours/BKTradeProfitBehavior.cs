@@ -34,6 +34,20 @@ namespace BannerKings.Behaviours
                 return;
             }
 
+            // Settlement.IsVillage / Settlement.Town are mutually exclusive
+            // and BOTH are null for hideouts. Without this guard, closing
+            // any inventory exchange while at a hideout (post-bandit-fight
+            // loot, bandit-recruit menu, etc.) NRE'd at the GetItemPrice
+            // call below — IsVillage=false → falls to settlement.Town
+            // .GetItemPrice → Town is null → crash. Vanilla
+            // TradeSkillCampaignBehavior upstream of us has already given
+            // the base XP for the trade; BK's add-on bonus simply doesn't
+            // apply when the current settlement isn't a tradeable type.
+            if (!settlement.IsVillage && settlement.Town == null)
+            {
+                return;
+            }
+
             foreach (var element in roster)
             {
                 if (!mainRoster.Contains(element))
