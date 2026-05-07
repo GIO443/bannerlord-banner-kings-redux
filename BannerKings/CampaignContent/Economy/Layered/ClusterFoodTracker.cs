@@ -44,6 +44,14 @@ namespace BannerKings.CampaignContent.Economy.Layered
         private void OnDailyTickSettlement(Settlement settlement)
         {
             if (settlement == null || !settlement.IsTown || settlement.Town == null) return;
+            // Siege blind-spot: a besieged town has artificial massive
+            // food consumption (army eats stockpile, villagers flee so
+            // no inflow). Counting those days against the cluster would
+            // double-punish the lord — they already lost the siege, and
+            // for ~14 days after liftening every non-food estate would
+            // bleed 30%. Freeze the counter during siege.
+            if (settlement.IsUnderSiege) return;
+
             var data = BannerKingsConfig.Instance.PopulationManager?.GetPopData(settlement);
             if (data?.EconomicData == null) return;
 
@@ -65,6 +73,20 @@ namespace BannerKings.CampaignContent.Economy.Layered
             // long the deficit lasted.
             if (days > StagnationEnterThreshold * 3) days = StagnationEnterThreshold * 3;
             data.EconomicData.ClusterFoodDeficitDays = days;
+
+            // Hysteresis: separate enter/exit thresholds drive the
+            // stagnation flag. Crossing into stagnation requires
+            // sustained deficit (≥ enter); leaving requires sustained
+            // recovery (≤ exit). Borderline towns no longer flap the
+            // gate day-to-day.
+            if (data.EconomicData.ClusterIsStagnant)
+            {
+                if (days <= StagnationExitThreshold) data.EconomicData.ClusterIsStagnant = false;
+            }
+            else
+            {
+                if (days >= StagnationEnterThreshold) data.EconomicData.ClusterIsStagnant = true;
+            }
         }
 
         // Stagnation state for a town's cluster, with hysteresis.
@@ -75,16 +97,10 @@ namespace BannerKings.CampaignContent.Economy.Layered
             if (town == null) return false;
             var data = BannerKingsConfig.Instance.PopulationManager?.GetPopData(town.Settlement);
             if (data?.EconomicData == null) return false;
-            int days = data.EconomicData.ClusterFoodDeficitDays;
-            return days >= StagnationEnterThreshold;
-            // Note: simple ≥ check — once over the entry threshold, the
-            // counter must drop back below it on its own (one step per
-            // surplus day). The exit threshold is conceptual — the
-            // gameplay path treats anything below the entry threshold
-            // as recovered. Tighter hysteresis (track separate "is
-            // stagnant" bool) would be needed if we observe boundary
-            // flapping in playtest; today's signal is monotone enough
-            // that the counter alone suffices.
+            // Read the persisted bool, not the counter. Hysteresis
+            // bookkeeping happens in OnDailyTickSettlement — bool flips
+            // true on counter ≥ enter and false on counter ≤ exit.
+            return data.EconomicData.ClusterIsStagnant;
         }
 
         // Stagnation factor for an estate. 0.7 when the estate sits in a

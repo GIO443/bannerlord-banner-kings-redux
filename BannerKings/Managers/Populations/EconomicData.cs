@@ -46,6 +46,14 @@ namespace BannerKings.Managers.Populations
         // permanently scar the cluster.
         [SaveableProperty(6)] public int ClusterFoodDeficitDays { get; set; } = 0;
 
+        // Phase 4 hysteresis state. When ClusterFoodDeficitDays crosses
+        // the enter threshold, this flips to true and stays true until
+        // the counter drops to or below the exit threshold. Decouples
+        // "is currently stagnant" from "raw counter value" so a
+        // borderline town with FoodChange flapping ±0 doesn't oscillate
+        // the stagnation gate every day.
+        [SaveableProperty(7)] public bool ClusterIsStagnant { get; set; } = false;
+
         public Guild Guild => guild;
         public float Tariff => BannerKingsConfig.Instance.TaxModel.GetTownTaxRatio(settlement.Town);
         public float TradePower { get; private set; } = 1f;
