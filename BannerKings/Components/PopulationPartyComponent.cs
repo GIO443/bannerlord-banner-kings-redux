@@ -79,8 +79,18 @@ namespace BannerKings.Components
             get
             {
                 string template;
-                if (SlaveCaravan)
+                // Phase 5: route Kind first so food / raw / finished
+                // caravans render distinctly. EffectiveKind handles
+                // pre-Phase-5 saves by falling back to the legacy bool.
+                var kind = EffectiveKind;
+                if (kind == BannerKings.CampaignContent.Economy.Layered.CargoKind.Slaves)
                     template = "{=cCzJ9Nk6}Slave Caravan from {ORIGIN}";
+                else if (kind == BannerKings.CampaignContent.Economy.Layered.CargoKind.Food)
+                    template = "Food Caravan from {ORIGIN}";
+                else if (kind == BannerKings.CampaignContent.Economy.Layered.CargoKind.Raw)
+                    template = "Raw Goods Caravan from {ORIGIN}";
+                else if (kind == BannerKings.CampaignContent.Economy.Layered.CargoKind.Finished)
+                    template = "Trade Caravan from {ORIGIN}";
                 else if (Trading)
                     template = "{=ds9BcMxr}Traders from {ORIGIN}";
                 // Population transfers (resettlement of free populations) carry

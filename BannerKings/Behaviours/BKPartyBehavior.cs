@@ -690,10 +690,42 @@ namespace BannerKings.Behaviours
                     }
                 }
 
-                if (component.SlaveCaravan)
+                // Phase 5 layered economy: dispatch by CargoKind. Slave
+                // caravans drop their prisoners as Slaves pop; food
+                // caravans deliver grain (and any other food items) into
+                // the destination town's FoodStocks. Pre-Phase-5 saves
+                // have Kind=Unset; EffectiveKind falls back to the legacy
+                // SlaveCaravan bool so old slave caravans still flow
+                // correctly through the Slaves arm.
+                var kind = component.EffectiveKind;
+                if (kind == BannerKings.CampaignContent.Economy.Layered.CargoKind.Slaves)
                 {
                     var slaves = Utils.Helpers.GetRosterCount(party.PrisonRoster);
                     data.UpdatePopType(PopType.Slaves, slaves);
+                }
+                else if (kind == BannerKings.CampaignContent.Economy.Layered.CargoKind.Food
+                         && target.IsTown && target.Town != null)
+                {
+                    // Drain food items from the caravan into the town's
+                    // FoodStocks. Same pattern as BKSettlementBehavior.cs:811
+                    // — Amount × per-unit food value via the BK
+                    // ItemExtensions helper.
+                    float delivered = 0f;
+                    foreach (var element in party.ItemRoster)
+                    {
+                        var item = element.EquipmentElement.Item;
+                        if (item == null) continue;
+                        int perUnit = BannerKings.Extensions.ItemExtensions.GetItemFoodValue(item);
+                        if (perUnit <= 0) continue;
+                        delivered += perUnit * element.Amount;
+                    }
+                    if (delivered > 0f)
+                    {
+                        target.Town.FoodStocks += delivered;
+                        BannerKings.BannerKingsCheats.AppendDiagnosticLine(
+                            "food_caravans.txt",
+                            $"deliver target={target.StringId} delivered={delivered:0.0} stocks={target.Town.FoodStocks:0.0}");
+                    }
                 }
                 else if (component.PopulationType != PopType.None)
                 {
@@ -1148,7 +1180,10 @@ namespace BannerKings.Behaviours
 
             var component = (PopulationPartyComponent) party.MobileParty.PartyComponent;
             var partyKingdom = component.HomeSettlement.OwnerClan.Kingdom;
-            if (partyKingdom == null || !component.SlaveCaravan)
+            // Phase 5: dialogue is slave-caravan-specific. Food/Raw/
+            // Finished caravans get no dialogue from this gate.
+            if (partyKingdom == null
+                || component.EffectiveKind != BannerKings.CampaignContent.Economy.Layered.CargoKind.Slaves)
             {
                 return false;
             }
@@ -1174,7 +1209,9 @@ namespace BannerKings.Behaviours
             var component = (PopulationPartyComponent) party.MobileParty.PartyComponent;
             var partyKingdom = component.HomeSettlement.OwnerClan.Kingdom;
             var heroKingdom = Hero.MainHero.Clan.Kingdom;
-            if (component.SlaveCaravan && ((partyKingdom != null && heroKingdom != null && partyKingdom == heroKingdom) || component.HomeSettlement.OwnerClan == Hero.MainHero.Clan))
+            // Phase 5: dialogue is slave-caravan-specific.
+            if (component.EffectiveKind == BannerKings.CampaignContent.Economy.Layered.CargoKind.Slaves
+                && ((partyKingdom != null && heroKingdom != null && partyKingdom == heroKingdom) || component.HomeSettlement.OwnerClan == Hero.MainHero.Clan))
             {
                 value = true;
             }
