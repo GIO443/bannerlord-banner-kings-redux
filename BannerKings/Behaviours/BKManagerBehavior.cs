@@ -104,6 +104,13 @@ namespace BannerKings.Behaviours
             }
 
             BKItems.Instance.AdjustPrices();
+
+            // If a cooperator mod has registered a ClanTierModel subclass that
+            // overrides GetRequiredRenownForTier without calling base, the
+            // attribute patch on DefaultClanTierModel never fires and the BK
+            // ClanRenown MCM slider has no effect. Detect and dynamically
+            // patch the actual model.
+            BannerKings.Patches.VanillaModelTweakPatches.BKClanTierTweakPatches.EnsureDynamicallyPatched();
         }
 
         private void OnGameLoaded(CampaignGameStarter starter)

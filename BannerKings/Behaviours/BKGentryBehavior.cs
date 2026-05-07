@@ -192,7 +192,7 @@ namespace BannerKings.Behaviours
         private void OnClanDailyTick(Clan clan)
         {
             if (BannerKings.Behaviours.BKClanBehavior.ShouldSkipClan(clan)) return;
-            var __sw = BannerKings.Behaviours.Shipping.BKShippingBehavior.TraceEnter("BKGentry.OnClanDailyTick:" + (clan?.Name?.ToString() ?? "?"));
+            var __sw = BannerKings.Behaviours.Shipping.BKShippingBehavior.TraceEnter("BKGentry.OnClanDailyTick:" + BannerKings.Utils.TickTrace.IdOf(clan));
             try { OnClanDailyTickImpl(clan); }
             finally { BannerKings.Behaviours.Shipping.BKShippingBehavior.TraceExit("BKGentry.OnClanDailyTick", __sw); }
         }

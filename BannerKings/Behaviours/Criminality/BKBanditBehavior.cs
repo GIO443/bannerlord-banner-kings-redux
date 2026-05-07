@@ -76,7 +76,7 @@ namespace BannerKings.Behaviours
         private void OnClanTick(Clan clan)
         {
             if (BannerKings.Behaviours.BKClanBehavior.ShouldSkipClan(clan)) return;
-            var __sw = BannerKings.Behaviours.Shipping.BKShippingBehavior.TraceEnter("BKBandit.OnClanTick:" + (clan?.Name?.ToString() ?? "?"));
+            var __sw = BannerKings.Behaviours.Shipping.BKShippingBehavior.TraceEnter("BKBandit.OnClanTick:" + BannerKings.Utils.TickTrace.IdOf(clan));
             try { OnClanTickImpl(clan); }
             finally { BannerKings.Behaviours.Shipping.BKShippingBehavior.TraceExit("BKBandit.OnClanTick", __sw); }
         }

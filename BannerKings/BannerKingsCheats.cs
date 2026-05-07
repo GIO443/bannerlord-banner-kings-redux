@@ -2169,6 +2169,24 @@ namespace BannerKings
                 string stamp = DateTime.Now.ToString("HH:mm:ss");
                 string formatted = $"[{stamp}] {line}{Environment.NewLine}";
                 string key = "BK_" + filename;
+
+                // tick_trace.txt is the freeze diagnostic — every line MUST
+                // reach disk ASAP so the unmatched ENTER at the time of a
+                // hang reflects the actual hang point. The default buffered
+                // path flushes only on wall-clock-second tick or 64KB; that
+                // hides the last second of activity when a freeze hits,
+                // which is exactly the data we need. The async writer queue
+                // already batches at the writer-thread level — going through
+                // the per-file StringBuilder buffer adds no value here, it
+                // just steals the trail. Bypass the buffer for this file.
+                if (filename == "tick_trace.txt")
+                {
+                    EnsureDiagWriter();
+                    try { if (!Directory.Exists(DiagnosticDir)) Directory.CreateDirectory(DiagnosticDir); } catch { }
+                    EnqueueDiagWrite(Path.Combine(DiagnosticDir, key), formatted);
+                    return;
+                }
+
                 Dictionary<string, string> toFlush = null;
                 lock (_diagLock)
                 {

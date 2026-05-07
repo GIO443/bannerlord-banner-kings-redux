@@ -75,6 +75,18 @@ namespace BannerKings
                 }
                 Xtender.Register(typeof(Main).Assembly);
                 Xtender.Enable();
+
+                // Install reflective trace on every CampaignBehaviorBase
+                // OnDailyTickParty / DailyTickParty / OnPartyDailyTick(MobileParty)
+                // method outside BK's own assembly. Diagnoses freezes that sit
+                // in vanilla / NavalDLC / other-mod per-party tick subscribers.
+                try { BannerKings.Patches.Diag.TraceVanillaDailyTickParty.Install(harmony); }
+                catch (System.Exception ex)
+                {
+                    TaleWorlds.Library.Debug.Print(
+                        $"[BK] TraceVanillaDailyTickParty install failed: {ex.GetType().Name}: {ex.Message}",
+                        color: TaleWorlds.Library.Debug.DebugColor.Yellow);
+                }
             }
 
             // Register the BK icon placeholders globally so any TextObject in BK

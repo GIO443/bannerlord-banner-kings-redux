@@ -83,7 +83,11 @@ the source village is *not* damaged extra.
 Two limiters, whichever is lower:
 
 - **Village pool**: serfs × 10% × *Raid Capture Fraction* (MCM, default
-  40%) — so a 1,000-serf village offers up to 40 captives.
+  40%) — so a 1,000-serf village offers up to 40 captives. If BK's
+  population data hasn't been generated for that village yet (common
+  on a fresh hostile village you've never visited), BK falls back to
+  `village.Hearth × 4` as the serf estimate so the preview never
+  shows 0 just because the data wasn't ready.
 - **Party carry**: `(troops − 5) × 0.5` with a floor of 5 — a 30-troop
   war band carries 12, a 100-troop army carries 47, 200 troops hits
   the cap.

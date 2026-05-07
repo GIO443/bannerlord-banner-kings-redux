@@ -149,39 +149,6 @@ namespace BannerKings.Patches
             }
         }
 
-        // --- Mirror the BannerKings "Slower Parties" MCM setting onto the NavalDLC
-        //     speed model. The vanilla-side patch lives in
-        //     VanillaModelTweakPatches.BKPartySpeedTweakPatches and only hooks
-        //     DefaultPartySpeedCalculatingModel. With War Sails installed, naval
-        //     / at-sea parties go through NavalDLCPartySpeedCalculationModel
-        //     instead, so without this mirror the slowdown applies on land but
-        //     evaporates the moment a party boards — players see "sometimes hits
-        //     hard, sometimes nothing" depending on whether the party is on land
-        //     or at sea at the moment of observation.
-        [HarmonyPatch]
-        internal static class SlowerPartiesNavalSpeedPatch
-        {
-            private static Type _modelType;
-
-            private static bool Prepare()
-            {
-                _modelType = AccessTools.TypeByName("NavalDLC.GameComponents.NavalDLCPartySpeedCalculationModel");
-                return _modelType != null
-                    && AccessTools.Method(_modelType, "CalculateFinalSpeed") != null;
-            }
-
-            private static MethodBase TargetMethod()
-                => AccessTools.Method(_modelType, "CalculateFinalSpeed");
-
-            private static void Postfix(ref ExplainedNumber __result)
-            {
-                if (!ModCompat.WarSails) return;
-                float slow = BannerKingsSettings.Instance.SlowerParties;
-                if (slow > 0f)
-                    __result.AddFactor(-slow, new TextObject("{=OohdenyR}Slower Parties setting"));
-            }
-        }
-
         // --- Scale the NavalDLC fleet-size cap by the BannerKings "Party Sizes"
         //     MCM slider, mirroring how BK already scales land-party member-size
         //     caps in VanillaModelTweakPatches. PartySizes is a 1..3 multiplier

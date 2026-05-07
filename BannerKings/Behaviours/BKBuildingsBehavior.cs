@@ -194,7 +194,7 @@ namespace BannerKings.Behaviours
 
         private void OnDailyTickSettlement(Settlement settlement)
         {
-            var __sw = BannerKings.Behaviours.Shipping.BKShippingBehavior.TraceEnter("BKBuildings.OnDailyTickSettlement:" + (settlement?.Name?.ToString() ?? "?"));
+            var __sw = BannerKings.Behaviours.Shipping.BKShippingBehavior.TraceEnter("BKBuildings.OnDailyTickSettlement:" + BannerKings.Utils.TickTrace.IdOf(settlement));
             try
             {
                 var data = BannerKingsConfig.Instance.PopulationManager.GetPopData(settlement);
@@ -261,7 +261,7 @@ namespace BannerKings.Behaviours
 
         private void OnTownDailyTick(Town town)
         {
-            var __sw = BannerKings.Behaviours.Shipping.BKShippingBehavior.TraceEnter("BKBuildings.OnTownDailyTick:" + (town?.Settlement?.Name?.ToString() ?? "?"));
+            var __sw = BannerKings.Behaviours.Shipping.BKShippingBehavior.TraceEnter("BKBuildings.OnTownDailyTick:" + BannerKings.Utils.TickTrace.IdOf(town));
             try
             {
                 RunMines(town);

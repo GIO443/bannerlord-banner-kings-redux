@@ -190,7 +190,7 @@ namespace BannerKings.Behaviours
 
         private void OnDailyTickSettlement(Settlement settlement)
         {
-            var __sw = BannerKings.Behaviours.Shipping.BKShippingBehavior.TraceEnter("BKReligions.OnDailyTickSettlement:" + (settlement?.Name?.ToString() ?? "?"));
+            var __sw = BannerKings.Behaviours.Shipping.BKShippingBehavior.TraceEnter("BKReligions.OnDailyTickSettlement:" + BannerKings.Utils.TickTrace.IdOf(settlement));
             try { OnDailyTickSettlementImpl(settlement); }
             finally { BannerKings.Behaviours.Shipping.BKShippingBehavior.TraceExit("BKReligions.OnDailyTickSettlement", __sw); }
         }
@@ -360,8 +360,11 @@ namespace BannerKings.Behaviours
             // hero in the same Imperial Deserters clan finished cleanly,
             // so the hang is conditional on hero state. Sub-brackets pin
             // which of the three sub-steps actually hangs next time.
+            // StringId only — Hero.Name routes through patched UIManager.HeroNamePatch.GetterPostfix
+            // which has a 10% RNG branch into TitleManager. Try/catch can't catch a hang.
+            string __hid = null; try { __hid = hero?.StringId; } catch { }
             var __sw1 = BannerKings.Behaviours.Shipping.BKShippingBehavior.TraceEnter(
-                "BKReligions.DailyTickHero.TickFaithXp:" + (hero?.Name?.ToString() ?? "?"));
+                "BKReligions.DailyTickHero.TickFaithXp:" + (__hid ?? "?"));
             try { TickFaithXp(hero); }
             finally { BannerKings.Behaviours.Shipping.BKShippingBehavior.TraceExit("BKReligions.DailyTickHero.TickFaithXp", __sw1); }
 
@@ -376,7 +379,7 @@ namespace BannerKings.Behaviours
                     if (leaderRel != null)
                     {
                         var __sw2 = BannerKings.Behaviours.Shipping.BKShippingBehavior.TraceEnter(
-                            "BKReligions.DailyTickHero.InheritFromLeader:" + (hero?.Name?.ToString() ?? "?"));
+                            "BKReligions.DailyTickHero.InheritFromLeader:" + (__hid ?? "?"));
                         try { ReligionsManager.AddToReligion(hero, leaderRel); }
                         finally { BannerKings.Behaviours.Shipping.BKShippingBehavior.TraceExit("BKReligions.DailyTickHero.InheritFromLeader", __sw2); }
                         return;
@@ -384,7 +387,7 @@ namespace BannerKings.Behaviours
                 }
 
                 var __sw3 = BannerKings.Behaviours.Shipping.BKShippingBehavior.TraceEnter(
-                    "BKReligions.DailyTickHero.AddIdeal:" + (hero?.Name?.ToString() ?? "?"));
+                    "BKReligions.DailyTickHero.AddIdeal:" + (__hid ?? "?"));
                 try { AddHeroToIdealReligion(hero); }
                 finally { BannerKings.Behaviours.Shipping.BKShippingBehavior.TraceExit("BKReligions.DailyTickHero.AddIdeal", __sw3); }
             }

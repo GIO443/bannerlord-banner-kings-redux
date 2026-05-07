@@ -519,7 +519,7 @@ namespace BannerKings.Behaviours
                     System.Diagnostics.Stopwatch.StartNew());
                 return;
             }
-            var __sw = BannerKings.Behaviours.Shipping.BKShippingBehavior.TraceEnter("BKClan.DailyClanTick:" + (clan?.Name?.ToString() ?? "?"));
+            var __sw = BannerKings.Behaviours.Shipping.BKShippingBehavior.TraceEnter("BKClan.DailyClanTick:" + BannerKings.Utils.TickTrace.IdOf(clan));
             try { DailyClanTickImpl(clan); }
             finally { BannerKings.Behaviours.Shipping.BKShippingBehavior.TraceExit("BKClan.DailyClanTick", __sw); }
         }

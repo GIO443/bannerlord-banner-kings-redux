@@ -87,7 +87,7 @@ namespace BannerKings.Models.Vanilla
         public override ExplainedNumber CalculateClanGoldChange(Clan clan, bool includeDescriptions = false, bool applyWithdrawals = false, bool includeDetails = false)
         {
             var __sw = applyWithdrawals
-                ? BannerKings.Behaviours.Shipping.BKShippingBehavior.TraceEnter("BKClanFinanceModel.CalculateClanGoldChange:" + (clan?.Name?.ToString() ?? "?"))
+                ? BannerKings.Behaviours.Shipping.BKShippingBehavior.TraceEnter("BKClanFinanceModel.CalculateClanGoldChange:" + BannerKings.Utils.TickTrace.IdOf(clan))
                 : null;
             try
             {

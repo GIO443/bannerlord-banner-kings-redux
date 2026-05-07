@@ -300,7 +300,9 @@ namespace BannerKings.Models.Vanilla
                 }
             }
 
-            return MathF.Max(popFactor, 0f) / (float)data.MilitaryData.Manpower;
+            float manpower = data.MilitaryData.Manpower;
+            if (manpower <= 0f) return 0f;
+            return MathF.Max(popFactor, 0f) / manpower;
         }
 
 

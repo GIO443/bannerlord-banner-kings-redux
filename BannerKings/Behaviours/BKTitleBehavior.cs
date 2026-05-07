@@ -327,7 +327,7 @@ namespace BannerKings.Behaviours
                 if (duchy.deJure == null) continue;
 
                 var faction = duchy.deJure.Clan.Kingdom;
-                if (faction == null || faction != duchy.DeFacto.Clan.Kingdom)
+                if (faction == null || faction != duchy.DeFacto?.Clan?.Kingdom)
                 {
                     continue;
                 }
@@ -351,7 +351,7 @@ namespace BannerKings.Behaviours
                 if (kingdom.deJure == null) continue;
 
                 var faction = kingdom.deJure.Clan.Kingdom;
-                if (faction == null || faction != kingdom.DeFacto.Clan.Kingdom) continue;  
+                if (faction == null || faction != kingdom.DeFacto?.Clan?.Kingdom) continue;
 
                 var currentFactionSovereign = BannerKingsConfig.Instance.TitleManager.GetSovereignTitle(faction);
                 if (currentFactionSovereign != null && currentFactionSovereign.TitleType == TitleType.Empire)

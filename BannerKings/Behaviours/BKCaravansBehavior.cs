@@ -170,6 +170,15 @@ namespace BannerKings.Behaviours
         private void ReleaseCaravanFromHold(MobileParty caravan)
         {
             if (caravan == null || !caravan.IsCaravan) return;
+            // Mid-transition guard — see BKShippingBehavior.cs:323-328 for the
+            // root cause. CancelNavigationTransitionParallel doesn't flip
+            // IsCurrentlyAtSea, so issuing SetMoveGoToSettlement during a
+            // port↔sea transition leaves a naval caravan flagged AtSea while
+            // the engine reroutes it via Default navigation — and a template
+            // with HasLandNavigationCapability then walks across land tiles
+            // with the boat sprite still rendering ("boat on land"). Re-think
+            // next hour when the transition has settled.
+            if (caravan.IsTransitionInProgress) return;
             try
             {
                 if (caravan.Ai != null) caravan.Ai.RethinkAtNextHourlyTick = true;
@@ -684,6 +693,17 @@ namespace BannerKings.Behaviours
         {
             if (caravanParty.IsCaravan)
             {
+                // Mid-transition guard — covers the redirect, hold-release,
+                // and force-fallback SetMoveGoToSettlement calls below in one
+                // place. The root cause is in BKShippingBehavior.cs:323-328:
+                // vanilla's CancelNavigationTransitionParallel does NOT flip
+                // IsCurrentlyAtSea, so a redirect issued mid-transition (e.g.
+                // disembarking sea→port when a hostile faction is detected
+                // at the destination) leaves the naval caravan flagged AtSea,
+                // takes a Default-nav land path, and renders the ship sprite
+                // on land tiles. Re-think next hour when state has settled.
+                if (caravanParty.IsTransitionInProgress) return;
+
                 // Hold-mode safety net. Runs BEFORE the IsPartyTradeActive
                 // gate below so a caravan stuck in Hold from a missed
                 // siege-end release path (or any other code that called
@@ -703,6 +723,33 @@ namespace BannerKings.Behaviours
 
                 bool flag = false;
                 float randomFloat = MBRandom.RandomFloat;
+
+                // v1.6.10.0: Naval caravans (Convoys) with a non-port
+                // TargetSettlement were stranding at sea. Re-route them every
+                // tick so they never sit on a route they can't actually
+                // complete — at-sea convoys can only enter port towns. The
+                // candidate set in FindNextDestinationForCaravan is now
+                // gated to ports for naval parties, so re-think will pick a
+                // valid port target. Cheap: only fires when the caravan is
+                // actively naval AND is currently targeting a non-port.
+                bool navalForceRethink = false;
+                try
+                {
+                    // Valid naval target = port town. Castles, villages, hideouts,
+                    // inland towns are all invalid. The earlier `tgt.IsTown &&
+                    // !tgt.HasPort` form let castle targets slip past silently
+                    // (castle.IsTown=false → gate skipped; convoy continued
+                    // sailing to a castle that had no port). Now: anything not
+                    // a port-town triggers re-think.
+                    if (caravanParty.HasNavalNavigationCapability
+                        && caravanParty.TargetSettlement != null
+                        && !(caravanParty.TargetSettlement.IsTown && caravanParty.TargetSettlement.HasPort))
+                    {
+                        navalForceRethink = true;
+                    }
+                }
+                catch { }
+
                 if (caravanParty.MapEvent == null && caravanParty.IsPartyTradeActive && !caravanParty.Ai.DoNotMakeNewDecisions)
                 {
                     if (caravanParty.CurrentSettlement != null && caravanParty.CurrentSettlement.Town != null)
@@ -743,6 +790,10 @@ namespace BannerKings.Behaviours
                         Town destinationForMobileParty = GetDestinationForMobileParty(caravanParty);
                         flag = (destinationForMobileParty == null || destinationForMobileParty.IsUnderSiege || caravanParty.MapFaction.IsAtWarWith(destinationForMobileParty.MapFaction) || (!caravanParty.IsCurrentlyUsedByAQuest && randomFloat < 0.01f));
                     }
+                    // Naval-stranded rescue: force re-think regardless of position
+                    // so existing Convoys with non-port targets get re-routed to
+                    // a port within an hour.
+                    if (navalForceRethink) flag = true;
                     if (flag)
                     {
                         if (caravanParty.CurrentSettlement != null && caravanParty.CurrentSettlement.Town != null)
@@ -985,8 +1036,30 @@ namespace BannerKings.Behaviours
                 blacklist = new List<Settlement>();
                 _previouslyChangedCaravanTargetsDueToEnemyOnWay.Add(caravanParty, blacklist);
             }
+
+            // v1.6.10.0: gate naval caravans (Convoys — spawned with a ShipHulls
+            // template, hence HasNavalNavigationCapability=true) to PORT towns
+            // only. Previously the candidate set was Town.AllFiefs unconditionally
+            // and the trade-score model would happily route a Convoy to inland
+            // Diathma / Vostrum / Corenia Castle / etc. The Convoy would then sail
+            // to the closest sea node to that target, fail to disembark (because
+            // the inland target has no port), and pile up at-sea on the same
+            // coastal coordinate. Caravan dump showed 8 Convoys clustered at
+            // ~(510,510) and 6 at ~(510,600), all with non-port destinations.
+            //
+            // Land caravans keep the unfiltered set (their pathfinder handles
+            // land routing fine; only the naval sub-population breaks here).
+            //
+            // Memory rule: "Caravans are land-only OR sea-only — BK caravans
+            // don't chain land+sea legs; treat the two as separate populations
+            // when routing." Same constraint enforced at the destination-pick
+            // stage now.
+            bool naval = false;
+            try { naval = caravanParty.HasNavalNavigationCapability; } catch { }
+
             foreach (Town town in Town.AllFiefs)
             {
+                if (naval && !town.Settlement.HasPort) continue;
                 if (town.Owner.Settlement != caravanParty.CurrentSettlement && !town.IsUnderSiege && !town.MapFaction.IsAtWarWith(caravanParty.MapFaction) && (!town.Settlement.Parties.Contains(MobileParty.MainParty) || !MobileParty.MainParty.MapFaction.IsAtWarWith(caravanParty.MapFaction)) && !blacklist.Contains(town.Settlement))
                 {
                     float tradeScoreForTown = GetTradeScoreForTown(caravanParty, town, lastHomeVisitTimeOfCaravan, caravanFullness, distanceCut);

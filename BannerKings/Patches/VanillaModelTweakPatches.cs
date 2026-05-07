@@ -322,11 +322,110 @@ namespace BannerKings.Patches
                 }
             }
 
+            // Static postfix shared between the attribute-driven patch on
+            // DefaultClanTierModel and the dynamic re-patch installed at session
+            // launch (see EnsureDynamicallyPatched). Internal so the dynamic
+            // installer can pass it as a HarmonyMethod.
+            private static bool _diagLoggedThisSession = false;
+
+            // The actual tier-up check (Clan.AddRenown → ClanTierModel.CalculateTier)
+            // reads the static int[] DefaultClanTierModel.TierLowerRenownLimits
+            // directly — it does NOT call GetRequiredRenownForTier. So the postfix
+            // below only affects the UI display (Clan.RenownRequirementForNextTier
+            // routes through the model method). To make the multiplier actually
+            // gate tier-up, replace CalculateTier's loop with the same logic but
+            // applying the multiplier to each threshold.
+            private static readonly System.Reflection.FieldInfo _tierLimitsField =
+                HarmonyLib.AccessTools.Field(typeof(DefaultClanTierModel), "TierLowerRenownLimits");
+
+            [HarmonyPrefix]
+            [HarmonyPatch(nameof(DefaultClanTierModel.CalculateTier))]
+            private static bool CalculateTierPrefix(DefaultClanTierModel __instance, Clan clan, ref int __result)
+            {
+                try
+                {
+                    if (_tierLimitsField == null) return true;
+                    var limits = _tierLimitsField.GetValue(null) as int[];
+                    if (limits == null || limits.Length == 0) return true;
+                    float mult = BannerKings.Settings.BannerKingsSettings.Instance?.ClanRenown ?? 1f;
+                    int renown = (int)clan.Renown;
+                    int min = __instance.MinClanTier;
+                    int max = TaleWorlds.Library.MathF.Min(__instance.MaxClanTier, limits.Length - 1);
+
+                    int tier = min;
+                    for (int i = min + 1; i <= max; i++)
+                    {
+                        int threshold = (int)(limits[i] * mult);
+                        if (renown >= threshold) tier = i;
+                    }
+                    __result = tier;
+                    return false; // skip vanilla — we computed the answer
+                }
+                catch
+                {
+                    return true; // fall back to vanilla on any failure
+                }
+            }
+
             [HarmonyPostfix]
             [HarmonyPatch(nameof(DefaultClanTierModel.GetRequiredRenownForTier))]
-            private static void GetRequiredRenownForTierPostfix(int tier, ref int __result)
+            internal static void GetRequiredRenownForTierPostfix(int tier, ref int __result)
             {
-                __result = (int)(__result * BannerKingsSettings.Instance.ClanRenown);
+                int before = __result;
+                float mult = BannerKings.Settings.BannerKingsSettings.Instance?.ClanRenown ?? 1f;
+                __result = (int)(before * mult);
+
+                if (!_diagLoggedThisSession)
+                {
+                    _diagLoggedThisSession = true;
+                    string modelType;
+                    try { modelType = Campaign.Current?.Models?.ClanTierModel?.GetType().FullName ?? "?"; }
+                    catch { modelType = "(threw)"; }
+                    BannerKings.BannerKingsCheats.AppendDiagnosticLine("clantier.txt",
+                        $"GetRequiredRenownForTier: tier={tier} vanilla={before} mult={mult:n2} after={__result} activeModel={modelType}");
+                }
+            }
+
+            // Some other mods register a ClanTierModel subclass whose override of
+            // GetRequiredRenownForTier doesn't call base. The attribute patch on
+            // DefaultClanTierModel won't fire in that case. Detect the active
+            // model at session start and Harmony-patch its declared override
+            // directly so the multiplier still applies. Safe no-op when the
+            // active model is plain DefaultClanTierModel (already covered) or
+            // inherits the method without overriding.
+            internal static void EnsureDynamicallyPatched()
+            {
+                try
+                {
+                    var active = Campaign.Current?.Models?.ClanTierModel;
+                    if (active == null) return;
+                    var type = active.GetType();
+                    BannerKings.BannerKingsCheats.AppendDiagnosticLine("clantier.txt",
+                        $"session: active ClanTierModel={type.FullName} ClanRenown={BannerKings.Settings.BannerKingsSettings.Instance?.ClanRenown:n2}");
+
+                    if (type == typeof(DefaultClanTierModel)) return;
+
+                    var method = type.GetMethod("GetRequiredRenownForTier",
+                        System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Instance,
+                        null, new[] { typeof(int) }, null);
+                    if (method == null) return;
+                    if (method.DeclaringType == typeof(DefaultClanTierModel)) return;
+                    if (method.DeclaringType?.FullName?.StartsWith("TaleWorlds.") == true) return;
+
+                    var post = typeof(BKClanTierTweakPatches).GetMethod(nameof(GetRequiredRenownForTierPostfix),
+                        System.Reflection.BindingFlags.Static | System.Reflection.BindingFlags.NonPublic);
+                    if (post == null) return;
+
+                    var harmony = new HarmonyLib.Harmony("BannerKings.ClanTierDynamic");
+                    harmony.Patch(method, postfix: new HarmonyLib.HarmonyMethod(post));
+                    BannerKings.BannerKingsCheats.AppendDiagnosticLine("clantier.txt",
+                        $"dynamic patch applied to {method.DeclaringType.FullName}.GetRequiredRenownForTier");
+                }
+                catch (System.Exception ex)
+                {
+                    BannerKings.BannerKingsCheats.AppendDiagnosticLine("clantier.txt",
+                        $"dynamic patch failed: {ex.GetType().Name}: {ex.Message}");
+                }
             }
         }
 
@@ -808,6 +907,12 @@ namespace BannerKings.Patches
                         .HasDebuff(DefaultStartOptions.Instance.Caravaneer))
                     __result.AddFactor(-0.05f, DefaultStartOptions.Instance.Caravaneer.Name);
 
+                // Single point of application for the SlowerParties MCM slider.
+                // With War Sails installed, NavalDLCPartySpeedCalculationModel.CalculateFinalSpeed
+                // unconditionally delegates to BaseModel.CalculateFinalSpeed (the vanilla
+                // model) before adding its own naval factors, so this postfix fires for
+                // both land and sea parties via that delegation. Do NOT add a second
+                // mirror on the NavalDLC model — that doubles the factor.
                 if (BannerKingsSettings.Instance.SlowerParties > 0f)
                     __result.AddFactor(-BannerKingsSettings.Instance.SlowerParties,
                         new TextObject("{=OohdenyR}Slower Parties setting"));

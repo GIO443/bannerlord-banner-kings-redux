@@ -292,19 +292,17 @@ want vanilla-sized fleets while keeping the larger land armies.
 
 ## Slower Parties applies at sea too
 
-The MCM **Slower Parties** setting (default 40%) previously only
-slowed parties on land — when a party boarded a ship it reverted to
-full naval speed because War Sails uses a different speed model that
-the BK slowdown didn't hook. Banner Kings — Redux now applies the
-same slowdown factor on the naval speed model, so the slider has a
-consistent effect on both land and sea.
+The MCM **Slower Parties** setting (default 40%) applies the same
+factor to both land and sea travel. War Sails' naval speed model
+delegates to the vanilla speed model internally, so the BK slowdown
+hook fires once for every party regardless of whether it's marching
+or sailing — the slider has a uniform effect.
 
-What you'll notice: open any party's speed tooltip while it's
-sailing — there's now a "Slower Parties setting" line subtracting the
-slider's percentage, identical to the line shown on land. Change the
-slider in MCM → Banner Kings → Balancing if you want sailing parties
-to feel different from land parties; otherwise the value applies
-uniformly.
+What you'll notice: open any party's speed tooltip on land or while
+sailing — a "Slower Parties setting" line subtracts the slider's
+percentage. The line should appear **once**; if you ever see it
+twice on the same party, that's a regression worth reporting. Change
+the slider in MCM → Banner Kings → Balancing.
 
 ## Quest-mandated overloaded fleets
 

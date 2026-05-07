@@ -40,14 +40,36 @@ namespace BannerKings.Models.BKModels
         public int ProjectedCaptives(Village village, int totalAttackerTroops)
         {
             if (village == null) return 0;
-            var data = BannerKingsConfig.Instance.PopulationManager?.GetPopData(village.Settlement);
-            if (data == null) return 0;
 
-            int serfs = data.GetTypeCount(PopType.Serfs);
-            if (serfs <= 0) return 0;
+            // Serf pool resolution.
+            //   1. Prefer BK PopulationManager (authoritative; BK demographics).
+            //   2. Fall back to vanilla `village.Hearth` × 4 ≈ household serfs
+            //      when pop data hasn't been generated yet (common at the
+            //      pre-raid menu before the player has ever entered the
+            //      village). Without the fallback, the menu preview shows 0
+            //      for every freshly-encountered hostile village.
+            int serfs = 0;
+            string serfSource = "popdata";
+            var data = BannerKingsConfig.Instance.PopulationManager?.GetPopData(village.Settlement);
+            if (data != null)
+            {
+                serfs = data.GetTypeCount(PopType.Serfs);
+            }
+            if (serfs <= 0)
+            {
+                serfs = (int)(village.Hearth * 4f);
+                serfSource = "hearth-fallback";
+            }
+            if (serfs <= 0)
+            {
+                BannerKings.BannerKingsCheats.AppendDiagnosticLine("raidcapture.txt",
+                    $"projected=0 reason=no-serfs village={village.Name} hearth={village.Hearth:n0} popdata={(data == null ? "null" : "present")}");
+                return 0;
+            }
 
             // Pool from village population — serfs displaceable × MCM capture fraction.
-            int serfPool = (int)(serfs * DisplacedFractionOfSerfs * BannerKingsSettings.Instance.RaidCaptureFraction);
+            float fraction = BannerKingsSettings.Instance.RaidCaptureFraction;
+            int serfPool = (int)(serfs * DisplacedFractionOfSerfs * fraction);
 
             // Carry cap. Excludes the first 5 troops (hero + small entourage
             // that isn't herding captives). Across an army, "first 5" still
@@ -56,7 +78,15 @@ namespace BannerKings.Models.BKModels
             int partyCap = MathF.Max(MinCarryFloor, (int)((totalAttackerTroops - 5) * CaptivesPerTroop));
 
             int captives = MathF.Min(serfPool, partyCap);
-            return MBMath.ClampInt(captives, 0, CaptiveCapPerRaid);
+            int clamped = MBMath.ClampInt(captives, 0, CaptiveCapPerRaid);
+
+            if (clamped == 0)
+            {
+                BannerKings.BannerKingsCheats.AppendDiagnosticLine("raidcapture.txt",
+                    $"projected=0 village={village.Name} serfs={serfs}({serfSource}) " +
+                    $"fraction={fraction:n2} serfPool={serfPool} troops={totalAttackerTroops} partyCap={partyCap}");
+            }
+            return clamped;
         }
 
         // Back-compat overload for the village-menu preview where the

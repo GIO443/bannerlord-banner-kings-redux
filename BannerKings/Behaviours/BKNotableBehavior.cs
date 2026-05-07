@@ -78,7 +78,7 @@ namespace BannerKings.Behaviours
 
         private void DailySettlementTick(Settlement settlement)
         {
-            var __sw = BannerKings.Behaviours.Shipping.BKShippingBehavior.TraceEnter("BKNotable.DailySettlementTick:" + (settlement?.Name?.ToString() ?? "?"));
+            var __sw = BannerKings.Behaviours.Shipping.BKShippingBehavior.TraceEnter("BKNotable.DailySettlementTick:" + BannerKings.Utils.TickTrace.IdOf(settlement));
             try { DailySettlementTickImpl(settlement); }
             finally { BannerKings.Behaviours.Shipping.BKShippingBehavior.TraceExit("BKNotable.DailySettlementTick", __sw); }
         }

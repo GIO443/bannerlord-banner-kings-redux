@@ -4,6 +4,7 @@ using BannerKings.Settings;
 using HarmonyLib;
 using Helpers;
 using SandBox.View.Map;
+using System.Collections.Generic;
 using System.Linq;
 using TaleWorlds.CampaignSystem;
 using TaleWorlds.CampaignSystem.CampaignBehaviors;
@@ -170,23 +171,53 @@ namespace BannerKings.Patches
             [HarmonyPatch("SlaughterLivestock")]
             private static bool SlaughterLivestockPrefix(MobileParty party, int partyRemainingFoodPercentage, ref bool __result)
             {
+                // v1.6.9.31: freeze pinned here on starving lord parties.
+                //
+                // Two bugs in the original prefix:
+                //   1. The inner `while (num * 100 < -partyRemainingFoodPercentage)`
+                //      loop had no progress guard. If a livestock item had
+                //      `HorseComponent.MeatCount <= 0` (mod-added animal,
+                //      misconfigured XML, race condition during cleanup),
+                //      `num` never advanced and the loop spun forever.
+                //   2. `foreach (var element in itemRoster)` while
+                //      `itemRoster.AddToCounts(itemAtIndex, -1)` mutates the
+                //      same roster — undefined enumerator behavior. A
+                //      consistent way to crash this is a starving party with
+                //      a single 1-count livestock item: AddToCounts removes
+                //      it during enumeration, the foreach reads a stale slot,
+                //      next iteration's `element.EquipmentElement.Item` may
+                //      hit a zombie reference or wrap to a wrong item.
+                //
+                // Fix: snapshot the livestock items first, then iterate the
+                // snapshot and skip any livestock with non-positive MeatCount.
+                // The inner while gets an explicit-progress guard: if a
+                // single AddToCounts didn't reduce the roster's index for
+                // this item below the prior step (auto-remove didn't fire AND
+                // MeatCount was zero), break out instead of spinning.
                 int num = 0;
                 ItemRoster itemRoster = party.ItemRoster;
+
+                var livestock = new List<ItemObject>();
                 foreach (var element in itemRoster)
                 {
-                    ItemObject itemAtIndex = element.EquipmentElement.Item;
-                    HorseComponent horseComponent = itemAtIndex.HorseComponent;
-                    if (horseComponent != null && horseComponent.IsLiveStock)
+                    ItemObject item = element.EquipmentElement.Item;
+                    var hc = item?.HorseComponent;
+                    if (hc != null && hc.IsLiveStock && hc.MeatCount > 0)
                     {
-                        while (num * 100 < -partyRemainingFoodPercentage)
-                        {
-                            itemRoster.AddToCounts(itemAtIndex, -1);
-                            num += itemAtIndex.HorseComponent.MeatCount;
-                            if (itemRoster.FindIndexOfItem(itemAtIndex) == -1)
-                            {
-                                break;
-                            }
-                        }
+                        livestock.Add(item);
+                    }
+                }
+
+                foreach (var item in livestock)
+                {
+                    int meatPerHead = item.HorseComponent.MeatCount;
+                    int safety = 0;
+                    while (num * 100 < -partyRemainingFoodPercentage)
+                    {
+                        if (++safety > 10000) break;          // hard stop — can't legitimately need 10k slaughter ops
+                        if (itemRoster.FindIndexOfItem(item) == -1) break;
+                        itemRoster.AddToCounts(item, -1);
+                        num += meatPerHead;
                     }
                 }
 

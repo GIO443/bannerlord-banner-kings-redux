@@ -44,7 +44,7 @@ namespace BannerKings.Patches.Diag
     {
         private static void Prefix(Clan clan, out System.Diagnostics.Stopwatch __state)
         {
-            __state = BannerKings.Behaviours.Shipping.BKShippingBehavior.TraceEnter("Vanilla.DailyTickClan:" + (clan?.Name?.ToString() ?? "?"));
+            __state = BannerKings.Behaviours.Shipping.BKShippingBehavior.TraceEnter("Vanilla.DailyTickClan:" + BannerKings.Utils.TickTrace.IdOf(clan));
         }
         private static void Postfix(System.Diagnostics.Stopwatch __state)
         {
@@ -66,7 +66,7 @@ namespace BannerKings.Patches.Diag
     {
         private static void Prefix(Clan clan, out System.Diagnostics.Stopwatch __state)
         {
-            __state = BannerKings.Behaviours.Shipping.BKShippingBehavior.TraceEnter("Vanilla.UpdateClanSettlementsPaymentLimit:" + (clan?.Name?.ToString() ?? "?"));
+            __state = BannerKings.Behaviours.Shipping.BKShippingBehavior.TraceEnter("Vanilla.UpdateClanSettlementsPaymentLimit:" + BannerKings.Utils.TickTrace.IdOf(clan));
         }
         private static void Postfix(System.Diagnostics.Stopwatch __state)
         {
@@ -186,11 +186,169 @@ namespace BannerKings.Patches.Diag
         private static void Prefix(Clan clan, out System.Diagnostics.Stopwatch __state)
         {
             string typeName = _target?.DeclaringType?.Name ?? "?";
-            __state = BannerKings.Behaviours.Shipping.BKShippingBehavior.TraceEnter("NavalDLC." + typeName + ":" + (clan?.Name?.ToString() ?? "?"));
+            __state = BannerKings.Behaviours.Shipping.BKShippingBehavior.TraceEnter("NavalDLC." + typeName + ":" + BannerKings.Utils.TickTrace.IdOf(clan));
         }
         private static void Postfix(System.Diagnostics.Stopwatch __state)
         {
             BannerKings.Behaviours.Shipping.BKShippingBehavior.TraceExit("NavalDLC.DailyTickClan", __state);
+        }
+    }
+
+    // Reflective trace on every CampaignBehaviorBase per-entity tick
+    // method outside BK's own assembly. Diagnoses freezes that sit in a
+    // vanilla / NavalDLC / other-mod subscriber. v1.6.9.28 added party
+    // coverage; v1.6.9.30 extends to Hero / Settlement / Town / Clan.
+    // Each handler emits a Vanilla.<type>:<id> ENTER/EXIT line into
+    // tick_trace.txt. Lambda subscribers are still invisible (they live
+    // on compiler-generated method names, not the well-known method
+    // names below) but every named-method subscriber is now covered.
+    internal static class TraceVanillaDailyTickParty
+    {
+        private static bool _installed;
+
+        // (well-known-method-name list, parameter type, label suffix used by GenericPostfix)
+        private static readonly (string[] names, System.Type paramType)[] _patternsByEntity =
+            new (string[] names, System.Type paramType)[]
+        {
+            (new[] { "OnDailyTickParty", "DailyTickParty", "OnPartyDailyTick" }, typeof(MobileParty)),
+            (new[] { "OnDailyTickHero", "DailyTickHero", "OnHeroDailyTick" }, typeof(TaleWorlds.CampaignSystem.Hero)),
+            (new[] { "OnDailyTickClan", "DailyTickClan", "OnClanDailyTick" }, typeof(TaleWorlds.CampaignSystem.Clan)),
+            (new[] { "OnDailyTickSettlement", "DailyTickSettlement", "OnSettlementDailyTick" }, typeof(TaleWorlds.CampaignSystem.Settlements.Settlement)),
+            (new[] { "OnDailyTickTown", "DailyTickTown", "OnTownDailyTick" }, typeof(TaleWorlds.CampaignSystem.Settlements.Town)),
+        };
+
+        public static void Install(HarmonyLib.Harmony harmony)
+        {
+            if (_installed) return;
+            _installed = true;
+
+            try
+            {
+                var prefixParty = new HarmonyLib.HarmonyMethod(typeof(TraceVanillaDailyTickParty).GetMethod(nameof(PrefixParty),
+                    System.Reflection.BindingFlags.Static | System.Reflection.BindingFlags.NonPublic));
+                var prefixHero = new HarmonyLib.HarmonyMethod(typeof(TraceVanillaDailyTickParty).GetMethod(nameof(PrefixHero),
+                    System.Reflection.BindingFlags.Static | System.Reflection.BindingFlags.NonPublic));
+                var prefixClan = new HarmonyLib.HarmonyMethod(typeof(TraceVanillaDailyTickParty).GetMethod(nameof(PrefixClan),
+                    System.Reflection.BindingFlags.Static | System.Reflection.BindingFlags.NonPublic));
+                var prefixSettlement = new HarmonyLib.HarmonyMethod(typeof(TraceVanillaDailyTickParty).GetMethod(nameof(PrefixSettlement),
+                    System.Reflection.BindingFlags.Static | System.Reflection.BindingFlags.NonPublic));
+                var prefixTown = new HarmonyLib.HarmonyMethod(typeof(TraceVanillaDailyTickParty).GetMethod(nameof(PrefixTown),
+                    System.Reflection.BindingFlags.Static | System.Reflection.BindingFlags.NonPublic));
+                var postfix = new HarmonyLib.HarmonyMethod(typeof(TraceVanillaDailyTickParty).GetMethod(nameof(GenericPostfix),
+                    System.Reflection.BindingFlags.Static | System.Reflection.BindingFlags.NonPublic));
+
+                int patched = 0;
+                foreach (var asm in System.AppDomain.CurrentDomain.GetAssemblies())
+                {
+                    string asmName;
+                    try { asmName = asm.GetName().Name; } catch { continue; }
+                    if (asmName == "BannerKings") continue;
+                    if (asmName.StartsWith("System") || asmName.StartsWith("Microsoft")
+                        || asmName.StartsWith("netstandard") || asmName.StartsWith("mscorlib")
+                        || asmName.StartsWith("0Harmony")) continue;
+
+                    System.Type[] types;
+                    try { types = asm.GetTypes(); } catch { continue; }
+
+                    foreach (var t in types)
+                    {
+                        if (t == null) continue;
+                        if (!typeof(TaleWorlds.CampaignSystem.CampaignBehaviorBase).IsAssignableFrom(t)) continue;
+
+                        foreach (var (names, paramType) in _patternsByEntity)
+                        {
+                            HarmonyLib.HarmonyMethod prefix =
+                                paramType == typeof(MobileParty) ? prefixParty :
+                                paramType == typeof(TaleWorlds.CampaignSystem.Hero) ? prefixHero :
+                                paramType == typeof(TaleWorlds.CampaignSystem.Clan) ? prefixClan :
+                                paramType == typeof(TaleWorlds.CampaignSystem.Settlements.Settlement) ? prefixSettlement :
+                                paramType == typeof(TaleWorlds.CampaignSystem.Settlements.Town) ? prefixTown :
+                                null;
+                            if (prefix == null) continue;
+
+                            foreach (var name in names)
+                            {
+                                System.Reflection.MethodInfo m;
+                                try
+                                {
+                                    m = t.GetMethod(name,
+                                        System.Reflection.BindingFlags.Instance |
+                                        System.Reflection.BindingFlags.Static |
+                                        System.Reflection.BindingFlags.Public |
+                                        System.Reflection.BindingFlags.NonPublic,
+                                        binder: null,
+                                        types: new[] { paramType },
+                                        modifiers: null);
+                                }
+                                catch { continue; }
+                                if (m == null) continue;
+                                if (m.IsAbstract) continue;
+
+                                try
+                                {
+                                    harmony.Patch(m, prefix: prefix, postfix: postfix);
+                                    patched++;
+                                }
+                                catch (System.Exception ex)
+                                {
+                                    BannerKings.BannerKingsCheats.AppendDiagnosticLine("tick_trace.txt",
+                                        $"[trace-install] failed to patch {asmName}.{t.Name}.{name}({paramType.Name}): {ex.GetType().Name}: {ex.Message}");
+                                }
+                            }
+                        }
+                    }
+                }
+                BannerKings.BannerKingsCheats.AppendDiagnosticLine("tick_trace.txt",
+                    $"[trace-install] vanilla per-entity tick patches installed: {patched}");
+            }
+            catch (System.Exception ex)
+            {
+                BannerKings.BannerKingsCheats.AppendDiagnosticLine("tick_trace.txt",
+                    $"[trace-install] FAILED: {ex.GetType().Name}: {ex.Message}");
+            }
+        }
+
+        private static void PrefixParty(System.Reflection.MethodBase __originalMethod, MobileParty __0,
+            out System.Diagnostics.Stopwatch __state)
+        {
+            string label = __originalMethod?.DeclaringType?.Name ?? "?";
+            __state = BannerKings.Behaviours.Shipping.BKShippingBehavior.TraceEnter(
+                "Vanilla." + label + ":" + BannerKings.Utils.TickTrace.IdOf(__0));
+        }
+        private static void PrefixHero(System.Reflection.MethodBase __originalMethod, TaleWorlds.CampaignSystem.Hero __0,
+            out System.Diagnostics.Stopwatch __state)
+        {
+            string label = __originalMethod?.DeclaringType?.Name ?? "?";
+            __state = BannerKings.Behaviours.Shipping.BKShippingBehavior.TraceEnter(
+                "Vanilla." + label + ":" + BannerKings.Utils.TickTrace.IdOf(__0));
+        }
+        private static void PrefixClan(System.Reflection.MethodBase __originalMethod, TaleWorlds.CampaignSystem.Clan __0,
+            out System.Diagnostics.Stopwatch __state)
+        {
+            string label = __originalMethod?.DeclaringType?.Name ?? "?";
+            __state = BannerKings.Behaviours.Shipping.BKShippingBehavior.TraceEnter(
+                "Vanilla." + label + ":" + BannerKings.Utils.TickTrace.IdOf(__0));
+        }
+        private static void PrefixSettlement(System.Reflection.MethodBase __originalMethod, TaleWorlds.CampaignSystem.Settlements.Settlement __0,
+            out System.Diagnostics.Stopwatch __state)
+        {
+            string label = __originalMethod?.DeclaringType?.Name ?? "?";
+            __state = BannerKings.Behaviours.Shipping.BKShippingBehavior.TraceEnter(
+                "Vanilla." + label + ":" + BannerKings.Utils.TickTrace.IdOf(__0));
+        }
+        private static void PrefixTown(System.Reflection.MethodBase __originalMethod, TaleWorlds.CampaignSystem.Settlements.Town __0,
+            out System.Diagnostics.Stopwatch __state)
+        {
+            string label = __originalMethod?.DeclaringType?.Name ?? "?";
+            __state = BannerKings.Behaviours.Shipping.BKShippingBehavior.TraceEnter(
+                "Vanilla." + label + ":" + BannerKings.Utils.TickTrace.IdOf(__0));
+        }
+
+        private static void GenericPostfix(System.Reflection.MethodBase __originalMethod,
+            System.Diagnostics.Stopwatch __state)
+        {
+            string label = __originalMethod?.DeclaringType?.Name ?? "?";
+            BannerKings.Behaviours.Shipping.BKShippingBehavior.TraceExit("Vanilla." + label, __state);
         }
     }
 
@@ -248,7 +406,7 @@ namespace BannerKings.Patches
             [HarmonyPatch("UpdateClanSettlementAutoRecruitment", MethodType.Normal)]
             private static bool Prefix1(Clan clan)
             {
-                var __sw = BannerKings.Behaviours.Shipping.BKShippingBehavior.TraceEnter("Patch.UpdateClanSettlementAutoRecruitment:" + (clan?.Name?.ToString() ?? "?"));
+                var __sw = BannerKings.Behaviours.Shipping.BKShippingBehavior.TraceEnter("Patch.UpdateClanSettlementAutoRecruitment:" + BannerKings.Utils.TickTrace.IdOf(clan));
                 try
                 {
                     // ImprovedGarrisons owns garrison auto-recruit decisions; let vanilla
@@ -277,7 +435,7 @@ namespace BannerKings.Patches
             [HarmonyPatch("MakeClanFinancialEvaluation", MethodType.Normal)]
             private static bool Prefix2(Clan clan)
             {
-                var __sw = BannerKings.Behaviours.Shipping.BKShippingBehavior.TraceEnter("Patch.MakeClanFinancialEvaluation:" + (clan?.Name?.ToString() ?? "?"));
+                var __sw = BannerKings.Behaviours.Shipping.BKShippingBehavior.TraceEnter("Patch.MakeClanFinancialEvaluation:" + BannerKings.Utils.TickTrace.IdOf(clan));
                 try { return Prefix2Impl(clan); }
                 finally { BannerKings.Behaviours.Shipping.BKShippingBehavior.TraceExit("Patch.MakeClanFinancialEvaluation", __sw); }
             }
@@ -765,8 +923,8 @@ namespace BannerKings.Patches
             [HarmonyPatch("MeatCount", MethodType.Getter)]
             private static void MeatCountPostfix(HorseComponent __instance, ref int __result)
             {
-                if (__instance.Monster != null && __instance.Monster.StringId == "chicken" ||
-                    __instance.Monster.StringId == "goose")
+                if (__instance.Monster != null &&
+                    (__instance.Monster.StringId == "chicken" || __instance.Monster.StringId == "goose"))
                 {
                     __result = 0;
                 }
@@ -781,8 +939,8 @@ namespace BannerKings.Patches
             [HarmonyPatch("HideCount", MethodType.Getter)]
             private static void HideCountPostfix(HorseComponent __instance, ref int __result)
             {
-                if (__instance.Monster != null && __instance.Monster.StringId == "chicken" ||
-                   __instance.Monster.StringId == "goose")
+                if (__instance.Monster != null &&
+                    (__instance.Monster.StringId == "chicken" || __instance.Monster.StringId == "goose"))
                 {
                     __result = 0;
                 }

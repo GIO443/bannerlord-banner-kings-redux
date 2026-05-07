@@ -305,7 +305,8 @@ namespace BannerKings.Behaviours.Shipping
             CampaignEvents.AfterSettlementEntered.AddNonSerializedListener(this, AfterSettlementEntered);
             CampaignEvents.OnSettlementLeftEvent.AddNonSerializedListener(this, OnSettlementLeft);
             CampaignEvents.HourlyTickPartyEvent.AddNonSerializedListener(this, TickParty);
-            CampaignEvents.DailyTickEvent.AddNonSerializedListener(this, DailyNavalActivityProbe);
+            CampaignEvents.DailyTickEvent.AddNonSerializedListener(this,
+                BannerKings.Utils.TickTrace.Wrap("BKShipping.DailyNavalActivityProbe", DailyNavalActivityProbe));
             // 2026-05-02: no automatic mid-game rescue or flag-correction.
             //
             // Root cause of the AtSea-on-land state: the engine's per-tick
@@ -1144,6 +1145,42 @@ namespace BannerKings.Behaviours.Shipping
                         try { party.Ai.EnableAi(); } catch { }
                     }
 
+                    // v1.6.10.0 — additional rescue signature for naval
+                    // caravans (Convoys) that the terrain check above misses.
+                    // Mismatch C only fires when face-terrain says non-water
+                    // AND Position.IsOnLand says land. Some convoys end up
+                    // with AtSea=true on a face the engine still classifies
+                    // as water-adjacent (Beach, Bridge, RuralArea) even though
+                    // the X,Y is plainly inland — a stuck-at-coastal-ish-tile
+                    // state. The clearer signal for these is "naval party with
+                    // a non-port TargetSettlement": Convoys can only legitimately
+                    // target port towns, so a non-port target is by itself
+                    // evidence of a bad state. Caravan dump showed 8 such
+                    // convoys piled at ~(510,510), 6 at ~(510,600), all heading
+                    // to inland Diathma / Vostrum / Corenia Castle / etc.
+                    if (!needReset && party.IsCaravan)
+                    {
+                        try
+                        {
+                            bool nav = party.HasNavalNavigationCapability;
+                            var tgt = party.TargetSettlement;
+                            // A valid naval target is exactly: a TOWN with a PORT.
+                            // Castles, villages, hideouts, and inland towns all fail.
+                            // Earlier gate only checked `tgt.IsTown && !tgt.HasPort`,
+                            // which let CASTLE targets slip past (IsTown=false → gate
+                            // skipped; castle had no port either way). Observed
+                            // "Convoy of Encurion → Corenia Castle" persisting after
+                            // v1.6.9.33's first rescue pass. Now: anything that isn't
+                            // a port-town triggers rescue.
+                            if (nav && tgt != null && !(tgt.IsTown && tgt.HasPort))
+                            {
+                                needReset = true;
+                                reason = $"naval caravan targeting non-port {tgt.StringId}";
+                            }
+                        }
+                        catch { }
+                    }
+
                     if (!needReset) continue;
 
                     // Drop into the nearest non-hostile town and explicitly
@@ -1152,7 +1189,16 @@ namespace BannerKings.Behaviours.Shipping
                     // vanilla does NOT auto-clear IsCurrentlyAtSea on entry,
                     // so we do that explicitly. Result: party in town, land
                     // mode, AI enabled — vanilla-neutral.
-                    Settlement haven = FindNearestRescueTown(party, party.GetPosition2D);
+                    //
+                    // For naval-capable parties, route to nearest PORT instead
+                    // of nearest town: an inland haven park-spot strands them
+                    // where they can never re-enter the sea graph. Falls back
+                    // to FindNearestRescueTown if no port is reachable.
+                    bool navalCapable = false;
+                    try { navalCapable = party.HasNavalNavigationCapability; } catch { }
+                    Settlement haven = navalCapable
+                        ? FindNearestPort(party, party.GetPosition2D)
+                        : FindNearestRescueTown(party, party.GetPosition2D);
                     if (haven == null) continue;
                     try
                     {
@@ -1172,6 +1218,16 @@ namespace BannerKings.Behaviours.Shipping
                             try { party.IsCurrentlyAtSea = false; } catch { }
                         }
                         TaleWorlds.CampaignSystem.Actions.EnterSettlementAction.ApplyForParty(party, haven);
+                        // Force a fresh destination pick on next hourly tick.
+                        // Without this, the rescued convoy exits the port
+                        // still aimed at its original (bad) TargetSettlement
+                        // because Path-A (at-settlement) hourly tick is
+                        // gated on a 33% RNG re-think probability.
+                        try
+                        {
+                            if (party.Ai != null) party.Ai.RethinkAtNextHourlyTick = true;
+                        }
+                        catch { }
                         reset++;
                         LogRescue(party, $"load-cleanup: ENTER {haven.Name} ({reason})");
                     }
@@ -1890,6 +1946,36 @@ namespace BannerKings.Behaviours.Shipping
             }
             catch { /* Settlement.All not ready — return whatever we found */ }
             return best;
+        }
+
+        // Naval-aware variant: filter to PORT towns only. Used by LoadCleanup
+        // when rescuing AtSea-on-land convoys — sending a naval party to
+        // an inland town parks it where it can never re-enter the sea graph,
+        // perpetuating the stranded-boat problem. A port haven puts the
+        // party at the water side of a real harbour, so the next hourly
+        // tick re-picks via the (now port-gated) ThinkNextDestination and
+        // the convoy resumes normal sea routing. Falls back to FindNearestRescueTown
+        // if no eligible port exists (no-WarSails / hostile-only ports).
+        public Settlement FindNearestPort(MobileParty party, Vec2 fromPos)
+        {
+            if (party == null) return null;
+            Settlement best = null;
+            float bestDist = float.MaxValue;
+            try
+            {
+                foreach (var s in Settlement.All)
+                {
+                    if (s == null) continue;
+                    if (!s.IsTown) continue;
+                    if (s.IsUnderSiege) continue;
+                    if (!s.HasPort) continue;
+                    if (s.MapFaction != null && s.MapFaction.IsAtWarWith(party.MapFaction)) continue;
+                    float d = fromPos.Distance(s.GatePosition.ToVec2());
+                    if (d < bestDist) { bestDist = d; best = s; }
+                }
+            }
+            catch { }
+            return best ?? FindNearestRescueTown(party, fromPos);
         }
 
         // Top-of-pipeline opt-out gate. Caravans flagged as oscillating

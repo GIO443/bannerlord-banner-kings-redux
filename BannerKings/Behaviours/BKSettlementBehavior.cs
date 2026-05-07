@@ -171,7 +171,7 @@ namespace BannerKings.Behaviours
 
         private void DailySettlementTick(Settlement settlement)
         {
-            var __sw = BannerKings.Behaviours.Shipping.BKShippingBehavior.TraceEnter("BKSettlement.DailySettlementTick:" + (settlement?.Name?.ToString() ?? "?"));
+            var __sw = BannerKings.Behaviours.Shipping.BKShippingBehavior.TraceEnter("BKSettlement.DailySettlementTick:" + BannerKings.Utils.TickTrace.IdOf(settlement));
             try { DailySettlementTickImpl(settlement); }
             finally { BannerKings.Behaviours.Shipping.BKShippingBehavior.TraceExit("BKSettlement.DailySettlementTick", __sw); }
         }
@@ -187,7 +187,7 @@ namespace BannerKings.Behaviours
             // exact sub-call that hung. v1.6.9.20 freeze pinned the outer
             // BKSettlement.DailySettlementTick:Gamardan ENTER without EXIT;
             // the body has 10 sub-calls and we need to know which.
-            string label = settlement.Name?.ToString() ?? "?";
+            string label = BannerKings.Utils.TickTrace.IdOf(settlement);
             RunStep("KillBandits", label, () => KillBandits(settlement));
             RunStep("TickSettlementData", label, () => TickSettlementData(settlement));
             RunStep("TickRotting", label, () => TickRotting(settlement));

@@ -160,15 +160,22 @@ namespace BannerKings.Behaviours.PartyNeeds
             // sub-brackets below identify which one is stuck on the next
             // repro. Each call wrapped in try/finally so an exception still
             // emits EXIT.
+            // StringId only — party.Name routes through PartyComponent.Name →
+            // BanditPartyComponent.get_Name() which firstchance log shows can hang
+            // on bad bandit-party state. v1.6.9.24 hardened the outer wrapper but
+            // these inline sub-traces still used Name; v1.6.9.26 freeze pinned at
+            // forest_bandits_2146188885 with the outer wrapper's ENTER firing and
+            // no AddNeeds sub-ENTER, so the Name access here is the hang vector.
+            string __pid = null; try { __pid = party?.StringId; } catch { }
             var __sw1 = BannerKings.Behaviours.Shipping.BKShippingBehavior.TraceEnter(
-                "BKPartyNeeds.DailyTickParty.AddNeeds:" + (party?.Name?.ToString() ?? "?"));
+                "BKPartyNeeds.DailyTickParty.AddNeeds:" + (__pid ?? "?"));
             try { AddPartyNeeds(party); }
             finally { BannerKings.Behaviours.Shipping.BKShippingBehavior.TraceExit("BKPartyNeeds.DailyTickParty.AddNeeds", __sw1); }
 
             if (partyNeeds.ContainsKey(party))
             {
                 var __sw2 = BannerKings.Behaviours.Shipping.BKShippingBehavior.TraceEnter(
-                    "BKPartyNeeds.DailyTickParty.Tick:" + (party?.Name?.ToString() ?? "?"));
+                    "BKPartyNeeds.DailyTickParty.Tick:" + (__pid ?? "?"));
                 try { partyNeeds[party].Tick(); }
                 finally { BannerKings.Behaviours.Shipping.BKShippingBehavior.TraceExit("BKPartyNeeds.DailyTickParty.Tick", __sw2); }
             }

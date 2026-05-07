@@ -411,7 +411,7 @@ namespace BannerKings.Behaviours
 
         private void DailySettlementTick(Settlement settlement)
         {
-            var __sw = BannerKings.Behaviours.Shipping.BKShippingBehavior.TraceEnter("BKParty.DailySettlementTick:" + (settlement?.Name?.ToString() ?? "?"));
+            var __sw = BannerKings.Behaviours.Shipping.BKShippingBehavior.TraceEnter("BKParty.DailySettlementTick:" + BannerKings.Utils.TickTrace.IdOf(settlement));
             try { DailySettlementTickImpl(settlement); }
             finally { BannerKings.Behaviours.Shipping.BKShippingBehavior.TraceExit("BKParty.DailySettlementTick", __sw); }
         }
@@ -419,6 +419,13 @@ namespace BannerKings.Behaviours
         private void DailySettlementTickImpl(Settlement settlement)
         {
             if (settlement == null || settlement.Town == null) return;
+
+            // v1.6.9.28 trace pinned the freeze on this method for village_V8_2.
+            // Sub-trace each branch to identify which inner call hangs on the
+            // next repro. None of these mutate state at this layer; they
+            // delegate to inner methods that touch population / market /
+            // pathfinding state.
+            string __sid = BannerKings.Utils.TickTrace.IdOf(settlement);
 
             // Nord-culture towns always run slave caravans regardless of the
             // decision_slaves_export policy — the Nordic Thrall Law (and the
@@ -437,12 +444,22 @@ namespace BannerKings.Behaviours
 
                 if (villageTarget != null)
                 {
-                    SendSlaveCaravan(villageTarget);
+                    var __sw = BannerKings.Behaviours.Shipping.BKShippingBehavior.TraceEnter("BKParty.DailySettlementTick.SendSlaveCaravan:" + __sid);
+                    try { SendSlaveCaravan(villageTarget); }
+                    finally { BannerKings.Behaviours.Shipping.BKShippingBehavior.TraceExit("BKParty.DailySettlementTick.SendSlaveCaravan", __sw); }
                 }
             }
 
-            DecideSendTraders(settlement);
-            DecideSendTravellers(settlement);
+            {
+                var __sw = BannerKings.Behaviours.Shipping.BKShippingBehavior.TraceEnter("BKParty.DailySettlementTick.DecideSendTraders:" + __sid);
+                try { DecideSendTraders(settlement); }
+                finally { BannerKings.Behaviours.Shipping.BKShippingBehavior.TraceExit("BKParty.DailySettlementTick.DecideSendTraders", __sw); }
+            }
+            {
+                var __sw = BannerKings.Behaviours.Shipping.BKShippingBehavior.TraceEnter("BKParty.DailySettlementTick.DecideSendTravellers:" + __sid);
+                try { DecideSendTravellers(settlement); }
+                finally { BannerKings.Behaviours.Shipping.BKShippingBehavior.TraceExit("BKParty.DailySettlementTick.DecideSendTravellers", __sw); }
+            }
         }
 
         private void DecideSendTraders(Settlement settlement)
@@ -539,16 +556,35 @@ namespace BannerKings.Behaviours
                 return;
             }
 
-            var target = GetTownsToTravel(settlement).FirstOrDefault();
+            string __sid = BannerKings.Utils.TickTrace.IdOf(settlement);
+
+            List<Settlement> __towns;
+            {
+                var __sw = BannerKings.Behaviours.Shipping.BKShippingBehavior.TraceEnter("BKParty.DecideSendTravellers.GetTownsToTravel:" + __sid);
+                try { __towns = GetTownsToTravel(settlement); }
+                finally { BannerKings.Behaviours.Shipping.BKShippingBehavior.TraceExit("BKParty.DecideSendTravellers.GetTownsToTravel", __sw); }
+            }
+            var target = __towns.FirstOrDefault();
             if (target == null)
             {
                 return;
             }
 
-            if (BannerKingsConfig.Instance.PopulationManager.IsSettlementPopulated(target) &&
-                BannerKingsConfig.Instance.PopulationManager.IsSettlementPopulated(settlement))
+            bool __populated;
             {
-                SendTravellerParty(settlement, target);
+                var __sw = BannerKings.Behaviours.Shipping.BKShippingBehavior.TraceEnter("BKParty.DecideSendTravellers.IsSettlementPopulated:" + __sid);
+                try
+                {
+                    __populated = BannerKingsConfig.Instance.PopulationManager.IsSettlementPopulated(target) &&
+                                  BannerKingsConfig.Instance.PopulationManager.IsSettlementPopulated(settlement);
+                }
+                finally { BannerKings.Behaviours.Shipping.BKShippingBehavior.TraceExit("BKParty.DecideSendTravellers.IsSettlementPopulated", __sw); }
+            }
+            if (__populated)
+            {
+                var __sw = BannerKings.Behaviours.Shipping.BKShippingBehavior.TraceEnter("BKParty.DecideSendTravellers.SendTravellerParty:" + __sid);
+                try { SendTravellerParty(settlement, target); }
+                finally { BannerKings.Behaviours.Shipping.BKShippingBehavior.TraceExit("BKParty.DecideSendTravellers.SendTravellerParty", __sw); }
             }
         }
 
