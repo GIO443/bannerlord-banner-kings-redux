@@ -2721,6 +2721,21 @@ namespace BannerKings
             return msg;
         }
 
+        // bannerkings.test_eval_clan <clan_id> — force-run EstatePolicyAI
+        // on the named clan immediately, ignoring the 30-day cadence
+        // gate. Logs decision trace to BK_ai_estate_decisions.txt.
+        [CommandLineFunctionality.CommandLineArgumentFunction("test_eval_clan", "bannerkings")]
+        public static string TestEvalClan(List<string> strings)
+        {
+            if (strings == null || strings.Count < 1) return "usage: bannerkings.test_eval_clan <clan_id>";
+            var clan = Clan.All.FirstOrDefault(c => c?.StringId == strings[0]);
+            if (clan == null) return $"clan {strings[0]} not found";
+            EstatePolicyAI.EvaluateClanForce(clan);
+            string msg = $"test_eval_clan: ran on {clan.StringId}. See BK_ai_estate_decisions.txt for the trace.";
+            InformationManager.DisplayMessage(new InformationMessage(msg, Color.FromUint(0xFFFFD700)));
+            return msg;
+        }
+
         // bannerkings.classify_village <village_id> — re-runs DefaultVillageClasses
         // on a single village and prints the path it took. Useful when a
         // village shows Unset and you want to see why.

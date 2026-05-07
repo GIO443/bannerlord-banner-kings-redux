@@ -343,12 +343,26 @@ demesne-law cap). >180-day runway → −5%. No other signal.
       Naval clusters via shipping graph: deferred — current
       implementation is land-only, sea route via shipping graph is
       a follow-up if playtest shows naval food trade matters.
-- [ ] **Phase 6 — AI policy.** `EstatePolicyAI` lord decision module
-      with the 6-priority trigger ladder + 30-day cadence + hysteresis.
-      AI village-owner tax adjustment. AI town-industry annual review.
-      Optional: religion-aware spec selection (Druidism averse to Yield
-      slave-heavy; Aserai faith averse to Pastoral Hog) — defer if
-      complexity grows.
+- [x] **Phase 6 — AI policy.** ✅ Landed on `economy-phase-6` branch.
+      `EstatePolicyAI` 6-priority trigger ladder, 30-day per-clan
+      cadence, 60-day per-estate cooldown via new SaveableProperty(16)
+      `Estate.LastSpecChange` (CampaignTime).
+      Triggers in order: levy crisis (war + party <70%) → Levy;
+      bankruptcy (gold < tier×3000) → Yield; cluster food crisis
+      (cluster stagnant + food-class estate) → Sustained; quality
+      opportunity (Loomhouse/Stable/CaravanHub bound, supplying
+      class) → Quality; wartime baseline → Yield; peacetime → hold.
+      Per-clan eval skips player clan (they decide their own spec).
+      Notable replacement re-spec: `OnHeroOccupationChangedEvent`
+      handler re-derives spec via `DefaultEstateSpecs.ForNotable`
+      when a notable's role changes. Closes Phase 1 review obligation.
+      Validation cheats:
+        - `bannerkings.test_eval_clan <clan_id>` — force-run the
+          ladder ignoring cadence
+        - `BK_ai_estate_decisions.txt` (auto-written) logs every
+          flip with old/new spec + reason
+      ⏳ Deferred: AI village-owner tax adjustment, AI town-industry
+      annual review, religion-aware spec — follow-up tuning.
 - [ ] **Phase 7 — player levers.** UI for estate spec pick (with
       cluster-aware suggestion), village tax rate slider (within
       demesne-law bounds), Growth decree menu, Town Industry pick.

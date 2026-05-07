@@ -277,6 +277,12 @@ namespace BannerKings.Managers.Populations.Estates
         // from DefaultEstateSpecs.ForOwner on session start.
         [SaveableProperty(15)] public EstateSpec Spec { get; set; } = EstateSpec.Unset;
 
+        // Phase 6 — AI policy. Records the last time Spec was changed
+        // (by AI policy or player override) so a 60-day cooldown can
+        // be enforced against thrash. CampaignTime.Zero = never changed;
+        // AI and player paths both gate on this.
+        [SaveableProperty(16)] public CampaignTime LastSpecChange { get; set; } = CampaignTime.Zero;
+
         public void AddSlaves(int slaves) => Slaves += slaves;
 
         public void SetParty(MobileParty party) => Retinue = party;

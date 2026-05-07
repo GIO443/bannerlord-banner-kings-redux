@@ -107,9 +107,10 @@ namespace BannerKings
             GameTexts.SetVariable("SPEED_ICON", BannerKings.Utils.TextHelper.SPEED_ICON);
 
             campaignStarter.AddBehavior(new BKManagerBehavior());
-            // Layered village/estate/town economy rework — Phase 1 + 4.
+            // Layered village/estate/town economy rework — Phase 1 + 4 + 6.
             campaignStarter.AddBehavior(new LayeredEconomyAssignmentBehavior());
             campaignStarter.AddBehavior(new ClusterFoodTracker());
+            campaignStarter.AddBehavior(new EstatePolicyAI());
             campaignStarter.AddBehavior(new BKEducationBehavior());
             campaignStarter.AddBehavior(new BKSettlementActions());
             campaignStarter.AddBehavior(new BKKnighthoodBehavior());
