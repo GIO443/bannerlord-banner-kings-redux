@@ -158,6 +158,17 @@ namespace BannerKings.Managers.Populations.Estates
                 float keepRate = 1f - TaxRatio.ResultNumber;
                 if (keepRate < 0f) keepRate = 0f;
                 float gross = effectiveAcres * workforceFactor * 0.4f;
+
+                // Phase 2 layered-economy multiplier — must mirror the
+                // gating + math in EstateData.DailyProductionIncome so the
+                // UI estimate doesn't diverge from the actual daily
+                // payout. Single source of truth = EstateYieldCalculator.
+                if (BannerKings.Settings.BannerKingsSettings.Instance?.LayeredEconomyYields == true)
+                {
+                    var br = BannerKings.CampaignContent.Economy.Layered.EstateYieldCalculator.GoldMultiplier(this);
+                    gross *= br.Final;
+                }
+
                 float net = gross * keepRate;
                 return net * 0.8f;
             }

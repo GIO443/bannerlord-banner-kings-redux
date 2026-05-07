@@ -2484,7 +2484,10 @@ namespace BannerKings
                 sb.AppendLine($"# captured at year {CampaignTime.Now.GetYear} day {CampaignTime.Now.GetDayOfYear}");
                 sb.AppendLine($"# MCM LayeredEconomyYields = {toggleOn} (off → multiplier is bypassed)");
                 sb.AppendLine();
-                sb.AppendLine("# columns: settlement  spec  class  vol×qty×fit  final  food/day");
+                sb.AppendLine("# columns: settlement  spec  class  acres  labor  vol×qty×fit=final  pre→post_denar/day  food/day");
+                sb.AppendLine("# pre = vanilla pre-rework predicted denar/day; post = with multiplier.");
+                sb.AppendLine("# When toggle is OFF, post still computes the multiplier here (cheat-only)");
+                sb.AppendLine("# but actual gameplay payout uses pre. When toggle is ON, payout uses post.");
                 sb.AppendLine();
 
                 int rows = 0;
@@ -2501,7 +2504,19 @@ namespace BannerKings
                         var food = EstateYieldCalculator.DailyFoodBalance(estate);
                         var spec = estate.GetSpec();
                         var cls = s.Village?.GetVillageClass() ?? VillageClass.Unset;
-                        sb.AppendLine($"  {s.StringId,-32} {spec,-10} {cls,-16} {br.SpecVolume:0.00}×{br.SpecQuality:0.00}×{br.WorkerFitMean:0.00}={br.Final:0.000}  food={food:+0.00;-0.00;0.00}/day");
+
+                        float effAcres = estate.Farmland + (estate.Pastureland * 0.5f) + (estate.Woodland * 0.15f);
+                        int totalLabor = estate.Population + estate.Slaves;
+                        float wf = effAcres > 0 ? Math.Min(1f, totalLabor / (effAcres * 0.5f)) : 0f;
+                        float keepRate = Math.Max(0f, 1f - estate.TaxRatio.ResultNumber);
+                        float preGross = effAcres * wf * 0.4f;
+                        float prePerDay = preGross * keepRate * 0.8f;
+                        float postPerDay = prePerDay * br.Final;
+
+                        sb.AppendLine(
+                            $"  {s.StringId,-32} {spec,-10} {cls,-16} acres={effAcres,5:0.0} lab={totalLabor,4} " +
+                            $"{br.SpecVolume:0.00}×{br.SpecQuality:0.00}×{br.WorkerFitMean:0.00}={br.Final:0.000}  " +
+                            $"{prePerDay,7:0.0}→{postPerDay,7:0.0}  food={food:+0.00;-0.00;0.00}/day");
                         rows++;
                     }
                 }

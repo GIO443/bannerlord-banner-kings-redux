@@ -12,11 +12,16 @@ namespace BannerKings.CampaignContent.Economy.Layered
     // accessor to read VillageType for "what kind of village is this"
     // purposes.
     //
-    // Falls back to the static DefaultVillageClasses / DefaultTownIndustries
-    // / DefaultEstateSpecs lookups when the persisted field is still Unset
-    // (existing saves between Phase 1 ship and the first session-start
-    // assignment pass; mod-added settlements; ownership transfers before
-    // the daily eval). Callers that don't tolerate Unset can post-check.
+    // NOT a pure read API: GetVillageClass and GetTownIndustry will
+    // *persist* the derived value back to the BK data struct on first
+    // read (write-back). This closes the Phase 1 review's divergence
+    // trap — two readers can never see different fallback values for
+    // the same Unset field. The write is idempotent: same VillageType /
+    // workshop-mix → same derived class / industry. Concurrent readers
+    // both succeed with the same value, no observable race; PopLock
+    // guards the underlying dictionary lookup. GetSpec is intentionally
+    // read-only (no write-back) so unowned estate slots stay derivable
+    // without locking in a Sustained default before a notable arrives.
     public static class LayeredEconomyExtensions
     {
         public static VillageClass GetVillageClass(this Village village)

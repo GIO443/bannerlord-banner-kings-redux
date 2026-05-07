@@ -15,13 +15,34 @@ namespace BannerKings.CampaignContent.Economy.Layered
     //
     // The multiplier output is dimensionless: 1.0 = pre-rework yield,
     // <1 = lower than vanilla baseline, >1 = higher. Callers apply it
-    // multiplicatively at exactly one site (currently
-    // EstateData.DailyProductionIncome). Other yield sites — recruit
-    // generation, food balance, taxes — should route through here in
-    // future phases as they're audited.
+    // multiplicatively at exactly two gameplay sites (the gameplay tick
+    // EstateData.DailyProductionIncome and the UI predictor
+    // Estate.EstimatedDailyIncome) — both gated identically so the UI
+    // never diverges from the actual payout. Other yield sites (recruit
+    // generation, taxes) will be audited in future phases.
     //
-    // The math is deterministic and pure: same inputs → same output.
-    // No campaign-side mutation. No I/O. Safe to call from any thread.
+    // Threading note: the math itself is deterministic. However the
+    // calculator reads layered-economy state via LayeredEconomyExtensions,
+    // which performs a one-time write-back on Unset fields (closing the
+    // divergence trap from Phase 1 review). That write is idempotent
+    // (always derives the same value from the same VillageType/workshop
+    // mix) but it IS a mutation — concurrent gameplay-thread + UI-thread
+    // calls into GoldMultiplier on the same estate will both attempt
+    // the write, both succeed with the same value, no observable race.
+    // PopulationManager's PopLock guards the dictionary lookup. Callers
+    // that need provable purity should pass already-derived
+    // VillageClass / TownIndustry / EstateSpec into a future
+    // pure-overload variant.
+    //
+    // Scope discipline: GoldMultiplier weights worker-fit by *village*
+    // pop composition (the labor pool the estate draws from). Estate
+    // doesn't track per-pop-type labor — it has Population (combined
+    // non-slave) and Slaves only — so village-mix is the closest
+    // available proxy. DailyFoodBalance scales by *estate* labor
+    // (Population + Slaves) because food consumption is per mouth at
+    // estate scale, not village scale. The two helpers answering at
+    // different scales is intentional, not a bug; this comment is the
+    // contract.
     public static class EstateYieldCalculator
     {
         public struct Breakdown
