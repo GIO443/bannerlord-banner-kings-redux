@@ -241,14 +241,32 @@ demesne-law cap). >180-day runway → −5%. No other signal.
       delegate to `village.GetVillageClass()`. Deferred to Phase 2
       when those callers' yield math also gets routed; the behavioral
       change should land with the math, not before it.
-- [ ] **Phase 2 — yields.** Spec + class + worker-fit math feeds BK
-      income/pop calcs through one `EstateYieldCalculator`. Compare
-      total yields against pre-rework baseline; tune to match within
-      ±10% (no regression). Share food calibration with food rework:
-      add `BKFoodConsumptionModel.GetVillageDailyConsumption(pop, classMix)`
-      and have `EstateYieldTables.FoodBalancePer100` and the food sim's
-      villageNet both route through it. No two parallel "per-100"
-      constants.
+- [x] **Phase 2 — yields.** ✅ Landed on `economy-phase-2` branch.
+      `EstateYieldCalculator` is the single source of yield-multiplier
+      math: `GoldMultiplier(estate)` returns `Breakdown { SpecVolume,
+      SpecQuality, WorkerFitMean, IndustryDemand, Final }`; `DailyFoodBalance(estate)`
+      returns daily food units accounting for village-class baseline +
+      spec contribution. Pure functions; no I/O; safe across threads.
+      Wired into `EstateData.DailyProductionIncome` at exactly one site —
+      multiplies `gross` before keepRate / payout. Other yield sites
+      (taxes, recruitment) untouched in Phase 2 — Phase 3+ audit.
+      MCM toggle `LayeredEconomyYields` (default OFF) gates the whole
+      thing — opt-in until playtest validates regression baseline.
+      Refactored: `VillageExtensions.IsFarmingVillage` /
+      `IsAnimalVillage` / `IsRanchVillage` delegate to
+      `village.GetVillageClass()`. `IsMiningVillage` deliberately kept
+      narrow (mines only, excludes Lumberjack — different semantics
+      from `VillageClass.Extractive`).
+      Validation cheats:
+        - `bannerkings.dump_estate_yields` → BK_estate_yields.txt with
+          per-estate breakdown (vol × qty × fit = final) + food/day,
+          plus a header line confirming the MCM toggle state.
+      Industry-demand factor stays at 1.0 in Phase 2 (Phase 3 cluster
+      aggregation will multiply it in once cluster fit computes).
+      ⏳ Food calibration single helper (`BKFoodConsumptionModel.
+      GetVillageDailyConsumption`) — still deferred. The food rework's
+      Phase 2 will land that helper; both layered economy and the
+      food sim should route through it then.
 - [ ] **Phase 3 — cluster aggregation.** Town panel shows cluster
       overview: bound village classes, food balance, industry-fit %.
       Apply cluster bonuses/penalties based on industry × class

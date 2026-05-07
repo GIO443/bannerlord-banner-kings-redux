@@ -1,4 +1,5 @@
-﻿using BannerKings.CampaignContent;
+using BannerKings.CampaignContent;
+using BannerKings.CampaignContent.Economy.Layered;
 using TaleWorlds.CampaignSystem;
 using TaleWorlds.CampaignSystem.Settlements;
 
@@ -21,6 +22,11 @@ namespace BannerKings.Extensions
             return owner;
         }
 
+        // VillageClass.Extractive includes Lumberjack; IsMiningVillage
+        // historically meant "subterranean mine" specifically (used for
+        // mineral-yield code paths that don't apply to forestry). Keep
+        // this narrower than the layered class label — both are valid
+        // queries with different semantics.
         public static bool IsMiningVillage(this Village village)
         {
             var type = village.VillageType;
@@ -28,31 +34,30 @@ namespace BannerKings.Extensions
                 type == DefaultVillageTypes.SaltMine || type == DefaultVillageTypes.ClayMine;
         }
 
+        // Phase 2 of layered-economy rework: delegate to GetVillageClass
+        // (the single source of truth) for queries whose semantics map
+        // exactly to a class set. Mapping verified against vanilla
+        // DefaultVillageTypes — Wheat/Olive/Vine/Date are Cropland;
+        // Flax/Silk are FibreFarm; together they're "farming".
         public static bool IsFarmingVillage(this Village village)
         {
-            var type = village.VillageType;
-            return type == DefaultVillageTypes.WheatFarm || type == DefaultVillageTypes.DateFarm ||
-                type == DefaultVillageTypes.FlaxPlant || type == DefaultVillageTypes.SilkPlant ||
-                type == DefaultVillageTypes.OliveTrees || type == DefaultVillageTypes.VineYard;
+            var cls = village.GetVillageClass();
+            return cls == VillageClass.Cropland || cls == VillageClass.FibreFarm;
         }
 
+        // Cattle/Hog/Sheep are Pastoral; the six horse-ranch variants
+        // are StudFarm. Together they're "animal husbandry".
         public static bool IsAnimalVillage(this Village village)
         {
-            var type = village.VillageType;
-            return type == DefaultVillageTypes.CattleRange || type == DefaultVillageTypes.HogFarm ||
-                     type == DefaultVillageTypes.SheepFarm || type == DefaultVillageTypes.BattanianHorseRanch || 
-                     type == DefaultVillageTypes.DesertHorseRanch || type == DefaultVillageTypes.EuropeHorseRanch || 
-                     type == DefaultVillageTypes.SteppeHorseRanch || type == DefaultVillageTypes.SturgianHorseRanch ||
-                     type == DefaultVillageTypes.VlandianHorseRanch;
+            var cls = village.GetVillageClass();
+            return cls == VillageClass.Pastoral || cls == VillageClass.StudFarm;
         }
 
+        // Pure horse-ranch check (excludes cattle/hog/sheep). Maps to
+        // StudFarm only.
         public static bool IsRanchVillage(this Village village)
         {
-            var type = village.VillageType;
-            return type == DefaultVillageTypes.BattanianHorseRanch ||
-                     type == DefaultVillageTypes.DesertHorseRanch || type == DefaultVillageTypes.EuropeHorseRanch ||
-                     type == DefaultVillageTypes.SteppeHorseRanch || type == DefaultVillageTypes.SturgianHorseRanch ||
-                     type == DefaultVillageTypes.VlandianHorseRanch;
+            return village.GetVillageClass() == VillageClass.StudFarm;
         }
     }
 }

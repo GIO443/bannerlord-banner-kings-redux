@@ -2468,6 +2468,57 @@ namespace BannerKings
             }
         }
 
+        // bannerkings.dump_estate_yields — for every estate in the world,
+        // dump the layered yield breakdown (SpecVolume × SpecQuality ×
+        // WorkerFitMean × IndustryDemand → Final) plus the per-estate
+        // food balance. Use after enabling MCM toggle LayeredEconomyYields
+        // to verify Phase 2 math is being applied as expected.
+        [CommandLineFunctionality.CommandLineArgumentFunction("dump_estate_yields", "bannerkings")]
+        public static string DumpEstateYields(List<string> strings)
+        {
+            try
+            {
+                var sb = new StringBuilder();
+                bool toggleOn = BannerKings.Settings.BannerKingsSettings.Instance?.LayeredEconomyYields == true;
+                sb.AppendLine("# BK layered estate yield dump");
+                sb.AppendLine($"# captured at year {CampaignTime.Now.GetYear} day {CampaignTime.Now.GetDayOfYear}");
+                sb.AppendLine($"# MCM LayeredEconomyYields = {toggleOn} (off → multiplier is bypassed)");
+                sb.AppendLine();
+                sb.AppendLine("# columns: settlement  spec  class  vol×qty×fit  final  food/day");
+                sb.AppendLine();
+
+                int rows = 0;
+                foreach (var s in Settlement.All)
+                {
+                    if (s == null) continue;
+                    var data = BannerKingsConfig.Instance.PopulationManager?.GetPopData(s);
+                    var estates = data?.EstateData?.Estates;
+                    if (estates == null) continue;
+                    foreach (var estate in estates)
+                    {
+                        if (estate == null) continue;
+                        var br = EstateYieldCalculator.GoldMultiplier(estate);
+                        var food = EstateYieldCalculator.DailyFoodBalance(estate);
+                        var spec = estate.GetSpec();
+                        var cls = s.Village?.GetVillageClass() ?? VillageClass.Unset;
+                        sb.AppendLine($"  {s.StringId,-32} {spec,-10} {cls,-16} {br.SpecVolume:0.00}×{br.SpecQuality:0.00}×{br.WorkerFitMean:0.00}={br.Final:0.000}  food={food:+0.00;-0.00;0.00}/day");
+                        rows++;
+                    }
+                }
+
+                WriteDiagnosticFile("estate_yields.txt", sb.ToString());
+                string summary = $"dump_estate_yields: {rows} estates dumped, toggle={toggleOn}. {LastWriteResult}";
+                InformationManager.DisplayMessage(new InformationMessage(summary, Color.FromUint(0xFFFFD700)));
+                return summary;
+            }
+            catch (Exception ex)
+            {
+                string err = "dump_estate_yields failed: " + ex.GetType().Name + ": " + ex.Message;
+                InformationManager.DisplayMessage(new InformationMessage(err, Color.FromUint(0xFFFF4040)));
+                return err;
+            }
+        }
+
         // bannerkings.classify_village <village_id> — re-runs DefaultVillageClasses
         // on a single village and prints the path it took. Useful when a
         // village shows Unset and you want to see why.

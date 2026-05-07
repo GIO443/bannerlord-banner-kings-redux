@@ -101,6 +101,21 @@ namespace BannerKings.Managers.Populations.Estates
                     float keepRate = 1f - estate.TaxRatio.ResultNumber;
                     if (keepRate < 0f) keepRate = 0f;
                     float gross = effectiveAcres * workforceFactor * AcrePriceMultiplier;
+
+                    // Phase 2 layered-economy yield multiplier — gated behind
+                    // MCM toggle so the rework is opt-in until playtest
+                    // confirms regression baseline. When off, the multiplier
+                    // is exactly 1.0 and the formula reduces to the original
+                    // vanilla path. When on, EstateSpec × VillageClass ×
+                    // pop-weighted worker-fit multiplies gross. Industry-
+                    // demand stays at 1.0 here; Phase 3 cluster aggregation
+                    // adds the cluster-fit factor.
+                    if (BannerKings.Settings.BannerKingsSettings.Instance?.LayeredEconomyYields == true)
+                    {
+                        var br = BannerKings.CampaignContent.Economy.Layered.EstateYieldCalculator.GoldMultiplier(estate);
+                        gross *= br.Final;
+                    }
+
                     float net = gross * keepRate;
                     int delta = MBRandom.RoundRandomized(net);
                     if (delta > 0) estate.TaxAccumulated += delta;

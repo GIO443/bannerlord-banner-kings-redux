@@ -96,6 +96,10 @@ namespace BannerKings.Settings
         [SettingPropertyGroup("{=2oJQ4Snn}Economy")]
         public bool PatrolParties { get; set; } = true;
 
+        [SettingProperty("Layered Economy Yields", RequireRestart = false, HintText = "Phase 2 of the village/estate/town economy rework. When enabled, estate daily production income is multiplied by EstateSpec (Yield/Quality/Sustained/Levy) × VillageClass × pop-weighted worker-fit. When disabled, vanilla pre-rework formula applies. Off by default while the rework is being playtested. Default: false.")]
+        [SettingPropertyGroup("{=2oJQ4Snn}Economy")]
+        public bool LayeredEconomyYields { get; set; } = false;
+
         [SettingPropertyFloatingInteger("{=!}Population Sizes", minValue: 0.5f, maxValue: 2f, "#0%", RequireRestart = false, HintText = "{=!}Change the max size for fief populations. Populations are the very core of fiefs, impacting the economy very significantly, military volunteers, construction, and all else. Default: 100%.")]
         [SettingPropertyGroup("{=P8UecnYf}Balancing")]
         public float Populations { get; set; } = 1f;
