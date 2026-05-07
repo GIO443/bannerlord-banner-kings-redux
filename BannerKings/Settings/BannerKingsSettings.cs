@@ -112,9 +112,12 @@ namespace BannerKings.Settings
         [SettingPropertyGroup("{=P8UecnYf}Balancing")]
         public float PartySizes { get; set; } = 2f;
 
-        [SettingProperty("{=QtuWPLe1}Alternative Leveling", RequireRestart = false, HintText = "{=LEE0ixHk}An alternate skill leveling progression. Skills will require a higher base xp since level 1, but will scale less aggressively. The result should be more consitent xp across all levels, slower at the beginning but faster near the end. Default: false.")]
-        [SettingPropertyGroup("{=P8UecnYf}Balancing")]
-        public bool AlternateLeveling { get; set; } = false;
+        // AlternateLeveling MCM toggle removed in v1.6.9.26. The formula gave
+        // ~8K cumulative XP for skill level 100 (vs ~250K vanilla), letting a
+        // single battle push a skill from 1 to 100. The toggle's default was
+        // true in 2023 and later flipped to false, but MCM settings persist
+        // across versions — saves with the old default kept hitting the bug.
+        // Vanilla's skill curve is now the only path; no migration needed.
 
         [SettingPropertyFloatingInteger("{=iZcJtDkH}World Companions Limit", minValue: 0.5f, maxValue: 1f, "#0%", RequireRestart = false, HintText = "{=6m4y9ujC}The max limit of wanderers in the world, available at taverns. The limit is relative to all existing cities in the map. Vanilla is 60%, and amounts to less than 1 wanderer per town, BK amounts to 1 per town. Default: 100%.")]
         [SettingPropertyGroup("{=P8UecnYf}Balancing")]

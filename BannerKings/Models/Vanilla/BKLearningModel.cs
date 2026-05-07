@@ -7,58 +7,21 @@ using TaleWorlds.Core;
 using TaleWorlds.Library;
 using TaleWorlds.Localization;
 using TaleWorlds.CampaignSystem.CharacterDevelopment;
-using BannerKings.Settings;
 using BannerKings.CampaignContent.Traits;
 
 namespace BannerKings.Models.Vanilla
 {
     public class BKLearningModel : DefaultCharacterDevelopmentModel
     {
-        private readonly int[] bkRequireXp = new int[1024];
-        public BKLearningModel()
-        {
-            InitializeXpRequiredForSkillLevel();
-        }
-        private void InitializeXpRequiredForSkillLevel()
-        {
-            if (BannerKingsSettings.Instance.AlternateLeveling)
-            {
-                int num = 4000;
-                bkRequireXp[0] = num;
-                for (int i = 1; i < 1024; i++)
-                {
-                    bkRequireXp[i] = bkRequireXp[i - 1] + (int)(20 * (1 + (i * 0.02f)));
-                }
-            }  
-            else
-            {
-                int num = 30;
-                this.bkRequireXp[0] = num;
-                for (int i = 1; i < 1024; i++)
-                {
-                    num += 10 + i;
-                    this.bkRequireXp[i] = this.bkRequireXp[i - 1] + num;
-                }
-            }
-        }
-
-        public override int GetXpRequiredForSkillLevel(int skillLevel)
-        {
-            if (BannerKingsSettings.Instance.AlternateLeveling)
-            {
-                if (skillLevel > 1024)
-                {
-                    skillLevel = 1024;
-                }
-                if (skillLevel <= 0)
-                {
-                    return 0;
-                }
-                return bkRequireXp[skillLevel - 1];
-            }
-
-            return base.GetXpRequiredForSkillLevel(skillLevel);
-        }
+        // GetXpRequiredForSkillLevel is intentionally NOT overridden — vanilla's
+        // curve is what we want. The old AlternateLeveling MCM toggle was removed
+        // in v1.6.9.26 because its formula gave only ~8K cumulative XP for level
+        // 100 (vs ~250K vanilla), letting a single battle push a skill from 1 to
+        // 100. The toggle defaulted to true in 2023, then false later — but MCM
+        // settings persist across versions, so saves with the old default-true
+        // setting kept seeing runaway leveling. Removing the override entirely
+        // is the safe path: vanilla curve applies for every save regardless of
+        // any leftover MCM value.
 
         public List<Tuple<SkillObject, int>> GetSkillsDerivedFromTraits(Hero hero, CharacterObject templateCharacter = null, bool isByNaturalGrowth = false)
         {

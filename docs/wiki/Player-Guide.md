@@ -389,16 +389,26 @@ vanilla truncating long disabled-entry tooltips; the bonus block is always
 the first thing in the string so it survives the truncation.
 
 **Q: My skills are leveling way too fast — bug?**
-*Was* a bug. A leftover Harmony postfix from an old AlternateLeveling
-experiment was clamping every vanilla skill's learning rate to a 5%
-floor — the value vanilla normally tapers toward zero past your skill's
-learning limit. With the floor in place, every skill kept gaining 5% of
-base XP forever, so combat skills, social skills, everything kept
-ticking past their natural caps. The postfix is gone: skills past
-their learning limit decay normally, and the per-day Scholarship XP
-from language/book reading was rescaled (50/day → 10/day, 2000 on
-completion → 500). Existing high skills won't be reset; only future
-gains use the corrected curve.
+*Was* a bug, in two layers, both fixed:
+
+1. A leftover Harmony postfix from an old AlternateLeveling experiment
+   was clamping every vanilla skill's learning rate to a 5% floor — the
+   value vanilla normally tapers toward zero past your skill's learning
+   limit. With the floor in place, every skill kept gaining 5% of base
+   XP forever, so combat skills, social skills, everything kept ticking
+   past their natural caps. That postfix is gone: skills past their
+   learning limit decay normally.
+2. The *Alternative Leveling* MCM toggle (under Balancing) used a custom
+   XP curve that gave only ~8K cumulative XP for skill level 100 vs
+   ~250K for vanilla — a single battle could push a skill from 1 to 100.
+   The toggle defaulted **on** in 2023, was flipped to off later, but
+   MCM settings persist across versions so saves carrying the old default
+   kept hitting the bug. As of v1.6.9.26 the toggle is **removed
+   entirely** — every save uses vanilla's XP curve.
+
+The per-day Scholarship XP from language/book reading was also rescaled
+(50/day → 10/day, 2000 on completion → 500). Existing high skills won't
+be reset; only future gains use the corrected curve.
 
 **Q: I want BK's smithing overhaul. How do I turn it on?**
 **MCM → Banner Kings → Balancing → BK Smithing System → on, then

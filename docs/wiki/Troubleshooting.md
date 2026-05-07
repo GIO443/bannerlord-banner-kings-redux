@@ -40,10 +40,11 @@
 - **"Skills level too fast in Banner Kings"** — older builds shipped
   with the *Alternative Leveling* MCM toggle on by default, and its XP
   curve only added ~20 XP per level past level 1, so any small XP gain
-  rocketed you through 10+ levels. The toggle now defaults **off** (vanilla
-  XP curve), so a fresh start with 1 focus point in Leadership behaves
-  the same as vanilla. Existing saves: open MCM → BannerKings →
-  Balancing → uncheck *Alternative Leveling*.
+  rocketed you through 10+ levels. As of v1.6.9.26 the toggle is
+  **removed entirely** — every save uses vanilla's XP curve regardless
+  of what value the MCM file remembers from a previous version. No
+  action needed; load your save and skills will progress at vanilla
+  rates.
 - **"Language learning finishes instantly"** — symptom of the same
   alternate-leveling explosion (Scholarship XP racing up boosted the
   language-rate skill effect off the rails) plus an unsafe rate path.
