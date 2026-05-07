@@ -82,6 +82,11 @@ namespace BannerKings.CampaignContent.Economy.Layered
 
             if (votes.Count == 0) return TownIndustry.Unset;
 
+            // First iteration always falls into the strict-greater branch:
+            // votes is guaranteed non-empty + Unset entries were filtered
+            // out above, so every kv.Value ≥ 1 > 0 = best on entry. The
+            // canonical-order tie-break ((int)kv.Key < (int)winner) only
+            // matters from the second iteration onward.
             TownIndustry winner = TownIndustry.Unset;
             int best = 0;
             foreach (var kv in votes)

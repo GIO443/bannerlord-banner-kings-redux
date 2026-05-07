@@ -25,14 +25,20 @@ namespace BannerKings.CampaignContent.Economy.Layered
             public float Recruits;
         }
 
+        // Gold-axis output is Volume × Quality. Calibrated so Yield wins on
+        // bulk (1.36 baseline) and Quality wins on margin per unit (1.28
+        // baseline) — close enough that neither dominates flat, far enough
+        // that cluster fit picks the winner. Earlier draft had Yield at
+        // 1.50 × 0.70 = 1.05 and Quality at 0.85 × 1.50 = 1.28; Yield was
+        // labeled +++ but Quality dominated. Rebalanced per design review.
         public static SpecOutput Of(EstateSpec spec)
         {
             switch (spec)
             {
                 case EstateSpec.Yield:
-                    return new SpecOutput { Volume = 1.50f, Quality = 0.70f, Food = -0.20f, Recruits = 0f };
+                    return new SpecOutput { Volume = 1.60f, Quality = 0.85f, Food = -0.20f, Recruits = 0f };
                 case EstateSpec.Quality:
-                    return new SpecOutput { Volume = 0.85f, Quality = 1.50f, Food = 0f, Recruits = 0f };
+                    return new SpecOutput { Volume = 0.80f, Quality = 1.60f, Food = 0f, Recruits = 0f };
                 case EstateSpec.Sustained:
                     return new SpecOutput { Volume = 1.10f, Quality = 1.00f, Food = 0.20f, Recruits = 0.25f };
                 case EstateSpec.Levy:
@@ -163,6 +169,23 @@ namespace BannerKings.CampaignContent.Economy.Layered
         // Numbers are per-100-pop daily food units (calibrated against the
         // BKFoodConsumptionModel rates: Slaves 0.05, Serfs 0.07, Tenants 0.09,
         // Craftsmen 0.10, Nobles 0.12).
+        //
+        // Spec.Food semantics on top of class baseline:
+        //   - On a food-positive class (Cropland/Pastoral/Coastal):
+        //     Sustained.Food = +0.20 lifts surplus toward more export.
+        //   - On a food-negative class (Extractive at -0.80):
+        //     Sustained.Food = +0.20 mitigates the deficit but does NOT
+        //     close it (-0.80 + 0.20 = -0.60). Extractive estates always
+        //     need to import food from the cluster; Sustained just makes
+        //     the import smaller and the workers happier. This is by
+        //     design — a mine isn't a farm.
+        //
+        // Phase 2 wiring discipline: this table is the SINGLE source for
+        // village production-side food math. BKFoodConsumptionModel owns
+        // worker-side consumption math. They share calibration but are
+        // computed at different layers; route both through one helper
+        // (BKFoodConsumptionModel.GetVillageDailyConsumption) when Phase 2
+        // of the food rework lands so the constants don't drift.
         public static float FoodBalancePer100(VillageClass cls)
         {
             switch (cls)

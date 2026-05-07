@@ -11,85 +11,6 @@
       `KingdomDecisionProposalBehavior::ConsiderPeace` (we patch ConsiderWar
       but not ConsiderPeace).
 
-## Phase 1 — population-driven food economy ✅ shipped
-
-Live in v1.6.9.27+:
-- `BKFoodConsumptionModel` — per-class daily food consumption rates
-  (Slaves 0.05, Serfs 0.07, Tenants 0.09, Craftsmen 0.10, Nobles 0.12).
-  Mid-food fraction by class. Luxury gated on prosperity ≥ 3000.
-- `BKMarketExportSink` — caps food stockpile at 14 days × per-pop demand,
-  exports excess at 0.4× market price to town owner gold + small
-  prosperity bump. MCM toggle `MarketSurplusExport` (default true).
-- BK `MakeConsumption` rewired to use pop-driven food demand units
-  instead of vanilla's prosperity × priceIndex budget. MCM toggle
-  `PopulationDrivenFood` (default true).
-- Coverage → satisfaction table (Food + Luxury channels). Numbers
-  dialed back so single famines are recoverable, rebellions only
-  fire when famine stacks with bad governance / war / culture
-  conflict.
-- Famine state machine: enter at <0.2 basic coverage for 7 days,
-  exit at >0.5. In-game log message on entry / exit (player
-  faction only). Daily destabilizing hit while active: -0.2
-  loyalty, -0.15 security, -0.002 stability. **No pop death** —
-  pop only dies from raids/sieges/plague/war.
-- `DeleteOverProduction` MCM hint corrected to reflect what vanilla
-  actually does (player-crafted weapon + 5%/day modifier-item
-  cleanup).
-
-## Open phases
-
-- [ ] **Phase 2 — village ↔ town food flow virtual accounting** —
-      compute villageNet[cat] = production - village's own consumption
-      per day. For deficit villages (Mining, Forestry, Smithy), generate
-      a virtual import order against the bound town's stockpile. Failed
-      imports → village hunger satisfaction penalty. Track flows in
-      `EconomicData` for visibility.
-- [ ] **Phase 2b — caravan flow into the new economic sim** —
-      caravans should arbitrage real demand signals, not just vanilla
-      price index. Pick up surplus where the export sink would
-      otherwise dump, deliver to deficit settlements. Profit reflects
-      sim-faithful margins: cheap-buy from surplus town, sell-high in
-      deficit town. Specifically:
-        - caravan target picker reads town's `FamineActive` /
-          per-tier coverage when ranking destinations (deficit
-          settlements get score boost)
-        - export sink and caravan share the same surplus pool: an
-          item the caravan picked up isn't double-counted as exportable
-        - village → caravan trade if the village has surplus and no
-          bound-town import demand
-        - tie into existing `BKCaravansBehavior` `ThinkNextDestination`
-          rather than building a parallel scoring function
-- [ ] **Revisit market export sink** — once Phase 1 is live for several
-      sessions:
-        - tune `bufferDays` (likely 7–21, possibly per-category)
-        - tune `exportPrice` factor (0.3 / 0.4 / 0.5 — risk: AI clan
-          income inflated, war chests too deep)
-        - replace flat buffer with **storage-building-derived** buffer
-          (Granary +X days, Marketplace boosts export volume)
-        - decide gold split: town owner vs estate owner of supplier
-          village vs realm crown (currently: town owner only)
-        - extend the sink to non-food categories (cloth, leather, salt,
-          hardwood) once food math is stable
-- [ ] **Phase 3 — religious / lifestyle food preferences**
-        - Aserai Faith: Hog forbidden
-        - Druidism: vegetarian sects
-        - Vlandian: wine demand bonus
-        - Gladiator lifestyle: +20% Meat for nobles
-        - Faith violation when forbidden food is consumed: -0.005 sat[Food]
-- [ ] **Phase 4 — non-food market caps** — extend the export sink
-      design to cloth / leather / hardwood / salt / clay / iron with
-      their own per-category buffer days and wholesale rate
-- [ ] **Phase 4b — famine → BK Demands hookup** — when famine sustained
-      30+ days, fire "Hungry Peasants" demand via existing BK Demands
-      pipeline. Lord can: import food (gold), lower taxes (loyalty
-      short-term, gold loss), or ignore (continued attrition).
-- [ ] **Phase 5 — storage-building integration** — Granary +N buffer
-      days for food categories. Marketplace boosts export volume /
-      gold per export. Replace flat 14-day buffer.
-- [ ] **Phase 6 — UI surfacing** — population panel shows per-tier
-      coverage, daily import/export flow, famine status. Settlement
-      tooltip flags famine state.
-
 ---
 
 # Village / Estate / Town economic rework
@@ -97,8 +18,8 @@ Live in v1.6.9.27+:
 Layered decision system on top of vanilla settlement primitives. BK
 decides (class / spec / industry tags + worker-fit math); vanilla
 executes (existing village production, workshop, trade, recruitment).
-Plugs directly into the food rework above (village class determines
-food balance, town industry determines import demand).
+Plugs directly into the population-driven food economy below (village
+class determines food balance, town industry determines import demand).
 
 ## Hierarchy
 
@@ -156,15 +77,20 @@ healthy regional tension, no design fix needed.
 
 | Spec | Output volume | Quality grade | Food balance | Recruits | Worker bias |
 |---|---|---|---|---|---|
-| Yield | +++ | low (bulk) | tanks own | none | slave-heavy |
-| Quality | + | +++ premium | neutral | none | craftsman-heavy |
-| Sustained | ++ | normal | + (helps cluster) | small | serf-heavy |
-| Levy | + | normal | neutral | +++ | serf + noble |
+| Yield | +++ (1.60×) | low (0.85×) — bulk | tanks own (-0.20) | none | slave-heavy |
+| Quality | + (0.80×) | +++ premium (1.60×) | neutral | none | craftsman-heavy |
+| Sustained | ++ (1.10×) | normal (1.00×) | + (0.20) | small (0.25×) | serf-heavy |
+| Levy | + (0.85×) | normal (1.00×) | neutral | +++ (1.50×) | serf + noble |
 
 Same enum across every class — what changes is the flavor of the
 output (Yield Cropland = bulk grain; Yield Extractive = pig iron;
 Quality Cropland = vintner's reserve; Quality Stud = warhorse).
 Players learn the four labels once.
+
+Gold-axis (volume × quality): Yield 1.36, Quality 1.28, Sustained 1.10,
+Levy 0.85. Yield wins on bulk; Quality wins on per-unit margin
+(important in Loomhouse / Stable / Caravan Hub clusters); cluster fit
+picks the winner in any given context.
 
 ## Cluster synergy matrix (town industry × village class supply)
 
@@ -181,6 +107,13 @@ Players learn the four labels once.
 Inter-cluster trade reuses the existing slave-caravan primitive
 (extended to ship raw goods). Clusters with mismatched supply pull
 imports from neighbors.
+
+**Cluster definition:** a village's cluster = its current
+`Village.TradeBound.Town` plus all other villages with the same
+`TradeBound`. Recompute on `OnSettlementOwnerChanged` / on rebellion
+events that re-bind villages. Unbound villages have no cluster (rare —
+mostly transient post-rebellion state) and are treated as a degenerate
+1-village cluster with no town demand until rebound.
 
 ## Landlord-of-landlords ownership
 
@@ -212,8 +145,8 @@ Growth decree or upgrades. Sweet spot exists.
 Notable estate spec defaults from notable role:
 - Gang leader → Yield
 - Headman → Sustained
-- Merchant → Quality
-- Rural notable / preacher → Sustained or Levy
+- Merchant / Artisan → Quality
+- Rural notable / preacher → Sustained
 
 Player relation with notables shifts their spec slowly toward what
 village owner is signaling.
@@ -232,7 +165,12 @@ Priority order (first matching wins):
 2. **Bankruptcy risk** — runway < 30 days, OR `Clan.Gold < Clan.Tier × 3000`
    → flip 1 estate to **Yield**
 3. **Cluster food crisis** — bound town cluster food < 0 for ≥ 2
-   evals AND lord owns food-class estate in cluster → flip to **Sustained**
+   evals AND lord owns **food-class** estate (Cropland / Pastoral /
+   Coastal Fishery) in cluster → flip to **Sustained**.
+   ⚠ Trigger only fires when at least one food-class village exists
+   in the cluster. Pure non-food clusters (e.g. all-Extractive) can't
+   self-fix via re-spec; they depend on Phase 5 inter-cluster food
+   imports.
 4. **Quality opportunity** — bound town is Loomhouse/Stable/Caravan Hub
    AND estate class supplies it → flip to **Quality**
 5. **Wartime baseline** — at war, none above → bias **Yield**
@@ -274,29 +212,50 @@ demesne-law cap). >180-day runway → −5%. No other signal.
       `InferIndustry(Town)`; `DefaultEstateSpecs.ForOwner(Hero)` /
       `ForNotable(Hero)`; `EstateYieldTables` with `SpecOutput`,
       `WorkerFit`, `IndustryDemand`, `FoodBalancePer100` tables.
-      Build clean (0 errors). Nothing wired yet.
+      Build clean (0 errors). Nothing wired yet. Spec balance
+      rebalanced post-review (Yield 1.60×0.85=1.36, Quality
+      0.80×1.60=1.28).
 - [ ] **Phase 1 — assignment.** AI picks `VillageClass` from vanilla
       type at session start; `TownIndustry` from workshop mix; estate
-      spec defaults (notable role → spec). Profile/Industry/Spec
-      badges in UI. **Income unchanged** — only labels visible.
+      spec defaults (notable role → spec). Class/Industry/Spec badges
+      in UI. **Income unchanged** — only labels visible.
+      ⚠ Add a regression test: dump per-clan daily income before
+      Phase 1 ships and after; confirm zero drift before Phase 2 muddies
+      the picture. Single access point: `village.GetVillageClass()` /
+      `data.LandData.SetVillageClass()`. No code reads `VillageType`
+      for class purposes after Phase 1 — that's a duplicate-source-of-
+      truth violation.
 - [ ] **Phase 2 — yields.** Spec + class + worker-fit math feeds BK
       income/pop calcs through one `EstateYieldCalculator`. Compare
       total yields against pre-rework baseline; tune to match within
-      ±10% (no regression).
+      ±10% (no regression). Share food calibration with food rework:
+      add `BKFoodConsumptionModel.GetVillageDailyConsumption(pop, classMix)`
+      and have `EstateYieldTables.FoodBalancePer100` and the food sim's
+      villageNet both route through it. No two parallel "per-100"
+      constants.
 - [ ] **Phase 3 — cluster aggregation.** Town panel shows cluster
       overview: bound village classes, food balance, industry-fit %.
       Apply cluster bonuses/penalties based on industry × class
       alignment.
 - [ ] **Phase 4 — food deficit gating.** Hooks the food rework
-      (Phase 2 above). Negative cluster food balance → Extractive /
+      (Phase 2 of food sim). Negative cluster food balance → Extractive /
       Fibre / Stud estates take stagnation penalty. Cluster food
       surplus → exportable.
 - [ ] **Phase 5 — inter-cluster trade.** Extend slave-caravan
       primitive to ship raw goods between food-surplus and
       food-deficit clusters. Naval clusters via shipping graph.
+      ⚠ Add a `Travel.Kind` (or equivalent discriminator) to the
+      caravan struct so the existing slave-caravan rescue logic
+      (`BKShippingBehavior` LoadCleanup slave-orphan branch, etc.)
+      doesn't accidentally clean up raw-goods caravans. Audit every
+      `slavecaravan_` StringId check site before adding new cargo
+      kinds.
 - [ ] **Phase 6 — AI policy.** `EstatePolicyAI` lord decision module
       with the 6-priority trigger ladder + 30-day cadence + hysteresis.
       AI village-owner tax adjustment. AI town-industry annual review.
+      Optional: religion-aware spec selection (Druidism averse to Yield
+      slave-heavy; Aserai faith averse to Pastoral Hog) — defer if
+      complexity grows.
 - [ ] **Phase 7 — player levers.** UI for estate spec pick (with
       cluster-aware suggestion), village tax rate slider (within
       demesne-law bounds), Growth decree menu, Town Industry pick.
@@ -306,6 +265,97 @@ demesne-law cap). >180-day runway → −5%. No other signal.
 
 Each phase is reviewable on its own merits and save-compatible
 (new fields default to `Unset` → AI picks on next eval).
+
+## Review feedback integrated (post Phase 0)
+
+Tracked here so future-phase work has the design corrections in one
+place. Items resolved in Phase 0 are marked ✅; items deferred to
+later phases are tagged with their target phase.
+
+### Phase 0 resolutions ✅
+
+- ✅ **#1 Spec gold-yield asymmetry.** Old: Yield 1.50×0.70=1.05,
+  Quality 0.85×1.50=1.275 — Quality dominated despite Yield being
+  labeled +++. **Fixed:** Yield 1.60×0.85=1.36, Quality 0.80×1.60=1.28.
+  Yield now wins on bulk gold, Quality wins on per-unit margin.
+- ✅ **#2 Sustained on non-food classes — semantics documented.**
+  Sustained.Food = +0.20 doesn't close Extractive's -0.80 deficit by
+  design (mine isn't a farm). Comment added in `EstateYieldTables`
+  explaining: on food-positive class, Sustained lifts surplus; on
+  food-negative class, Sustained mitigates but never closes the gap.
+- ✅ **#11 InferIndustry tie-break clarified.** Comment added: first
+  iteration always falls into strict-greater branch because Unset
+  entries are filtered before the vote; canonical-order tie-break
+  ((int)Key < (int)winner) only matters from second iteration onward.
+- ✅ **#12 GetClass StringId fallback rationale documented.** Comment
+  added: covers both modded village types AND the static-field-init-
+  timing window (per the v1.6.9.x DefaultVillageTypes init memory
+  note). Lumberjack/fisherman string-checks aren't dead code.
+
+### Phase 1 obligations
+
+- ⏳ **#8 Income regression test.** Dump per-clan daily income
+  pre-Phase-1 vs post-Phase-1. Phase 1 promises "income unchanged";
+  if it actually drifts, fix before Phase 2 buries it under further
+  changes.
+- ⏳ **Single access point discipline.** Once Phase 1 writes
+  `VillageClass` onto `Village` / `LandData`, no other call site
+  may read `VillageType` for "what kind of village is this" purposes.
+  `VillageExtensions.IsMineVillage` etc. should delegate to
+  `village.GetVillageClass() == VillageClass.Extractive`. Track and
+  refactor in Phase 1.
+
+### Phase 2 obligations
+
+- ⏳ **#6 Single food-calibration helper.** Add
+  `BKFoodConsumptionModel.GetVillageDailyConsumption(pop, classMix)`
+  and route both `EstateYieldTables.FoodBalancePer100` and the food
+  sim's `villageNet[Basic]` through it. Two parallel "per-100"
+  constants will drift — refuse to ship Phase 2 with the duplication.
+
+### Phase 3 obligations
+
+- ⏳ **#4 Cluster definition explicit.** Cluster = village's current
+  `Village.TradeBound.Town` + all other villages with same
+  `TradeBound`. Recompute on `OnSettlementOwnerChanged` and on
+  rebellion-driven re-bindings. Unbound village = degenerate 1-village
+  cluster with no town demand until rebound. Documented in design
+  above; enforce in code at Phase 3.
+
+### Phase 5 obligations
+
+- ⏳ **#7 Caravan kind discriminator.** Before extending the
+  slave-caravan primitive to raw-goods cargo, add a `Travel.Kind`
+  (or equivalent) to the caravan component. Audit
+  `BKShippingBehavior` LoadCleanup, all `slavecaravan_` StringId
+  checks, the rescue / orphan paths. Don't ship Phase 5 until raw-
+  goods caravans are excluded from slave-caravan-specific cleanup.
+
+### Phase 6 obligations
+
+- ⏳ **#3 Trigger #3 fires only with food-class villages in cluster.**
+  Documented in priority list above. AI policy must check cluster
+  has at least one Cropland/Pastoral/Coastal village before
+  triggering Sustained re-spec; otherwise the lord's only recourse
+  is import (Phase 5).
+- ⏳ **#10 Religion-aware spec.** Optional — Druidism ↔ Yield
+  (slave-heavy), Aserai faith ↔ Pastoral with Hog. Implement only
+  if it doesn't add a tangle of edge cases; otherwise defer.
+
+### Future tuning (post-Phase-7 playtest)
+
+- 🔍 **#5 Cultural multipliers.** Optional small per-culture multiplier
+  on a class-fit (Khuzait +5% StudFarm, Aserai +5% Cropland date/spice,
+  Vlandian +5% Quality on manors). Lore depth without a new lever.
+  Land it once base economy is stable and we can tell signal from
+  noise.
+- 🔍 **#9 Pottery in CaravanHub.** Pottery uses clay (Extractive
+  supplies) → fits CaravanHub. Mechanically pottery is a basic utility
+  good more than a luxury. Justification: pottery is the cheapest
+  CaravanHub workshop, anchors Hub presence in low-prosperity towns.
+  Verify in playtest; if pottery routinely keeps a town flagged Hub
+  when its real character is Foundry/Granary, downweight pottery
+  in `InferIndustry`.
 
 ## Open questions deferred to phase resolution
 
@@ -321,3 +371,90 @@ Each phase is reviewable on its own merits and save-compatible
 - **Stud Farm noble worker fit** at +15% — re-tune to +5% with
   noble-as-quality-multiplier if noble supply becomes a bottleneck
   in playtest.
+
+---
+
+# Population-driven food economy
+
+## Phase 1 ✅ shipped
+
+Live in v1.6.9.27+:
+- `BKFoodConsumptionModel` — per-class daily food consumption rates
+  (Slaves 0.05, Serfs 0.07, Tenants 0.09, Craftsmen 0.10, Nobles 0.12).
+  Mid-food fraction by class. Luxury gated on prosperity ≥ 3000.
+- `BKMarketExportSink` — caps food stockpile at 14 days × per-pop demand,
+  exports excess at 0.4× market price to town owner gold + small
+  prosperity bump. MCM toggle `MarketSurplusExport` (default true).
+- BK `MakeConsumption` rewired to use pop-driven food demand units
+  instead of vanilla's prosperity × priceIndex budget. MCM toggle
+  `PopulationDrivenFood` (default true).
+- Coverage → satisfaction table (Food + Luxury channels). Numbers
+  dialed back so single famines are recoverable, rebellions only
+  fire when famine stacks with bad governance / war / culture
+  conflict.
+- Famine state machine: enter at <0.2 basic coverage for 7 days,
+  exit at >0.5. In-game log message on entry / exit (player
+  faction only). Daily destabilizing hit while active: -0.2
+  loyalty, -0.15 security, -0.002 stability. **No pop death** —
+  pop only dies from raids/sieges/plague/war.
+- `DeleteOverProduction` MCM hint corrected to reflect what vanilla
+  actually does (player-crafted weapon + 5%/day modifier-item
+  cleanup).
+
+## Open phases
+
+- [ ] **Phase 2 — village ↔ town food flow virtual accounting** —
+      compute villageNet[cat] = production - village's own consumption
+      per day. For deficit villages (Mining, Forestry, Smithy), generate
+      a virtual import order against the bound town's stockpile. Failed
+      imports → village hunger satisfaction penalty. Track flows in
+      `EconomicData` for visibility.
+      ⚠ Share calibration with the village/estate rework: production
+      side comes from `EstateYieldTables.FoodBalancePer100`,
+      consumption side from `BKFoodConsumptionModel`. Both call one
+      shared helper (see Phase 2 obligations in the rework section).
+- [ ] **Phase 2b — caravan flow into the new economic sim** —
+      caravans should arbitrage real demand signals, not just vanilla
+      price index. Pick up surplus where the export sink would
+      otherwise dump, deliver to deficit settlements. Profit reflects
+      sim-faithful margins: cheap-buy from surplus town, sell-high in
+      deficit town. Specifically:
+        - caravan target picker reads town's `FamineActive` /
+          per-tier coverage when ranking destinations (deficit
+          settlements get score boost)
+        - export sink and caravan share the same surplus pool: an
+          item the caravan picked up isn't double-counted as exportable
+        - village → caravan trade if the village has surplus and no
+          bound-town import demand
+        - tie into existing `BKCaravansBehavior` `ThinkNextDestination`
+          rather than building a parallel scoring function
+- [ ] **Revisit market export sink** — once Phase 1 is live for several
+      sessions:
+        - tune `bufferDays` (likely 7–21, possibly per-category)
+        - tune `exportPrice` factor (0.3 / 0.4 / 0.5 — risk: AI clan
+          income inflated, war chests too deep)
+        - replace flat buffer with **storage-building-derived** buffer
+          (Granary +X days, Marketplace boosts export volume)
+        - decide gold split: town owner vs estate owner of supplier
+          village vs realm crown (currently: town owner only)
+        - extend the sink to non-food categories (cloth, leather, salt,
+          hardwood) once food math is stable
+- [ ] **Phase 3 — religious / lifestyle food preferences**
+        - Aserai Faith: Hog forbidden
+        - Druidism: vegetarian sects
+        - Vlandian: wine demand bonus
+        - Gladiator lifestyle: +20% Meat for nobles
+        - Faith violation when forbidden food is consumed: -0.005 sat[Food]
+- [ ] **Phase 4 — non-food market caps** — extend the export sink
+      design to cloth / leather / hardwood / salt / clay / iron with
+      their own per-category buffer days and wholesale rate
+- [ ] **Phase 4b — famine → BK Demands hookup** — when famine sustained
+      30+ days, fire "Hungry Peasants" demand via existing BK Demands
+      pipeline. Lord can: import food (gold), lower taxes (loyalty
+      short-term, gold loss), or ignore (continued attrition).
+- [ ] **Phase 5 — storage-building integration** — Granary +N buffer
+      days for food categories. Marketplace boosts export volume /
+      gold per export. Replace flat 14-day buffer.
+- [ ] **Phase 6 — UI surfacing** — population panel shows per-tier
+      coverage, daily import/export flow, famine status. Settlement
+      tooltip flags famine state.

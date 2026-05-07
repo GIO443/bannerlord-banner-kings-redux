@@ -47,9 +47,17 @@ namespace BannerKings.CampaignContent.Economy.Layered
             if (type == DefaultVillageTypes.Fisherman)
                 return VillageClass.CoastalFishery;
 
-            // StringId fallback — covers modded village types that can't be
-            // matched by reference (e.g. "trapper" which BK already handles
-            // as a forestry variant in PopulationManager).
+            // StringId fallback — covers two cases:
+            //   1. Modded village types that can't be matched by reference
+            //      (e.g. "trapper" which BK already handles as a forestry
+            //      variant in PopulationManager).
+            //   2. The static-field-not-yet-assigned init window — if BK
+            //      ever calls this before DefaultVillageTypes singletons
+            //      are populated, reference equality returns false on
+            //      everything and we'd silently miss legit vanilla types.
+            //      The "lumberjack" / "fisherman" string check catches
+            //      those cases. See the v1.6.9.x DefaultVillageTypes init
+            //      timing memory note for the original incident.
             switch (type.StringId)
             {
                 case "trapper":
