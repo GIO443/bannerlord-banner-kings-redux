@@ -25,10 +25,16 @@ namespace BannerKings.Models.Vanilla
         // millions of times per AI tick on large savegames. Refreshed
         // when the day rolls over so newly-titled / newly-deceased heroes
         // get re-scored on the next campaign day.
-        private static readonly Dictionary<Hero, (float score, int dayKey)> _spouseScoreCache
-            = new Dictionary<Hero, (float, int)>();
-        private static readonly Dictionary<Hero, (bool isHeir, int dayKey)> _isClanHeirCache
-            = new Dictionary<Hero, (bool, int)>();
+        //
+        // ConcurrentDictionary is required: Encyclopedia / clan-card
+        // tooltips trigger GetSpouseScore on the UI thread while the
+        // campaign thread writes from AI marriage ticks. The plain
+        // Dictionary<,> resize race matches the project memory rule
+        // "Plain Dictionary in BK caches → freeze risk".
+        private static readonly System.Collections.Concurrent.ConcurrentDictionary<Hero, (float score, int dayKey)> _spouseScoreCache
+            = new System.Collections.Concurrent.ConcurrentDictionary<Hero, (float, int)>();
+        private static readonly System.Collections.Concurrent.ConcurrentDictionary<Hero, (bool isHeir, int dayKey)> _isClanHeirCache
+            = new System.Collections.Concurrent.ConcurrentDictionary<Hero, (bool, int)>();
 
         private static int CurrentDayKey
         {
@@ -50,8 +56,8 @@ namespace BannerKings.Models.Vanilla
         public static void OnHeroKilled(Hero victim)
         {
             if (victim == null) return;
-            _spouseScoreCache.Remove(victim);
-            _isClanHeirCache.Remove(victim);
+            _spouseScoreCache.TryRemove(victim, out _);
+            _isClanHeirCache.TryRemove(victim, out _);
         }
 
         public override Clan GetClanAfterMarriage(Hero firstHero, Hero secondHero)

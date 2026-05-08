@@ -41,6 +41,28 @@ namespace BannerKings.Models.Vanilla
 
                 if (armyLeader.Clan.IsUnderMercenaryService) return true;
 
+                // Suppress sub-Dukedom army creation when an army already
+                // exists in the kingdom. Empirically (BK_army_formation_audit.txt
+                // 2026-05-08): baron-tier secondary armies fire CREATE,
+                // attract zero JOINs (everyone's in the king's army), then
+                // DISPERSE for Inactivity within hours — wasting influence
+                // and leaving lower-tier nobles' parties unused instead of
+                // pooled. King and mercenaries bypass via the early returns
+                // above. Dukes (and above) can still create a second army
+                // for legitimate strategic splits. The player (Hero.MainHero)
+                // is also exempt — player agency takes precedence over AI-
+                // tuning heuristics; if the player wants to call a doomed
+                // army as a baron, that's their prerogative. The existing
+                // law-based privilege checks below still apply to the
+                // player normally.
+                if (armyLeader != Hero.MainHero
+                    && kingdom.Armies != null && kingdom.Armies.Count > 0)
+                {
+                    var existingTitle = BannerKingsConfig.Instance.TitleManager.GetHighestTitle(armyLeader);
+                    if (existingTitle == null || existingTitle.TitleType > TitleType.Dukedom)
+                        return false;
+                }
+
                 CouncilData council = BannerKingsConfig.Instance.CourtManager.GetCouncil(kingdom.RulingClan);
                 if (council.GetHeroPositions(armyLeader).Any(x => x.Privileges.Contains(CouncilPrivileges.ARMY_PRIVILEGE)))
                     return true;
@@ -67,7 +89,7 @@ namespace BannerKings.Models.Vanilla
         {
             List<MobileParty> results = base.GetMobilePartiesToCallToArmy(leaderParty);
             List<MobileParty> toRemove = new List<MobileParty>();
-            var kingdom = leaderParty.LeaderHero?.Clan.Kingdom;
+            var kingdom = leaderParty.LeaderHero?.Clan?.Kingdom;
             if (kingdom != null)
             {
                 FeudalTitle kingdomTitle = BannerKingsConfig.Instance.TitleManager.GetSovereignTitle(kingdom);
@@ -131,7 +153,7 @@ namespace BannerKings.Models.Vanilla
 
             //result += BannerKingsConfig.Instance.InfluenceModel.CalculateInfluenceCap(armyLeaderParty.LeaderHero.Clan).ResultNumber * 0.01f;
 
-            var kingdom = armyLeaderParty.LeaderHero?.Clan.Kingdom;
+            var kingdom = armyLeaderParty.LeaderHero?.Clan?.Kingdom;
             if (kingdom != null && CanCreateArmy(party.LeaderHero))
             {
                 FeudalTitle kingdomTitle = BannerKingsConfig.Instance.TitleManager.GetSovereignTitle(kingdom);

@@ -73,12 +73,25 @@ namespace BannerKings.Behaviours
                     var sid = c.StringId ?? "";
                     if (!sid.StartsWith("gentryClan_")) continue;
                     candidates++;
-                    int parties = 0;
-                    int settlements = 0;
-                    int heroes = 0;
-                    try { parties = c.WarPartyComponents?.Count ?? 0; } catch { }
-                    try { settlements = c.Settlements?.Count ?? 0; } catch { }
-                    try { heroes = c.Heroes?.Count ?? 0; } catch { }
+                    // Was: three separate empty catches that silently
+                    // treated any lookup exception (e.g. transient state
+                    // during MapEvent restoration) as "0 parties / 0
+                    // settlements / 0 heroes" → flagged the clan as dead
+                    // and the next loop killed every hero in it. Skip the
+                    // clan on any lookup throw instead so a transient
+                    // failure doesn't cascade into mass deletion.
+                    int parties, settlements, heroes;
+                    try
+                    {
+                        parties = c.WarPartyComponents?.Count ?? 0;
+                        settlements = c.Settlements?.Count ?? 0;
+                        heroes = c.Heroes?.Count ?? 0;
+                    }
+                    catch
+                    {
+                        report.AppendLine($"  SKIP: {c.Name} ({sid}) lookup threw");
+                        continue;
+                    }
 
                     // Broaden the corruption signature — destroy any gentry
                     // clan with EITHER no parties+no settlements, OR no
@@ -532,9 +545,13 @@ namespace BannerKings.Behaviours
             {
                 foreach (var member in family)
                 {
+                    // Was: direct Hero.Clan write — bypassed vanilla
+                    // bookkeeping (Lord occupation, sigil, kingdom-of,
+                    // AI behavior caches). Route through ClanActions
+                    // .JoinClan which performs those steps.
                     if (member.Clan == null)
                     {
-                        member.Clan = clan;
+                        ClanActions.JoinClan(member, clan);
                     }
                 }
                 Kingdom kingdom = settlement.MapFaction as Kingdom;

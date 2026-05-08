@@ -8,7 +8,15 @@ namespace BannerKings.Behaviours.Caravans
     {
         FreeTrade = 0,
         SupplyTown = 1,
-        SupplyWorkshops = 2, // reserved for Phase B
+        // Enum value 2 was previously SupplyWorkshops. Repurposed to
+        // ExportFromTown in v1.6.14.0 — saved orders carry the same value
+        // and re-interpret automatically. The export semantics are the
+        // mirror image: instead of force-buying scarce industrial inputs at
+        // arbitrage-loss to feed an anchor's workshops, the caravan loads
+        // OUTPUTS at the saturated anchor (where prices are depressed) and
+        // distributes them via vanilla arbitrage to remote markets that
+        // pay better. Profitable by design.
+        ExportFromTown = 2,
         RotateRoute = 3,     // reserved for Phase C
     }
 

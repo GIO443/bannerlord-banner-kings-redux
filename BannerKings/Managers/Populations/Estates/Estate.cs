@@ -52,13 +52,24 @@ namespace BannerKings.Managers.Populations.Estates
             float desiredAddPopulation = (int)(desiredWorkforce * 0.8f);
             float desiredSlaves = (int)(desiredWorkforce * 0.2f);
 
-            var result = new Estate(notable, 
-                estateData != null ? estateData : data.EstateData, 
-                farmland, 
-                pastureland, 
+            // Vacant slot (notable == null) gets 0 pop / 0 slaves. The slot
+            // exists for inheritance and player-claim purposes, but its
+            // workforce stays in the village pool until the estate is
+            // claimed. ResetToFreshClaim re-initialises owned-on-claim
+            // estates to 10 pop / 0 slaves anyway, so the previous large
+            // pre-allocation here was dead weight that locked village
+            // workforce in unowned slots.
+            int initialPop = (notable == null) ? 0
+                : (int)MathF.Min(desiredAddPopulation, popReference * 0.15f);
+            int initialSlaves = (notable == null) ? 0
+                : (int)MathF.Min(desiredSlaves, totalSlaves * 0.25f);
+            var result = new Estate(notable,
+                estateData != null ? estateData : data.EstateData,
+                farmland,
+                pastureland,
                 woodland,
-                (int)MathF.Min(desiredAddPopulation, popReference * 0.15f),
-                (int)MathF.Min(desiredSlaves, totalSlaves * 0.25f));
+                initialPop,
+                initialSlaves);
 
             return result;
         }
@@ -320,6 +331,18 @@ namespace BannerKings.Managers.Populations.Estates
             if (TroopRoster == null) TroopRoster = TroopRoster.CreateDummyTroopRoster();
             if (Retinue == null) EstateComponent.CreateRetinue(this);
             BannerKingsConfig.Instance.PopulationManager.AddEstate(this);
+
+            // Save migration: pre-fix vacant estates persisted with
+            // village-allocated population sitting idle in the slot. With
+            // the CreateNotableEstate change above, new vacancies are 0 /
+            // 0; this clears the residue from existing saves so vacant
+            // slots stop locking workforce. Slot still exists for claim /
+            // inheritance.
+            if (Owner == null && (Population > 0 || Slaves > 0))
+            {
+                Population = 0;
+                Slaves = 0;
+            }
         }
 
         public void TakeRetinue(MobileParty ai)

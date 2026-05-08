@@ -17,8 +17,25 @@ namespace BannerKings.Managers
 
         [SaveableProperty(1)] private Dictionary<CultureObject, InnovationData> Innovations { get; set; }
 
+        // Innovations is read on the UI thread (EncyclopediaUnitPageMixin,
+        // CultureTabVM, UIManager) and written from the campaign thread
+        // (PostInitialize, yearly UpdateInnovations). Plain Dictionary<,>
+        // resize freezes the reader inside FindEntry.
+        private object _cacheLock;
+        private object CacheLock
+        {
+            get
+            {
+                if (_cacheLock == null)
+                    System.Threading.Interlocked.CompareExchange(ref _cacheLock, new object(), null);
+                return _cacheLock;
+            }
+        }
+
         private void InitializeInnovations()
         {
+            // Caller holds CacheLock.
+            if (Innovations == null) Innovations = new Dictionary<CultureObject, InnovationData>();
             foreach (var culture in Game.Current.ObjectManager.GetObjectTypeList<CultureObject>().Where(culture => !culture.IsBandit && culture.CanHaveSettlement))
             {
                 if (!Innovations.ContainsKey(culture))
@@ -34,8 +51,14 @@ namespace BannerKings.Managers
 
         public void PostInitialize()
         {
-            InitializeInnovations();
-            foreach (var data in Innovations.Values)
+            List<InnovationData> snapshot;
+            lock (CacheLock)
+            {
+                if (Innovations == null) Innovations = new Dictionary<CultureObject, InnovationData>();
+                InitializeInnovations();
+                snapshot = Innovations.Values.ToList();
+            }
+            foreach (var data in snapshot)
             {
                 foreach (var innovation in DefaultInnovations.Instance.All)
                 {
@@ -48,7 +71,13 @@ namespace BannerKings.Managers
 
         public void UpdateInnovations()
         {
-            foreach (var data in Innovations.Values)
+            List<InnovationData> snapshot;
+            lock (CacheLock)
+            {
+                if (Innovations == null) return;
+                snapshot = Innovations.Values.ToList();
+            }
+            foreach (var data in snapshot)
             {
                 data.Update();
             }
@@ -57,14 +86,14 @@ namespace BannerKings.Managers
         public InnovationData GetInnovationData(CultureObject culture)
         {
             if (culture == null) return null;
-
-            InnovationData data = null;
-            if (Innovations.ContainsKey(culture))
+            lock (CacheLock)
             {
-                data = Innovations[culture];
+                if (Innovations != null && Innovations.TryGetValue(culture, out var data))
+                {
+                    return data;
+                }
             }
-
-            return data;
+            return null;
         }
     }
 }

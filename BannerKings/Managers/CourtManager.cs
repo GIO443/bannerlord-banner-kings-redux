@@ -26,22 +26,44 @@ namespace BannerKings.Managers
         [SaveableProperty(1)] private Dictionary<Clan, CouncilData> Councils { get; set; }
         private Dictionary<Hero, List<CouncilMember>> PositionsCache { get; set; }
 
+        // PositionsCache + Councils are read on the UI thread (CourtVM,
+        // BKInfluenceModel, BKClanFinanceModel, council-effect tooltips) and
+        // written from the campaign thread (CouncilMember.SetMember,
+        // GetCouncil lazy-create). Plain Dictionary<,> resize races freeze
+        // the reader inside FindEntry — same failure mode as TitleManager
+        // and ReligionsManager. Lazy-init via Interlocked: save deserializer
+        // skips the ctor + field initializers, and Clan.AfterLoad fires
+        // BK postfixes that reach GetCouncil before BK's OnGameLoaded.
+        private object _cacheLock;
+        private object CacheLock
+        {
+            get
+            {
+                if (_cacheLock == null)
+                    System.Threading.Interlocked.CompareExchange(ref _cacheLock, new object(), null);
+                return _cacheLock;
+            }
+        }
+
         public void PostInitialize()
         {
-            PositionsCache = new Dictionary<Hero, List<CouncilMember>>();
-            foreach (var council in Councils)
+            lock (CacheLock)
             {
-                council.Value.PostInitialize();
-                if (council.Value.Peerage == null)
+                PositionsCache = new Dictionary<Hero, List<CouncilMember>>();
+                foreach (var council in Councils)
                 {
-                    council.Value.SetPeerage(Peerage.GetAdequatePeerage(council.Key));
-                }
-
-                foreach (var position in council.Value.Positions)
-                {
-                    if (position.Member != null)
+                    council.Value.PostInitialize();
+                    if (council.Value.Peerage == null)
                     {
-                        AddCache(position.Member, position);
+                        council.Value.SetPeerage(Peerage.GetAdequatePeerage(council.Key));
+                    }
+
+                    foreach (var position in council.Value.Positions)
+                    {
+                        if (position.Member != null)
+                        {
+                            AddCacheLocked(position.Member, position);
+                        }
                     }
                 }
             }
@@ -54,14 +76,27 @@ namespace BannerKings.Managers
                 return;
             }
 
-            if (PositionsCache.ContainsKey(hero))
+            lock (CacheLock)
             {
-                PositionsCache.Remove(hero);
+                if (PositionsCache != null && PositionsCache.ContainsKey(hero))
+                {
+                    PositionsCache.Remove(hero);
+                }
             }
         }
 
         internal void AddCache(Hero hero, CouncilMember member)
         {
+            if (hero == null) return;
+            lock (CacheLock)
+            {
+                AddCacheLocked(hero, member);
+            }
+        }
+
+        private void AddCacheLocked(Hero hero, CouncilMember member)
+        {
+            if (PositionsCache == null) PositionsCache = new Dictionary<Hero, List<CouncilMember>>();
             if (!PositionsCache.ContainsKey(hero))
             {
                 PositionsCache.Add(hero, new List<CouncilMember>() { member });
@@ -107,25 +142,24 @@ namespace BannerKings.Managers
 
         public void CreateCouncil(Clan clan)
         {
-            if (Councils.ContainsKey(clan))
+            if (clan == null) return;
+            lock (CacheLock)
             {
-                return;
-            }
+                if (Councils.ContainsKey(clan))
+                {
+                    return;
+                }
 
-            Councils.Add(clan, new CouncilData(clan));
+                Councils.Add(clan, new CouncilData(clan));
+            }
         }
 
         public CouncilData GetCouncil(Hero hero)
         {
+            if (hero == null) return null;
             var clan = hero.Clan;
-            if (Councils.ContainsKey(clan))
-            {
-                return Councils[clan];
-            }
-
-            var council = new CouncilData(clan);
-            Councils.Add(clan, council);
-            return council;
+            if (clan == null) return null;
+            return GetCouncil(clan);
         }
 
         public CouncilData GetCouncil(Clan clan)
@@ -135,27 +169,45 @@ namespace BannerKings.Managers
                 return null;
             }
 
-            if (Councils.ContainsKey(clan))
+            // Lazy-create on miss is necessary because vanilla 1.3.x can
+            // surface clans BK never saw at PostInitialize (mid-campaign
+            // mercenary clan creation, kingdom-formation rebel clans).
+            // Lock the create path so concurrent callers (UI render +
+            // campaign tick) don't race the dictionary resize.
+            lock (CacheLock)
             {
-                return Councils[clan];
-            }
+                if (Councils.TryGetValue(clan, out var existing))
+                {
+                    return existing;
+                }
 
-            var council = new CouncilData(clan);
-            Councils.Add(clan, council);
-            return council;
+                var council = new CouncilData(clan);
+                Councils.Add(clan, council);
+                return council;
+            }
         }
 
         public List<CouncilMember> GetHeroPositions(Hero hero)
         {
+            if (hero == null) return null;
             if ((hero.IsLord && hero.Clan?.Kingdom == null) || hero.IsChild ||
                 hero.IsDead)
             {
                 return null;
             }
 
-            if (PositionsCache != null && PositionsCache.ContainsKey(hero))
+            // Return a snapshot under lock — the inner List<CouncilMember>
+            // IS mutated by AddCacheLocked when a hero accumulates a second
+            // position, and by RemoveCache on hero death. UI thread iterating
+            // the live reference while the campaign thread mutates would
+            // throw InvalidOperationException. Pay the small allocation cost
+            // for safety.
+            lock (CacheLock)
             {
-                return PositionsCache[hero];
+                if (PositionsCache != null && PositionsCache.TryGetValue(hero, out var cached))
+                {
+                    return cached != null ? new List<CouncilMember>(cached) : null;
+                }
             }
 
             Kingdom kingdom = null;
@@ -168,15 +220,17 @@ namespace BannerKings.Managers
                 kingdom = hero.CurrentSettlement.OwnerClan.Kingdom;
             }
 
-            Clan targetClan = null;
             if (kingdom != null)
             {
-                var clans = Councils.Keys.ToList();
+                List<Clan> clans;
+                lock (CacheLock) { clans = Councils.Keys.ToList(); }
                 foreach (var clan in clans)
                 {
                     if (clan.MapFaction == hero.MapFaction)
                     {
-                        return Councils[clan].GetHeroPositions(hero);
+                        CouncilData data;
+                        lock (CacheLock) { data = Councils[clan]; }
+                        return data.GetHeroPositions(hero);
                     }
                 }
             }

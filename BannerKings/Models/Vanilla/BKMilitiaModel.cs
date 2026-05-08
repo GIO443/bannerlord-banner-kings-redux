@@ -106,14 +106,22 @@ namespace BannerKings.Models.Vanilla
                 baseResult.Add(settlement.Village.Hearth / 400f, new TextObject("{=ecdZglky}From Hearths"));
             }
 
-            var education = BannerKingsConfig.Instance.EducationManager.GetHeroEducation(settlement.OwnerClan.Leader);
-            if (settlement.Culture.StringId == "battania" && education.Lifestyle != null && 
-                education.Lifestyle.Equals(DefaultLifestyles.Instance.Fian))
+            // Rebel-controlled / heir-less settlements have null OwnerClan
+            // or null Leader. Daily-tick militia change runs for every
+            // village + town; without these guards, the first abandoned
+            // settlement NREs the whole tick.
+            var ownerLeader = settlement.OwnerClan?.Leader;
+            if (ownerLeader != null)
             {
-                baseResult.Add(1.5f, DefaultLifestyles.Instance.Fian.Name);
+                var education = BannerKingsConfig.Instance.EducationManager.GetHeroEducation(ownerLeader);
+                if (settlement.Culture.StringId == "battania" && education != null && education.Lifestyle != null &&
+                    education.Lifestyle.Equals(DefaultLifestyles.Instance.Fian))
+                {
+                    baseResult.Add(1.5f, DefaultLifestyles.Instance.Fian.Name);
+                }
             }
 
-            Kingdom kingdom = settlement.OwnerClan.Kingdom;
+            Kingdom kingdom = settlement.OwnerClan?.Kingdom;
             if (kingdom != null)
             {
                 FeudalTitle title = BannerKingsConfig.Instance.TitleManager.GetSovereignTitle(kingdom);
@@ -126,12 +134,15 @@ namespace BannerKings.Models.Vanilla
                 }
             }
 
-            BannerKingsConfig.Instance.CourtManager.ApplyCouncilEffect(ref baseResult, 
-                settlement.OwnerClan.Leader,
-                DefaultCouncilPositions.Instance.Marshal,
-                DefaultCouncilTasks.Instance.OrganizeMiltia,
-                1f, 
-                false);
+            if (ownerLeader != null)
+            {
+                BannerKingsConfig.Instance.CourtManager.ApplyCouncilEffect(ref baseResult,
+                    ownerLeader,
+                    DefaultCouncilPositions.Instance.Marshal,
+                    DefaultCouncilTasks.Instance.OrganizeMiltia,
+                    1f,
+                    false);
+            }
 
             if (settlement.Town != null)
             {

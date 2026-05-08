@@ -194,6 +194,12 @@ namespace BannerKings.Patches
         {
             private static bool Prefix(Clan clan)
             {
+                // Mod-compat: Diplomacy overhauls the entire mercenary /
+                // leave-kingdom barter pipeline. BK silently replacing
+                // vanilla here would starve Diplomacy's overhaul. Match
+                // the convention in the sibling DeclareWarVMPatch below.
+                if (ModCompat.DiplomacyMod) return true;
+                if (clan?.Leader == null || clan.Kingdom == null) return true;
                 LeaveKingdomAsClanBarterable leaveKingdomAsClanBarterable = new LeaveKingdomAsClanBarterable(clan.Leader, null);
                 MercenaryJoinKingdomBarterable mercenaryJoinKingdomBarterable = new MercenaryJoinKingdomBarterable(clan.Leader, null, clan.Kingdom);
                 if (leaveKingdomAsClanBarterable.GetValueForFaction(clan) > mercenaryJoinKingdomBarterable.GetValueForFaction(clan))

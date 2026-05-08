@@ -51,7 +51,12 @@ namespace BannerKings.Behaviours.PartyNeeds
                 () =>
                 {
                     var companion = Hero.OneToOneConversationHero;
-                    var supplies = partyNeeds[MobileParty.MainParty];
+                    // Was: raw indexer — KeyNotFoundException on a fresh
+                    // game/post-load before the daily tick has populated
+                    // the dict for MainParty. TryGetValue avoids the
+                    // mid-dialogue throw.
+                    PartySupplies supplies = null;
+                    if (partyNeeds == null || !partyNeeds.TryGetValue(MobileParty.MainParty, out supplies)) supplies = null;
                     if (companion != null && supplies != null)
                     {
                         MBTextManager.SetTextVariable("SUPPLIES_BUY_TEXT", supplies.AutoBuying ?
@@ -71,7 +76,12 @@ namespace BannerKings.Behaviours.PartyNeeds
                 () =>
                 {
                     var companion = Hero.OneToOneConversationHero;
-                    var supplies = partyNeeds[MobileParty.MainParty];
+                    // Was: raw indexer — KeyNotFoundException on a fresh
+                    // game/post-load before the daily tick has populated
+                    // the dict for MainParty. TryGetValue avoids the
+                    // mid-dialogue throw.
+                    PartySupplies supplies = null;
+                    if (partyNeeds == null || !partyNeeds.TryGetValue(MobileParty.MainParty, out supplies)) supplies = null;
                     if (companion != null && supplies != null)
                     {
                         
@@ -87,7 +97,11 @@ namespace BannerKings.Behaviours.PartyNeeds
                     }
                     else return false;
                 },
-                () => partyNeeds[MobileParty.MainParty].SwitchAutoBuying());
+                () =>
+                {
+                    if (partyNeeds != null && partyNeeds.TryGetValue(MobileParty.MainParty, out var s) && s != null)
+                        s.SwitchAutoBuying();
+                });
 
             starter.AddPlayerLine("bk_supplies_overview",
                 "companion_role",
@@ -96,7 +110,12 @@ namespace BannerKings.Behaviours.PartyNeeds
                 () =>
                 {
                     var companion = Hero.OneToOneConversationHero;
-                    var supplies = partyNeeds[MobileParty.MainParty];
+                    // Was: raw indexer — KeyNotFoundException on a fresh
+                    // game/post-load before the daily tick has populated
+                    // the dict for MainParty. TryGetValue avoids the
+                    // mid-dialogue throw.
+                    PartySupplies supplies = null;
+                    if (partyNeeds == null || !partyNeeds.TryGetValue(MobileParty.MainParty, out supplies)) supplies = null;
                     if (companion != null && supplies != null)
                     {
                         MBTextManager.SetTextVariable("SUPPLIES_BUY_TEXT", supplies.AutoBuying ?
@@ -116,7 +135,12 @@ namespace BannerKings.Behaviours.PartyNeeds
                 () =>
                 {
                     var companion = Hero.OneToOneConversationHero;
-                    var supplies = partyNeeds[MobileParty.MainParty];
+                    // Was: raw indexer — KeyNotFoundException on a fresh
+                    // game/post-load before the daily tick has populated
+                    // the dict for MainParty. TryGetValue avoids the
+                    // mid-dialogue throw.
+                    PartySupplies supplies = null;
+                    if (partyNeeds == null || !partyNeeds.TryGetValue(MobileParty.MainParty, out supplies)) supplies = null;
                     if (companion != null && supplies != null)
                     {
                         MBTextManager.SetTextVariable("SUPPLIES_OVERVIEW_TEXT",

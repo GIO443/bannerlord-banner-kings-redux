@@ -23,6 +23,40 @@ namespace BannerKings.Behaviours
             CampaignEvents.OnGameEarlyLoadedEvent.AddNonSerializedListener(this, OnGameEarlyLoaded);
             CampaignEvents.OnGameLoadedEvent.AddNonSerializedListener(this, OnGameLoaded);
             CampaignEvents.OnSessionLaunchedEvent.AddNonSerializedListener(this, OnGameCreated);
+            // Hero death cleanup: prune dead heroes from manager caches that
+            // would otherwise hold them indefinitely (CourtManager.PositionsCache,
+            // BKMarriageModel scoring caches). Without this, dismissed/dead
+            // heroes appeared as still-employed and the marriage scorer
+            // returned stale per-hero scores keyed on dead Hero references.
+            CampaignEvents.HeroKilledEvent.AddNonSerializedListener(this, (Hero victim, Hero killer,
+                TaleWorlds.CampaignSystem.Actions.KillCharacterAction.KillCharacterActionDetail detail, bool showNotification) =>
+            {
+                if (victim == null) return;
+                try
+                {
+                    var court = BannerKingsConfig.Instance?.CourtManager;
+                    if (court != null)
+                    {
+                        // Walk every council and clear any slot whose Member is the victim.
+                        // Direct access to Councils is private so go through GetCouncil per-clan.
+                        foreach (var clan in Clan.All)
+                        {
+                            if (clan == null) continue;
+                            var data = court.GetCouncil(clan);
+                            if (data == null) continue;
+                            foreach (var pos in data.Positions)
+                            {
+                                if (pos != null && pos.Member == victim)
+                                {
+                                    pos.SetMember(null);
+                                }
+                            }
+                        }
+                        court.RemoveCache(victim);
+                    }
+                }
+                catch { /* defensive: never throw out of a HeroKilled hook */ }
+            });
         }
 
         public override void SyncData(IDataStore dataStore)
@@ -118,9 +152,16 @@ namespace BannerKings.Behaviours
             if (firstUse)
             {
                 BannerKingsConfig.Instance.InitializeManagersFirstTime();
+                // PopulationManager was missing from this firstUse branch
+                // even though OnGameCreated.firstUse calls it; on a save
+                // from an old build (without PopulationManager init) the
+                // very next behavior tick that called GetPopData NRE'd.
+                BannerKingsConfig.Instance.PopulationManager.PostInitialize();
                 BannerKingsConfig.Instance.InnovationsManager.PostInitialize();
                 BannerKingsConfig.Instance.TitleManager.PostInitialize();
                 BannerKingsConfig.Instance.ReligionsManager.PostInitialize();
+                BannerKingsConfig.Instance.EducationManager.PostInitialize();
+                BannerKingsConfig.Instance.CourtManager.PostInitialize();
             }
 
             foreach (var settlement in Settlement.All)

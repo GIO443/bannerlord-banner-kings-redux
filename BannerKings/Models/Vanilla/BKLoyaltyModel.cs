@@ -228,12 +228,19 @@ namespace BannerKings.Models.Vanilla
 
         private void GetSettlementLoyaltyChangeDueToPolicies(Town town, ref ExplainedNumber explainedNumber)
         {
-            var kingdom = town.Owner.Settlement.OwnerClan.Kingdom;
+            // Was: town.Owner.Settlement.OwnerClan.Kingdom — `town.Owner` is
+            // the owning hero, and `town.Owner.Settlement` is the hero's
+            // *home* settlement (unrelated to `town`, often null for
+            // landless heirs). On a daily loyalty tick that combination
+            // NREs whenever the owner is null/landless. Real intent: the
+            // kingdom of the town's owning clan.
+            var ownerClan = town.OwnerClan;
+            var kingdom = ownerClan?.Kingdom;
             if (kingdom != null)
             {
                 if (kingdom.ActivePolicies.Contains(DefaultPolicies.Citizenship))
                 {
-                    if (town.Settlement.OwnerClan.Culture == kingdom.RulingClan.Culture)
+                    if (town.Settlement.OwnerClan != null && kingdom.RulingClan != null && town.Settlement.OwnerClan.Culture == kingdom.RulingClan.Culture)
                     {
                         explainedNumber.Add(0.5f, DefaultPolicies.Citizenship.Name);
                     }

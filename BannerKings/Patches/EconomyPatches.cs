@@ -1397,7 +1397,13 @@ namespace BannerKings.Patches
         [HarmonyPatch(typeof(VillageGoodProductionCampaignBehavior))]
         internal class TickGoodProductionPatch
         {
-            private static Dictionary<Village, Dictionary<ItemObject, float>> productionCache = new Dictionary<Village, Dictionary<ItemObject, float>>();
+            // Was a plain Dictionary<,>; written from village production
+            // tick on the campaign thread, and any future UI consumer
+            // (production estimate tooltip) would race the resize. Match
+            // the project memory rule: BK caches reachable from any
+            // potentially UI-thread path use ConcurrentDictionary.
+            private static System.Collections.Concurrent.ConcurrentDictionary<Village, Dictionary<ItemObject, float>> productionCache
+                = new System.Collections.Concurrent.ConcurrentDictionary<Village, Dictionary<ItemObject, float>>();
 
             [HarmonyPrefix]
             [HarmonyPatch("TickGoodProduction", MethodType.Normal)]
@@ -1452,6 +1458,14 @@ namespace BannerKings.Patches
                 return true;
             }
 
+            // Cached once: the prior code did
+            //   village.GetType().GetProperty("TradeBound", ...)
+            // *inside* a Town.AllTowns × Village.All triple loop — the
+            // reflection lookup ran for every village × town pair on the
+            // new-game / first-init path. Cache once at class scope.
+            private static readonly PropertyInfo _tradeBoundProp =
+                typeof(Village).GetProperty("TradeBound", BindingFlags.Instance | BindingFlags.Public);
+
             [HarmonyPrefix]
             [HarmonyPatch("DistributeInitialItemsToTowns", MethodType.Normal)]
             private static bool DistributeInitialItemsToTowns()
@@ -1478,8 +1492,7 @@ namespace BannerKings.Patches
                             }
                             if (village.TradeBound == null)
                             {
-                                PropertyInfo bound = village.GetType().GetProperty("TradeBound", BindingFlags.Instance | BindingFlags.Public);
-                                bound.SetValue(village, village.Bound);
+                                _tradeBoundProp?.SetValue(village, village.Bound);
                             }
 
                             float distance2 = TaleWorlds.CampaignSystem.Campaign.Current.Models.MapDistanceModel.GetDistance(settlement, village.TradeBound, false, false, MobileParty.NavigationType.All);
@@ -1537,26 +1550,23 @@ namespace BannerKings.Patches
             private static int GetDifferential(Village village, ItemObject item, float diff)
             {
                 int result = 0;
-                if (productionCache.ContainsKey(village))
+                // GetOrAdd is atomic on ConcurrentDictionary; the inner
+                // per-village dict is only mutated from this method which
+                // is invoked from a single producer (the daily village
+                // production tick), so no nested lock needed.
+                var dic = productionCache.GetOrAdd(village, _ => new Dictionary<ItemObject, float>());
+                if (dic.ContainsKey(item))
                 {
-                    var dic = productionCache[village];
-                    if (dic.ContainsKey(item))
+                    dic[item] += diff;
+                    result = MathF.Floor(dic[item]);
+                    if (result >= 1)
                     {
-                        dic[item] += diff;
-                        result = MathF.Floor(dic[item]);
-                        if (result >= 1)
-                        {
-                            dic[item] -= result;
-                        }
-                    }
-                    else
-                    {
-                        dic.Add(item, diff);
+                        dic[item] -= result;
                     }
                 }
                 else
                 {
-                    productionCache.Add(village, new Dictionary<ItemObject, float>() { { item, diff } });
+                    dic.Add(item, diff);
                 }
 
                 return result;

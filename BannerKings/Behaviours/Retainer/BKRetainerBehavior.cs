@@ -119,47 +119,29 @@ namespace BannerKings.Behaviours.Retainer
 
         private void OnTick(float dt)
         {
-            if (contract != null)
-            {
-                MobileParty contractor = contract.Contractor.PartyBelongedTo;
-                if (contractor != null && contractor.LeaderHero == contract.Contractor)
-                {
-                    MapState mapState = Game.Current.GameStateManager.ActiveState as MapState;
-                    if (!PlayerCaptivity.IsCaptive && (dt > 0f || (mapState != null && !mapState.AtMenu)))
-                    {
-                        if (contractor.IsActive)
-                        {
-                            MobileParty.MainParty.Position = contractor.Position;
-                            if (TaleWorlds.CampaignSystem.Campaign.Current.CurrentMenuContext == null || 
-                                TaleWorlds.CampaignSystem.Campaign.Current.CurrentMenuContext.StringId != "bk_retinue_wait")
-                            {
-                                GameMenu.ActivateGameMenu("bk_retinue_wait");
-                            }
-                        }
-                    }
-                    else if (PlayerCaptivity.IsCaptive)
-                    {
-
-                    }
-                }
-            }
+            // Retainer feature is currently dormant: OnSessionLaunched
+            // begins with `return;` so the bk_retinue_wait menu and the
+            // dialogue pipeline that sets `contract` never register. The
+            // previous body of this method wrote `MobileParty.MainParty.
+            // Position = contractor.Position;` every frame — a direct
+            // violation of "BK decides, vanilla executes" that hijacked
+            // the player party. SyncData is empty, so `contract` is always
+            // null after load and the per-frame work was wasted CPU even
+            // when the feature was nominally off. Short-circuit until the
+            // feature is wired up properly, at which point this hook
+            // should use SetMoveEscortParty instead of a Position write.
+            return;
         }
 
         private void SetCamera()
         {
-            if (contract != null)
-            {
-                MobileParty contractor = contract.Contractor.PartyBelongedTo;
-                if (contractor != null && contractor.LeaderHero == contract.Contractor)
-                {
-                    MobileParty.MainParty.IsActive = false;
-                    PartyBase.MainParty.UpdateVisibilityAndInspected(MobileParty.MainParty.Position);
-                    PartyBase.MainParty.MobileParty.IsVisible = false;
-                    contractor.Party.SetAsCameraFollowParty();
-                    contractor.Party.UpdateVisibilityAndInspected(contractor.Position);
-                    contractor.IsVisible = true;
-                }
-            }
+            // No-op while the retainer feature is dormant. If a save from
+            // a build that did serialize `contract` somehow lands here, we
+            // do NOT want to disable IsActive on MainParty (it was the
+            // worst-case "bricked on load" scenario from the prior body).
+            // OnSessionLaunched returns early so contract remains null
+            // anyway; this is belt-and-braces for future re-enable.
+            return;
         }
 
         private void UpdateRetinueMenu()

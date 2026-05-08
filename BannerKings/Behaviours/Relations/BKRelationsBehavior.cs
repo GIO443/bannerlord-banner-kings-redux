@@ -117,6 +117,18 @@ namespace BannerKings.Behaviours.Relations
 
             CampaignEvents.DailyTickHeroEvent.AddNonSerializedListener(this, (Hero hero) =>
             {
+                // Skip MainHero. UpdateRelations iterates 50-100+ heroes
+                // (every kingdom clan leader + every kingdom leader + bound-
+                // settlement notables + own-clan members) and applies ±1
+                // relation nudges via ChangeRelationAction.ApplyRelationChange
+                // BetweenHeroes. Vanilla converts every positive relation
+                // change into charm XP for the participating hero — so
+                // when MainHero is the protagonist, the player accumulates
+                // hundreds of passive charm XP per week just from the
+                // ambient drift sim that's meant to keep NPC relations near
+                // their target. NPCs continue to drift among themselves;
+                // only the player is excluded.
+                if (hero == Hero.MainHero) return;
                 if (lastUpdated == null) lastUpdated = new Dictionary<Hero, CampaignTime>(Hero.AllAliveHeroes.Count);
                 if (lastUpdated.ContainsKey(hero) && lastUpdated[hero].ElapsedWeeksUntilNow < 1f) return;
                 RunWeekly(() =>

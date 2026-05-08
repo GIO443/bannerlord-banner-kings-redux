@@ -32,6 +32,17 @@ namespace BannerKings.Behaviours.Mercenary
             CampaignEvents.OnClanChangedKingdomEvent.AddNonSerializedListener(this, OnClanChangedKingdom);
             CampaignEvents.OnSessionLaunchedEvent.AddNonSerializedListener(this, OnSessionLaunched);
             CampaignEvents.OnGameLoadedEvent.AddNonSerializedListener(this, OnGameLoaded);
+            // Clean up the careers dict on clan destruction. Without this,
+            // destroyed Clan keys persist in the saved Dictionary across
+            // load cycles and the daily tick keeps dereferencing them
+            // (vanilla null-reaps Clan.Leader for destroyed clans).
+            CampaignEvents.OnClanDestroyedEvent.AddNonSerializedListener(this, OnClanDestroyed);
+        }
+
+        private void OnClanDestroyed(Clan clan)
+        {
+            if (clan == null || careers == null) return;
+            if (careers.ContainsKey(clan)) careers.Remove(clan);
         }
 
         public override void SyncData(IDataStore dataStore)

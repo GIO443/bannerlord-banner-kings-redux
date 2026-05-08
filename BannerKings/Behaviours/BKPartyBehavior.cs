@@ -1114,26 +1114,10 @@ namespace BannerKings.Behaviours
 
         private bool IsTravellerParty(PartyBase party)
         {
-            var value = false;
-            if (party is not { MobileParty: { } })
-            {
-                return false;
-            }
-
-            try
-            {
-                if (party.MobileParty.PartyComponent != null && party.MobileParty.PartyComponent is PopulationPartyComponent)
-                {
-                    value = true;
-                }
-
-                if (party.MobileParty.PartyComponent is not PopulationPartyComponent)
-                {
-                    value = false;
-                }
-            } catch (Exception ex) { }
-
-            return value;
+            // Was wrapped in a swallowing try/catch — the body is two
+            // null-safe pattern checks that can't throw, so the catch was
+            // just hiding any future bug. Fold to a single pattern match.
+            return party?.MobileParty?.PartyComponent is PopulationPartyComponent;
         }
 
         private bool traveller_serf_start_on_condition()

@@ -99,6 +99,12 @@ namespace BannerKings.Behaviours.Marriage
 
                 if (heroMarriages.ContainsKey(victim))
                     heroMarriages.Remove(victim);
+
+                // Was missing — flirtedWith persisted dead heroes forever
+                // and could match a future hero that recycled a HeroId,
+                // skewing flirt-availability checks for that hero.
+                if (flirtedWith != null && flirtedWith.Contains(victim))
+                    flirtedWith.Remove(victim);
             });
 
             CampaignEvents.OnGameLoadFinishedEvent.AddNonSerializedListener(this, () =>

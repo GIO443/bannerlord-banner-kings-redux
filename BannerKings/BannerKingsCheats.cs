@@ -11,6 +11,7 @@ using System.Linq;
 using System.Text;
 using TaleWorlds.CampaignSystem;
 using TaleWorlds.CampaignSystem.Actions;
+using TaleWorlds.CampaignSystem.Extensions;
 using TaleWorlds.CampaignSystem.Party;
 using TaleWorlds.CampaignSystem.Party.PartyComponents;
 using TaleWorlds.Core;
@@ -514,37 +515,46 @@ namespace BannerKings
             return $"{s.Name}: food {before:0} → 1 (engages SupplyTown immediately for any caravan ordered to it).";
         }
 
-        [CommandLineFunctionality.CommandLineArgumentFunction("test_inflate_workshop_inputs", "bannerkings")]
-        public static string TestInflateWorkshopInputs(List<string> strings)
+        [CommandLineFunctionality.CommandLineArgumentFunction("test_glut_workshop_outputs", "bannerkings")]
+        public static string TestGlutWorkshopOutputs(List<string> strings)
         {
             if (!CampaignCheats.CheckCheatUsage(ref CampaignCheats.ErrorType)) return CampaignCheats.ErrorType;
             if (strings == null || strings.Count == 0)
-                return "Format: bannerkings.test_inflate_workshop_inputs <townIdOrName>";
+                return "Format: bannerkings.test_glut_workshop_outputs <townIdOrName>";
 
             string token = CampaignCheats.ConcatenateString(strings).Trim();
             Settlement s = Settlement.Find(token)
                 ?? Settlement.All.FirstOrDefault(x => x.IsTown && (x.Name?.ToString()?.Equals(token, StringComparison.OrdinalIgnoreCase) ?? false));
             if (s == null || s.Town == null) return $"Town '{token}' not found.";
 
-            // Drain market stock of every input category any workshop in the
-            // town consumes. Vanilla price model raises GetPriceFactor when
-            // stock falls; the SupplyWorkshops hysteresis fires when avg
-            // ratio crosses 1.20.
-            var inputs = BannerKings.Behaviours.Caravans.CaravanOrdersBehavior.GetWorkshopInputCategories(s.Town);
-            if (inputs.Count == 0) return $"{s.Name} has no active workshops.";
+            // Flood the market with workshop OUTPUT categories — drives
+            // GetPriceFactor below 1.0 (oversupply) so the ExportFromTown
+            // hysteresis engages (avg ratio < 0.80). Picks an arbitrary
+            // ItemObject in each output category and adds 200 units.
+            // Towns with high baseline demand resist single small bumps;
+            // 200 is enough to push priceFactor below 0.80 in most cases.
+            var outputs = BannerKings.Behaviours.Caravans.CaravanOrdersBehavior.GetWorkshopOutputCategories(s.Town);
+            if (outputs.Count == 0) return $"{s.Name} has no active workshops.";
 
-            int touched = 0;
-            for (int i = s.ItemRoster.Count - 1; i >= 0; i--)
+            int added = 0;
+            foreach (var cat in outputs)
             {
-                var el = s.ItemRoster.GetElementCopyAtIndex(i);
-                var cat = el.EquipmentElement.Item?.ItemCategory;
-                if (cat != null && inputs.Contains(cat))
-                {
-                    s.ItemRoster.AddToCounts(el.EquipmentElement, -el.Amount);
-                    touched += el.Amount;
-                }
+                var item = Items.All.FirstOrDefault(x => x?.ItemCategory == cat);
+                if (item == null) continue;
+                s.ItemRoster.AddToCounts(item, 200);
+                added += 200;
             }
-            return $"{s.Name}: removed {touched} units across {inputs.Count} input categories. SupplyWorkshops should engage on next caravan tick.";
+
+            // Report the post-glut average ratio so the tester sees whether
+            // the threshold was actually crossed.
+            float total = 0f; int n = 0;
+            foreach (var cat in outputs)
+            {
+                try { total += s.Town.MarketData.GetPriceFactor(cat); n++; } catch { }
+            }
+            float ratio = n > 0 ? total / n : 1f;
+            return $"{s.Name}: added {added} units across {outputs.Count} output categories. " +
+                   $"Post-glut avg output ratio = {ratio:0.00} (engage threshold < 0.80).";
         }
 
         [CommandLineFunctionality.CommandLineArgumentFunction("dump_caravan_orders", "bannerkings")]

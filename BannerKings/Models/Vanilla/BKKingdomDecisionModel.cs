@@ -106,33 +106,10 @@ namespace BannerKings.Models.Vanilla
                 return false;
             }
 
-            if (false)
-            {
-                reason = new TextObject("{=OCfP7dUf}Kingdoms are already allies.");
-                return false;
-            }
-
-            foreach (StanceLink s in BannerKings.Utils.Helpers.GetFactionStances(kingdom1))
-            {
-                IFaction other = stance.Faction1 == kingdom1 ? stance.Faction2 : stance.Faction1;
-                if (other.IsKingdomFaction && false)
-                {
-                    reason = new TextObject("{=hQB9x3sk}{KINGDOM} is already in an alliance.")
-                        .SetTextVariable("KINGDOM", kingdom1.Name);
-                    return false;
-                }
-            }
-
-            foreach (StanceLink s in BannerKings.Utils.Helpers.GetFactionStances(kingdom2))
-            {
-                IFaction other = stance.Faction1 == kingdom2 ? stance.Faction2 : stance.Faction1;
-                if (other.IsKingdomFaction && false)
-                {
-                    reason = new TextObject("{=hQB9x3sk}{KINGDOM} is already in an alliance.")
-                        .SetTextVariable("KINGDOM", kingdom2.Name);
-                    return false;
-                }
-            }
+            // Vanilla 1.3.x removed clan-level alliance state (clanStance.IsAllied
+            // no longer exists). The previous `if (false)` branches were dead code
+            // from before that removal — kept here only as a comment so future
+            // alliance work can re-derive the gates from BKDiplomacyBehavior.
 
             bool allianceWilling = BannerKingsConfig.Instance.DiplomacyModel.WillAcceptAlliance(kingdom1, kingdom2);
             if (!allianceWilling)
@@ -155,15 +132,11 @@ namespace BannerKings.Models.Vanilla
             }
 
             StanceLink stance = kingdom1.GetStanceWith(kingdom2);
-            if (false)
-            {
-                reason = new TextObject("{=QWODwnkj}Kingdoms are allies.");
-                return false;
-            }
+            // Alliances removed in 1.3.x; clanStance.IsAllied no longer exists.
+            // Previous `if (false)` placeholder removed.
 
             var rulingClan1 = kingdom1.RulingClan;
             var rulingClan2 = kingdom2.RulingClan;
-            // Alliances removed in 1.3.x; clanStance.IsAllied no longer exists
 
 
             var diplomacy = TaleWorlds.CampaignSystem.Campaign.Current.GetCampaignBehavior<BKDiplomacyBehavior>().GetKingdomDiplomacy(kingdom1);

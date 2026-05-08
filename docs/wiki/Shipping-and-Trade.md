@@ -189,10 +189,10 @@ caravan):**
      this clears any existing order.
    - **Keep a settlement supplied with food** — bias the caravan
      toward routing food into a settlement of your choice.
-   - **Feed industrial inputs to a town's workshops** — bias the
-     caravan toward loading whichever input categories the anchor
-     town's workshops use, and delivering them when the town is
-     paying premium prices for those inputs.
+   - **Export workshop outputs from a town** — bias the caravan
+     toward loading workshop outputs at the anchor when the local
+     market is saturated (output prices below equilibrium), then
+     selling at distant markets via vanilla pricing.
 4. If you picked a supply mode, a list of eligible towns appears.
    For convoys (naval caravans), only **port towns** are listed
    since a convoy can't reach inland targets. For SupplyWorkshops,
@@ -216,39 +216,33 @@ The order biases two things at once:
 The caravan still picks the *most profitable food* available within
 that filter, so revenue stays positive — it just narrows the menu.
 
-### How "Feed industrial inputs" works
+### How "Export workshop outputs" works
 
-Three layered biases keep the caravan supplying the anchor:
+Same routing bias as SupplyTown (×3 score multiplier on the anchor),
+but the goal is different. The caravan goes *to* the anchor to load
+workshop outputs — bread, cloth, tools, jewelry, whatever the town's
+workshops produce — and then distributes them to other markets via
+vanilla scoring. The economic premise: workshops produce continuously,
+the local market eventually saturates, prices fall, workshop revenue
+plateaus. A caravan moving the surplus to under-supplied towns elsewhere
+unblocks both ends — workshops keep selling, distant markets get the
+goods they were paying premium for.
 
-- **Anchor bias (×3)** on the anchor town's trade-score, same as
-  SupplyTown.
-- **Source bias (×2)** on any candidate town that has market stock
-  of at least one of the anchor's input categories. Composes with
-  the anchor bias if the same town is both source and destination
-  (×6). Without this, vanilla scoring rejects scarce industrial
-  inputs as unprofitable buys and the caravan drifts past silver-
-  rich towns without picking anything up.
-- **Force-buy on arrival.** When the caravan enters any town that
-  isn't the anchor, it buys whichever input categories the town has
-  in stock, regardless of arbitrage, capped at 25% of trade gold per
-  visit and 30 units per category. The high price at the anchor
-  recoups most of the cost.
+No force-buy is needed: vanilla `BuyGoods` at the saturated anchor
+already finds the output categories cheap (low local price = high
+buy score) and loads them. No source bias is needed: the anchor IS
+the source. The distribution leg is fully vanilla — high prices for
+those categories elsewhere drive the caravan there naturally.
 
-At each decision the caravan re-derives the **union of input categories**
-across every (non-hidden) workshop in the anchor town. If the anchor
-has a brewery + a fishmonger, the caravan will buy grain or fish
-wherever they're cheap. If you convert one of those workshops to a
-smithy, the next decision automatically picks up iron in the union
-without you re-setting the order.
+Hysteresis on this mode uses **average output-category price ratio**
+at the anchor town (price ÷ equilibrium), inverted relative to
+SupplyTown:
 
-Hysteresis on this mode uses **average input-category price ratio**
-at the anchor town (price ÷ equilibrium):
-
-- **Active** when the ratio rises above **1.20** — workshops are
-  paying premium for inputs.
-- **Dormant** at **1.00 or below** — supply has caught up and the
-  caravan can free-trade until the town runs hot again.
-- **Band (1.00–1.20)** preserves prior state.
+- **Active** when the ratio falls below **0.80** — workshop outputs
+  are oversupplied locally, export pressure is high.
+- **Dormant** at **1.00 or above** — local market is clearing on its
+  own, the caravan can free-trade until the town saturates again.
+- **Band (0.80–1.00)** preserves prior state.
 
 The order goes dormant immediately if the anchor town has no active
 workshops at evaluation time (e.g. all destroyed during a raid).
@@ -271,7 +265,13 @@ State is persisted across save/load.
 
 ### What you should expect to see
 
-- The caravan visits the anchor town more often than its peers.
+- The caravan visits the anchor town more often than its peers, but
+  always with at least one intermediate stop between visits — caravans
+  cannot immediately return to the settlement they just left (a
+  cooldown that prevents a routing oscillation observed in earlier
+  builds where caravans ping-ponged on the same settlement). Export
+  / SupplyTown cycles work fine: load at anchor → sell elsewhere →
+  return to anchor.
 - After a stretch of supply runs, the anchor's food stocks fill up;
   the caravan then resumes free-trade behaviour without you doing
   anything. Stocks will drift back down over time → the caravan
@@ -312,7 +312,7 @@ Mechanics:
 
 - **Routing.** Stake-bearing settlements get a ×1.5 multiplier on
   the caravan's trade-score. This composes with any active SupplyTown
-  / SupplyWorkshops bias multiplicatively (anchor town that is also
+  / ExportFromTown bias multiplicatively (anchor town that is also
   a stake town → 3 × 1.5 = 4.5×).
 - **Deposits.** When **Realistic Caravan Income** is on, the caravan
   hands its trade gold to the owner not just at the four existing

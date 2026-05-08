@@ -88,9 +88,18 @@ namespace BannerKings.Patches
             [HarmonyPatch("SlaughterItem")]
             private static bool SlaughterItemPrefix(ItemRosterElement itemRosterElement)
             {
-                EquipmentElement equipmentElement = itemRosterElement.EquipmentElement;
-                int meatCount = equipmentElement.Item.HorseComponent.MeatCount;
-                if (meatCount == 0)
+                // SlaughterItem is invoked from contexts where the item may
+                // not have a HorseComponent (modded non-livestock items
+                // tagged as slaughterable, edge-case event consumables).
+                // The unguarded `equipmentElement.Item.HorseComponent.MeatCount`
+                // NREs and skips the slaughter UI entirely. Treat
+                // missing-component or zero-meat as "not slaughterable" and
+                // skip the original method (return false), matching the
+                // existing behavior for MeatCount == 0.
+                var item = itemRosterElement.EquipmentElement.Item;
+                if (item == null) return false;
+                var hc = item.HorseComponent;
+                if (hc == null || hc.MeatCount == 0)
                 {
                     return false;
                 }

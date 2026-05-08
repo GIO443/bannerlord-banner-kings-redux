@@ -23,80 +23,114 @@ namespace BannerKings.Managers
 
         [SaveableProperty(1)] private Dictionary<Hero, EducationData> Educations { get; set; }
 
+        // Educations is read on the UI thread (EncyclopediaHeroPageMixin,
+        // CourtVM, EducationVM) and lazy-mutated from the same getters via
+        // InitHeroEducation. Plain Dictionary<,> resize races freeze the
+        // reader inside FindEntry — same failure profile as TitleManager.
+        // Lazy-init via Interlocked: save deserializer skips ctor + field
+        // initializers, and BK postfixes can reach GetHeroEducation before
+        // OnGameLoaded heals state.
+        private object _cacheLock;
+        private object CacheLock
+        {
+            get
+            {
+                if (_cacheLock == null)
+                    System.Threading.Interlocked.CompareExchange(ref _cacheLock, new object(), null);
+                return _cacheLock;
+            }
+        }
+
         public void CleanEntries()
         {
-            var newDic = new Dictionary<Hero, EducationData>();
-            foreach (var pair in Educations)
-                if (pair.Key != null && pair.Value != null)
-                    if (!newDic.ContainsKey(pair.Key) && pair.Key.IsAlive)
-                        newDic.Add(pair.Key, pair.Value);
+            lock (CacheLock)
+            {
+                if (Educations == null) { Educations = new Dictionary<Hero, EducationData>(); return; }
+                var newDic = new Dictionary<Hero, EducationData>();
+                foreach (var pair in Educations)
+                    if (pair.Key != null && pair.Value != null)
+                        if (!newDic.ContainsKey(pair.Key) && pair.Key.IsAlive)
+                            newDic.Add(pair.Key, pair.Value);
 
-            Educations.Clear();
-            foreach (var pair in newDic)
-                if (!Educations.ContainsKey(pair.Key))
-                    Educations.Add(pair.Key, pair.Value);
+                Educations = newDic;
+            }
         }
 
         public EducationData InitHeroEducation(Hero hero, Dictionary<Language, float> startingLanguages = null)
         {
-            if (Educations.ContainsKey(hero))
+            if (hero == null) return null;
+            lock (CacheLock)
             {
-                return null;
-            }
-
-            if (startingLanguages != null)
-            {
-                var startData = new EducationData(hero, startingLanguages);
-                Educations[hero] = startData;
-                return startData;
-            }
-
-            var languages = new Dictionary<Language, float>();
-            var native = DefaultLanguages.Instance.All.FirstOrDefault(x => x.Cultures.Contains(hero.Culture)) 
-                ?? DefaultLanguages.Instance.Calradian;
-
-            languages.Add(native, 1f);
-
-            if (hero.IsNotable)
-            {
-                if (!languages.ContainsKey(DefaultLanguages.Instance.Calradian) && MBRandom.RandomFloat <= 0.15f)
+                if (Educations == null) Educations = new Dictionary<Hero, EducationData>();
+                if (Educations.ContainsKey(hero))
                 {
-                    languages.Add(DefaultLanguages.Instance.Calradian, MBRandom.RandomFloatRanged(0.5f, 1f));
+                    return null;
                 }
 
-                if (hero.Culture.StringId == "sturgia" && MBRandom.RandomFloat < 0.05f)
+                if (startingLanguages != null)
                 {
-                    languages.Add(DefaultLanguages.Instance.Vakken, MBRandom.RandomFloatRanged(0.5f, 1f));
+                    var startData = new EducationData(hero, startingLanguages);
+                    Educations[hero] = startData;
+                    return startData;
                 }
+
+                var languages = new Dictionary<Language, float>();
+                var native = DefaultLanguages.Instance.All.FirstOrDefault(x => x.Cultures.Contains(hero.Culture))
+                    ?? DefaultLanguages.Instance.Calradian;
+
+                languages.Add(native, 1f);
+
+                if (hero.IsNotable)
+                {
+                    if (!languages.ContainsKey(DefaultLanguages.Instance.Calradian) && MBRandom.RandomFloat <= 0.15f)
+                    {
+                        languages.Add(DefaultLanguages.Instance.Calradian, MBRandom.RandomFloatRanged(0.5f, 1f));
+                    }
+
+                    if (hero.Culture.StringId == "sturgia" && MBRandom.RandomFloat < 0.05f)
+                    {
+                        languages.Add(DefaultLanguages.Instance.Vakken, MBRandom.RandomFloatRanged(0.5f, 1f));
+                    }
+                }
+
+                if (hero.Occupation is Occupation.Wanderer && MBRandom.RandomFloat < 0.1f)
+                {
+                    languages.Add(DefaultLanguages.Instance.All.ToList().GetRandomElementWithPredicate(x => x != native),
+                        MBRandom.RandomFloatRanged(0.5f, 1f));
+                }
+
+                var data = new EducationData(hero, languages);
+                Educations[hero] = data;
+
+                return data;
             }
-
-            if (hero.Occupation is Occupation.Wanderer && MBRandom.RandomFloat < 0.1f)
-            {
-                languages.Add(DefaultLanguages.Instance.All.ToList().GetRandomElementWithPredicate(x => x != native),
-                    MBRandom.RandomFloatRanged(0.5f, 1f));
-            }
-
-            var data = new EducationData(hero, languages);
-            Educations[hero] = data;
-
-            return data;
         }
 
         public void CorrectPlayerEducation()
         {
-            Educations.Remove(Hero.MainHero);
-            var languages = new Dictionary<Language, float>();
-            var native = DefaultLanguages.Instance.All.FirstOrDefault(x => x.Cultures
-            .Any(c => c.StringId == Hero.MainHero.Culture.StringId)) ?? DefaultLanguages.Instance.Calradian;
+            lock (CacheLock)
+            {
+                if (Educations == null) Educations = new Dictionary<Hero, EducationData>();
+                Educations.Remove(Hero.MainHero);
+                var languages = new Dictionary<Language, float>();
+                var native = DefaultLanguages.Instance.All.FirstOrDefault(x => x.Cultures
+                .Any(c => c.StringId == Hero.MainHero.Culture.StringId)) ?? DefaultLanguages.Instance.Calradian;
 
-            languages.Add(native, 1f);
-            var data = new EducationData(Hero.MainHero, languages);
-            Educations.Add(Hero.MainHero, data);
+                languages.Add(native, 1f);
+                var data = new EducationData(Hero.MainHero, languages);
+                Educations.Add(Hero.MainHero, data);
+            }
         }
 
         public void PostInitialize()
         {
-            foreach (var data in Educations.Values.ToList())
+            List<EducationData> snapshot;
+            lock (CacheLock)
+            {
+                if (Educations == null) Educations = new Dictionary<Hero, EducationData>();
+                snapshot = Educations.Values.ToList();
+            }
+            foreach (var data in snapshot)
             {
                 data.PostInitialize();
             }
@@ -116,12 +150,14 @@ namespace BannerKings.Managers
         public Language GetNativeLanguage(Hero hero)
         {
             var native = GetNativeLanguage(hero.Culture);
-            if (Educations.ContainsKey(hero))
+            EducationData data = null;
+            lock (CacheLock)
             {
-                if (!Educations[hero].Languages.ContainsKey(native))
-                {
-                    native = Educations[hero].Languages.First().Key;
-                }
+                if (Educations != null && Educations.TryGetValue(hero, out var existing)) data = existing;
+            }
+            if (data != null && data.Languages != null && !data.Languages.ContainsKey(native) && data.Languages.Count > 0)
+            {
+                native = data.Languages.First().Key;
             }
 
             return native;
@@ -129,25 +165,23 @@ namespace BannerKings.Managers
 
         public EducationData GetHeroEducation(Hero hero)
         {
-            EducationData data = null;
-            if (Educations.ContainsKey(hero))
+            if (hero == null) return null;
+            lock (CacheLock)
             {
-                data = Educations[hero];
+                if (Educations != null && Educations.TryGetValue(hero, out var existing)) return existing;
             }
-            else
-            {
-                data = InitHeroEducation(hero);
-            }
-
-            return data;
+            // InitHeroEducation locks internally.
+            return InitHeroEducation(hero);
         }
 
         public void UpdateHeroData(Hero hero)
         {
-            if (Educations.ContainsKey(hero))
+            EducationData data = null;
+            lock (CacheLock)
             {
-                Educations[hero].Update(null);
+                if (Educations != null) Educations.TryGetValue(hero, out data);
             }
+            data?.Update(null);
         }
 
         public MBReadOnlyList<ValueTuple<Language, Hero>> GetAvailableLanguagesToLearn(Hero hero)
@@ -191,68 +225,76 @@ namespace BannerKings.Managers
 
         private bool KnowsLanguage(Hero hero, Language language)
         {
-            if (!Educations.ContainsKey(hero))
-            {
-                InitHeroEducation(hero);
-            }
-
-            return Educations[hero].Languages.ContainsKey(language) && Educations[hero].Languages[language] == 1f;
+            EducationData data = GetHeroEducation(hero);
+            if (data == null || data.Languages == null) return false;
+            return data.Languages.TryGetValue(language, out var level) && level == 1f;
         }
 
         public bool CanRead(BookType book, Hero hero)
         {
-            if (Educations[hero].HasRead(book)) return false;
+            // Was: Educations[hero].HasRead(...) — KeyNotFoundException for
+            // any hero never previously Init'd. The lazy-init path is the
+            // canonical entry; use it here for consistency.
+            EducationData data = GetHeroEducation(hero);
+            if (data == null || data.HasRead(book)) return false;
 
             return hero.GetPerkValue(BKPerks.Instance.ScholarshipLiterate) && BannerKingsConfig.Instance.EducationModel.CalculateBookReadingRate(book, hero).ResultNumber >= 0.2f;
         }
 
         public void RemoveHero(Hero hero)
         {
-            if (Educations.ContainsKey(hero))
+            if (hero == null) return;
+            List<EducationData> instructorClears = null;
+            lock (CacheLock)
             {
+                if (Educations == null) return;
+                if (!Educations.ContainsKey(hero)) return;
                 foreach (var education in Educations)
                 {
-                    
                     if (education.Value != null && education.Value.LanguageInstructor == hero)
                     {
-                        education.Value.SetCurrentLanguage(null, null);
+                        instructorClears ??= new List<EducationData>();
+                        instructorClears.Add(education.Value);
                     }
                 }
                 Educations.Remove(hero);
+            }
+            if (instructorClears != null)
+            {
+                foreach (var d in instructorClears) d.SetCurrentLanguage(null, null);
             }
         }
 
 
         public void SetCurrentBook(Hero hero, BookType book)
         {
-            if (Educations.ContainsKey(hero))
-            {
-                Educations[hero].SetCurrentBook(book);
-            }
+            EducationData data;
+            lock (CacheLock) { data = (Educations != null && Educations.TryGetValue(hero, out var d)) ? d : null; }
+            data?.SetCurrentBook(book);
         }
 
         public void SetCurrentLanguage(Hero hero, Language language, Hero instructor)
         {
-            if (Educations.ContainsKey(hero))
-            {
-                Educations[hero].SetCurrentLanguage(language, instructor);
-            }
+            EducationData data;
+            lock (CacheLock) { data = (Educations != null && Educations.TryGetValue(hero, out var d)) ? d : null; }
+            data?.SetCurrentLanguage(language, instructor);
         }
 
         public void SetCurrentLifestyle(Hero hero, Lifestyle lf)
         {
-            if (Educations.ContainsKey(hero))
-            {
-                Educations[hero].SetCurrentLifestyle(lf);
-            }
+            EducationData data;
+            lock (CacheLock) { data = (Educations != null && Educations.TryGetValue(hero, out var d)) ? d : null; }
+            data?.SetCurrentLifestyle(lf);
         }
 
         public void SetStartOptionLifestyle(Hero hero, Lifestyle lf)
         {
-            if (Educations.ContainsKey(hero))
+            EducationData data;
+            lock (CacheLock) { data = (Educations != null && Educations.TryGetValue(hero, out var d)) ? d : null; }
+            if (data != null)
             {
-                Educations[hero].SetCurrentLifestyle(lf);
-                Educations[hero].Lifestyle.InvestFocus(Educations[hero], hero, true);
+                data.SetCurrentLifestyle(lf);
+                data.Lifestyle?.InvestFocus(data, hero, true);
             }
         }
 

@@ -358,8 +358,12 @@ namespace BannerKings.Models.Vanilla
                 explainedNumber.AddFactor(0.2f, new TextObject("{=PSrEtF5L}Government"));
             }
 
+            // settlement.Owner is OwnerClan?.Leader; null for rebel /
+            // unowned settlements. Without the guard, daily draft-efficiency
+            // ticks NRE on the first encountered abandoned settlement.
+            var owner = settlement.OwnerClan?.Leader;
             var lordshipMilitaryAdministration = BKPerks.Instance.LordshipMilitaryAdministration;
-            if (settlement.Owner.GetPerkValue(lordshipMilitaryAdministration))
+            if (owner != null && owner.GetPerkValue(lordshipMilitaryAdministration))
             {
                 explainedNumber.AddFactor(0.2f, lordshipMilitaryAdministration.Name);
             }
@@ -371,23 +375,27 @@ namespace BannerKings.Models.Vanilla
         {
             var explainedNumber = new ExplainedNumber(0.1f, true);
 
-            BannerKingsConfig.Instance.CourtManager.ApplyCouncilEffect(ref explainedNumber, settlement.OwnerClan.Leader,
-                DefaultCouncilPositions.Instance.Marshal,
-                DefaultCouncilTasks.Instance.EncourageMilitarism,
-                0.03f, false);
-
-            if (settlement.Culture == settlement.Owner.Culture)
+            var owner = settlement.OwnerClan?.Leader;
+            if (owner != null)
             {
-                var lordshipTraditionalistPerk = BKPerks.Instance.LordshipTraditionalist;
-                if (settlement.Owner.GetPerkValue(BKPerks.Instance.LordshipTraditionalist))
-                {
-                    explainedNumber.AddFactor(0.01f, lordshipTraditionalistPerk.Name);
-                }
+                BannerKingsConfig.Instance.CourtManager.ApplyCouncilEffect(ref explainedNumber, owner,
+                    DefaultCouncilPositions.Instance.Marshal,
+                    DefaultCouncilTasks.Instance.EncourageMilitarism,
+                    0.03f, false);
 
-                var lordshipMilitaryAdministration = BKPerks.Instance.LordshipMilitaryAdministration;
-                if (settlement.Owner.GetPerkValue(lordshipMilitaryAdministration))
+                if (settlement.Culture == owner.Culture)
                 {
-                    explainedNumber.AddFactor(0.02f, lordshipMilitaryAdministration.Name);
+                    var lordshipTraditionalistPerk = BKPerks.Instance.LordshipTraditionalist;
+                    if (owner.GetPerkValue(BKPerks.Instance.LordshipTraditionalist))
+                    {
+                        explainedNumber.AddFactor(0.01f, lordshipTraditionalistPerk.Name);
+                    }
+
+                    var lordshipMilitaryAdministration = BKPerks.Instance.LordshipMilitaryAdministration;
+                    if (owner.GetPerkValue(lordshipMilitaryAdministration))
+                    {
+                        explainedNumber.AddFactor(0.02f, lordshipMilitaryAdministration.Name);
+                    }
                 }
             }
 

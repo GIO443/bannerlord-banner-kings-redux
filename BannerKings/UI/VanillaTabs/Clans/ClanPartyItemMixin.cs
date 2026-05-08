@@ -56,9 +56,14 @@ namespace BannerKings.UI.VanillaTabs.Clans
         [DataSourceProperty]
         public bool IsSetCaravanOrdersVisible => SelectedCaravan != null;
 
-        [DataSourceProperty]
-        public HintViewModel SetCaravanOrdersHint => new HintViewModel(
+        // Was: a getter that allocated a fresh HintViewModel + TextObject
+        // every redraw, multiplied by every party row in the Clan Parties
+        // panel. The hint text is static for the mixin's lifetime — cache.
+        private static readonly HintViewModel _setCaravanOrdersHint = new HintViewModel(
             new TextObject("{=bk_clan_caravan_orders_hint}Set this caravan's standing orders (free trade, supply a settlement with food, …)."));
+
+        [DataSourceProperty]
+        public HintViewModel SetCaravanOrdersHint => _setCaravanOrdersHint;
 
         [DataSourceMethod]
         public void ExecuteSetCaravanOrders()

@@ -49,9 +49,29 @@ namespace BannerKings.UI.Extensions.Encyclopedia
         [DataSourceProperty]
         public string HeirText => new TextObject("{=vArnerHC}Heir").ToString();
 
+        // Tracks the clan whose page we last populated. When the
+        // encyclopedia switches to a different clan we need to re-add
+        // BK's per-clan fields; the previous code set addedFields=true
+        // once and never refreshed when the user opened a different
+        // clan's page (those fields stuck on the first opened clan).
+        private Clan _lastPopulatedClan;
+
         public override void OnRefresh()
         {
+            // Was: `var clan = clanPageVM.Obj as Clan;` — and immediately
+            // dereferenced clan.Culture. The encyclopedia hosts other page
+            // types (Hero, Item, Settlement) and `as Clan` returns null on
+            // those, NRE'ing the entire mixin and silently breaking BK
+            // additions to neighboring page types.
             var clan = clanPageVM.Obj as Clan;
+            if (clan == null) return;
+            // If the user navigated to a different clan, reset the
+            // addedFields gate so BK re-populates the per-clan info block.
+            if (_lastPopulatedClan != clan)
+            {
+                addedFields = false;
+                _lastPopulatedClan = clan;
+            }
             CultureInfo = new EncyclopediaCultureVM(clan.Culture);
             Companions.Clear();
             Councillors.Clear();

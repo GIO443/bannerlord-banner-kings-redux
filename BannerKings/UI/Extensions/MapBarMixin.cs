@@ -1,4 +1,5 @@
 ﻿using BannerKings.Behaviours.PartyNeeds;
+using BannerKings.Managers.Institutions.Religions;
 using Bannerlord.UIExtenderEx.Attributes;
 using Bannerlord.UIExtenderEx.ViewModels;
 using TaleWorlds.CampaignSystem;
@@ -82,6 +83,12 @@ namespace BannerKings.UI.Extensions
             }
         }
 
+        // Caches: avoid reallocating the BasicTooltipViewModel and the
+        // abbreviated text on every minute-tick of the map UI when Piety
+        // hasn't actually changed.
+        private int _lastPietyForHint = int.MinValue;
+        private Religion _lastReligionForHint;
+
         public override void OnRefresh()
         {
             if (BannerKingsConfig.Instance.ReligionsManager == null)
@@ -90,10 +97,17 @@ namespace BannerKings.UI.Extensions
             }
 
             var rel = BannerKingsConfig.Instance.ReligionsManager.GetHeroReligion(Hero.MainHero);
-            Piety = (int) BannerKingsConfig.Instance.ReligionsManager.GetPiety(rel, Hero.MainHero);
-            PietyHint = new BasicTooltipViewModel(() => UIHelper.GetPietyTooltip(rel, Hero.MainHero, Piety));
-            PietyWithAbbrText = CampaignUIHelper.GetAbbreviatedValueTextFromValue(Piety);
-            IsPietyTooltipWarning = Piety < 0f;
+            int newPiety = (int) BannerKingsConfig.Instance.ReligionsManager.GetPiety(rel, Hero.MainHero);
+            Piety = newPiety;
+            if (newPiety != _lastPietyForHint || rel != _lastReligionForHint)
+            {
+                _lastPietyForHint = newPiety;
+                _lastReligionForHint = rel;
+                int pietyForClosure = newPiety; // capture by value
+                PietyHint = new BasicTooltipViewModel(() => UIHelper.GetPietyTooltip(rel, Hero.MainHero, pietyForClosure));
+                PietyWithAbbrText = CampaignUIHelper.GetAbbreviatedValueTextFromValue(newPiety);
+            }
+            IsPietyTooltipWarning = newPiety < 0f;
             //if (rel == null) return;
 
             // MapInfoVM no longer has MoraleHint/TotalWageHint as direct properties in 1.3.x

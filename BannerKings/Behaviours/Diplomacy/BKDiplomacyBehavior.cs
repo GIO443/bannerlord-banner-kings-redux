@@ -24,6 +24,9 @@ namespace BannerKings.Behaviours.Diplomacy
         private Dictionary<Kingdom, KingdomDiplomacy> kingdomDiplomacies = new Dictionary<Kingdom, KingdomDiplomacy>();
         private List<War> wars = new List<War>();
         private List<Kingdom> rebelling = new List<Kingdom>();
+        // Reused snapshot list for the daily diplomacy tick — avoids
+        // allocating a defensive-copy Dictionary on every fire.
+        private List<KingdomDiplomacy> _diplomacyTickSnapshot;
 
         public bool WillJoinWar(IFaction attacker, IFaction defender, IFaction ally, DeclareWarAction.DeclareWarDetail detail)
             => BannerKingsConfig.Instance.DiplomacyModel.WillJoinWar(attacker, defender, ally, detail).ResultNumber > 0f;
@@ -420,9 +423,16 @@ namespace BannerKings.Behaviours.Diplomacy
             foreach (War war in toRemove)
                 wars.Remove(war);
 
-            foreach (var pair in new Dictionary<Kingdom, KingdomDiplomacy>(kingdomDiplomacies))
+            // Was: `new Dictionary<Kingdom, KingdomDiplomacy>(kingdomDiplomacies)` —
+            // a fresh defensive-copy dict allocated every daily tick (~7,300
+            // dict allocations per game year). Copy to a reused list field
+            // to keep the same re-entrancy safety with no allocation.
+            _diplomacyTickSnapshot ??= new List<KingdomDiplomacy>(kingdomDiplomacies.Count);
+            _diplomacyTickSnapshot.Clear();
+            _diplomacyTickSnapshot.AddRange(kingdomDiplomacies.Values);
+            foreach (var d in _diplomacyTickSnapshot)
             {
-                pair.Value.Update();
+                d.Update();
             }
 
             // Skip BK's truce/alliance/trade-pact AI proposals when a
@@ -560,6 +570,55 @@ namespace BannerKings.Behaviours.Diplomacy
         {
             TickKingdoms();
             InitializeDiplomacies();
+            SyncVanillaWarsToTracker();
+        }
+
+        // Vanilla seeds initial kingdom wars from spkingdoms.xml before any
+        // in-game day passes. Without this sync, those wars exist in
+        // Kingdom.Stances (IsAtWar=true) but never become BK War objects,
+        // so BK's peace logic, war exhaustion and fatigue tracking
+        // silently no-op for them — vanilla initial wars never end via
+        // BK negotiation paths.
+        //
+        // Tag inherited wars with Invasion as a generic sentinel
+        // CasusBelli. Invasion's IsFulfilled / IsInvalid don't deref
+        // war.CasusBelli.Fief (verified DefaultCasusBelli.cs:310-318),
+        // so a fief-less inherited war is NRE-safe. Mechanically the
+        // war still ends through vanilla MakePeaceAction → BK's
+        // OnMakePeace handler (line ~690) cleans the entry from `wars`.
+        //
+        // Idempotent: OnNewGameCreated is wired to BOTH the new-game
+        // event AND OnGameLoadedEvent (RegisterEvents lines ~249-250),
+        // so this also patches up old saves where vanilla wars were
+        // never tracked. The GetWar() gate ensures already-tracked
+        // pairs are skipped.
+        private void SyncVanillaWarsToTracker()
+        {
+            if (wars == null) wars = new List<War>();
+            var allKingdoms = Kingdom.All;
+            int added = 0;
+            for (int i = 0; i < allKingdoms.Count; i++)
+            {
+                var k1 = allKingdoms[i];
+                if (k1 == null || k1.IsEliminated) continue;
+                for (int j = i + 1; j < allKingdoms.Count; j++)
+                {
+                    var k2 = allKingdoms[j];
+                    if (k2 == null || k2.IsEliminated) continue;
+                    if (!k1.IsAtWarWith(k2)) continue;
+                    if (GetWar(k1, k2) != null) continue;
+                    wars.Add(new War(k1, k2, DefaultCasusBelli.Instance.Invasion));
+                    added++;
+                    var a = k1; var d = k2;
+                    BannerKings.Utils.Logs.Kingdom(() =>
+                        $"war sync: registered untracked vanilla war {a.Name} ↔ {d.Name}");
+                }
+            }
+            if (added > 0)
+            {
+                BannerKings.Utils.Logs.Kingdom(() =>
+                    $"war sync: imported {added} untracked vanilla war(s) into BK tracker");
+            }
         }
 
         private void InitializeDiplomacies()

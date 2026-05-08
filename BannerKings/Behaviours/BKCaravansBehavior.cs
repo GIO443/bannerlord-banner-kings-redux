@@ -1092,10 +1092,10 @@ namespace BannerKings.Behaviours
             bool naval = false;
             try { naval = caravanParty.HasNavalNavigationCapability; } catch { }
 
-            // Phase A/B — directable caravans: anchor bias.
+            // Directable caravans: anchor bias.
             // CaravanOrdersBehavior owns the per-order hysteresis. When an
             // order's bias is currently engaged (SupplyTown food-deficit, or
-            // SupplyWorkshops input-price-ratio), the anchor's score is
+            // ExportFromTown output-oversupply), the anchor's score is
             // multiplied so the caravan picks it as the next stop more
             // aggressively than pure trade-arbitrage would. FreeTrade and
             // dormant orders see no change here.
@@ -1104,6 +1104,34 @@ namespace BannerKings.Behaviours
             foreach (Town town in Town.AllFiefs)
             {
                 if (naval && !town.Settlement.HasPort) continue;
+                // Castles must be excluded as trade destinations. They appear
+                // in Town.AllFiefs (castles have a Town object), but they're
+                // not real markets — and the trade-score is heavily distance-
+                // dominated (num2 = 1/(d+8)). When a caravan leaves any
+                // settlement, that settlement is now the closest fief by
+                // construction, so a castle the caravan is right next to
+                // beats every distant town in the score even though the
+                // castle has no real liquidity. Result: caravans loop
+                // perpetually around any castle they happen to leave
+                // (observed: 4+ caravans ping-ponging on Pendraic Castle
+                // every game-second over multiple in-game days). Vanilla
+                // caravans never had this issue — vanilla's destination
+                // pick filtered to towns only.
+                if (!town.IsTown) continue;
+                // Just-left cooldown. Without this, any settlement the
+                // caravan exits is automatically the closest fief on the
+                // very next score pass — and the distance term in
+                // GetTradeScoreForTown (1/(d+8)) overwhelms everything
+                // else. Caravan picks the just-left settlement, walks back,
+                // leaves again, picks it again. Pendraic Castle was the
+                // canonical reproduction (with castle exclusion above this
+                // covers castles too) but the same dynamic can trap caravans
+                // at towns when the next-best target is far away. Excluding
+                // LastVisitedSettlement until the caravan reaches a different
+                // settlement breaks the loop without preventing legitimate
+                // round-trips (LastVisitedSettlement updates on entry to any
+                // new settlement, freeing the original).
+                if (town.Settlement == caravanParty.LastVisitedSettlement) continue;
                 if (town.Owner.Settlement != caravanParty.CurrentSettlement && !town.IsUnderSiege && !town.MapFaction.IsAtWarWith(caravanParty.MapFaction) && (!town.Settlement.Parties.Contains(MobileParty.MainParty) || !MobileParty.MainParty.MapFaction.IsAtWarWith(caravanParty.MapFaction)) && !blacklist.Contains(town.Settlement))
                 {
                     float tradeScoreForTown = GetTradeScoreForTown(caravanParty, town, lastHomeVisitTimeOfCaravan, caravanFullness, distanceCut);
@@ -1112,20 +1140,11 @@ namespace BannerKings.Behaviours
 
                     if (supplyOrder != null && town.Settlement == supplyOrder.AnchorSettlement)
                     {
+                        // Anchor bias applies to both SupplyTown (delivery)
+                        // and ExportFromTown (loading) — same multiplier,
+                        // direction inferred from order Mode by the buying /
+                        // selling sides downstream.
                         tradeScoreForTown *= BannerKings.Behaviours.Caravans.CaravanOrdersBehavior.ANCHOR_BIAS_MULTIPLIER;
-                    }
-                    // SupplyWorkshops source bias — pull the caravan through
-                    // towns that actually stock the input categories. Without
-                    // this, the caravan free-trades around (vanilla scoring
-                    // never picks scarce industrial inputs as buys) and
-                    // arrives at the anchor empty. With this, the scorer
-                    // prefers silver-rich / iron-rich towns en route.
-                    if (supplyOrder != null
-                        && supplyOrder.Mode == BannerKings.Behaviours.Caravans.CaravanOrderMode.SupplyWorkshops
-                        && BannerKings.Behaviours.Caravans.CaravanOrdersBehavior.Instance != null
-                        && BannerKings.Behaviours.Caravans.CaravanOrdersBehavior.Instance.IsWorkshopSourceCandidate(supplyOrder, town))
-                    {
-                        tradeScoreForTown *= BannerKings.Behaviours.Caravans.CaravanOrdersBehavior.WORKSHOP_SOURCE_BIAS_MULTIPLIER;
                     }
 
                     // Passive stakeholder bias — caravan drifts toward
@@ -1446,13 +1465,14 @@ namespace BannerKings.Behaviours
             float budgetFactor = CalculateBudgetFactor(caravanParty);
             RefreshTotalValueOfItemsAtCategoryForParty(caravanParty);
 
-            // Phase A/B — directable caravans: per-order buy filter.
-            // SupplyTown → food categories only. SupplyWorkshops → input
-            // categories of the anchor town's workshops (union). Free trade
-            // / dormant orders → null filter, vanilla scoring throughout.
-            // Pack-animal restock (the BuyCategory call after the top-5) is
-            // intentionally left open — caravans need haulers to move what
-            // they bought, regardless of filter.
+            // Directable caravans: per-order buy filter.
+            // SupplyTown → food categories only. ExportFromTown → no filter
+            // (vanilla scoring naturally prefers cheap outputs at the
+            // saturated anchor for loading). Free trade / dormant orders →
+            // null filter, vanilla scoring throughout. Pack-animal restock
+            // (the BuyCategory call after the top-5) is intentionally left
+            // open — caravans need haulers to move what they bought,
+            // regardless of filter.
             var buyFilter = BannerKings.Behaviours.Caravans.CaravanOrdersBehavior.Instance?.GetActiveBuyFilter(caravanParty);
             ValueTuple<ItemCategory, ItemCategory, ItemCategory, ItemCategory, ItemCategory> valueTuple = MBMath
                 .MaxElements5<ItemCategory>(ItemCategories.All,
@@ -1491,9 +1511,9 @@ namespace BannerKings.Behaviours
             {
                 BuyCategory(caravanParty, town, DefaultItemCategories.PackAnimal, budgetFactor, capacityFactor, list);
             }
-            // SupplyWorkshops force-buy moved to CaravanOrdersBehavior's
-            // SettlementEntered listener (BuyGoods is gated on the rethink
-            // flag and doesn't fire on every settlement entry).
+            // (v1.6.14.0: SupplyWorkshops + force-buy removed in favour of
+            // ExportFromTown — vanilla scoring at the saturated anchor
+            // already finds the workshop outputs cheap and loads them.)
             if (!list.IsEmpty<ValueTuple<EquipmentElement, int>>())
             {
                 CampaignEventDispatcher.Instance.OnCaravanTransactionCompleted(caravanParty, town, list);

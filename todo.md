@@ -10,6 +10,132 @@
       not triggering. Likely in `BKDiplomacyModel` or
       `KingdomDecisionProposalBehavior::ConsiderPeace` (we patch ConsiderWar
       but not ConsiderPeace).
+- [ ] **Charm gain too fast as mercenary (and possibly lordship)** —
+      mercenary career charm XP scaling appears inflated; player gains
+      charm levels far quicker than vanilla pace. Audit
+      `BKMercenaryCareerBehavior` and `BKLordPropertyBehavior` for
+      charm XP awards; check whether a per-tick or per-event multiplier
+      stacks with vanilla skill XP, or if BK awards charm in a path
+      vanilla doesn't. May also affect lordship career.
+- [ ] **Wars at game start not using vanilla diplomacy** — initial
+      kingdom wars on new campaign appear to bypass vanilla war
+      declaration logic. Suspect `BKDiplomacyBehavior` or an init-time
+      patch is force-declaring wars without going through
+      `DeclareWarAction` / vanilla `ConsiderWar` scoring. Verify with
+      a fresh campaign and grep for `DeclareWar` calls in BK init
+      paths. Per BK-decides-vanilla-executes: BK should set up
+      diplomatic state, not bypass the vanilla pipeline.
+- [ ] **Estate displayed value ≠ purchase price** — UI shows one
+      estate value but the gold deducted on buy is different. Audit
+      the estate-purchase UI (likely `EstateVM` / estate panel mixin)
+      vs the actual purchase action; the price model used by the
+      transaction is probably different from the one rendered. Single
+      source of truth: both display and purchase must call the same
+      pricing helper.
+- [ ] **Wisdom level resets to 0 on screen leave/return** — putting
+      points into the Wisdom education attribute appears to persist
+      visually only until the screen is closed and reopened, then
+      reverts to 0. Likely an unsaved staging value in the education
+      VM that isn't committed to `EducationData` on apply, OR a
+      reload path that re-derives from a stale source. Check
+      `EducationVM` apply flow + `EducationData.Wisdom` save field.
+
+## Audit follow-ups (2026-05-08 deep audit)
+
+Items the overnight audit flagged as real issues but intentionally
+left alone — each requires more context or design work than a
+mechanical fix allows. Do NOT batch these blindly with future
+"clean up the audit findings" passes; each one has a real reason
+it wasn't fixed in the v1.6.15.0 stability sweep.
+
+- [ ] **`EconomyPatches.KingdomBudgetPrefix` returns `false` whenever
+      TitleManager exists** (BannerKings/Patches/EconomyPatches.cs:651).
+      Suppresses vanilla `AddIncomeFromKingdomBudget` for *every* clan
+      forever. Commented-out original logic was conditional on
+      `FeudalRights.Assistance_Rights`. Likely accidental dead code from
+      the FeudalRights removal in 1.3.x — but BK has its own income
+      pipeline (`BKClanFinanceModel`) that may already replace this, so
+      restoring vanilla could double-count clan budget income. **Action**:
+      walk `BKClanFinanceModel.CalculateClanIncome` and confirm whether
+      the kingdom-budget transfer is BK-side now; if yes, document the
+      suppression intent; if no, restore the conditional gate.
+
+- [ ] **`EconomyPatches.CalculateClanExpensesInternalPrefix` does 6
+      reflective `GetMethod` lookups per call inside the daily clan-
+      expense path** (BannerKings/Patches/EconomyPatches.cs:582-643).
+      Hot path on big saves. Caching the MethodInfos is mechanical, but
+      the prefix is a parallel reimplementation of vanilla's expense
+      pipeline (gated only on `payBudget`). Per the BK-decides-vanilla-
+      executes principle, the right fix is to drop the parallel impl and
+      reduce to a postfix that adds BK-specific lines on top of vanilla.
+      **Action**: audit what BK actually adds vs vanilla and decide
+      between (a) cache reflection + accept the parallel impl, or
+      (b) rewrite as a postfix.
+
+- [ ] **`BKShippingBehavior` shadow-state dict consolidation**
+      (BannerKings/Behaviours/Shipping/BKShippingBehavior.cs).
+      Audit recommends collapsing the 9 cooperating dicts (`sailing`,
+      `redirectCache`, `progressTracker`, `lastRescueHour`,
+      `lastRescueTown`, `rescueHistory`, `bkOptOutUntilHour`,
+      `hopByHopState`, `lastPortLeft`, `walkingWaterLastLogHour`)
+      into a single per-party state record. Would eliminate the
+      duplicate-source-of-truth risk where `hopByHopState.intended`
+      mirrors `TargetSettlement` (drift after `SetMoveGoToSettlement`,
+      enter-settlement, or another mod's redirect). Multi-day rewrite
+      with high regression risk; v1.6.15.0 fixed only the most acute
+      thread-safety / leak issues. **Action**: design the single state
+      record, plan a save migration path, then refactor.
+
+- [ ] **`Components/BanditHeroComponent` SaveableField slots 10-13
+      may collide with vanilla `BanditPartyComponent`**
+      (BannerKings/Components/BanditHeroComponent.cs:19-22). The base
+      class's saveable slots are typically <10 but slots 10-13 should
+      be verified against the 1.3.x metadata using ILSpy/dotPeek on the
+      installed game DLL. If a collision exists, bump the BK slots to
+      the 100+ range matching `RetinueComponent` / `EstateComponent`
+      (1001+) — but that's a save-incompat bump unless a migration is
+      written. **Action**: verify with ILSpy first; only act if a real
+      collision is observed.
+
+- [ ] **Layered economy behaviors with empty `SyncData{}` blocks**
+      (`LayeredEconomyAssignmentBehavior`, `ClusterFoodTracker`,
+      `EstatePolicyAI`, `VillageDecreeManager`). Per-instance fields
+      (decree timers, pending cluster moves, AI engagement bands) are
+      silently dropped across save/reload — the daily-tick re-derives
+      most of it from `EconomicData`/`EstateData`/`PopulationData`,
+      but anything held only on the behavior instance is lost.
+      **Action**: audit each for instance fields; either move them
+      onto persisted Estate/EconomicData fields (preferred — keeps
+      single source of truth) or add explicit `SyncData` calls + register
+      any new types in `SaveDefiner.cs`.
+
+- [ ] **`InvasionBehavior.invasions` not persisted** — v1.6.15.0
+      reverted my `dataStore.SyncData` call after the audit critic
+      flagged that `Invasion` isn't registered in `SaveDefiner.cs`.
+      Currently the picked-invasion list rolls fresh each session.
+      **Action**: register `Invasion` in `SaveDefiner.cs` (with a
+      `[SaveableClass]` attribute and a container definition for
+      `List<Invasion>`), then re-add the `SyncData` call. Verify a
+      save→reload round-trip preserves the list.
+
+- [ ] **`BKClanFinanceModel.cs` and other untouched models** — the
+      audit only inspected the ~12 highest-leverage Vanilla model
+      overrides. Models not in that batch (BKClanFinance,
+      BKBattleSimulationModel, BKBanditModel, BKAgentDamageModel,
+      BKCombatXpModel, BKLearningModel, BKRaidModel, etc.) may have
+      similar `OwnerClan.Leader` / `?.Clan.Kingdom` / `data == null`
+      gaps. **Action**: dispatch a focused agent on the remaining
+      `Models/Vanilla/*.cs` files using the same prompt template, then
+      patch root-cause NREs.
+
+- [ ] **`EncyclopediaClanPageMixin.addedFields` reset is per-clan;
+      verify other Encyclopedia mixins** — `EncyclopediaHeroPageMixin`,
+      `EncyclopediaUnitPageMixin`, etc. likely have the same "stuck on
+      first opened object" bug pattern (added fields once, never
+      re-added when user navigates to a different object of the same
+      type). v1.6.15.0 only fixed Clan. **Action**: grep for
+      `addedFields` / `addedOnce` in `BannerKings/UI/Extensions/
+      Encyclopedia/` and apply the same per-target reset pattern.
 
 ---
 

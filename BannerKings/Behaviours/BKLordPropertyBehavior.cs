@@ -125,13 +125,28 @@ namespace BannerKings.Behaviours
             wk.ChangeOwnerOfWorkshop(buyer, wk.WorkshopType, TaleWorlds.CampaignSystem.Campaign.Current.Models.WorkshopModel.InitialCapital);
         }
 
+        // Cache caravan-master lookup per culture. Was: full
+        // CharacterObject.All.FirstOrDefault scan per RunWeekly call,
+        // which fires per lord per settlement entry — hundreds of full
+        // character-list scans per game day.
+        private static readonly System.Collections.Concurrent.ConcurrentDictionary<CultureObject, CharacterObject> _caravanMasterByCulture
+            = new System.Collections.Concurrent.ConcurrentDictionary<CultureObject, CharacterObject>();
+
+        private static CharacterObject GetCaravanMaster(CultureObject culture)
+        {
+            if (culture == null) return null;
+            return _caravanMasterByCulture.GetOrAdd(culture, c =>
+                CharacterObject.All.FirstOrDefault(ch =>
+                    ch.Occupation == Occupation.CaravanGuard &&
+                    ch.IsInfantry &&
+                    ch.Level == 26 &&
+                    ch.Culture == c));
+        }
+
         private bool ShouldHaveCaravan(Hero hero, int cost)
         {
-            CharacterObject master = CharacterObject.All.FirstOrDefault((CharacterObject character) => 
-                character.Occupation == Occupation.CaravanGuard && 
-                character.IsInfantry && 
-                character.Level == 26 && 
-                character.Culture == hero.Culture);
+            if (hero?.Clan?.Leader == null) return false;
+            CharacterObject master = GetCaravanMaster(hero.Culture);
             return master != null && hero == hero.Clan.Leader && hero.Clan.Gold >= (int) (cost * 2f) &&
                    hero.OwnedCaravans.Count < (int) (hero.Clan.Tier / 3f);
         }

@@ -208,10 +208,15 @@ namespace BannerKings.Patches
             [HarmonyPatch("DetermineSupporters")]
             private static bool DetermineSupportersPrefix(KingdomDecision __instance, ref IEnumerable<Supporter> __result)
             {
+                // Mod-compat: Diplomacy / AIInfluence rebuild kingdom
+                // decision support computation. Silently replacing vanilla
+                // here fights those mods' parallel pipelines.
+                if (BannerKings.Utils.ModCompat.DiplomacyMod || BannerKings.Utils.ModCompat.AIInfluence) return true;
+                if (__instance == null || __instance.Kingdom == null) return true;
                 var list = new List<Supporter>();
                 foreach (Clan clan in __instance.Kingdom.Clans)
                 {
-                    var council = BannerKingsConfig.Instance.CourtManager.GetCouncil(clan);
+                    var council = BannerKingsConfig.Instance?.CourtManager?.GetCouncil(clan);
                     if (council != null && council.Peerage != null && !clan.IsUnderMercenaryService)
                     {
                         if (council.Peerage.CanVote)
@@ -229,7 +234,23 @@ namespace BannerKings.Patches
             [HarmonyPatch("IsPlayerParticipant", MethodType.Getter)]
             private static bool IsPlayerParticipantPrefix(KingdomDecision __instance, ref bool __result)
             {
-                var council = BannerKingsConfig.Instance.CourtManager.GetCouncil(Clan.PlayerClan);
+                // Mod-compat for the same reason as DetermineSupporters
+                // above: don't replace vanilla on the participant gate
+                // when Diplomacy/AIInfluence own this pipeline.
+                if (BannerKings.Utils.ModCompat.DiplomacyMod || BannerKings.Utils.ModCompat.AIInfluence) return true;
+                // Was: dereferenced council.Peerage without null-checking
+                // council. Fall through to vanilla on early-game / no-
+                // kingdom / mercenary state where GetCouncil legitimately
+                // returns null (PlayerClan with no clan, etc).
+                if (Clan.PlayerClan == null)
+                {
+                    return true;
+                }
+                var council = BannerKingsConfig.Instance?.CourtManager?.GetCouncil(Clan.PlayerClan);
+                if (council == null)
+                {
+                    return true;
+                }
                 __result = __instance.Kingdom == Clan.PlayerClan.Kingdom && !Clan.PlayerClan.IsUnderMercenaryService &&
                     council.Peerage != null && council.Peerage.CanVote;
                 return false;
@@ -285,11 +306,17 @@ namespace BannerKings.Patches
         [HarmonyPatch(typeof(Army), "UpdateName")]
         internal class ArmyUpdateNamePatch
         {
+            // Cache once: previously did AccessTools.Property(...) on every
+            // invocation. Army.UpdateName is called whenever army membership
+            // changes — many times per campaign hour during war.
+            private static readonly System.Reflection.PropertyInfo _armyNameProp =
+                AccessTools.Property(typeof(Army), "Name");
+
             private static bool Prefix(Army __instance)
             {
                 FeudalTitle title = BannerKingsConfig.Instance.TitleManager.GetSovereignTitle(__instance.Kingdom);
-                TextObject leaderName = __instance.ArmyOwner != null ? 
-                    __instance.ArmyOwner.Name : ((__instance.LeaderParty.PartyComponent.PartyOwner != null) ?
+                TextObject leaderName = __instance.ArmyOwner != null ?
+                    __instance.ArmyOwner.Name : ((__instance.LeaderParty?.PartyComponent?.PartyOwner != null) ?
                     __instance.LeaderParty.PartyComponent.PartyOwner.Name : TextObject.GetEmpty());
                 TextObject result = new TextObject("{=nbmctMLk}{LEADER_NAME}{.o} Army");
                 if (title != null)
@@ -304,7 +331,7 @@ namespace BannerKings.Patches
                     }
                 }
 
-                AccessTools.Property(__instance.GetType(), "Name").SetValue(__instance,
+                _armyNameProp?.SetValue(__instance,
                     result.SetTextVariable("LEADER_NAME", leaderName));
                 return false;
             }
@@ -339,7 +366,14 @@ namespace BannerKings.Patches
         [HarmonyPatch(typeof(KingSelectionKingdomDecision))]
         internal class KingdomPolicyDecisionPatches
         {
-            [HarmonyPostfix]
+            // Was [HarmonyPostfix] on a method named Prefix returning bool
+            // — Harmony treats it as a postfix and ignores the bool return,
+            // so the skip-original `return false` was a silent no-op (the
+            // method ran AFTER vanilla every time, overriding __result).
+            // The original intent is a prefix that replaces vanilla when
+            // BK governs the policy whitelist; restore that by switching
+            // to [HarmonyPrefix].
+            [HarmonyPrefix]
             [HarmonyPatch("IsAllowed", MethodType.Normal)]
             private static bool Prefix(ref bool __result, KingdomPolicyDecision __instance)
             {
@@ -361,11 +395,19 @@ namespace BannerKings.Patches
             private static void OutcomeMeritPostfix(ref float __result, KingdomPolicyDecision __instance,
                 Clan clan, DecisionOutcome possibleOutcome)
             {
-                KingdomPolicyDecision.PolicyDecisionOutcome policyDecisionOutcome = 
+                // Skip if mods like Diplomacy own this surface, or if the
+                // outcome isn't a policy outcome (mod-introduced subclass)
+                // — the previous code dereferenced policyDecisionOutcome
+                // without checking the cast.
+                if (BannerKings.Utils.ModCompat.DiplomacyMod) return;
+                KingdomPolicyDecision.PolicyDecisionOutcome policyDecisionOutcome =
                     possibleOutcome as KingdomPolicyDecision.PolicyDecisionOutcome;
+                if (policyDecisionOutcome == null) return;
+                if (clan?.Kingdom == null || clan.Leader == null) return;
                 BKDiplomacyBehavior behavior = TaleWorlds.CampaignSystem.Campaign.Current.GetCampaignBehavior<BKDiplomacyBehavior>();
+                if (behavior == null) return;
                 KingdomDiplomacy diplomacy = behavior.GetKingdomDiplomacy(clan.Kingdom);
-     
+
                 if (diplomacy != null)
                 {
                     InterestGroup group = diplomacy.GetHeroGroup(clan.Leader);

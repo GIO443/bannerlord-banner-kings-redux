@@ -214,7 +214,13 @@ namespace BannerKings.Models.Vanilla
             else if (kingdom.KingdomBudgetWallet > 50000) result.Add(baseNumber * 0.05f, new TextObject("{=!}{KINGDOM} has extra budget for sellswords")
                     .SetTextVariable("KINGDOM", kingdom.Name));
 
-            Hero ruler = kingdom.RulingClan.Leader;
+            // Vanilla can call into this immediately after a hero death,
+            // when RulingClan reassignment hasn't happened yet (or the
+            // kingdom's RulingClan has no Leader because succession is
+            // pending). Without these guards, the daily mercenary-recruit
+            // model NREs the entire diplomacy tick.
+            Hero ruler = kingdom.RulingClan?.Leader;
+            if (ruler == null) return result;
             if (mercenaryClan.IsOutlaw)
             {
                 result.Add(baseNumber * (ruler.GetTraitLevel(DefaultTraits.Honor) * -0.2f), 
@@ -239,8 +245,10 @@ namespace BannerKings.Models.Vanilla
                     new TextObject("{=!}Personality trait ({TRAIT})")
                     .SetTextVariable("TRAIT", BKTraits.Instance.Humble.Name));
 
-            Religion rulerReligion = BannerKingsConfig.Instance.ReligionsManager.GetHeroReligion(kingdom.RulingClan.Leader);
-            Religion mercenaryReligion = BannerKingsConfig.Instance.ReligionsManager.GetHeroReligion(mercenaryClan.Leader);
+            Religion rulerReligion = BannerKingsConfig.Instance.ReligionsManager.GetHeroReligion(ruler);
+            Religion mercenaryReligion = mercenaryClan.Leader != null
+                ? BannerKingsConfig.Instance.ReligionsManager.GetHeroReligion(mercenaryClan.Leader)
+                : null;
 
             if (rulerReligion != null)
             {
@@ -261,10 +269,13 @@ namespace BannerKings.Models.Vanilla
 
             if (mercenaryClan.Culture == kingdom.Culture) result.Add(baseNumber * 0.2f, GameTexts.FindText("str_culture"));
 
-            result.Add(baseNumber * (mercenaryClan.Leader.GetRelation(kingdom.RulingClan.Leader) * 0.01f),
-                new TextObject("{=nnYfQnWv}{HERO1}`s opinion of {HERO2}")
-                .SetTextVariable("HERO1", ruler.Name)
-                .SetTextVariable("HERO2", mercenaryClan.Leader.Name));
+            if (mercenaryClan.Leader != null)
+            {
+                result.Add(baseNumber * (mercenaryClan.Leader.GetRelation(ruler) * 0.01f),
+                    new TextObject("{=nnYfQnWv}{HERO1}`s opinion of {HERO2}")
+                    .SetTextVariable("HERO1", ruler.Name)
+                    .SetTextVariable("HERO2", mercenaryClan.Leader.Name));
+            }
 
             MercenaryCareer career = TaleWorlds.CampaignSystem.Campaign.Current.GetCampaignBehavior<BKMercenaryCareerBehavior>()
                 .GetCareer(mercenaryClan);
@@ -828,7 +839,10 @@ namespace BannerKings.Models.Vanilla
 
             if (factionDeclaresWar.MapFaction == factionDeclaredWar.MapFaction)
             {
-                return new ExplainedNumber(-50000f);
+                // Was: returning a non-explained number, breaking tooltip
+                // determinism for callers that requested explanations.
+                return new ExplainedNumber(-50000f, explanations,
+                    new TextObject("{=BKsameFaction}Same faction"));
             }
 
             float baseNumber = 0f;
@@ -994,17 +1008,25 @@ namespace BannerKings.Models.Vanilla
                     bool isInAllyWar = false;
                     foreach (IFaction ally in factionDeclaresWar.GetAllies())
                     {
+                        // Was: dereferenced `war.X` here even though the
+                        // outer `if (war != null)` already failed — every
+                        // reference inside this loop must use `allyWar`.
+                        // The original code NRE'd whenever a stance
+                        // resolved as in-war via an ally rather than a
+                        // direct War record.
                         War allyWar = TaleWorlds.CampaignSystem.Campaign.Current.GetCampaignBehavior<BKDiplomacyBehavior>().GetAllyWar(ally, factionDeclaredWar, factionDeclaresWar);
                         if (allyWar != null)
                         {
                             isInAllyWar = true;
-                            if (war.StartDate.ElapsedYearsUntilNow < 1f) result.Add(50000f, new TextObject("{=UaofTriA}Recently started war"));
+                            if (allyWar.StartDate.ElapsedYearsUntilNow < 1f) result.Add(50000f, new TextObject("{=UaofTriA}Recently started war"));
 
-                            float score = MathF.Clamp(war.CalculateWarScore(war.Attacker, false).ResultNumber /
-                                war.TotalWarScore.ResultNumber, -1f, 1f) * 2f;
-                            result.Add(MathF.Abs(baseNumber) * (war.Attacker == factionDeclaresWar ? -score : score));
+                            float totalAlly = allyWar.TotalWarScore.ResultNumber;
+                            float score = totalAlly != 0f
+                                ? MathF.Clamp(allyWar.CalculateWarScore(allyWar.Attacker, false).ResultNumber / totalAlly, -1f, 1f) * 2f
+                                : 0f;
+                            result.Add(MathF.Abs(baseNumber) * (allyWar.Attacker == factionDeclaresWar ? -score : score));
 
-                            float fatigue = BannerKingsConfig.Instance.WarModel.CalculateFatigue(war, factionDeclaresWar).ResultNumber * 4f;
+                            float fatigue = BannerKingsConfig.Instance.WarModel.CalculateFatigue(allyWar, factionDeclaresWar).ResultNumber * 4f;
                             result.Add(MathF.Abs(baseNumber) * -fatigue, new TextObject("{=Nxrd7yym}Fatigue over this war"));
                         }
                     }

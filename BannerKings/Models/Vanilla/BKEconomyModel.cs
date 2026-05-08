@@ -277,10 +277,19 @@ namespace BannerKings.Models.Vanilla
                     result.Add(factor, new TextObject("{=s2gxPA2Q}Market gold"));
                 }
 
-                var capital = TaleWorlds.CampaignSystem.Campaign.Current.GetCampaignBehavior<BKCapitalBehavior>().GetCapital(settlement.OwnerClan.Kingdom);
-                if (capital == settlement.Town)
+                // settlement.OwnerClan can be null for rebel/abandoned
+                // settlements; OwnerClan.Kingdom is null for unaffiliated
+                // minor clans. GetCapital(null) NREs in the daily trade-
+                // power tick path on the first encountered orphan town.
+                var ownerKingdom = settlement.OwnerClan?.Kingdom;
+                if (ownerKingdom != null)
                 {
-                    result.Add(0.2f, new TextObject("{=fQVyeiJb}Capital"));
+                    var capitalBehavior = TaleWorlds.CampaignSystem.Campaign.Current.GetCampaignBehavior<BKCapitalBehavior>();
+                    var capital = capitalBehavior?.GetCapital(ownerKingdom);
+                    if (capital == settlement.Town)
+                    {
+                        result.Add(0.2f, new TextObject("{=fQVyeiJb}Capital"));
+                    }
                 }
 
                 Building building = settlement.Town.Buildings.FirstOrDefault(x => x.BuildingType.StringId == BKBuildings.Instance.Harbor.StringId ||
@@ -291,12 +300,17 @@ namespace BannerKings.Models.Vanilla
                     result.Add((harbor ? 0.1f : 0.08f) * building.CurrentLevel, building.Name);
                 }
 
-                BannerKingsConfig.Instance.CourtManager.ApplyCouncilEffect(ref result,
-                   settlement.OwnerClan.Leader,
-                   DefaultCouncilPositions.Instance.Constable,
-                   DefaultCouncilTasks.Instance.EnforceLaw,
-                   0.05f,
-                   true);
+                // OwnerClan.Leader is null for rebel-held / abandoned
+                // settlements; council-effect lookup NREs without this guard.
+                if (settlement.OwnerClan?.Leader != null)
+                {
+                    BannerKingsConfig.Instance.CourtManager.ApplyCouncilEffect(ref result,
+                       settlement.OwnerClan.Leader,
+                       DefaultCouncilPositions.Instance.Constable,
+                       DefaultCouncilTasks.Instance.EnforceLaw,
+                       0.05f,
+                       true);
+                }
 
                 Hero governor = settlement.Town.Governor;
                 if (governor != null)
@@ -382,8 +396,13 @@ namespace BannerKings.Models.Vanilla
 
         public override ExplainedNumber GetMerchantIncome(Town town, bool explanations = false)
         {
-            var data = BannerKingsConfig.Instance.PopulationManager.GetPopData(town.Settlement);
             ExplainedNumber result = new ExplainedNumber(town.Prosperity / 2.5f, explanations);
+            // PopData is null for early-init / recently-conquered settlements
+            // BK hasn't populated yet. Vanilla town-gold tick NREs on a fresh
+            // capture without this guard. Return base prosperity so the town
+            // still gets some daily gold flow until BK init runs.
+            var data = BannerKingsConfig.Instance.PopulationManager.GetPopData(town.Settlement);
+            if (data == null) return result;
             float slaves = data.GetTypeCount(PopType.Slaves);
             var privateSlaves = slaves * (1f - data.EconomicData.StateSlaves);
             var tax = 0.05f;

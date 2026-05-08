@@ -209,24 +209,19 @@ namespace BannerKings.Managers
         public void ExecuteRemoveHero(Hero hero, bool isConversion = false)
         {
             var rel = GetHeroReligion(hero);
-            /*if (IsPreacher(hero))
-            {
-                var clergyman = GetClergymanFromHeroHero(hero);
-                if (clergyman != null)
-                {
-                    rel = GetClergymanReligion(clergyman);
-                    rel.RemoveClergyman(clergyman);
-                }
-            }*/
-
             if (rel != null)
             {
-                if (Religions[rel].ContainsKey(hero))
-                {
-                    Religions[rel].Remove(hero);
-                } 
+                // Lock the inner-dict mutation under the same lock as
+                // HeroesCache. UI-thread reads (ReligionVM, EncyclopediaClanPage,
+                // marriage VMs) hit Religions[rel][hero]; without a lock the
+                // resize race freezes the reader (per project memory).
                 lock (HeroesCacheLock)
                 {
+                    if (Religions != null && Religions.TryGetValue(rel, out var inner)
+                        && inner != null && inner.ContainsKey(hero))
+                    {
+                        inner.Remove(hero);
+                    }
                     if (HeroesCache != null && HeroesCache.ContainsKey(hero))
                     {
                         HeroesCache.Remove(hero);
@@ -237,11 +232,18 @@ namespace BannerKings.Managers
 
         public void ExecuteAddToReligion(Hero hero, Religion religion)
         {
-            if (!Religions[religion].ContainsKey(hero))
+            if (religion == null || hero == null) return;
+            lock (HeroesCacheLock)
             {
-                Religions[religion].Add(hero, new FaithfulData(0f));
-                lock (HeroesCacheLock)
+                if (Religions == null) return;
+                if (!Religions.TryGetValue(religion, out var inner) || inner == null)
                 {
+                    inner = new Dictionary<Hero, FaithfulData>();
+                    Religions[religion] = inner;
+                }
+                if (!inner.ContainsKey(hero))
+                {
+                    inner.Add(hero, new FaithfulData(0f));
                     if (HeroesCache != null)
                     {
                         HeroesCache[hero] = religion;
@@ -302,11 +304,15 @@ namespace BannerKings.Managers
             {
                 rel = GetHeroReligion(hero);
             }
-             
+
             if (rel != null)
             {
-                if (Religions.ContainsKey(rel) && Religions[rel].ContainsKey(hero))
-                    return Religions[rel][hero].Blessing == blessing;
+                lock (HeroesCacheLock)
+                {
+                    if (Religions != null && Religions.TryGetValue(rel, out var inner)
+                        && inner != null && inner.TryGetValue(hero, out var data) && data != null)
+                        return data.Blessing == blessing;
+                }
             }
 
             return false;
@@ -335,18 +341,28 @@ namespace BannerKings.Managers
         public FaithfulData GetFaithfulData(Hero hero)
         {
             var rel = GetHeroReligion(hero);
-            return rel != null ? Religions[rel][hero] : null;
+            if (rel == null) return null;
+            // Locked TryGetValue avoids the freeze-in-FindEntry pattern when
+            // the campaign thread is mid-Add/Remove on Religions[rel].
+            lock (HeroesCacheLock)
+            {
+                if (Religions != null && Religions.TryGetValue(rel, out var inner)
+                    && inner != null && inner.TryGetValue(hero, out var data))
+                    return data;
+            }
+            return null;
         }
 
 
         public void AddBlessing(Divinity divinity, Hero hero, Religion religion, bool notify = false)
         {
-            if (!Religions[religion].ContainsKey(hero))
+            FaithfulData data;
+            lock (HeroesCacheLock)
             {
-                return;
+                if (Religions == null || !Religions.TryGetValue(religion, out var inner)
+                    || inner == null || !inner.TryGetValue(hero, out data) || data == null) return;
             }
-
-            Religions[religion][hero].AddBlessing(divinity, hero);
+            data.AddBlessing(divinity, hero);
             if (notify)
             {
                 MBInformationManager.AddQuickInformation(religion.Faith.GetBlessingQuickInformation()
@@ -375,20 +391,31 @@ namespace BannerKings.Managers
                 {
                     return cached;
                 }
+                // Was outside the lock — racing the inner-dict ContainsKey
+                // against concurrent Add/Remove on Religions[rel] freezes
+                // inside Dictionary.FindEntry on resize.
+                if (Religions != null)
+                {
+                    foreach (var pair in Religions)
+                    {
+                        if (pair.Value != null && pair.Value.ContainsKey(hero)) return pair.Key;
+                    }
+                }
             }
-            return Religions.FirstOrDefault(pair => pair.Value != null && pair.Value.ContainsKey(hero)).Key;
+            return null;
         }
 
         public List<Hero> GetFaithfulHeroes(Religion religion)
         {
             var heroes = new List<Hero>();
-            if (!Religions.ContainsKey(religion))
+            if (religion == null) return heroes;
+            lock (HeroesCacheLock)
             {
-                return heroes;
+                if (Religions != null && Religions.TryGetValue(religion, out var inner) && inner != null)
+                {
+                    heroes.AddRange(inner.Keys);
+                }
             }
-
-            heroes.AddRange(Religions[religion].Keys.ToList());
-
             return heroes;
         }
 

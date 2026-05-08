@@ -18,6 +18,11 @@ namespace BannerKings.UI.Titles
         private MBBindingList<DecisionElement> decisions;
         private MBBindingList<InformationElement> titleInfo;
         private Kingdom kingdom;
+        // Banner-source caches: avoid allocating a new BannerImageIdentifierVM
+        // (GPU resource) on every RefreshValues call when the source hasn't
+        // changed.
+        private Kingdom _lastBannerKingdom;
+        private Clan _lastBannerClan;
         private string name, demesneText;
         private FeudalTitle title;
         private TitleElementVM tree;
@@ -80,13 +85,27 @@ namespace BannerKings.UI.Titles
             {
                 kingdom = BannerKingsConfig.Instance.TitleManager.GetTitleFaction(title);
                 Tree = new TitleElementVM(title, this);
+                // Was: allocated a fresh BannerImageIdentifierVM (GPU
+                // resource) every RefreshValues call. Only rebuild when
+                // the underlying source changes; otherwise reuse the
+                // existing Banner.
                 if (kingdom != null)
                 {
-                    Banner = new BannerImageIdentifierVM(kingdom.Banner, true);
+                    if (_lastBannerKingdom != kingdom)
+                    {
+                        _lastBannerKingdom = kingdom;
+                        _lastBannerClan = null;
+                        Banner = new BannerImageIdentifierVM(kingdom.Banner, true);
+                    }
                 }
-                else if (title.deJure != null)
+                else if (title.deJure != null && title.deJure.Clan != null)
                 {
-                    Banner = new BannerImageIdentifierVM(title.deJure.Clan.Banner, true);
+                    if (_lastBannerClan != title.deJure.Clan)
+                    {
+                        _lastBannerClan = title.deJure.Clan;
+                        _lastBannerKingdom = null;
+                        Banner = new BannerImageIdentifierVM(title.deJure.Clan.Banner, true);
+                    }
                 }
                 Name = title.FullName.ToString();
             }

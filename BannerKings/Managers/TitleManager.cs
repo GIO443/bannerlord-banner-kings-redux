@@ -137,7 +137,18 @@ namespace BannerKings.Managers
             }
         }
 
-        public bool IsKnight(Hero hero) => Knights.ContainsKey(hero);
+        public bool IsKnight(Hero hero)
+        {
+            if (hero == null) return false;
+            // Knights is reachable from UI render paths (IsHeroKnighted →
+            // tooltips). Lock alongside the rest of TitleManager's caches
+            // to avoid the FindEntry resize race during AddKnightInfluence
+            // / RemoveKnights mutations from the campaign thread.
+            lock (CacheLock)
+            {
+                return Knights != null && Knights.ContainsKey(hero);
+            }
+        }
 
         public FeudalTitle GetTitle(Settlement settlement)
         {
@@ -801,31 +812,43 @@ namespace BannerKings.Managers
 
         public void AddKnightInfluence(Hero hero, float influence)
         {
-            if (Knights.ContainsKey(hero))
+            if (hero == null) return;
+            lock (CacheLock)
             {
-                Knights[hero] += influence;
-            }
-            else
-            {
-                Knights.Add(hero, influence);
+                Knights ??= new Dictionary<Hero, float>();
+                if (Knights.ContainsKey(hero))
+                {
+                    Knights[hero] += influence;
+                }
+                else
+                {
+                    Knights.Add(hero, influence);
+                }
             }
         }
 
         public void RemoveKnights(Hero hero)
         {
-            if (Knights.ContainsKey(hero))
+            if (hero == null) return;
+            lock (CacheLock)
             {
-                Knights.Remove(hero);
+                if (Knights != null && Knights.ContainsKey(hero))
+                {
+                    Knights.Remove(hero);
+                }
             }
         }
 
         public float GetKnightInfluence(Hero hero)
         {
-            if (Knights.ContainsKey(hero))
+            if (hero == null) return 0f;
+            lock (CacheLock)
             {
-                return Knights[hero];
+                if (Knights != null && Knights.TryGetValue(hero, out var value))
+                {
+                    return value;
+                }
             }
-
             return 0f;
         }
 

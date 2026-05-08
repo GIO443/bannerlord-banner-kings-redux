@@ -272,14 +272,14 @@ namespace BannerKings.Behaviours
 
             if (toRemove.Count > 0)
             {
-                List<Hero> notables = (List<Hero>)Settlement_NotablesCache.GetValue(settlement);
+                // Was: reflection-write into Settlement._notablesCache
+                // followed by KillCharacterAction.ApplyByRemove. The action
+                // already invokes vanilla's notable-removal pathway (which
+                // touches the same private cache and triggers replenishment
+                // hooks). The manual reflection write was redundant and
+                // bypassed the replenishment side-effects.
                 foreach (var notable in toRemove)
                 {
-                    if (notables.Contains(notable))
-                    {
-                        notables.Remove(notable);
-                    }
-
                     notable.AddPower(-10000f);
                     if (notable.CurrentSettlement != null)
                     {

@@ -136,9 +136,15 @@ namespace BannerKings.Managers.Court
 
         public void SetMember(Hero hero)
         {
+            // RemoveCache must be called with the OUTGOING member, not the
+            // incoming one. The previous code passed `hero` (the new member)
+            // which left the outgoing member's PositionsCache entry pointing
+            // at this CouncilMember slot forever — dismissed/dead heroes
+            // appeared as still-employed, and replacement heroes inherited
+            // their predecessor's stale cache list because we never cleared.
             if (Member != null)
             {
-                BannerKingsConfig.Instance.CourtManager.RemoveCache(hero);
+                BannerKingsConfig.Instance.CourtManager.RemoveCache(Member);
             }
 
             if (hero != null)

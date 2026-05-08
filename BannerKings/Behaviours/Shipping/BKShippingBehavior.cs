@@ -911,6 +911,10 @@ namespace BannerKings.Behaviours.Shipping
             if (rescueHistory.ContainsKey(party)) rescueHistory.Remove(party);
             if (bkOptOutUntilHour.ContainsKey(party)) bkOptOutUntilHour.Remove(party);
             if (lastPortLeft.ContainsKey(party)) lastPortLeft.Remove(party);
+            // walkingWaterLastLogHour was added later than this cleanup
+            // path; without removal, destroyed MobileParty references
+            // accumulate in long-running campaigns (per audit).
+            if (walkingWaterLastLogHour.ContainsKey(party)) walkingWaterLastLogHour.Remove(party);
         }
 
         // Records the most-recent settlement a party left, with the
@@ -1141,14 +1145,25 @@ namespace BannerKings.Behaviours.Shipping
                                 {
                                     // F1: just restore AtSea=true. No haven.
                                     try { party.IsCurrentlyAtSea = true; } catch { }
+                                    // Was: `continue` here, which skipped the
+                                    // IsActive=true / Ai.EnableAi resets below
+                                    // for legacy-AI-disabled F1 parties — the
+                                    // rescue restored AtSea but left the
+                                    // convoy un-tickable, so it stayed sitting
+                                    // at the port forever despite the rescue.
+                                    // Fall through so AI/IsActive get fixed
+                                    // too; needReset stays false so we don't
+                                    // also enter a settlement.
                                     reset++;
                                     string sig = onWaterByTerrain ? t.ToString() : "PortPosition/water-tile";
                                     LogRescue(party, $"load-cleanup: restored AtSea=true (naval-only on {sig}, no haven needed)");
-                                    continue;
                                 }
-                                // F2: fall through to haven rescue below.
-                                string sig2 = onWaterByTerrain ? t.ToString() : "PortPosition/water-tile";
-                                needReset = true; reason = $"land-mode on {sig2} (naval+land)";
+                                else
+                                {
+                                    // F2: fall through to haven rescue below.
+                                    string sig2 = onWaterByTerrain ? t.ToString() : "PortPosition/water-tile";
+                                    needReset = true; reason = $"land-mode on {sig2} (naval+land)";
+                                }
                             }
                         }
                         catch { }
@@ -1289,6 +1304,25 @@ namespace BannerKings.Behaviours.Shipping
                 var wrapper = TaleWorlds.CampaignSystem.Campaign.Current?.MapSceneWrapper;
                 List<MobileParty> staleSlaveCaravans = null;
 
+                // Build a port-position snapshot ONCE per sweep. The previous
+                // code looped Settlement.All inside the per-party loop to test
+                // "am I at any port's PortPosition?" — with ~5000 parties × 150
+                // settlements that's 750k Vec2.Distance calls per sweep on the
+                // campaign thread. Snapshot once, walk a small list per party.
+                List<Vec2> portPositions = null;
+                try
+                {
+                    portPositions = new List<Vec2>(64);
+                    foreach (var s in Settlement.All)
+                    {
+                        if (s == null) continue;
+                        bool hp = false; try { hp = s.HasPort; } catch { }
+                        if (!hp) continue;
+                        portPositions.Add(s.PortPosition.ToVec2());
+                    }
+                }
+                catch { portPositions = null; }
+
                 foreach (var party in MobileParty.All)
                 {
                     if (party == null) continue;
@@ -1382,17 +1416,14 @@ namespace BannerKings.Behaviours.Shipping
                             // next AfterSettlementEntered_Caravan re-runs
                             // SetSailAtPosition, repeat.
                             bool atPortPos = false;
-                            if (party.IsCurrentlyAtSea && !overWater)
+                            if (party.IsCurrentlyAtSea && !overWater && portPositions != null)
                             {
                                 try
                                 {
                                     var partyPos = party.GetPosition2D;
-                                    foreach (var s in Settlement.All)
+                                    for (int i = 0; i < portPositions.Count; i++)
                                     {
-                                        if (s == null) continue;
-                                        bool hp = false; try { hp = s.HasPort; } catch { }
-                                        if (!hp) continue;
-                                        if (partyPos.Distance(s.PortPosition.ToVec2()) <= 5f)
+                                        if (partyPos.Distance(portPositions[i]) <= 5f)
                                         {
                                             atPortPos = true;
                                             break;
@@ -1492,7 +1523,14 @@ namespace BannerKings.Behaviours.Shipping
                                     if (t != null)
                                     {
                                         var cand = (t.IsVillage && t.Village?.Bound != null) ? t.Village.Bound : t;
-                                        bool usable = (cand.IsTown || cand.IsCastle)
+                                        // Was: (cand.IsTown || cand.IsCastle).
+                                        // EnterSettlementAction for caravans
+                                        // into castles is not vanilla-supported
+                                        // and produces "caravan inside castle"
+                                        // desync — skip castle candidates and
+                                        // let FindNearestSeaReachablePort take
+                                        // over.
+                                        bool usable = cand.IsTown
                                             && !cand.IsUnderSiege
                                             && (cand.MapFaction == null
                                                 || !cand.MapFaction.IsAtWarWith(party.MapFaction));
@@ -1940,7 +1978,12 @@ namespace BannerKings.Behaviours.Shipping
                 {
                     candidate = candidate.Village.Bound;
                 }
-                bool usable = (candidate.IsTown || candidate.IsCastle)
+                // For CARAVAN parties, exclude castles — EnterSettlementAction
+                // for caravans into castles isn't vanilla-supported and
+                // produces "caravan inside castle" desync. Lord parties can
+                // legitimately rescue into castles.
+                bool isCaravan = party.IsCaravan;
+                bool usable = (candidate.IsTown || (!isCaravan && candidate.IsCastle))
                     && !candidate.IsUnderSiege
                     && (candidate.MapFaction == null
                         || !candidate.MapFaction.IsAtWarWith(party.MapFaction));

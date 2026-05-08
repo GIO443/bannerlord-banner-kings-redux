@@ -47,14 +47,22 @@ namespace BannerKings.UI.Extensions
             WarExists = false;
             PeaceExists = false;
             // ProposeActionExplanationText moved to KingdomPoliciesVM in 1.3.x, no longer on KingdomDiplomacyVM
-            if (kingdomDiplomacy.CurrentSelectedDiplomacyItem != null)
+            //
+            // Was: the inner `if (kingdomDiplomacy.CurrentSelectedDiplomacyItem != null)`
+            // null-check protected war assignment, but lines below
+            // (Faction1/Faction2 cast and the unconditional KingdomElection
+            // allocation) ran outside the guard and NRE'd whenever OnRefresh
+            // fired before any item was selected — silently failing the
+            // entire BK diplomacy tab on first open.
+            if (kingdomDiplomacy.CurrentSelectedDiplomacyItem == null)
             {
-                if (kingdomDiplomacy.CurrentSelectedDiplomacyItem is KingdomWarItemVM)
-                {
-                    war = TaleWorlds.CampaignSystem.Campaign.Current.GetCampaignBehavior<BKDiplomacyBehavior>()
-                        .GetWar(kingdomDiplomacy.CurrentSelectedDiplomacyItem.Faction1, 
-                        kingdomDiplomacy.CurrentSelectedDiplomacyItem.Faction2);
-                }
+                return;
+            }
+            if (kingdomDiplomacy.CurrentSelectedDiplomacyItem is KingdomWarItemVM)
+            {
+                war = TaleWorlds.CampaignSystem.Campaign.Current.GetCampaignBehavior<BKDiplomacyBehavior>()
+                    .GetWar(kingdomDiplomacy.CurrentSelectedDiplomacyItem.Faction1,
+                    kingdomDiplomacy.CurrentSelectedDiplomacyItem.Faction2);
             }
 
             PlayerFatigueHeader = new TextObject("{=0ksQ2otA}Our Fatigue").ToString();
@@ -62,6 +70,10 @@ namespace BannerKings.UI.Extensions
 
             Kingdom currentKingdom = kingdomDiplomacy.CurrentSelectedDiplomacyItem.Faction1 as Kingdom;
             Kingdom targetKingdom = kingdomDiplomacy.CurrentSelectedDiplomacyItem.Faction2 as Kingdom;
+            // Even if the selected item is a kingdom-vs-non-kingdom row
+            // (mercenary clan etc.), the cast can yield null. Bail out
+            // gracefully rather than NRE on RulingClan or election creation.
+            if (currentKingdom == null || targetKingdom == null) return;
 
             if (war != null)
             {
@@ -160,10 +172,32 @@ namespace BannerKings.UI.Extensions
                 AllianceHint = new BasicTooltipViewModel(() => UIHelper.GetAllianceHint(currentKingdom, targetKingdom));
             }
 
-            KingdomElection election = new KingdomElection(new BKDeclareWarDecision(null, currentKingdom.RulingClan, targetKingdom));
-            WarSupportText = UIHelper.FormatValue(election.GetLikelihoodForSponsor(currentKingdom.RulingClan));
+            // Was: allocated a fresh KingdomElection on every OnRefresh
+            // and called GetLikelihoodForSponsor — that scoring iterates
+            // every clan in the kingdom on the UI thread, just to populate
+            // a percentage label. Cache by (current, target) and only
+            // recompute when the selection changes.
+            if (currentKingdom.RulingClan != null
+                && (currentKingdom != _lastWarSupportFor || targetKingdom != _lastWarSupportTarget))
+            {
+                _lastWarSupportFor = currentKingdom;
+                _lastWarSupportTarget = targetKingdom;
+                try
+                {
+                    KingdomElection election = new KingdomElection(new BKDeclareWarDecision(null, currentKingdom.RulingClan, targetKingdom));
+                    _lastWarSupportText = UIHelper.FormatValue(election.GetLikelihoodForSponsor(currentKingdom.RulingClan));
+                }
+                catch { _lastWarSupportText = string.Empty; }
+            }
+            WarSupportText = _lastWarSupportText;
             WarSupportHint = new BasicTooltipViewModel(() => UIHelper.GetWarSupportHint(currentKingdom, targetKingdom));
         }
+
+        // Cached war-support label so we don't re-run the kingdom-clan
+        // election scan every UI refresh.
+        private Kingdom _lastWarSupportFor;
+        private Kingdom _lastWarSupportTarget;
+        private string _lastWarSupportText = string.Empty;
 
         [DataSourceProperty]
         public string TradePactText

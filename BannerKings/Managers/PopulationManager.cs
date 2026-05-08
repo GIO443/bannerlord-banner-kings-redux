@@ -194,6 +194,14 @@ namespace BannerKings.Managers
                 if (currentOwner != null && Estates != null && Estates.TryGetValue(currentOwner, out var oldList))
                 {
                     oldList.Remove(estate);
+                    // Prune empty owner entries — TitleManager does this
+                    // for DeJuresCache; the Estates equivalent leaks empty
+                    // List<Estate> entries for dead/heir-merged owners,
+                    // growing the saved dict over time.
+                    if (oldList.Count == 0)
+                    {
+                        Estates.Remove(currentOwner);
+                    }
                 }
 
                 if (owner != null)

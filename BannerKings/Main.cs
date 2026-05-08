@@ -160,6 +160,8 @@ namespace BannerKings
             campaignStarter.AddBehavior(new BKRaidCaptureBehavior());
             campaignStarter.AddBehavior(new BKEstateIncomeBehavior());
             campaignStarter.AddBehavior(new BannerKings.Behaviours.Diag.AiDecisionTraceBehavior());
+            campaignStarter.AddBehavior(new BannerKings.Behaviours.Diag.RecruitmentAuditBehavior());
+            campaignStarter.AddBehavior(new BannerKings.Behaviours.Diag.ArmyFormationAuditBehavior());
             //campaignStarter.RemoveBehavior(campaignStarter.CampaignBehaviors.First(x => x.GetType() == typeof(CaravansCampaignBehavior)));
 
 

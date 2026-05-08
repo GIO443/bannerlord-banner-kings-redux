@@ -80,7 +80,26 @@ namespace BannerKings.UI.Estates
             MainInfo.Clear();
             ExtraInfos.Clear();
 
-            NameText = IsDisabled ? new TextObject("{=P8w8FYfp}Vacant Estate").ToString() : Estate.Name.ToString();
+            // A village can have multiple vacant slots simultaneously
+            // (CalculateEstatesMaximum = landOwners + 1, typically up to 3).
+            // Without a slot index, two vacancies render with identical
+            // "Vacant Estate" labels and look like a duplicate-card bug.
+            // Index is the position within EstateData.Estates so it stays
+            // stable across panel refreshes.
+            if (IsDisabled)
+            {
+                int slotIndex = -1;
+                try { slotIndex = data?.EstateData?.Estates?.IndexOf(Estate) ?? -1; } catch { }
+                NameText = slotIndex >= 0
+                    ? new TextObject("{=BKEstate_VacantSlotN}Vacant Estate (Slot {N})")
+                        .SetTextVariable("N", slotIndex + 1)
+                        .ToString()
+                    : new TextObject("{=P8w8FYfp}Vacant Estate").ToString();
+            }
+            else
+            {
+                NameText = Estate.Name.ToString();
+            }
             if (!IsDisabled)
             {
                 ImageIdentifier = new CharacterImageIdentifierVM(CampaignUIHelper.GetCharacterCode(Estate.Owner.CharacterObject));
@@ -103,16 +122,16 @@ namespace BannerKings.UI.Estates
                 ExtraInfos.Add(ClusterInfo);
                 ExtraInfos.Add(StatsInfo);
             }
-            else
-            {
-                // Vacant estates were rendering with no extra info at all —
-                // even though village-owner identification, village class,
-                // and bound-town context are all useful while deciding
-                // whether to buy the vacancy. Run the cluster build only
-                // (land/workforce/stats are noise for an unowned estate).
-                BuildClusterInfo();
-                ExtraInfos.Add(ClusterInfo);
-            }
+            // Vacant estates leave ExtraInfos empty. The XML's
+            // ListPanel for ExtraInfos is gated `IsVisible="@IsEnabled"`
+            // (EstatesWindow.xml line 123); a previous version of this
+            // branch populated ClusterInfo here on the theory the cluster
+            // context helps the buy decision, but the resulting render
+            // was showing identical cluster blocks once per card —
+            // multiple vacancies in the same village all bind to the
+            // same Seordas/Battania context, so three vacant slots
+            // produce three identical 5-row blocks. Cluster context is
+            // visible on any owned estate card in the same village.
 
             RefreshCapWarning();
             RefreshActions();
@@ -140,10 +159,39 @@ namespace BannerKings.UI.Estates
                 0,
                 TownManagementDescriptionItemVM.DescriptionType.Loyalty));
 
+            // For a vacant estate, the headline must reflect what the
+            // player would actually pay to claim it — not the full
+            // EstateValue appraisal, which includes the prior owner's
+            // residual TaxAccumulated + LastIncome × DaysInYear and can
+            // exceed the real claim cost by hundreds of thousands of
+            // gold. Mirrors the formulas in BKEstatesModel.GetBuy
+            // lines 188 (player-clan-owns-village → influence-only) and
+            // 196 (outsider → max(500, EstateValue × 0.1f)). Full
+            // appraisal stays in the tooltip for context.
             var value = Estate.EstateValue;
+            int displayCost;
+            TextObject costLabel;
+            if (Estate.Owner == null)
+            {
+                if (IsPlayerClanVillageOwner())
+                {
+                    displayCost = 0;
+                    costLabel = new TextObject("{=BKEstate_VacancyClaimInf}Vacancy Claim (influence-only):");
+                }
+                else
+                {
+                    displayCost = MathF.Max(500, (int)(value.ResultNumber * 0.1f));
+                    costLabel = new TextObject("{=BKEstate_VacancyBuyCost}Vacancy Claim Cost:");
+                }
+            }
+            else
+            {
+                displayCost = (int)value.ResultNumber;
+                costLabel = new TextObject("{=mLtr8h47}Estate Value:");
+            }
             MainInfo.Add(new TownManagementDescriptionItemVM(
-                new TextObject("{=mLtr8h47}Estate Value:"),
-                (int)value.ResultNumber,
+                costLabel,
+                displayCost,
                 0,
                 TownManagementDescriptionItemVM.DescriptionType.Gold,
                 new BasicTooltipViewModel(() => value.GetExplanations())));
@@ -554,6 +602,22 @@ namespace BannerKings.UI.Estates
         private void ExecuteBuy()
         {
             if (buyAction.Possible) { buyAction.TakeAction(); RefreshValues(); }
+            else
+            {
+                // The Buy button's XML has no HintWidget binding to BuyHint
+                // (only main-info rows do), so a click on a non-possible
+                // action was silently doing nothing — the player had no
+                // idea why. Surface buyAction.Reason as a message so the
+                // gating reason (insufficient gold, foreign-kingdom +
+                // non-Allodial law, not clan leader, etc.) is visible.
+                var reason = buyAction.Reason?.ToString();
+                if (!string.IsNullOrEmpty(reason))
+                {
+                    InformationManager.DisplayMessage(new InformationMessage(
+                        reason,
+                        Color.FromUint(BannerKings.Utils.TextHelper.COLOR_LIGHT_RED)));
+                }
+            }
         }
 
         private void ExecuteRetinue()

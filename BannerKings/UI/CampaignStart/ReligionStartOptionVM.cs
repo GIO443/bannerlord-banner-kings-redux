@@ -40,7 +40,12 @@ namespace BannerKings.UI.CampaignStart
             }
         }
 
-        [DataSourceProperty] public BannerImageIdentifierVM Banner => new BannerImageIdentifierVM(Religion.Faith.GetBanner(), true);
+        // Was a getter that allocated a fresh BannerImageIdentifierVM (GPU
+        // resource) on every UI redraw. Cache lazily; banner doesn't change
+        // for the lifetime of this option VM.
+        private BannerImageIdentifierVM _bannerCache;
+        [DataSourceProperty] public BannerImageIdentifierVM Banner =>
+            _bannerCache ??= new BannerImageIdentifierVM(Religion.Faith.GetBanner(), true);
         [DataSourceProperty] public string ShortDescription => Religion.Faith.GetDescriptionHint().ToString();
         [DataSourceProperty] public string Name => Religion.Faith.GetFaithName().ToString();
         [DataSourceProperty] public string Piety => BannerKingsConfig.Instance.ReligionsManager.GetStartingPiety(Religion,

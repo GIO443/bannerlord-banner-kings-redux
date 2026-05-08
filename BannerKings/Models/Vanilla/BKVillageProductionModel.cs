@@ -241,6 +241,13 @@ namespace BannerKings.Models.Vanilla
             bool valid = item.IsAnimal || item.IsMountable;
             if (valid)
             {
+                // Modded animal/mountable items can have IsAnimal=true with
+                // no HorseComponent (insect/fantasy mod items). Daily
+                // village production NREs on the first such item without
+                // this guard. Use a default-1 meat count so the calc still
+                // produces the per-acre yield.
+                var hc = item.HorseComponent;
+                int meatCount = (hc != null) ? Math.Max(hc.MeatCount, 1) : 1;
                 var acres = landData.Pastureland;
                 if (data.EstateData != null)
                 {
@@ -250,7 +257,7 @@ namespace BannerKings.Models.Vanilla
                     }
                 }
 
-                result.Add((acres * landData.GetAcreOutput("pasture")) / Math.Max(item.HorseComponent.MeatCount, 1));
+                result.Add((acres * landData.GetAcreOutput("pasture")) / meatCount);
                 if (item.IsMountable)
                 {
                     result.AddFactor(item.Tierf * -0.24f);
