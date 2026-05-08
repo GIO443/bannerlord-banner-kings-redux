@@ -1291,11 +1291,27 @@ namespace BannerKings.Patches
             [HarmonyPatch(nameof(DefaultArmyManagementCalculationModel.CheckPartyEligibility))]
             private static void CheckPartyEligibilityPostfix(MobileParty party, ref TextObject explanation, ref bool __result)
             {
-                if (party.ActualClan == null) return;
+                if (party == null || party.ActualClan == null) return;
+                // Vanilla's eligible path returns __result=true with explanation=null.
+                // ArmyManagementItemVM.ExecuteBeginHint NREs on _eligibilityReason.ToString()
+                // when we flip __result false, so any flip must also fill explanation.
                 if (party.ActualClan.IsUnderMercenaryService)
-                    __result = CanHeroRecruitMercs(Hero.MainHero, party.LeaderHero);
-                else if (Clan.PlayerClan.IsUnderMercenaryService)
+                {
+                    bool ok = CanHeroRecruitMercs(Hero.MainHero, party.LeaderHero);
+                    if (__result && !ok)
+                    {
+                        explanation = new TextObject("{=BKMercAlly}Mercenary parties cannot join your army.");
+                    }
+                    __result = ok;
+                }
+                else if (Clan.PlayerClan != null && Clan.PlayerClan.IsUnderMercenaryService)
+                {
+                    if (__result)
+                    {
+                        explanation = new TextObject("{=BKMercSelf}Mercenary clans cannot summon non-mercenary parties.");
+                    }
                     __result = false;
+                }
             }
 
             [HarmonyPostfix]

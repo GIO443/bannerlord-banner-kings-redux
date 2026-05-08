@@ -22,6 +22,9 @@
 - **"Crash on entering a Nord settlement"** — only on pre-fix or
   non-Redux builds. Update to the latest Banner Kings — Redux release;
   the Nord null-guards are bundled.
+- **"Crash hovering parties in the Army Management screen"** — fixed
+  in v1.6.9.33. Caused by BK's mercenary eligibility tweak leaving the
+  hover tooltip's reason text null. Update Banner Kings — Redux.
 - **"My lifestyle locked at Scholar"** — Scholar requires the scholarship
   gate (any of ScholarshipMechanic, Accountant, NaturalScientist, Treasurer).
   Without it, progress doesn't tick.
