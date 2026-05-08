@@ -497,6 +497,79 @@ namespace BannerKings
             return $"Spawned caravan owned by {hero.Name} at {town.Name}.";
         }
 
+        [CommandLineFunctionality.CommandLineArgumentFunction("test_drain_food", "bannerkings")]
+        public static string TestDrainFood(List<string> strings)
+        {
+            if (!CampaignCheats.CheckCheatUsage(ref CampaignCheats.ErrorType)) return CampaignCheats.ErrorType;
+            if (strings == null || strings.Count == 0)
+                return "Format: bannerkings.test_drain_food <townIdOrName>";
+
+            string token = CampaignCheats.ConcatenateString(strings).Trim();
+            Settlement s = Settlement.Find(token)
+                ?? Settlement.All.FirstOrDefault(x => x.IsTown && (x.Name?.ToString()?.Equals(token, StringComparison.OrdinalIgnoreCase) ?? false));
+            if (s == null || s.Town == null) return $"Town '{token}' not found.";
+
+            float before = s.Town.FoodStocks;
+            s.Town.FoodStocks = 1f;
+            return $"{s.Name}: food {before:0} → 1 (engages SupplyTown immediately for any caravan ordered to it).";
+        }
+
+        [CommandLineFunctionality.CommandLineArgumentFunction("test_inflate_workshop_inputs", "bannerkings")]
+        public static string TestInflateWorkshopInputs(List<string> strings)
+        {
+            if (!CampaignCheats.CheckCheatUsage(ref CampaignCheats.ErrorType)) return CampaignCheats.ErrorType;
+            if (strings == null || strings.Count == 0)
+                return "Format: bannerkings.test_inflate_workshop_inputs <townIdOrName>";
+
+            string token = CampaignCheats.ConcatenateString(strings).Trim();
+            Settlement s = Settlement.Find(token)
+                ?? Settlement.All.FirstOrDefault(x => x.IsTown && (x.Name?.ToString()?.Equals(token, StringComparison.OrdinalIgnoreCase) ?? false));
+            if (s == null || s.Town == null) return $"Town '{token}' not found.";
+
+            // Drain market stock of every input category any workshop in the
+            // town consumes. Vanilla price model raises GetPriceFactor when
+            // stock falls; the SupplyWorkshops hysteresis fires when avg
+            // ratio crosses 1.20.
+            var inputs = BannerKings.Behaviours.Caravans.CaravanOrdersBehavior.GetWorkshopInputCategories(s.Town);
+            if (inputs.Count == 0) return $"{s.Name} has no active workshops.";
+
+            int touched = 0;
+            for (int i = s.ItemRoster.Count - 1; i >= 0; i--)
+            {
+                var el = s.ItemRoster.GetElementCopyAtIndex(i);
+                var cat = el.EquipmentElement.Item?.ItemCategory;
+                if (cat != null && inputs.Contains(cat))
+                {
+                    s.ItemRoster.AddToCounts(el.EquipmentElement, -el.Amount);
+                    touched += el.Amount;
+                }
+            }
+            return $"{s.Name}: removed {touched} units across {inputs.Count} input categories. SupplyWorkshops should engage on next caravan tick.";
+        }
+
+        [CommandLineFunctionality.CommandLineArgumentFunction("dump_caravan_orders", "bannerkings")]
+        public static string DumpCaravanOrders(List<string> strings)
+        {
+            if (!CampaignCheats.CheckCheatUsage(ref CampaignCheats.ErrorType)) return CampaignCheats.ErrorType;
+            var b = BannerKings.Behaviours.Caravans.CaravanOrdersBehavior.Instance;
+            if (b == null) return "CaravanOrdersBehavior not registered.";
+
+            var sb = new System.Text.StringBuilder();
+            int n = 0;
+            foreach (var caravan in MobileParty.AllCaravanParties)
+            {
+                if (caravan?.Owner == null || caravan.Owner.Clan != Clan.PlayerClan) continue;
+                var o = b.GetOrder(caravan);
+                string mode = o?.Mode.ToString() ?? "FreeTrade";
+                string anchor = o?.AnchorSettlement?.Name?.ToString() ?? "-";
+                string engaged = o == null ? "-" : (o.SupplyTownEngaged ? "ACTIVE" : "dormant");
+                sb.AppendLine($"  {caravan.Name,-30} owner={caravan.Owner.Name,-20} mode={mode,-16} anchor={anchor,-20} {engaged}");
+                n++;
+            }
+            if (n == 0) return "No player-clan caravans found.";
+            return $"Player-clan caravans: {n}\n" + sb;
+        }
+
         [CommandLineFunctionality.CommandLineArgumentFunction("test_relocate_caravan", "bannerkings")]
         public static string TestRelocateCaravan(List<string> strings)
         {

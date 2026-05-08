@@ -836,9 +836,18 @@ namespace BannerKings.Behaviours
                 // periodic deposit point regardless of land status.
                 bool atOwnerHome = caravanOwner.HomeSettlement != null
                                 && target == caravanOwner.HomeSettlement;
+                // Two extra deposit triggers: the caravan owner's clan has a
+                // workshop in this town, or has an estate in a village bound
+                // to this town. Same deposit semantics — represents the
+                // caravan handing off cash to a clan-controlled foothold.
+                bool clanHasStakeHere =
+                    caravanOwner.Clan != null
+                    && BannerKings.Behaviours.Caravans.CaravanOrdersBehavior.Instance != null
+                    && BannerKings.Behaviours.Caravans.CaravanOrdersBehavior.Instance.IsClanStakeholderTown(caravanOwner.Clan, target);
                 if (target.Owner == caravanOwner || target.HeroesWithoutParty.Contains(caravanOwner) ||
                     (caravanOwner.PartyBelongedTo != null && target.Parties.Contains(caravanOwner.PartyBelongedTo)) ||
-                    atOwnerHome)
+                    atOwnerHome ||
+                    clanHasStakeHere)
                 {
                     int income = MathF.Max(0, party.PartyTradeGold - 10000);
                     if (income > 0)

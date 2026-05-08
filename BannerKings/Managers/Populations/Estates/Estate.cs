@@ -291,6 +291,28 @@ namespace BannerKings.Managers.Populations.Estates
 
         public void AddSlaves(int slaves) => Slaves += slaves;
 
+        // Vacancy-claim cost in clan influence. Surfaced via BKEstatesModel
+        // (gating) and EstateAction.TakeAction (deduction) — single source.
+        public const int VacancyClaimInfluenceCost = 50;
+
+        // Reset to a small starter homestead. Called by EstateAction on the
+        // vacancy-claim path so a player taking over a "Vacant Estate" with
+        // 40 pop / 250 acres doesn't inherit the full prior allocation —
+        // they build it up themselves over time. The shed population/acreage
+        // is just dropped from the estate; village-level population isn't
+        // touched (the people who weren't the estate's to allocate stay as
+        // villagers in the cluster pool).
+        public void ResetToFreshClaim()
+        {
+            Population = 10;
+            Slaves = 0;
+            Farmland = 5f;
+            Pastureland = 2f;
+            Woodland = 2f;
+            TaxAccumulated = 0;
+            LastIncome = 0;
+        }
+
         public void SetParty(MobileParty party) => Retinue = party;
 
         public void PostInitialize()

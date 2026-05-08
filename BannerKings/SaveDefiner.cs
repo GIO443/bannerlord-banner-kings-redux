@@ -56,6 +56,7 @@ using static BannerKings.Managers.Populations.Estates.Estate;
 using CasusBelli = BannerKings.Behaviours.Diplomacy.Wars.CasusBelli;
 using BannerKings.Managers.Titles.Governments;
 using BannerKings.Managers.Goals;
+using BannerKings.Behaviours.Caravans;
 using BannerKings.Behaviours.Shipping;
 using BannerKings.Behaviours.Relations;
 using BannerKings.Managers.Institutions.Religions.Faiths.Groups;
@@ -240,6 +241,10 @@ namespace BannerKings
             AddEnumDefinition(typeof(EstateSpec), 1112);
             AddEnumDefinition(typeof(CargoKind), 1113);
             AddEnumDefinition(typeof(DecreeKind), 1114);
+
+            // Phase A — directable player caravans.
+            AddEnumDefinition(typeof(CaravanOrderMode), 1200);
+            AddClassDefinition(typeof(CaravanOrder), 1201);
         }
 
         protected override void DefineContainerDefinitions()
@@ -317,6 +322,7 @@ namespace BannerKings
             ConstructContainerDefinition(typeof(Dictionary<MobileParty, List<BKCaravansBehavior.TradeActionLog>>));
 
             ConstructContainerDefinition(typeof(Dictionary<Clan, RaidCapturePolicy>));
+            ConstructContainerDefinition(typeof(Dictionary<Hero, CaravanOrder>));
         }
     }
 }

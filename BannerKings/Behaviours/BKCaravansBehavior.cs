@@ -1092,6 +1092,15 @@ namespace BannerKings.Behaviours
             bool naval = false;
             try { naval = caravanParty.HasNavalNavigationCapability; } catch { }
 
+            // Phase A/B — directable caravans: anchor bias.
+            // CaravanOrdersBehavior owns the per-order hysteresis. When an
+            // order's bias is currently engaged (SupplyTown food-deficit, or
+            // SupplyWorkshops input-price-ratio), the anchor's score is
+            // multiplied so the caravan picks it as the next stop more
+            // aggressively than pure trade-arbitrage would. FreeTrade and
+            // dormant orders see no change here.
+            var supplyOrder = BannerKings.Behaviours.Caravans.CaravanOrdersBehavior.Instance?.GetActiveBiasOrder(caravanParty);
+
             foreach (Town town in Town.AllFiefs)
             {
                 if (naval && !town.Settlement.HasPort) continue;
@@ -1101,12 +1110,54 @@ namespace BannerKings.Behaviours
                     var data = town.Settlement.PopulationData();
                     if (data != null) tradeScoreForTown *= data.EconomicData.TradePower;
 
+                    if (supplyOrder != null && town.Settlement == supplyOrder.AnchorSettlement)
+                    {
+                        tradeScoreForTown *= BannerKings.Behaviours.Caravans.CaravanOrdersBehavior.ANCHOR_BIAS_MULTIPLIER;
+                    }
+                    // SupplyWorkshops source bias — pull the caravan through
+                    // towns that actually stock the input categories. Without
+                    // this, the caravan free-trades around (vanilla scoring
+                    // never picks scarce industrial inputs as buys) and
+                    // arrives at the anchor empty. With this, the scorer
+                    // prefers silver-rich / iron-rich towns en route.
+                    if (supplyOrder != null
+                        && supplyOrder.Mode == BannerKings.Behaviours.Caravans.CaravanOrderMode.SupplyWorkshops
+                        && BannerKings.Behaviours.Caravans.CaravanOrdersBehavior.Instance != null
+                        && BannerKings.Behaviours.Caravans.CaravanOrdersBehavior.Instance.IsWorkshopSourceCandidate(supplyOrder, town))
+                    {
+                        tradeScoreForTown *= BannerKings.Behaviours.Caravans.CaravanOrdersBehavior.WORKSHOP_SOURCE_BIAS_MULTIPLIER;
+                    }
+
+                    // Passive stakeholder bias — caravan drifts toward
+                    // settlements where its owner's clan has a workshop or an
+                    // estate in a bound village. Composes multiplicatively
+                    // with the active SupplyTown / SupplyWorkshops anchor
+                    // bias when both apply (e.g. the anchor IS a stakeholder
+                    // town → 3 × 1.5 = 4.5×). Gated on RealisticCaravanIncome
+                    // because without that setting, deposits don't actually
+                    // depend on visiting the stake-bearing town.
+                    if (BannerKings.Settings.BannerKingsSettings.Instance.RealisticCaravanIncome
+                        && BannerKings.Behaviours.Caravans.CaravanOrdersBehavior.Instance != null
+                        && caravanParty.Owner?.Clan != null
+                        && BannerKings.Behaviours.Caravans.CaravanOrdersBehavior.Instance.IsClanStakeholderTown(caravanParty.Owner.Clan, town.Settlement))
+                    {
+                        tradeScoreForTown *= BannerKings.Behaviours.Caravans.CaravanOrdersBehavior.STAKEHOLDER_BIAS_MULTIPLIER;
+                    }
+
                     if (tradeScoreForTown > num)
                     {
                         num = tradeScoreForTown;
                         result = town;
                     }
                 }
+            }
+            // Log only when an order is in play and only on the non-distance-cut
+            // pass, so we record one row per ThinkNextDestination call rather
+            // than two (ThinkNextDestination calls FindNextDestinationForCaravan
+            // twice, once distanceCut=true then once distanceCut=false).
+            if (!distanceCut && supplyOrder != null)
+            {
+                BannerKings.Behaviours.Caravans.CaravanOrdersBehavior.LogDecision(caravanParty, supplyOrder, result);
             }
             return result;
         }
@@ -1394,9 +1445,23 @@ namespace BannerKings.Behaviours
             float capacityFactor = CalculateCapacityFactor(caravanParty);
             float budgetFactor = CalculateBudgetFactor(caravanParty);
             RefreshTotalValueOfItemsAtCategoryForParty(caravanParty);
+
+            // Phase A/B — directable caravans: per-order buy filter.
+            // SupplyTown → food categories only. SupplyWorkshops → input
+            // categories of the anchor town's workshops (union). Free trade
+            // / dormant orders → null filter, vanilla scoring throughout.
+            // Pack-animal restock (the BuyCategory call after the top-5) is
+            // intentionally left open — caravans need haulers to move what
+            // they bought, regardless of filter.
+            var buyFilter = BannerKings.Behaviours.Caravans.CaravanOrdersBehavior.Instance?.GetActiveBuyFilter(caravanParty);
             ValueTuple<ItemCategory, ItemCategory, ItemCategory, ItemCategory, ItemCategory> valueTuple = MBMath
-                .MaxElements5<ItemCategory>(ItemCategories.All, 
-                (ItemCategory x) => CalculateBuyValue(x, town, budgetFactor, capacityFactor));
+                .MaxElements5<ItemCategory>(ItemCategories.All,
+                (ItemCategory x) =>
+                {
+                    if (buyFilter != null && !buyFilter(x))
+                        return 0f;
+                    return CalculateBuyValue(x, town, budgetFactor, capacityFactor);
+                });
             ItemCategory item = valueTuple.Item1;
             ItemCategory item2 = valueTuple.Item2;
             ItemCategory item3 = valueTuple.Item3;
@@ -1426,6 +1491,9 @@ namespace BannerKings.Behaviours
             {
                 BuyCategory(caravanParty, town, DefaultItemCategories.PackAnimal, budgetFactor, capacityFactor, list);
             }
+            // SupplyWorkshops force-buy moved to CaravanOrdersBehavior's
+            // SettlementEntered listener (BuyGoods is gated on the rethink
+            // flag and doesn't fire on every settlement entry).
             if (!list.IsEmpty<ValueTuple<EquipmentElement, int>>())
             {
                 CampaignEventDispatcher.Instance.OnCaravanTransactionCompleted(caravanParty, town, list);

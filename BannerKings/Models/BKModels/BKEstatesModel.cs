@@ -136,6 +136,78 @@ namespace BannerKings.Models.BKModels
             var settlement = estate.EstatesData.Settlement;
             var owner = settlement.IsVillage ? settlement.Village.GetActualOwner() : settlement.Owner;
 
+            // Vacancy claim — short-circuited before the occupied-estate
+            // checks. Two sub-paths:
+            //   • village owner: 50 influence, no gold (you already control
+            //     the land; the cost is political capital).
+            //   • outsider:      max(500, 10% of EstateValue) gold (vacant
+            //     register + setup fee, no seller to pay).
+            // Both reset the estate to a small homestead via
+            // EstateAction.TakeAction → ResetToFreshClaim.
+            bool playerClanOwnsVillage = owner != null && actionTaker?.Clan != null && owner.Clan == actionTaker.Clan;
+            if (estate.Owner == null)
+            {
+                if (actionTaker?.Clan == null)
+                {
+                    action.Possible = false;
+                    action.Reason = new TextObject("{=Uw7dMzA4}No clan.");
+                    return action;
+                }
+                if (actionTaker != actionTaker.Clan.Leader)
+                {
+                    action.Possible = false;
+                    action.Reason = new TextObject("{=PxhHMJXb}Not clan leader.");
+                    return action;
+                }
+
+                // Cross-kingdom restriction (mirrors the occupied path):
+                // can't claim foreign-kingdom vacancies unless Allodial
+                // tenure is in force.
+                var titleV = BannerKingsConfig.Instance.TitleManager.GetTitle(settlement);
+                if (titleV != null && !titleV.Contract.IsLawEnacted(DefaultDemesneLaws.Instance.EstateTenureAllodial))
+                {
+                    if (owner != null && owner.MapFaction != actionTaker.MapFaction)
+                    {
+                        action.Possible = false;
+                        action.Reason = new TextObject("{=TPa92tz5}Cannot buy foreign kingdom estates except if they are under Allodial tenure law.");
+                        return action;
+                    }
+                }
+
+                if (playerClanOwnsVillage)
+                {
+                    int infCost = Estate.VacancyClaimInfluenceCost;
+                    if (actionTaker.Clan.Influence < infCost)
+                    {
+                        action.Possible = false;
+                        action.Reason = new TextObject("{=BKEstate_NoInf}Need {NEED} influence to claim a vacancy (have {HAVE}).")
+                            .SetTextVariable("NEED", infCost)
+                            .SetTextVariable("HAVE", (int)actionTaker.Clan.Influence);
+                        return action;
+                    }
+                    action.InfluenceCost = infCost;
+                    action.Possible = true;
+                    action.Reason = new TextObject("{=BKEstate_ClaimReason}Vacancy in your village — claim for {INF} influence. Estate starts as a small homestead (10 pop, 9 acres) and you build it up.")
+                        .SetTextVariable("INF", infCost);
+                    return action;
+                }
+                else
+                {
+                    int goldCost = MathF.Max(500, (int)(estate.EstateValue.ResultNumber * 0.1f));
+                    if (actionTaker.Gold < goldCost)
+                    {
+                        action.Possible = false;
+                        action.Reason = GameTexts.FindText("str_warning_you_dont_have_enough_money");
+                        return action;
+                    }
+                    action.GoldCost = goldCost;
+                    action.Possible = true;
+                    action.Reason = new TextObject("{=BKEstate_VacancyBuy}Buy this vacant estate for {GOLD} gold (registration + setup; no seller). It starts as a small homestead (10 pop, 9 acres).")
+                        .SetTextVariable("GOLD", goldCost);
+                    return action;
+                }
+            }
+
             if (actionTaker == owner)
             {
                 action.Possible = false;
@@ -204,6 +276,7 @@ namespace BannerKings.Models.BKModels
             }
 
             action.Possible = true;
+            action.GoldCost = value;
             action.Reason = new TextObject("{=bjJ99NEc}Action can be taken.");
             return action;
         }

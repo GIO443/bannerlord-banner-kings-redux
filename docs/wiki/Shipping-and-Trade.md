@@ -14,6 +14,7 @@ This page is the HOW for living with that system.
 - [Graph topology map](#graph-topology-map)
 - [AI lord parties at sea](#ai-lord-parties-at-sea)
 - [Caravan classes — sea vs land](#caravan-classes--sea-vs-land)
+- [Directing your caravans](#directing-your-caravans)
 - [Caravan auto-board and ticker](#caravan-auto-board-and-ticker)
 - [Adaptive shipping costs](#adaptive-shipping-costs-v161)
 - [Console diagnostics](#console-diagnostics)
@@ -155,6 +156,189 @@ land templates because they walk overland and aren't real
 You should see noticeably more caravans on a fresh campaign,
 including visible sea caravans leaving Sargot, Pravend, Omor,
 Marunath, and other port towns.
+
+## Directing your caravans
+
+Your caravans (both land caravans and convoys) start in **free trade**
+mode — they pursue the most profitable arbitrage routes available.
+You can override this and assign a caravan a long-running mission.
+
+### How to set orders
+
+You have two entry points — pick whichever is more convenient.
+
+**Option A — From Clan management (recommended for caravans you don't
+need to chase down on the map):**
+
+1. Open **Clan → Parties**.
+2. Select the caravan you want to direct.
+3. On the right panel, click the new **Set Orders** button (next to
+   the Change Leader button). The button only appears for caravans
+   owned by your clan.
+4. Continue from step 3 below.
+
+**Option B — From the world map (for when you happen to encounter the
+caravan):**
+
+1. Encounter your caravan on the world map and click on the leader to
+   talk.
+2. In the dialogue, pick **"I want to give you new orders for this
+   caravan."**
+3. Choose a mode:
+   - **Free trade** — the default. Pursue profit anywhere. Selecting
+     this clears any existing order.
+   - **Keep a settlement supplied with food** — bias the caravan
+     toward routing food into a settlement of your choice.
+   - **Feed industrial inputs to a town's workshops** — bias the
+     caravan toward loading whichever input categories the anchor
+     town's workshops use, and delivering them when the town is
+     paying premium prices for those inputs.
+4. If you picked a supply mode, a list of eligible towns appears.
+   For convoys (naval caravans), only **port towns** are listed
+   since a convoy can't reach inland targets. For SupplyWorkshops,
+   only towns with at least one active workshop are listed (the
+   list also shows the workshop count).
+5. Confirm. The caravan keeps the order until you change it.
+
+### How "Keep supplied with food" works
+
+The order biases two things at once:
+
+- **Routing.** The chosen anchor town's trade-score gets a ×3
+  multiplier, so the caravan picks it as the next stop more
+  aggressively than pure arbitrage would.
+- **Buying.** When the order is *active* (see hysteresis below), the
+  caravan only buys food categories at source towns — grain, fish,
+  meat, cheese, butter, olives, dates, wine, and BK's added foods
+  (bread, pies, honey, fruit, mead, garum, eggs). Pack-animal restock
+  is unaffected, so the caravan can still resupply its haulers.
+
+The caravan still picks the *most profitable food* available within
+that filter, so revenue stays positive — it just narrows the menu.
+
+### How "Feed industrial inputs" works
+
+Three layered biases keep the caravan supplying the anchor:
+
+- **Anchor bias (×3)** on the anchor town's trade-score, same as
+  SupplyTown.
+- **Source bias (×2)** on any candidate town that has market stock
+  of at least one of the anchor's input categories. Composes with
+  the anchor bias if the same town is both source and destination
+  (×6). Without this, vanilla scoring rejects scarce industrial
+  inputs as unprofitable buys and the caravan drifts past silver-
+  rich towns without picking anything up.
+- **Force-buy on arrival.** When the caravan enters any town that
+  isn't the anchor, it buys whichever input categories the town has
+  in stock, regardless of arbitrage, capped at 25% of trade gold per
+  visit and 30 units per category. The high price at the anchor
+  recoups most of the cost.
+
+At each decision the caravan re-derives the **union of input categories**
+across every (non-hidden) workshop in the anchor town. If the anchor
+has a brewery + a fishmonger, the caravan will buy grain or fish
+wherever they're cheap. If you convert one of those workshops to a
+smithy, the next decision automatically picks up iron in the union
+without you re-setting the order.
+
+Hysteresis on this mode uses **average input-category price ratio**
+at the anchor town (price ÷ equilibrium):
+
+- **Active** when the ratio rises above **1.20** — workshops are
+  paying premium for inputs.
+- **Dormant** at **1.00 or below** — supply has caught up and the
+  caravan can free-trade until the town runs hot again.
+- **Band (1.00–1.20)** preserves prior state.
+
+The order goes dormant immediately if the anchor town has no active
+workshops at evaluation time (e.g. all destroyed during a raid).
+
+### Hysteresis: when the bias is active vs dormant (SupplyTown)
+
+The caravan does not chase the anchor non-stop forever. Bias state
+toggles based on the anchor's food stocks:
+
+- **Active** while stocks are below **50% of food cap** *or* the town
+  has an active food deficit.
+- **Dormant** once stocks reach **95% of food cap** — the order stays
+  attached, the bias just suppresses, and the caravan free-trades
+  until the anchor needs supply again.
+- **Band (50–95%):** preserves whatever the previous decision was.
+  This prevents whiplash where the caravan abandons mid-route every
+  time the town consumes one unit of food.
+
+State is persisted across save/load.
+
+### What you should expect to see
+
+- The caravan visits the anchor town more often than its peers.
+- After a stretch of supply runs, the anchor's food stocks fill up;
+  the caravan then resumes free-trade behaviour without you doing
+  anything. Stocks will drift back down over time → the caravan
+  re-engages automatically.
+- If you assign a caravan to a far-away anchor in a war zone, the
+  caravan will still honour the standard adaptive shipping risk
+  multipliers (war, siege, hideouts) — there's no override toggle.
+- Convoy assigned to an inland town: the order is **suspended**
+  silently — the convoy free-trades. Re-pick a port to use the
+  caravan's order.
+
+### Diagnostic log
+
+Decisions and engage/dormant transitions are written to
+`Modules/BannerKings/temp/caravan_orders.txt`. Format:
+
+```
+{date}  {caravan name} (owner: {hero}): order set: SupplyTown → Pravend
+{date}  {caravan name} (owner: {hero}): SupplyTown active: stocks 38% / deficit 4d
+{date}  {caravan name} mode=SupplyTown anchor=Pravend (38%) pick=Sargot gold=2400 inv=1834
+{date}  {caravan name} (owner: {hero}): SupplyTown dormant: stocks 96% / deficit 0d
+```
+
+If the caravan never reaches the anchor or never engages, the log is
+the first place to look.
+
+### Stakeholder bias and deposits
+
+Independent of the orders system above, every player-clan caravan
+gets a passive routing nudge toward settlements where your clan has
+an economic stake. A town counts as a stake-bearing settlement when:
+
+- Any clan member owns a **workshop** in that town, **or**
+- Any clan member owns an **estate** in any village bound to that
+  town.
+
+Mechanics:
+
+- **Routing.** Stake-bearing settlements get a ×1.5 multiplier on
+  the caravan's trade-score. This composes with any active SupplyTown
+  / SupplyWorkshops bias multiplicatively (anchor town that is also
+  a stake town → 3 × 1.5 = 4.5×).
+- **Deposits.** When **Realistic Caravan Income** is on, the caravan
+  hands its trade gold to the owner not just at the four existing
+  trigger settlements (settlement owned by caravan owner, owner
+  staying there, owner's mobile party there, owner's HomeSettlement)
+  but also when arriving at a stake-bearing settlement. The same
+  popup ("The X has deposited you Y gold") fires.
+
+Both behaviours are gated on the **Realistic Caravan Income** setting
+— without that setting, deposits aren't trigger-driven, so biasing
+the caravan toward stake settlements has no economic basis.
+
+The stake set per clan is recomputed once per in-game day, so buying
+a workshop / estate takes effect on the next daily tick, not
+instantly.
+
+### Limits in this version
+
+- **RotateRoute** (player picks an explicit ordered list of stops)
+  is still planned for a follow-up phase.
+- Orders survive save/reload and survive caravan respawn (a new
+  caravan run by the same companion inherits the order). They are
+  cleared automatically when the owner companion dies.
+- Inland anchors for land caravans aren't validated for reachability;
+  if your anchor is unreachable for some reason (rare on the Calradia
+  map), the bias still fires but the caravan won't get there.
 
 ## Caravan auto-board and ticker
 

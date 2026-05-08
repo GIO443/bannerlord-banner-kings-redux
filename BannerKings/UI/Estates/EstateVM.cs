@@ -1,4 +1,5 @@
 using BannerKings.CampaignContent.Economy.Layered;
+using BannerKings.Extensions;
 using BannerKings.Managers.Populations;
 using BannerKings.Managers.Populations.Estates;
 using BannerKings.UI.Items;
@@ -43,7 +44,7 @@ namespace BannerKings.UI.Estates
         private EstateAction grantAction, buyAction, reclaimAction;
         private HintViewModel buyHint, grantHint, reclaimHint, retinueHint;
         private bool playerOwned, buyVisible, grantVisible, reclaimVisible, retinueEnabled;
-        private string nameText, capWarning;
+        private string nameText, capWarning, buyTextValue;
 
         public EstateVM(Estate estate, PopulationData data) : base(data, true)
         {
@@ -102,6 +103,16 @@ namespace BannerKings.UI.Estates
                 ExtraInfos.Add(ClusterInfo);
                 ExtraInfos.Add(StatsInfo);
             }
+            else
+            {
+                // Vacant estates were rendering with no extra info at all —
+                // even though village-owner identification, village class,
+                // and bound-town context are all useful while deciding
+                // whether to buy the vacancy. Run the cluster build only
+                // (land/workforce/stats are noise for an unowned estate).
+                BuildClusterInfo();
+                ExtraInfos.Add(ClusterInfo);
+            }
 
             RefreshCapWarning();
             RefreshActions();
@@ -144,6 +155,7 @@ namespace BannerKings.UI.Estates
                 (int)acreage.ResultNumber,
                 TownManagementDescriptionItemVM.DescriptionType.Prosperity,
                 new BasicTooltipViewModel(BuildAcreageTooltip)));
+
         }
 
         private string BuildIncomeTooltip()
@@ -268,6 +280,21 @@ namespace BannerKings.UI.Estates
                 : null;
         }
 
+        // Used both by RefreshActions (Buy gating) and BuildMainInfo
+        // (village-owner indicator). Clan-level so it catches the case
+        // where the village's de jure title is held by a clan vassal — the
+        // player still effectively owns the village in that situation.
+        private bool IsPlayerClanVillageOwner()
+        {
+            try
+            {
+                var v = Estate?.EstatesData?.Settlement?.Village;
+                if (v == null) return false;
+                return v.GetActualOwner()?.Clan == Clan.PlayerClan;
+            }
+            catch { return false; }
+        }
+
         // ---------------------------------------------------------------
         // Selectors — Spec and Task. Spec is the new layered-economy
         // lever; Task is the existing workforce-divert lever.
@@ -380,6 +407,21 @@ namespace BannerKings.UI.Estates
                 return;
             }
 
+            // Village ownership row. Distinct from estate ownership: the
+            // village owner collects vanilla tax/hearth, the estate owner
+            // collects BK production yield. Both can be different people.
+            var villageOwner = settlement.Village.GetActualOwner();
+            string villageOwnerLabel;
+            if (villageOwner == null) villageOwnerLabel = "(unowned)";
+            else if (villageOwner == Hero.MainHero) villageOwnerLabel = "you";
+            else if (villageOwner.Clan == Clan.PlayerClan)
+                villageOwnerLabel = $"{villageOwner.Name} (your clan)";
+            else villageOwnerLabel = villageOwner.Name?.ToString() ?? "?";
+            ClusterInfo.Add(new InformationElement(
+                new TextObject("{=BKEstate_VillageOwner}Village owner:").ToString(),
+                villageOwnerLabel,
+                new TextObject("{=BKEstate_VillageOwnerTooltip}The de facto owner of this village. Estate ownership is separate — the village owner collects vanilla tax and hearth income; the estate owner collects the BK production yield.").ToString()));
+
             var cls = settlement.Village.GetVillageClass();
             ClusterInfo.Add(new InformationElement(
                 new TextObject("{=BKEstate_VillageClass}Village class:").ToString(),
@@ -473,7 +515,17 @@ namespace BannerKings.UI.Estates
         private void RefreshActions()
         {
             buyAction = BannerKingsConfig.Instance.EstatesModel.GetBuy(Estate, Hero.MainHero);
-            BuyVisible = !PlayerOwned;
+            // Hide Buy when the player's clan owns the village this estate
+            // sits on AND the estate is occupied — BKEstatesModel.GetBuy
+            // rejects with "Already settlement owner" in that case.
+            // EXCEPT: vacant estates in player-clan villages can be claimed
+            // for free (no seller). Show the button there with a Claim label.
+            bool playerIsVillageOwner = IsPlayerClanVillageOwner();
+            bool canClaimVacancy = playerIsVillageOwner && Estate.Owner == null;
+            BuyVisible = canClaimVacancy || (!PlayerOwned && !playerIsVillageOwner);
+            BuyTextValue = canClaimVacancy
+                ? new TextObject("{=BKEstate_ClaimBtn}Claim").ToString()
+                : new TextObject("{=WabTyEdr}Buy").ToString();
             BuyHint = new HintViewModel(new TextObject("{=1kX621pV}Acquire this property as your own.\n\n{REASON}")
                 .SetTextVariable("REASON", buyAction.Reason));
 
@@ -586,7 +638,13 @@ namespace BannerKings.UI.Estates
         public bool CapWarningVisible => !string.IsNullOrEmpty(capWarning);
 
         [DataSourceProperty]
-        public string BuyText => new TextObject("{=WabTyEdr}Buy").ToString();
+        public string BuyText
+        {
+            get => buyTextValue ?? new TextObject("{=WabTyEdr}Buy").ToString();
+            set { if (value != buyTextValue) { buyTextValue = value; OnPropertyChangedWithValue(value); } }
+        }
+        // Convenience setter for RefreshActions — same backing field.
+        private string BuyTextValue { set => BuyText = value; }
         [DataSourceProperty]
         public string RetinueText => new TextObject("{=06vrmp18}Retinue").ToString();
         [DataSourceProperty]

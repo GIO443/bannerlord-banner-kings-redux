@@ -150,6 +150,10 @@ namespace BannerKings
             campaignStarter.AddBehavior(new BKMercenaryCareerBehavior());
             campaignStarter.AddBehavior(new BKRelationsBehavior());
             campaignStarter.AddBehavior(new BKSettlementBehavior());
+            // CaravanOrdersBehavior must register before BKCaravansBehavior so
+            // the scorer/buy-filter hooks in BKCaravansBehavior can read order
+            // state via CaravanOrdersBehavior.Instance during the same tick.
+            campaignStarter.AddBehavior(new BannerKings.Behaviours.Caravans.CaravanOrdersBehavior());
             campaignStarter.AddBehavior(new BKCaravansBehavior());
             campaignStarter.AddBehavior(new BKMercenaryCompanyBehavior());
             campaignStarter.AddBehavior(new BKAIVisitSettlementBehavior());
