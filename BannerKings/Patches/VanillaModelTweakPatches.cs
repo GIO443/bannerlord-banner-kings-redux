@@ -1318,7 +1318,11 @@ namespace BannerKings.Patches
             [HarmonyPatch(nameof(DefaultArmyManagementCalculationModel.CalculateDailyCohesionChange))]
             private static void CalculateDailyCohesionChangePostfix(Army army, bool includeDescriptions, ref ExplainedNumber __result)
             {
-                __result.LimitMax(-0.1f);
+                // No LimitMax(-0.1) here: it forced ResultNumber ≤ -0.1 every day,
+                // erasing every vanilla recovery path (home settlement, food, leader
+                // perks) and defeating the CohesionBoost MCM setting's documented
+                // "decreases cohesion loss by half" intent. BK contributes additive
+                // modifiers below; vanilla owns the sign.
 
                 if (army.LeaderParty != null && army.LeaderParty.LeaderHero != null)
                 {

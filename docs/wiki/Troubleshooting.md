@@ -25,6 +25,12 @@
 - **"Crash hovering parties in the Army Management screen"** — fixed
   in v1.6.9.33. Caused by BK's mercenary eligibility tweak leaving the
   hover tooltip's reason text null. Update Banner Kings — Redux.
+- **"My army disbands far too soon"** — fixed in v1.6.9.34. BK's
+  cohesion postfix was clamping the daily change at a forced loss,
+  blocking every vanilla recovery condition (camped at home, food,
+  leader perks). The MCM "Army Cohesion Boost" slider now actually
+  matches its tooltip: at 50% it halves daily cohesion loss; at 0% it
+  matches vanilla.
 - **"My lifestyle locked at Scholar"** — Scholar requires the scholarship
   gate (any of ScholarshipMechanic, Accountant, NaturalScientist, Treasurer).
   Without it, progress doesn't tick.
