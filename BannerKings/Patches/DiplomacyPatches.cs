@@ -101,15 +101,91 @@ namespace BannerKings.Patches
             }
         }*/
 
-        [HarmonyPatch(typeof(KingdomDecisionProposalBehavior), "ConsiderWar")]
-        internal class ConsiderWarPatch
+        // Phase G: BK no longer fully suppresses vanilla's war-consideration
+        // pipeline. Vanilla decides WHEN to propose war (cadence, scoring,
+        // influence cost, deduplication via _kingdomDecisionsList).
+        // BK augments the decision after vanilla constructs it:
+        //
+        //   1. If BK has a truce with the picked target (natural post-peace
+        //      window OR paid extension), nullify the decision so vanilla's
+        //      caller skips AddDecision.
+        //   2. Otherwise, if BK has an applicable CasusBelli, replace the
+        //      plain DeclareWarDecision with a BKDeclareWarDecision carrying
+        //      the CB.
+        //   3. If no CB applies, leave vanilla's decision alone — war can
+        //      still be proposed without a BK justification.
+        //
+        // Hooked at GetRandomWarDecision (private static helper that returns
+        // the chosen decision before AddDecision is called). Postfix can
+        // mutate __result. Single source of truth: vanilla owns proposal
+        // cadence; BK owns justification + truce gate.
+        [HarmonyPatch(typeof(KingdomDecisionProposalBehavior), "GetRandomWarDecision")]
+        internal class GetRandomWarDecisionPatch
         {
-            private static bool Prefix(Clan clan, Kingdom kingdom, IFaction otherFaction, ref bool __result)
+            private static void Postfix(Clan clan, ref TaleWorlds.CampaignSystem.Election.KingdomDecision __result)
             {
-                // Defer to Diplomacy mod's war-consideration overrides when present.
-                if (ModCompat.DiplomacyMod) return true;
-                __result = false;
-                return false;
+                if (__result == null) return;
+                if (clan == null || clan.Kingdom == null) return;
+
+                if (!(__result is DeclareWarDecision dwd)) return;
+                if (dwd is BKDeclareWarDecision) return;
+
+                Kingdom target = dwd.FactionToDeclareWarOn as Kingdom;
+                if (target == null) return;
+
+                BKDiplomacyBehavior bkBehavior;
+                try { bkBehavior = TaleWorlds.CampaignSystem.Campaign.Current.GetCampaignBehavior<BKDiplomacyBehavior>(); }
+                catch { return; }
+                if (bkBehavior == null) return;
+
+                KingdomDiplomacy diplomacy = bkBehavior.GetKingdomDiplomacy(clan.Kingdom);
+                if (diplomacy == null) return;
+
+                // Truce gate: BK 1-year natural truce + paid extensions.
+                // Vanilla's only truce-equivalent is a 20-day check on
+                // PeaceDeclarationDate inside GetRandomWarDecision —
+                // BK's gate extends that to a full year by default.
+                if (diplomacy.IsInTruce(target))
+                {
+                    __result = null;
+                    return;
+                }
+
+                // CB upgrade. Pick a random adequate CB for this target.
+                //
+                // Scoring-asymmetry note: vanilla's ConsiderWar already
+                // approved this proposal using DeclareWarBarterable +
+                // a KingdomElection on the plain DeclareWarDecision. After
+                // upgrade, the actual kingdom vote runs on
+                // BKDeclareWarDecision.DetermineSupport which uses
+                // BKWarBarterable(CB, ...). Different scoring than what
+                // gated approval. In practice both reflect the same
+                // war-suitability signal (BK's CB scoring is additive
+                // around vanilla's barterable value), so the asymmetry
+                // doesn't typically produce a vote that contradicts the
+                // gate. Worth noting if vote outcomes ever look wrong.
+                try
+                {
+                    var availableCB = diplomacy.GetAvailableCasusBelli(target);
+                    if (availableCB != null && availableCB.Count > 0)
+                    {
+                        var picked = availableCB.GetRandomElement();
+                        if (picked != null)
+                        {
+                            __result = new BKDeclareWarDecision(picked, clan, target);
+                        }
+                    }
+                    // No applicable CB: leave vanilla's plain
+                    // DeclareWarDecision unchanged. War can still be
+                    // declared without a BK justification — BK piety /
+                    // doctrine effects skip but the war itself is
+                    // legitimate vanilla state.
+                }
+                catch
+                {
+                    // Defensive: never crash a proposal tick on the
+                    // upgrade. Vanilla decision passes through.
+                }
             }
         }
 
@@ -273,22 +349,46 @@ namespace BannerKings.Patches
 
             private static void ShowAlliance(KingdomDiplomacy diplomacy, Kingdom newAlly, KingdomDiplomacyVM __instance)
             {
-                int denars = MBRandom.RoundRandomized(BannerKingsConfig.Instance.DiplomacyModel.GetAllianceDenarCost(diplomacy.Kingdom,
-                    newAlly)
-                    .ResultNumber);
-
+                // Route through vanilla's StartAllianceDecision pipeline.
+                // BK's BKDiplomacyBehavior.MakeAlliance was a no-op stub
+                // (FactionManager.DeclareAlliance was removed in 1.3.x and
+                // BK never replaced it). Vanilla 1.3.x added a complete
+                // alliance system (AllianceCampaignBehavior, AllianceModel,
+                // StartAllianceDecision, 84-day max alliance duration with
+                // expiration tracking). Add the decision to the player
+                // kingdom's queue so vanilla's election + apply chain
+                // handles the rest.
                 InformationManager.ShowInquiry(new InquiryData(new TextObject("{=cG3R7J1D}Propose Alliance").ToString(),
-                    new TextObject("{=kqy4fUCu}{LEADER} is interested in accepting an alliance between your rulerships. Such alliances will only last while both rulers stay in power. For long-lasting alliances, seek instead a marriage between both families. Blood ties allow alliances to persevere for generations. In order to formalize it, they request {DENARS}{GOLD_ICON}.")
-                    .SetTextVariable("DENARS", denars)
+                    new TextObject("{=kqy4fUCu}{LEADER} is interested in accepting an alliance between your rulerships. The proposal will be put to a vote among your kingdom's lords.")
                     .SetTextVariable("LEADER", newAlly.RulingClan.Leader.Name)
                     .ToString(),
-                    Hero.MainHero.Gold >= denars,
+                    true,
                     true,
                     GameTexts.FindText("str_policy_propose").ToString(),
                     GameTexts.FindText("str_selection_widget_cancel").ToString(),
                     () =>
                     {
-                        TaleWorlds.CampaignSystem.Campaign.Current.GetCampaignBehavior<BKDiplomacyBehavior>().MakeAlliance(diplomacy.Kingdom, newAlly);
+                        try
+                        {
+                            var proposer = TaleWorlds.CampaignSystem.Election.StartAllianceDecision
+                                .GetProposerClanForPlayerKingdom(newAlly);
+                            if (proposer != null)
+                            {
+                                Clan.PlayerClan.Kingdom.AddDecision(
+                                    new TaleWorlds.CampaignSystem.Election.StartAllianceDecision(proposer, newAlly),
+                                    ignoreInfluenceCost: false);
+                            }
+                            // proposer == null: vanilla refused to nominate a
+                            // sponsor (no eligible non-ruler clan, etc.).
+                            // Inquiry already closed; surfacing an inline
+                            // error here would interleave dialogs. Player
+                            // can re-attempt; the UI gate stays trustworthy.
+                        }
+                        catch
+                        {
+                            // Defensive: vanilla's decision ctor rejects
+                            // already-allied / same-kingdom edge cases.
+                        }
                         __instance.RefreshValues();
                     },
                     null));

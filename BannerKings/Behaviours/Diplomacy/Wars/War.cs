@@ -92,6 +92,18 @@ namespace BannerKings.Behaviours.Diplomacy.Wars
         [SaveableProperty(10)] public List<IFaction> DefenderAllies { get; private set; }
         [SaveableProperty(11)] public RadicalDemand Demand { get; private set; }
 
+        // Vanilla's StanceLink owns the canonical war state (IsAtWar,
+        // WarStartDate, casualties, sieges, raids, tribute). BK's War
+        // record stays as the BK-novel layer (CasusBelli, Demand, fronts,
+        // sovereign-of-internal-rebellion). Use Stance to read vanilla
+        // state instead of querying Attacker/Defender independently.
+        // Both null-guarded: corrupt saves can have dangling Attacker /
+        // Defender refs after a kingdom is destroyed; FactionManager.
+        // GetStanceOf throws on null `other`.
+        public StanceLink Stance => (Attacker != null && Defender != null)
+            ? Attacker.GetStanceWith(Defender)
+            : null;
+
         public void AddAlly(IFaction enemy, IFaction faction, bool defender = true)
         {
             if (defender)

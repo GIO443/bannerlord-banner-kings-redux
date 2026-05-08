@@ -91,8 +91,46 @@ namespace BannerKings.Behaviours.Diplomacy
             else if (Fatigue < 0f) Fatigue = 0f;
         }
 
-        public bool HasValidTruce(Kingdom kingdom)
+        // Natural post-peace truce duration. After any MakePeaceAction.Apply
+        // call (vanilla peace decision, mercenary contract end, kingdom
+        // destruction, etc.) two kingdoms get this much time before BK's
+        // war-proposal AI can re-target them. Reads vanilla's
+        // StanceLink.PeaceDeclarationDate as the canonical source of truth
+        // for "when did peace last begin" — no parallel BK record needed
+        // for the natural-truce case. The Truces dict is a paid-extension
+        // layer on top (player buys a longer truce, AI accepts an offer).
+        public const float NaturalTruceYears = 1f;
+
+        // Single canonical accessor: is there an active truce, from any
+        // source (vanilla peace-window OR BK paid extension)?
+        public bool IsInTruce(Kingdom kingdom)
         {
+            if (kingdom == null || kingdom == Kingdom) return false;
+
+            // Natural truce derived from vanilla's PeaceDeclarationDate.
+            // Only counts when currently neutral — once war is declared,
+            // PeaceDeclarationDate stays as a historical record but the
+            // truce is broken (covered by vanilla flipping IsNeutral=false).
+            try
+            {
+                var stance = Kingdom.GetStanceWith(kingdom);
+                if (stance != null && stance.IsNeutral)
+                {
+                    var peaceDate = stance.PeaceDeclarationDate;
+                    // CampaignTime default / Never resolves to a far-past
+                    // date, making the elapsed check trivially exceed the
+                    // window for kingdoms that never made peace. Two
+                    // never-warred kingdoms thus correctly return false.
+                    var elapsedDays = peaceDate.ElapsedDaysUntilNow;
+                    if (elapsedDays >= 0f && elapsedDays < NaturalTruceYears * CampaignTime.DaysInYear)
+                    {
+                        return true;
+                    }
+                }
+            }
+            catch { /* defensive */ }
+
+            // BK paid-extension layer.
             if (Truces.ContainsKey(kingdom))
             {
                 return Truces[kingdom].RemainingHoursFromNow > 0f;
@@ -100,6 +138,11 @@ namespace BannerKings.Behaviours.Diplomacy
 
             return false;
         }
+
+        // Backward-compat alias. Delegates to IsInTruce so any callers we
+        // missed continue to work. New BK code should call IsInTruce
+        // directly.
+        public bool HasValidTruce(Kingdom kingdom) => IsInTruce(kingdom);
 
         public void AddTruce(Kingdom otherKingdom, float years)
         {
@@ -213,8 +256,26 @@ namespace BannerKings.Behaviours.Diplomacy
 
         public void DissolveTradePactForcefully(Kingdom kingdom)
         {
+            // Mirror the dissolution to BOTH sides — previously this only
+            // mutated `this` side's TradePacts list, leaving the other
+            // kingdom's KingdomDiplomacy.TradePacts with a stale entry.
+            // Symptom: player breaks pact via UI, AI side still considers
+            // pact active when querying HasTradePact. One-sided list ops
+            // are a duplicate-source-of-truth violation across the two
+            // kingdoms' records.
             DissolveTradePact(kingdom, new TextObject("{=!}The {KINGDOM} is no longer interested.")
                         .SetTextVariable("KINGDOM", Kingdom.Name));
+
+            try
+            {
+                var otherDiplomacy = TaleWorlds.CampaignSystem.Campaign.Current
+                    .GetCampaignBehavior<BannerKings.Behaviours.Diplomacy.BKDiplomacyBehavior>()
+                    ?.GetKingdomDiplomacy(kingdom);
+                otherDiplomacy?.DissolveTradePact(this.Kingdom, new TextObject("{=!}The {KINGDOM} is no longer interested.")
+                    .SetTextVariable("KINGDOM", Kingdom.Name));
+            }
+            catch { /* defensive: never block a player UI action */ }
+
             ChangeRelationAction.ApplyRelationChangeBetweenHeroes(Kingdom.Leader, kingdom.Leader, -10);
         }
 

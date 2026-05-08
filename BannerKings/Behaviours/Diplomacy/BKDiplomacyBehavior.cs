@@ -286,7 +286,19 @@ namespace BannerKings.Behaviours.Diplomacy
             if (k.UnresolvedDecisions.Any(x => x is BKDeclareWarDecision)) return;
 
             int count = 0;
-            foreach (Kingdom target in Kingdom.All.Where(x => !x.IsEliminated && x != k && x.GetStanceWith(k).IsNeutral))
+            // Truce gate: skip targets BK is currently in truce with
+            // (natural post-peace window OR paid-extension dict). Without
+            // this, AI would re-propose war on a freshly-peaced kingdom
+            // every weekly tick, vanilla MakePeaceAction would fire
+            // again, and the player would see "lords settled on truce"
+            // notifications repeating with the war never appearing to end.
+            // diplomacy.IsInTruce reads vanilla StanceLink.PeaceDeclaration
+            // Date as the canonical source for natural truces, so this
+            // check is consistent with IsTruceAllowed and IsWarDecision
+            // AllowedBetweenKingdoms in BKKingdomDecisionModel.
+            foreach (Kingdom target in Kingdom.All.Where(x => !x.IsEliminated && x != k
+                                                            && x.GetStanceWith(k).IsNeutral
+                                                            && !diplomacy.IsInTruce(x)))
             {
                 if (count == 4) break;
                 count++;
@@ -430,14 +442,14 @@ namespace BannerKings.Behaviours.Diplomacy
 
         private void TickKingdoms()
         {
-            // When a cooperator mod owns the diplomacy decision surface
-            // (Diplomacy or AIInfluence), BK steps out of the war/alliance
-            // proposal loop entirely — running both produces duplicate
-            // BKDeclareWarDecisions and parallel log spam. Per-kingdom
-            // objective flags and elimination cleanup still run; only the
-            // weekly proposal call is gated.
-            bool delegateDiplomacy = ModCompat.DiplomacyMod || ModCompat.AIInfluence;
-
+            // BK previously gated its parallel war-proposal pipeline on
+            // `ModCompat.DiplomacyMod || ModCompat.AIInfluence` (delegate
+            // diplomacy to a cooperator). Phase G removed the parallel
+            // pipeline entirely — vanilla's KingdomDecisionProposalBehavior
+            // is now the sole proposer for everyone, and BK extends it
+            // via the GetRandomWarDecision Postfix in DiplomacyPatches.
+            // Cooperator mods that patch the same vanilla method work
+            // alongside BK's Postfix without competition.
             foreach (Kingdom kingdom in Kingdom.All)
             {
                 if (kingdom == Clan.PlayerClan.MapFaction) continue;
@@ -477,12 +489,16 @@ namespace BannerKings.Behaviours.Diplomacy
                     party.MobileParty.SetPartyObjective(objective);
                 }
 
-                if (!delegateDiplomacy)
-                {
-                    RunWeekly(() => ConsiderWars(kingdom),
-                        GetType().Name,
-                        false);
-                }
+                // Phase G: BK no longer drives weekly war proposals via
+                // its own ConsiderWars. Vanilla's KingdomDecisionProposal
+                // Behavior owns proposal cadence + scoring; BK extends
+                // the decision via a Postfix on
+                // KingdomDecisionProposalBehavior.GetRandomWarDecision
+                // (DiplomacyPatches.cs) that gates on BK truces and
+                // upgrades the returned DeclareWarDecision to a
+                // BKDeclareWarDecision with a CasusBelli when applicable.
+                // Single source of truth: vanilla decides WHEN to propose,
+                // BK decides WITH WHAT JUSTIFICATION.
             }
         }
 
@@ -577,39 +593,17 @@ namespace BannerKings.Behaviours.Diplomacy
 
         private void AvaliateAlliances(Kingdom kingdom, Clan clan)
         {
-            foreach (StanceLink stance in BannerKings.Utils.Helpers.GetFactionStances(kingdom))
-            {
-                IFaction other = stance.Faction1 == kingdom ? stance.Faction2 : stance.Faction1;
-                if (other.IsKingdomFaction && false)
-                {
-                    if (BannerKingsConfig.Instance.MarriageModel.DiscoverAncestors(clan.Leader, 3)
-                        .Intersect(BannerKingsConfig.Instance.MarriageModel.DiscoverAncestors(other.Leader, 3)).Any()) 
-                    { 
-                        if (kingdom == Clan.PlayerClan.MapFaction && other == Clan.PlayerClan.MapFaction)
-                        {
-                            InformationManager.DisplayMessage(new InformationMessage(
-                                new TextObject("{=ycB56vXA}Despite the new rulership of {KINGDOM}, the realm and the {OTHER} are still allies through blood ties.")
-                                .SetTextVariable("KINGDOM", kingdom.Name)
-                                .SetTextVariable("OTHER", other.Name)
-                                .ToString(),
-                                Color.FromUint(Utils.TextHelper.COLOR_LIGHT_BLUE)));
-                        }
-                    }
-                    else
-                    {
-                        if (kingdom == Clan.PlayerClan.MapFaction && other == Clan.PlayerClan.MapFaction)
-                        {
-                            InformationManager.DisplayMessage(new InformationMessage(
-                                new TextObject("{=nVhqicUR}Due to the absence of blood ties, the new rulership of {KINGDOM} has dissolved its previous alliance with the {OTHER}.")
-                                .SetTextVariable("KINGDOM", kingdom.Name)
-                                .SetTextVariable("OTHER", other.Name)
-                                .ToString(),
-                                Color.FromUint(Utils.TextHelper.COLOR_LIGHT_YELLOW)));
-                        }
-                        FactionManager.SetNeutral(kingdom, other);
-                    }
-                }
-            }
+            // Vanilla 1.3.x removed FactionManager.DeclareAlliance and the
+            // IsAllied stance flag, replacing them with the new
+            // AllianceCampaignBehavior + Alliance struct (with EndTime
+            // expiration). The body of this method was an alliance-ancestry
+            // check gated entirely on `&& false` (dead since the 1.3.x
+            // port). Vanilla now owns alliance lifecycle including
+            // ruler-change effects via AllianceCampaignBehavior.
+            // Method retained as an empty no-op so OnRulerChanged's call
+            // site doesn't need refactoring; can be removed entirely
+            // alongside the OnRulerChanged refactor when alliance
+            // integration (Phase E) lands.
         }
 
         private void OnOwnerChanged(Settlement settlement, bool openToClaim, Hero newOwner, Hero oldOwner,
@@ -656,9 +650,31 @@ namespace BannerKings.Behaviours.Diplomacy
         {
             BannerKings.Utils.Logs.Kingdom(() => $"peace: {faction1?.Name} ↔ {faction2?.Name} ({detail})");
 
-            if (faction1.IsKingdomFaction && faction2.IsKingdomFaction)
+            // Vanilla MakePeaceAction.Apply already handles tribute and
+            // sets StanceLink.PeaceDeclarationDate. The post-peace truce
+            // window is now derived from PeaceDeclarationDate via
+            // KingdomDiplomacy.IsInTruce (see KingdomDiplomacy.cs:94).
+            //
+            // Previously this handler called MakeTruce(faction1, faction2,
+            // 1f) which silently transferred BK-computed truce-cost denars
+            // between rulers on every vanilla peace event — a double-charge
+            // on top of vanilla's tribute. Removed entirely; the natural
+            // post-peace truce is free, paid extensions go through
+            // ConsiderTruce/MakeTruce explicitly.
+            //
+            // Player-facing notification only when the player's faction is
+            // involved (was firing for every AI-AI peace, spam).
+            if (faction1.IsKingdomFaction && faction2.IsKingdomFaction
+                && Hero.MainHero != null
+                && (faction1 == Hero.MainHero.MapFaction || faction2 == Hero.MainHero.MapFaction))
             {
-                MakeTruce(faction1 as Kingdom, faction2 as Kingdom, 1f);
+                InformationManager.DisplayMessage(new InformationMessage(
+                    new TextObject("{=4S5vs7AB}The lords of {KINGDOM1} and {KINGDOM2} have settled on a truce until {DATE}.")
+                    .SetTextVariable("KINGDOM1", faction1.Name)
+                    .SetTextVariable("KINGDOM2", faction2.Name)
+                    .SetTextVariable("DATE", CampaignTime.YearsFromNow(KingdomDiplomacy.NaturalTruceYears).ToString())
+                    .ToString(),
+                    Color.FromUint(Utils.TextHelper.COLOR_LIGHT_BLUE)));
             }
 
             War war = GetWar(faction1, faction2);
@@ -684,10 +700,17 @@ namespace BannerKings.Behaviours.Diplomacy
                 if (defenderD != null) defenderD.OnWar(attacker);
             }
 
-            foreach (IFaction ally in faction2.GetAllies())
-            {
-                CallToWar(faction1, faction2, ally, detail);
-            }
+            // Phase E: ally-pull is now vanilla's job. BL 1.3.x added a
+            // proper call-to-war system (AllianceCampaignBehavior +
+            // CallToWarAgreement struct + AcceptCallToWarAgreementDecision +
+            // AllianceModel.GetCallToWarCost / GetScoreOfJoiningWar). Allies
+            // get an agreement, must accept (cost-gated, expiration-gated),
+            // and vote it through with their own scoring. The previous BK
+            // path here iterated faction2.GetAllies() and called
+            // DeclareWarAction.ApplyByDefault directly, bypassing all of
+            // that — strictly worse than vanilla's gated pull. BK's
+            // WillJoinWar / CallToWar methods stay as the legacy API for
+            // external callers but are no longer auto-invoked here.
         }
     }
 }
