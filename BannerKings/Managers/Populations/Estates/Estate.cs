@@ -130,7 +130,12 @@ namespace BannerKings.Managers.Populations.Estates
         // matches BKClanFinanceModel.CalculateOwnerIncomeFromEstates so
         // the UI column doesn't show a number the player will never see
         // hit their gold.
-        public int Income => IncomeBlockedReason != null ? 0 : (int)(TaxAccumulated * 0.8f);
+        // Estate income is paid DIRECTLY by EstateData.DailyProductionIncome
+        // and AccumulateTradeTax — no buffer, no asymptote, no drain timing
+        // dance. Income returns the last day's actual paid amount for
+        // display purposes; LastIncome is overwritten daily by production
+        // and accrued during the day by trade-tax events.
+        public int Income => IncomeBlockedReason != null ? 0 : LastIncome;
 
         // Steady-state daily denar/day prediction. Mirrors the production
         // tick formula in EstateData.DailyProductionIncome × the same
@@ -138,9 +143,9 @@ namespace BannerKings.Managers.Populations.Estates
         // estimate doesn't promise income that won't flow.
         //   effectiveAcres   = Farmland + Pastureland*0.5 + Woodland*0.15
         //   workforceFactor  = clamp((Pop + Slaves) / (effectiveAcres*0.5), 0..1)
-        //   gross            = effectiveAcres × workforceFactor × 0.4
+        //   gross            = effectiveAcres × workforceFactor × 1.0  (was 0.4 — workshop-parity rebalance)
         //   net              = gross × (1 - TaxRatio)
-        //   payout           = net × 0.8
+        //   payout           = net  (full daily drain — no 80% partial)
         public float EstimatedDailyIncome
         {
             get
@@ -157,7 +162,7 @@ namespace BannerKings.Managers.Populations.Estates
                 if (workforceFactor <= 0f) return 0f;
                 float keepRate = 1f - TaxRatio.ResultNumber;
                 if (keepRate < 0f) keepRate = 0f;
-                float gross = effectiveAcres * workforceFactor * 0.4f;
+                float gross = effectiveAcres * workforceFactor * 1.0f;
 
                 // Phase 2 layered-economy multiplier — must mirror the
                 // gating + math in EstateData.DailyProductionIncome so the
@@ -169,8 +174,7 @@ namespace BannerKings.Managers.Populations.Estates
                     gross *= br.Final;
                 }
 
-                float net = gross * keepRate;
-                return net * 0.8f;
+                return gross * keepRate;
             }
         }
 
@@ -421,6 +425,28 @@ namespace BannerKings.Managers.Populations.Estates
         public void AddPopulation(int toAdd)
         {
             Population += toAdd;
+        }
+
+        // Used by the Growth EstateSpec daily-tick handler. Splits the
+        // daily acreage gain across Farmland/Pastureland/Woodland by the
+        // village's land composition, so a Cropland village mostly grows
+        // Farmland while a Pastoral one mostly grows Pastureland.
+        // Caller passes data.LandData.Composition (length-3 float[]).
+        public void AddAcreage(float toAdd, float[] composition)
+        {
+            if (toAdd <= 0f || composition == null || composition.Length < 3) return;
+            float total = composition[0] + composition[1] + composition[2];
+            if (total <= 0f)
+            {
+                // No composition signal — fall back to even split.
+                Farmland += toAdd / 3f;
+                Pastureland += toAdd / 3f;
+                Woodland += toAdd / 3f;
+                return;
+            }
+            Farmland    += toAdd * (composition[0] / total);
+            Pastureland += toAdd * (composition[1] / total);
+            Woodland    += toAdd * (composition[2] / total);
         }
 
         public enum EstateDuty

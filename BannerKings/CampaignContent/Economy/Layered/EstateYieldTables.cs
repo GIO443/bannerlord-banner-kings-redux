@@ -43,6 +43,13 @@ namespace BannerKings.CampaignContent.Economy.Layered
                     return new SpecOutput { Volume = 1.10f, Quality = 1.00f, Food = 0.20f, Recruits = 0.25f };
                 case EstateSpec.Levy:
                     return new SpecOutput { Volume = 0.85f, Quality = 1.00f, Food = 0f, Recruits = 1.50f };
+                case EstateSpec.Growth:
+                    // Halved output (0.50 volume) is the opportunity cost; the
+                    // payoff is daily Population accumulation + Farmland/
+                    // Pastureland/Woodland expansion handled by the Growth
+                    // daily-tick in LayeredEconomyAssignmentBehavior. Multi-
+                    // year hold required to break even on the lost yield.
+                    return new SpecOutput { Volume = 0.50f, Quality = 1.00f, Food = 0f, Recruits = 0f };
                 case EstateSpec.Unset:
                 default:
                     return new SpecOutput { Volume = 1.00f, Quality = 1.00f, Food = 0f, Recruits = 0f };
@@ -147,11 +154,14 @@ namespace BannerKings.CampaignContent.Economy.Layered
                     if (cls == VillageClass.CoastalFishery) return 0.10f; // dye
                     return 0f;
 
-                case TownIndustry.Stable:
-                    if (cls == VillageClass.StudFarm) return 0.60f;
-                    if (cls == VillageClass.Pastoral) return 0.25f;       // hides
-                    if (cls == VillageClass.Extractive) return 0.15f;     // iron
-                    return 0f;
+                // TownIndustry.Stable is preserved as an enum value for
+                // save compatibility but no longer carries demand weights.
+                // StudFarm villages produce horses through the vanilla
+                // VillageType pipeline; the dedicated Stable industry
+                // didn't add enough beyond that to justify the surface.
+                // Old saves that still have a town tagged Stable will
+                // return 0 demand here (off-mission for every class) and
+                // get reclassified on the next reclassify_economy run.
 
                 case TownIndustry.CaravanHub:
                     if (cls == VillageClass.Extractive) return 0.40f;     // silver/gold/salt/clay

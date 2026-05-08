@@ -30,12 +30,68 @@ namespace BannerKings.CampaignContent.Economy.Layered
             CampaignEvents.OnGameLoadedEvent.AddNonSerializedListener(this, OnGameLoaded);
             CampaignEvents.OnSessionLaunchedEvent.AddNonSerializedListener(this, OnSessionLaunched);
             CampaignEvents.OnSettlementOwnerChangedEvent.AddNonSerializedListener(this, OnSettlementOwnerChanged);
+            // Lazy per-settlement pass. The bulk OnSessionLaunched pass runs
+            // before BK's own population init has finished building the live
+            // EconomicData / EstateData instances on every settlement, so its
+            // writes can land on stub objects that get replaced. The daily
+            // hook re-checks each settlement once its data is real and
+            // populates anything still Unset. Idempotent.
+            CampaignEvents.DailyTickSettlementEvent.AddNonSerializedListener(this, OnDailyTickSettlement);
         }
 
         public override void SyncData(IDataStore dataStore) { }
 
         private void OnGameLoaded(CampaignGameStarter starter) => RunAssignment(reason: "load");
         private void OnSessionLaunched(CampaignGameStarter starter) => RunAssignment(reason: "session");
+
+        private void OnDailyTickSettlement(Settlement settlement)
+        {
+            if (settlement == null) return;
+            var pm = BannerKingsConfig.Instance.PopulationManager;
+            if (pm == null) return;
+            PopulationData data;
+            try { data = pm.GetPopData(settlement); }
+            catch { return; }
+            if (data == null) return;
+
+            if (settlement.IsVillage && data.LandData != null
+                && data.LandData.VillageClass == VillageClass.Unset)
+            {
+                data.LandData.VillageClass = DefaultVillageClasses.GetClass(settlement.Village?.VillageType);
+            }
+            else if (settlement.IsTown && data.EconomicData != null
+                && data.EconomicData.TownIndustry == TownIndustry.Unset)
+            {
+                data.EconomicData.TownIndustry = DefaultTownIndustries.InferIndustry(settlement.Town);
+            }
+
+            var estates = data.EstateData?.Estates;
+            if (estates != null)
+            {
+                foreach (var estate in estates)
+                {
+                    if (estate == null || estate.Owner == null) continue;
+                    if (estate.Spec == EstateSpec.Unset)
+                        estate.Spec = DefaultEstateSpecs.ForOwner(estate.Owner);
+
+                    // Growth-spec daily payoff: invests output → pop + acreage.
+                    // Per design (5th spec): pop +0.2/day, acres +3/day total
+                    // split by village land composition. Stochastic for the
+                    // integer Population field (20% chance of +1/day averages
+                    // to the +0.2 target).
+                    if (estate.Spec == EstateSpec.Growth && data.LandData != null)
+                    {
+                        try
+                        {
+                            if (TaleWorlds.Core.MBRandom.RandomFloat < 0.2f)
+                                estate.AddPopulation(1);
+                            estate.AddAcreage(3f, data.LandData.Composition);
+                        }
+                        catch { /* never throw out of a daily tick */ }
+                    }
+                }
+            }
+        }
 
         private void OnSettlementOwnerChanged(Settlement settlement, bool openToClaim,
             Hero newOwner, Hero oldOwner, Hero capturerHero,

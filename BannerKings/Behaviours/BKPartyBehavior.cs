@@ -706,25 +706,48 @@ namespace BannerKings.Behaviours
                 else if (kind == BannerKings.CampaignContent.Economy.Layered.CargoKind.Food
                          && target.IsTown && target.Town != null)
                 {
-                    // Drain food items from the caravan into the town's
-                    // FoodStocks. Same pattern as BKSettlementBehavior.cs:811
-                    // — Amount × per-unit food value via the BK
-                    // ItemExtensions helper.
-                    float delivered = 0f;
-                    foreach (var element in party.ItemRoster)
+                    // Only deliver if this is the caravan's intended destination.
+                    // A food caravan that stops at a transit settlement (or worse,
+                    // re-enters its origin) should NOT dump its grain there —
+                    // that's how an EW2 → EN6 caravan ended up "delivering" to
+                    // EW2, never reaching the stagnant target.
+                    if (component.TargetSettlement == target)
                     {
-                        var item = element.EquipmentElement.Item;
-                        if (item == null) continue;
-                        int perUnit = BannerKings.Extensions.ItemExtensions.GetItemFoodValue(item);
-                        if (perUnit <= 0) continue;
-                        delivered += perUnit * element.Amount;
+                        // Drain food items from the caravan into the town's
+                        // FoodStocks. Same pattern as BKSettlementBehavior.cs:811
+                        // — Amount × per-unit food value via the BK
+                        // ItemExtensions helper.
+                        float delivered = 0f;
+                        foreach (var element in party.ItemRoster)
+                        {
+                            var item = element.EquipmentElement.Item;
+                            if (item == null) continue;
+                            int perUnit = BannerKings.Extensions.ItemExtensions.GetItemFoodValue(item);
+                            if (perUnit <= 0) continue;
+                            delivered += perUnit * element.Amount;
+                        }
+                        if (delivered > 0f)
+                        {
+                            target.Town.FoodStocks += delivered;
+                            BannerKings.BannerKingsCheats.AppendDiagnosticLine(
+                                "food_caravans.txt",
+                                $"deliver target={target.StringId} delivered={delivered:0.0} stocks={target.Town.FoodStocks:0.0}");
+                        }
                     }
-                    if (delivered > 0f)
+                    else
                     {
-                        target.Town.FoodStocks += delivered;
                         BannerKings.BannerKingsCheats.AppendDiagnosticLine(
                             "food_caravans.txt",
-                            $"deliver target={target.StringId} delivered={delivered:0.0} stocks={target.Town.FoodStocks:0.0}");
+                            $"transit-skip entered={target.StringId} component-target={component.TargetSettlement?.StringId ?? "(null)"} (kicking out, resuming)");
+                        // Boot the caravan back out immediately and re-issue
+                        // the move to its real target. Without the explicit
+                        // leave + re-issue here the caravan would sit inside
+                        // the wrong settlement for a full game hour until the
+                        // TickHourly recovery path picks it up. Saves the
+                        // idle-in-origin wait.
+                        try { TaleWorlds.CampaignSystem.Actions.LeaveSettlementAction.ApplyForParty(party); } catch { }
+                        try { party.SetMoveGoToSettlement(component.TargetSettlement, MobileParty.NavigationType.Default, false); } catch { }
+                        return;
                     }
                 }
                 else if (component.PopulationType != PopType.None)

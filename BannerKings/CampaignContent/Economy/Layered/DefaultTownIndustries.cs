@@ -19,6 +19,10 @@ namespace BannerKings.CampaignContent.Economy.Layered
             = new Dictionary<string, TownIndustry>
             {
                 // Granary — turns crop output into ale/oil/wine/flour.
+                // bakery deliberately NOT mapped: it's present in nearly
+                // every town as a service workshop, so it tells us nothing
+                // about regional industry. Including it pushes Granary into
+                // towns whose rural economy is Extractive/Pastoral.
                 { "brewery", TownIndustry.Granary },
                 { "olive_press", TownIndustry.Granary },
                 { "wine_press", TownIndustry.Granary },
@@ -38,16 +42,18 @@ namespace BannerKings.CampaignContent.Economy.Layered
                 { "silk_weavery", TownIndustry.Loomhouse },
                 { "velvet_weavery", TownIndustry.Loomhouse },
 
-                // Stable — equestrian goods.
-                { "tannery", TownIndustry.Stable },
-                { "barding-smithy", TownIndustry.Stable },
-                { "saddlemakery", TownIndustry.Stable },
+                // Stable industry deprecated — TownIndustry.Stable enum value
+                // is kept for save compat but no longer assigned. tannery,
+                // barding-smithy, saddlemakery cast no votes now. StudFarm
+                // villages produce horses via the vanilla VillageType
+                // pipeline without needing a dedicated town industry.
 
                 // Caravan Hub — luxury production + trade passthrough.
                 { "pottery_shop", TownIndustry.CaravanHub },
                 { "pottery", TownIndustry.CaravanHub },
                 { "perfumery", TownIndustry.CaravanHub },
                 { "jewelry", TownIndustry.CaravanHub },
+                { "silversmithy", TownIndustry.CaravanHub },
                 { "glassworks", TownIndustry.CaravanHub },
             };
 

@@ -64,6 +64,8 @@ namespace BannerKings.CampaignContent.Economy.Layered
                 case "lumberjack":
                     return VillageClass.Extractive;
                 case "fisherman":
+                case "whaler":
+                case "walrus_hunter":
                     return VillageClass.CoastalFishery;
                 default:
                     return VillageClass.Unset;

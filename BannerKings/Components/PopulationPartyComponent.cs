@@ -232,6 +232,13 @@ namespace BannerKings.Components
             caravan.InitializeMobilePartyAtPosition(template, origin.GatePosition);
             GiveMounts(ref caravan);
             GiveFood(ref caravan);
+            // Re-issue the move target AFTER initialization. Without this, the
+            // caravan was auto-entering its origin on the very first tick —
+            // observed in BK_food_caravans.txt: caravans dispatched to EN6
+            // delivered to their origin EW2 with zero TickHourly fires. Slave
+            // caravans don't expose this because their target is a village
+            // (different vanilla auto-entry path).
+            caravan.SetMoveGoToSettlement(target, MobileParty.NavigationType.Default, false);
             return caravan;
         }
 
@@ -415,6 +422,21 @@ namespace BannerKings.Components
                     return;
                 }
 
+                // Stuck-in-transit recovery. After the OnSettlementEntered
+                // transit-skip guard, the party can be parked INSIDE a
+                // non-target settlement with vanilla moveTo == that
+                // settlement (the engine considers the move complete). It
+                // would sit there forever because the intermediate-preserve
+                // check below treats moveTo as a safe intermediate. Boot it
+                // out and re-issue the move to our real target.
+                if (MobileParty.CurrentSettlement != null
+                    && MobileParty.CurrentSettlement != target)
+                {
+                    try { LeaveSettlementAction.ApplyForParty(MobileParty); } catch { }
+                    try { MobileParty.SetMoveGoToSettlement(target, MobileParty.NavigationType.Default, false); } catch { }
+                    return;
+                }
+
                 // Arrival check #2: pathfind distance is at the gate.
                 // 1f was too tight in the wild — saves had ~200
                 // population parties sitting next to their target with
@@ -448,16 +470,24 @@ namespace BannerKings.Components
                 var moveTarget = MobileParty.TargetSettlement;
                 if (moveTarget != null && moveTarget != target)
                 {
-                    bool intermediateUnsafe =
-                        moveTarget.IsUnderSiege ||
-                        (moveTarget.IsVillage && moveTarget.Village.VillageState is Village.VillageStates.Looted or Village.VillageStates.BeingRaided)
-                        // Hostile-faction flip: the intermediate's owner
-                        // declared war on us mid-route. Without this check
-                        // we'd happily walk the party into a freshly
-                        // hostile town and trigger an encounter.
-                        || (moveTarget.MapFaction != null && MobileParty.MapFaction != null
-                            && moveTarget.MapFaction.IsAtWarWith(MobileParty.MapFaction));
-                    if (!intermediateUnsafe) return;
+                    // Food caravans don't hop-route — they walk direct to the
+                    // stagnant target. Vanilla AI was observed flipping moveTo
+                    // back to HomeSettlement every few ticks, which the
+                    // intermediate-preserve below would freeze in place.
+                    // Skip the preserve for Food and force re-issue below.
+                    if (Kind != BannerKings.CampaignContent.Economy.Layered.CargoKind.Food)
+                    {
+                        bool intermediateUnsafe =
+                            moveTarget.IsUnderSiege ||
+                            (moveTarget.IsVillage && moveTarget.Village.VillageState is Village.VillageStates.Looted or Village.VillageStates.BeingRaided)
+                            // Hostile-faction flip: the intermediate's owner
+                            // declared war on us mid-route. Without this check
+                            // we'd happily walk the party into a freshly
+                            // hostile town and trigger an encounter.
+                            || (moveTarget.MapFaction != null && MobileParty.MapFaction != null
+                                && moveTarget.MapFaction.IsAtWarWith(MobileParty.MapFaction));
+                        if (!intermediateUnsafe) return;
+                    }
                 }
 
                 // Re-issue the move every hourly tick so AI-disabled parties

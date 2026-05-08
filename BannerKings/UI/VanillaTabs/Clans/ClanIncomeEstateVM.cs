@@ -1,7 +1,9 @@
+using BannerKings.CampaignContent.Economy.Layered;
 using BannerKings.Extensions;
 using BannerKings.Managers.Populations.Estates;
 using BannerKings.UI.Items;
 using System;
+using System.Collections.Generic;
 using TaleWorlds.CampaignSystem;
 using TaleWorlds.CampaignSystem.Settlements;
 using TaleWorlds.CampaignSystem.ViewModelCollection;
@@ -18,7 +20,6 @@ namespace BannerKings.UI.VanillaTabs.Clans
     internal class ClanIncomeEstateVM : ClanFinanceIncomeItemBaseVM
     {
         private readonly Action<ClanIncomeEstateVM> _onSelectionT;
-        private BannerKingsSelectorVM<BKItemVM> taskSelector;
         private void tempOnSelection(ClanFinanceIncomeItemBaseVM item) => _onSelectionT(this);
 
         internal ClanIncomeEstateVM(Estate estate, Action<ClanIncomeEstateVM> onSelection, Action onRefresh) : base(null, onRefresh)
@@ -42,35 +43,44 @@ namespace BannerKings.UI.VanillaTabs.Clans
            
             ImageName = ((settlementComponent != null) ? settlementComponent.WaitMeshName : "");
 
-            TaskSelector = new BannerKingsSelectorVM<BKItemVM>(true, 0, OnTaskChange);
-            TaskSelector.AddItem(new BKItemVM(0, 
-                true, 
-                new TextObject("{=Nx8wnMQb}Production task allows your workforce to produce goods wtihout hinderances. This task yields the most productivity and thus income by the estate."),
-                GameTexts.FindText("str_bk_estate_task", EstateTask.Prodution.ToString())));
+            // No dropdown selector — see ExecuteChangeSpec for the modal
+            // picker bound to the "Change Spec" button. Dropdowns in the
+            // narrow clan-finance side panel either truncate horizontally
+            // or render their popup options below the visible area.
 
-            TaskSelector.AddItem(new BKItemVM(1, 
-                true,
-                 new TextObject("{=dujKXYCD}Land expansion task sets part of your workforce to expand the estate's useful acreage. They wont be productive and thus the income is reduced. Increased acreage allows more population capacity."),
-                GameTexts.FindText("str_bk_estate_task", EstateTask.Land_Expansion.ToString())));
-
-            TaskSelector.AddItem(new BKItemVM(2,
-               true,
-                new TextObject("{=RYmV2PEY}Drafting increases the military participation of your estate population, but reduces its general output."),
-               GameTexts.FindText("str_bk_estate_task", EstateTask.Military.ToString())));
-
-            TaskSelector.SelectedIndex = (int)Estate.Task;
-            TaskSelector.SetOnChangeAction(OnTaskChange);
+            // Populate the right-panel stats list. Without this, the panel
+            // shows only title + image + Change Spec button — the stats
+            // (income, spec, cluster context, etc.) come from this list.
+            ItemProperties.Clear();
+            PopulateStatsList();
         }
 
-        private void OnTaskChange(SelectorVM<BKItemVM> obj)
+        public void ExecuteChangeSpec()
         {
-            if (obj.SelectedItem != null)
+            var list = new List<InquiryElement>();
+            foreach (EstateSpec spec in Enum.GetValues(typeof(EstateSpec)))
             {
-                var vm = obj.GetCurrentItem();
-                Estate.ChangeTask((EstateTask)vm.Value);
-                ItemProperties.Clear();
-                PopulateStatsList();
+                if (spec == EstateSpec.Unset) continue;
+                string label = spec == Estate.Spec ? $"{spec}  (current)" : spec.ToString();
+                list.Add(new InquiryElement(spec, label, null, true, BuildSpecTooltip(spec)));
             }
+            MBInformationManager.ShowMultiSelectionInquiry(new MultiSelectionInquiryData(
+                $"Specialization — {Estate.Name}",
+                "Pick the estate's specialization. Changes apply immediately and stamp the AI cooldown timer.",
+                list, true, 1, 1,
+                GameTexts.FindText("str_accept").ToString(),
+                GameTexts.FindText("str_cancel").ToString(),
+                chosen =>
+                {
+                    if (chosen == null || chosen.Count == 0) return;
+                    var newSpec = (EstateSpec)chosen[0].Identifier;
+                    if (Estate.Spec == newSpec) return;
+                    Estate.Spec = newSpec;
+                    Estate.LastSpecChange = CampaignTime.Now;
+                    ItemProperties.Clear();
+                    PopulateStatsList();
+                },
+                null));
         }
 
         protected override void PopulateStatsList()
@@ -88,9 +98,8 @@ namespace BannerKings.UI.VanillaTabs.Clans
                     false,
                     new BasicTooltipViewModel(() =>
                         $"Income blocked: {blocker}.\n" +
-                        "While blocked, the daily clan-finance tick skips this estate, so no gold reaches you.\n" +
-                        "Tax keeps accumulating into the pending balance — when the block ends, withdrawals resume " +
-                        "and the balance drains 80% per day until paid out.")));
+                        "Estates under enemy custody during war don't pay out. No back-pay accrues; " +
+                        "income simply stops until the block ends.")));
             }
 
             // Daily income estimate first — what the player wants to see
@@ -103,19 +112,30 @@ namespace BannerKings.UI.VanillaTabs.Clans
                 new BasicTooltipViewModel(() =>
                 {
                     var sb = new System.Text.StringBuilder();
-                    if (blocker != null)
+                    float effAcres = Estate.Farmland + Estate.Pastureland * 0.5f + Estate.Woodland * 0.15f;
+                    int totalLabor = Estate.Population + Estate.Slaves;
+                    if (estDaily == 0)
+                    {
+                        sb.AppendLine("INCOME = 0/day. Reasons:");
+                        if (blocker != null) sb.AppendLine($"  • {blocker}");
+                        if (effAcres <= 0f) sb.AppendLine($"  • effective acres = 0 (no Farmland/Pastureland/Woodland)");
+                        if (totalLabor <= 0) sb.AppendLine($"  • total labor = 0 (Population + Slaves both empty)");
+                        if (effAcres > 0f && totalLabor > 0 && Estate.WorkforceSaturation <= 0f)
+                            sb.AppendLine($"  • workforce saturation = 0%");
+                        sb.AppendLine();
+                    }
+                    else if (blocker != null)
                     {
                         sb.AppendLine($"INCOME BLOCKED: {blocker}.");
-                        sb.AppendLine("While blocked the estimate is forced to 0 — payout won't fire.");
+                        sb.AppendLine("Estates under enemy custody during war don't pay out. No back-pay accrues.");
                         sb.AppendLine();
                     }
                     sb.AppendLine($"Estimated steady-state daily payout: {estDaily} denar");
-                    sb.AppendLine($"  effective acres = {(Estate.Farmland + Estate.Pastureland * 0.5f + Estate.Woodland * 0.15f):0.0}");
+                    sb.AppendLine($"  effective acres = {effAcres:0.0}");
                     sb.AppendLine($"  workforce saturation = {(Estate.WorkforceSaturation * 100f):0}%");
                     sb.AppendLine($"  keep rate after tax = {((1f - Estate.TaxRatio.ResultNumber) * 100f):0}%");
                     sb.AppendLine();
                     sb.AppendLine($"Last actual paid income: {Estate.LastIncome} denar.");
-                    sb.AppendLine($"Pending balance: {Estate.TaxAccumulated} denar (drains 80%/day at clan-finance tick).");
                     sb.AppendLine("Trade-tax share from villager parties is added on top of this.");
                     return sb.ToString();
                 })));
@@ -236,20 +256,82 @@ namespace BannerKings.UI.VanillaTabs.Clans
                Estate.LastIncome.ToString(),
                false,
                null));
-        }
 
-        [DataSourceProperty]
-        public BannerKingsSelectorVM<BKItemVM> TaskSelector
-        {
-            get => taskSelector;
-            set
+            // Layered-economy block — surfaces the same cluster/spec data
+            // shown on the Settlement → Estates panel, inline so the
+            // player doesn't have to leave the clan finance tab.
+            ItemProperties.Add(new SelectableItemPropertyVM("Specialization",
+                Estate.Spec.ToString(),
+                false,
+                new BasicTooltipViewModel(BuildSpecTooltip)));
+
+            var settlement = Estate.EstatesData?.Settlement;
+            if (settlement?.Village != null)
             {
-                if (value != taskSelector)
+                var cls = settlement.Village.GetVillageClass();
+                ItemProperties.Add(new SelectableItemPropertyVM("Village class",
+                    cls.ToString(), false,
+                    new BasicTooltipViewModel(() => "BK village class — single source of truth for what this village produces.")));
+
+                var clusterTown = settlement.Village.GetClusterTown();
+                if (clusterTown != null)
                 {
-                    taskSelector = value;
-                    OnPropertyChangedWithValue(value);
+                    var industry = clusterTown.GetTownIndustry();
+                    var ec = EconomicCluster.Compute(clusterTown);
+                    float demand = EstateYieldTables.IndustryDemand(industry, cls);
+                    string demandBand = demand >= 1f ? "1.20× perfect"
+                                      : demand >= 0.5f ? "1.10× partial"
+                                      : demand >= 0.2f ? "1.00× minor"
+                                      : "0.70× off-mission";
+
+                    ItemProperties.Add(new SelectableItemPropertyVM("Bound town",
+                        $"{clusterTown.Name} ({industry})", false,
+                        new BasicTooltipViewModel(() => "The TradeBound town. Its industry shapes which classes get cluster-fit bonuses.")));
+
+                    ItemProperties.Add(new SelectableItemPropertyVM("Industry demand",
+                        demandBand, false,
+                        new BasicTooltipViewModel(() => "Multiplier applied to yield based on how well this village class supplies the bound town's industry.")));
+
+                    ItemProperties.Add(new SelectableItemPropertyVM("Cluster fit",
+                        ec.IndustryFit.ToString("0.00"), false,
+                        new BasicTooltipViewModel(() => "Aggregate score of bound-village fit to town industry. ≥0.75 healthy; ≤0.25 mismatched.")));
+
+                    if (ClusterFoodTracker.IsClusterStagnant(clusterTown))
+                    {
+                        ItemProperties.Add(new SelectableItemPropertyVM("Stagnation", "ACTIVE", false,
+                            new BasicTooltipViewModel(() => "Bound town in food deficit. Non-food classes take 0.7× yield until it closes; food-positive classes are exempt.")));
+                    }
                 }
             }
         }
+
+        private string BuildSpecTooltip()
+        {
+            return BuildSpecTooltip(Estate.Spec);
+        }
+
+        private string BuildSpecTooltip(EstateSpec spec)
+        {
+            var sb = new System.Text.StringBuilder();
+            var output = EstateYieldTables.Of(spec);
+            sb.AppendLine($"{spec}");
+            sb.AppendLine($"  Volume   ×{output.Volume:0.00}");
+            sb.AppendLine($"  Quality  ×{output.Quality:0.00}");
+            if (output.Food != 0f) sb.AppendLine($"  Food     {output.Food:+0.00;-0.00}");
+            if (output.Recruits > 0f) sb.AppendLine($"  Recruits ×{output.Recruits:0.00}");
+            sb.AppendLine();
+            switch (spec)
+            {
+                case EstateSpec.Yield:     sb.Append("Maximum bulk output. Slave-heavy. Lower per-unit grade."); break;
+                case EstateSpec.Quality:   sb.Append("Premium-grade output. Craftsman-heavy. Wins margin in luxury clusters."); break;
+                case EstateSpec.Sustained: sb.Append("Balanced. Net food-positive on food classes. Small recruit yield."); break;
+                case EstateSpec.Levy:      sb.Append("Recruit factory. Reduced output, expanded levy pool."); break;
+                case EstateSpec.Growth:    sb.Append("Investment mode. Output halved; estate gains population and acreage daily until village cap. Multi-year hold required to break even."); break;
+            }
+            return sb.ToString();
+        }
+
+        [DataSourceProperty]
+        public string ChangeSpecText => new TextObject("{=BKEstate_ChangeSpec}Change Spec").ToString();
     }
 }

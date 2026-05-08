@@ -48,25 +48,24 @@ namespace BannerKings.Models.Vanilla
             return (int)result;
         }
 
+        // Estate income is paid DIRECTLY in EstateData.DailyProductionIncome
+        // and EstateData.AccumulateTradeTax via GiveGoldAction. Returning
+        // LastIncome here for display-only (applyWithdrawals=false) so the
+        // clan finance UI shows the right per-hero estate-income breakdown.
+        // Returning 0 with applyWithdrawals=true so vanilla's clan-tick
+        // doesn't double-pay on top of our direct payments.
         public int CalculateOwnerIncomeFromEstates(Hero owner, bool applyWithdrawals)
         {
+            if (applyWithdrawals) return 0;
             float result = 0;
-            foreach (var estate in BannerKingsConfig.Instance.PopulationManager.GetEstates(owner)) 
+            foreach (var estate in BannerKingsConfig.Instance.PopulationManager.GetEstates(owner))
             {
                 if (estate.EstatesData.Settlement.MapFaction.IsAtWarWith(owner.MapFaction))
                 {
                     continue;
                 }
-
-                var estateIncome = estate.Income;
-                result += estateIncome;
-                if (applyWithdrawals)
-                {
-                    estate.TaxAccumulated -= (int)estateIncome;
-                    estate.LastIncome = (int)estateIncome;
-                }
+                result += estate.LastIncome;
             }
-
             return (int)result;
         }
 

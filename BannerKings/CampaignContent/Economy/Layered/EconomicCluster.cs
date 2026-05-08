@@ -140,16 +140,16 @@ namespace BannerKings.CampaignContent.Economy.Layered
             // 0 as a small penalty (0.85) rather than zero, because the
             // estate still produces *something* the cluster's market
             // can use, just at the floor of marginal demand.
-            // Bands deliberately asymmetric in penalty direction — cluster
-            // mismatch should pressure reorganization, not just shave.
-            // Bonus 1.20 on perfect supply; penalty 0.70 on off-mission.
-            // Per-estate; matches the post-Phase-3-review design intent
-            // that cluster-fit play *matters*.
+            // Bands match the original design doc — off-mission penalty
+            // shifted from 0.70 → 0.85 so estate income stays workshop-
+            // comparable even in mismatched clusters. Cluster fit still
+            // rewards alignment but doesn't gut income for the player who
+            // happens to own a Cropland estate in a Foundry-bound town.
             float demand = EstateYieldTables.IndustryDemand(industry, cls);
             if (demand >= 1f) return 1.20f;
             if (demand >= 0.5f) return 1.10f;
             if (demand >= 0.2f) return 1.00f;
-            return 0.70f;
+            return 0.85f;
         }
     }
 }

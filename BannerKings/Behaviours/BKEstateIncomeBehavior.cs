@@ -47,17 +47,15 @@ namespace BannerKings.Behaviours
                 var estates = BannerKingsConfig.Instance.PopulationManager.GetEstates(hero);
                 if (estates == null) continue;
 
+                // No-op: estate income is paid DIRECTLY in
+                // EstateData.DailyProductionIncome via GiveGoldAction. The
+                // backstop's old draining-buffer path is obsolete and would
+                // double-pay against the new direct flow. Kept as a hook
+                // in case future code needs a per-clan post-pay step.
                 foreach (var estate in estates)
                 {
                     if (estate == null) continue;
-                    if (estate.IncomeBlockedReason != null) continue;
-
-                    int income = estate.Income;
-                    if (income <= 0) continue;
-
-                    estate.TaxAccumulated -= income;
-                    estate.LastIncome = income;
-                    GiveGoldAction.ApplyBetweenCharacters(null, hero, income, false);
+                    // intentional no-op
                 }
             }
         }

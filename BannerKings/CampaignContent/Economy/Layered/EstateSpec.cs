@@ -12,5 +12,6 @@ namespace BannerKings.CampaignContent.Economy.Layered
         Quality,    // + volume, +++ premium grade, neutral food, craftsman-heavy
         Sustained,  // ++ balanced volume, contributes food + hearth, serf-heavy, small recruit yield
         Levy,       // + reduced volume, normal quality, +++ recruit pool, serf + noble
+        Growth,     // -- volume, normal quality, invests in pop + acreage capacity for the long run
     }
 }

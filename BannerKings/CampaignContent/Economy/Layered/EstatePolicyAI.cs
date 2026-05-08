@@ -194,7 +194,6 @@ namespace BannerKings.CampaignContent.Economy.Layered
                 if (cluster == null) continue;
                 var industry = cluster.GetTownIndustry();
                 if (industry != TownIndustry.Loomhouse
-                    && industry != TownIndustry.Stable
                     && industry != TownIndustry.CaravanHub) continue;
                 var cls = estate.EstatesData.Settlement.Village.GetVillageClass();
                 if (EstateYieldTables.IndustryDemand(industry, cls) <= 0.2f) continue;
@@ -203,7 +202,41 @@ namespace BannerKings.CampaignContent.Economy.Layered
                 return;
             }
 
-            // Trigger 5 — Wartime baseline: at war, none above. Bias
+            // Trigger 5 — Investment opportunity: peacetime, gold-rich,
+            // healthy cluster. Flip 1 non-food estate to Growth. Strict
+            // gates so AI Growth doesn't crater the food economy:
+            //   - peacetime only
+            //   - clan gold ≥ tier × 5000
+            //   - estate class is food-neutral or food-negative (FibreFarm /
+            //     StudFarm / Extractive). Cropland/Pastoral/CoastalFishery
+            //     stay productive — Growth on those would halve cluster
+            //     food supply for years.
+            //   - cluster IndustryFit ≥ 0.5 (cluster doesn't critically
+            //     depend on this estate's current output)
+            //   - clan owns no other Growth estate already (cap = 1/clan)
+            if (!IsAtWarAnywhere(clan)
+                && clan.Gold >= clan.Tier * 5000
+                && !ClanAlreadyHasGrowthEstate(clan))
+            {
+                foreach (var estate in pool)
+                {
+                    if (estate?.EstatesData?.Settlement?.Village == null) continue;
+                    var cls = estate.EstatesData.Settlement.Village.GetVillageClass();
+                    if (cls != VillageClass.FibreFarm
+                        && cls != VillageClass.StudFarm
+                        && cls != VillageClass.Extractive) continue;
+                    var cluster = estate.EstatesData.Settlement.Village.GetClusterTown();
+                    if (cluster == null) continue;
+                    var ec = EconomicCluster.Compute(cluster);
+                    if (ec.IndustryFit < 0.5f) continue;
+                    if (estate.Spec == EstateSpec.Growth) continue;
+                    if (!HasGrowthHeadroom(estate)) continue;
+                    ApplyFlip(clan, estate, EstateSpec.Growth, "investment-opportunity");
+                    return;
+                }
+            }
+
+            // Trigger 6 — Wartime baseline: at war, none above. Bias
             // Yield on whichever estate isn't already Levy or Yield.
             if (IsAtWarAnywhere(clan))
             {
@@ -212,7 +245,52 @@ namespace BannerKings.CampaignContent.Economy.Layered
                 { ApplyFlip(clan, target, EstateSpec.Yield, "wartime-baseline"); return; }
             }
 
-            // Trigger 6 — Peacetime baseline: hold (sticky). No-op.
+            // Trigger 7 — Peacetime baseline: hold (sticky). No-op.
+        }
+
+        // Skip the AI Growth flip when an estate is already near its
+        // capacity ceilings. Growth's payoff IS capacity expansion —
+        // halving output for an estate that has nowhere to expand is
+        // pure waste. Player retains freedom to pick Growth on at-cap
+        // estates (maybe expecting LandData growth later); AI doesn't.
+        // 15% remaining headroom on EITHER acreage or population is
+        // enough to make the spec worthwhile.
+        private static bool HasGrowthHeadroom(Estate estate)
+        {
+            if (estate?.EstatesData?.Settlement == null) return false;
+            var data = BannerKingsConfig.Instance.PopulationManager?.GetPopData(estate.EstatesData.Settlement);
+            if (data?.LandData == null) return false;
+
+            float maxAcres = (data.LandData.Farmland + data.LandData.Pastureland + data.LandData.Woodland) * 0.2f;
+            float currentAcres = estate.Farmland + estate.Pastureland + estate.Woodland;
+            float acresHeadroom = maxAcres > 0f ? 1f - (currentAcres / maxAcres) : 0f;
+
+            float maxPop = estate.PopulationCapacity.ResultNumber;
+            float popHeadroom = maxPop > 0f ? 1f - (estate.Population / maxPop) : 0f;
+
+            return acresHeadroom >= 0.15f || popHeadroom >= 0.15f;
+        }
+
+        // Cap Growth at 1 estate per clan. Without this, a wealthy
+        // peacetime clan could flip every non-food holding to Growth at
+        // once and tank its income (and the cluster's mineral / fibre
+        // supply) for two years.
+        private static bool ClanAlreadyHasGrowthEstate(Clan clan)
+        {
+            if (clan?.Heroes == null) return false;
+            foreach (var s in Settlement.All)
+            {
+                var data = BannerKingsConfig.Instance.PopulationManager?.GetPopData(s);
+                var estates = data?.EstateData?.Estates;
+                if (estates == null) continue;
+                foreach (var estate in estates)
+                {
+                    if (estate?.Owner == null) continue;
+                    if (estate.Owner.Clan != clan) continue;
+                    if (estate.Spec == EstateSpec.Growth) return true;
+                }
+            }
+            return false;
         }
 
         private static void CollectClanEstates(Clan clan, List<Estate> pool)

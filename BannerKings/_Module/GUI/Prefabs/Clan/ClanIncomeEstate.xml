@@ -47,7 +47,14 @@
 
                  <Widget WidthSizePolicy="StretchToParent" HeightSizePolicy="CoverChildren" VerticalAlignment="Center">
 				  <Children>
-					<Standard.DropdownWithHorizontalControl Parameter.SelectorDataSource="{TaskSelector}" HorizontalAlignment="Center" GamepadNavigationIndex="1" />
+					<ButtonWidget WidthSizePolicy="Fixed" HeightSizePolicy="Fixed" SuggestedWidth="200" SuggestedHeight="50"
+					              HorizontalAlignment="Center" Brush="ButtonBrush2" Command.Click="ExecuteChangeSpec">
+					  <Children>
+					    <RichTextWidget DoNotAcceptEvents="true" WidthSizePolicy="StretchToParent" HeightSizePolicy="StretchToParent"
+					                    HorizontalAlignment="Center" VerticalAlignment="Center" Brush="OverlayPopup.ButtonText"
+					                    Brush.FontSize="22" Text="@ChangeSpecText" />
+					  </Children>
+					</ButtonWidget>
 				  </Children>
 				</Widget>
 

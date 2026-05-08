@@ -49,6 +49,20 @@ namespace BannerKings.CampaignContent.Economy.Layered
         public override void RegisterEvents()
         {
             CampaignEvents.DailyTickSettlementEvent.AddNonSerializedListener(this, OnDailyTickSettlement);
+            CampaignEvents.MobilePartyDestroyed.AddNonSerializedListener(this, OnPartyDestroyed);
+        }
+
+        private void OnPartyDestroyed(MobileParty party, PartyBase killer)
+        {
+            try
+            {
+                if (party?.PartyComponent is not BannerKings.Components.PopulationPartyComponent ppc) return;
+                if (ppc.Kind != CargoKind.Food) return;
+                BannerKings.BannerKingsCheats.AppendDiagnosticLine(
+                    "food_caravans.txt",
+                    $"DESTROYED id={party.StringId} cur={party.CurrentSettlement?.StringId ?? "(none)"} target={ppc.TargetSettlement?.StringId ?? "(none)"} killer={killer?.Name?.ToString() ?? "(none)"}");
+            }
+            catch { }
         }
 
         public override void SyncData(IDataStore dataStore) { }
@@ -143,6 +157,14 @@ namespace BannerKings.CampaignContent.Economy.Layered
                 var data = BannerKingsConfig.Instance.PopulationManager?.GetPopData(s);
                 if (data?.EconomicData == null) continue;
                 if (!data.EconomicData.ClusterIsStagnant) continue;
+                // Skip targets that are already near food cap. Once
+                // earlier deliveries have refilled the stockpile, more
+                // grain just overflows the upper limit and is wasted.
+                // The stagnant flag has multi-day hysteresis so a
+                // recovering target stays "stagnant" briefly even after
+                // its stocks are healthy — this gate stops the late-
+                // recovery shipments from piling up at cap.
+                if (t.FoodStocks > t.FoodStocksUpperLimit() * 0.8f) continue;
                 float d = dist.GetDistance(s, source.Settlement, false, false, MobileParty.NavigationType.Default);
                 if (d < bestDist) { bestDist = d; target = t; }
             }
