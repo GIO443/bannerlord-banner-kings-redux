@@ -71,6 +71,7 @@ native support for the **War Sails (NavalDLC)** Nord faction, including:
 - **[Getting started](Getting-Started)** — what's in the mod (high-level), the first 30 minutes, glossary of terms that come up constantly.
 - **[Systems reference](Systems-Reference)** — lifestyles, demesne laws, per-settlement policies. Tables you look up while playing.
 - **[Player guide](Player-Guide)** — step-by-step "how do I…" recipes plus the per-system FAQ for population, titles, education, diplomacy, mercenaries.
+- **[Economy](Economy)** — village classes, town industries, estate specializations (incl. Growth investment mode), cluster fit, stagnation, food caravans, and the AI estate-policy trigger ladder.
 - **[Shipping & trade](Shipping-and-Trade)** — caravan auto-board, AI shipping, adaptive risk weighting, freight pricing, console cheats for testing routes.
 - **[Slavery & raiding](Slavery-and-Raiding)** — the Nord raid economy, slave caravans, the raid capture system (toggles, captives, dispositions, foreign-merc skim), cheats and logging.
 - **[Troubleshooting & compatibility](Troubleshooting)** — edge cases, mod compatibility table, save-game safety, how to file a useful bug report, credits & license.
