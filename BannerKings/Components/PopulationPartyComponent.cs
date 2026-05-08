@@ -46,6 +46,27 @@ namespace BannerKings.Components
 
         [SaveableProperty(9)] public Hero CaptorHero { get; private set; }
 
+        // Phase 5 of the layered-economy rework. Single discriminator
+        // for "what kind of cargo is this caravan carrying" so rescue/
+        // cleanup paths can target only the kind they intend to. Old
+        // saves have Kind = Unset; the EffectiveKind property below
+        // falls back to legacy SlaveCaravan bool for those.
+        [SaveableProperty(10)] public BannerKings.CampaignContent.Economy.Layered.CargoKind Kind { get; set; }
+            = BannerKings.CampaignContent.Economy.Layered.CargoKind.Unset;
+
+        // Read this everywhere instead of `SlaveCaravan` or raw `Kind`.
+        // Backwards-compatible: legacy slave caravans persisted with
+        // SlaveCaravan=true and no Kind field still report Slaves.
+        public BannerKings.CampaignContent.Economy.Layered.CargoKind EffectiveKind
+        {
+            get
+            {
+                if (Kind != BannerKings.CampaignContent.Economy.Layered.CargoKind.Unset) return Kind;
+                if (SlaveCaravan) return BannerKings.CampaignContent.Economy.Layered.CargoKind.Slaves;
+                return BannerKings.CampaignContent.Economy.Layered.CargoKind.Unset;
+            }
+        }
+
         // Override so the rendered name is derived from component flags
         // rather than the saved stringName field. Saves written by older
         // BK builds occasionally come back with stringName=null and the
@@ -58,8 +79,18 @@ namespace BannerKings.Components
             get
             {
                 string template;
-                if (SlaveCaravan)
+                // Phase 5: route Kind first so food / raw / finished
+                // caravans render distinctly. EffectiveKind handles
+                // pre-Phase-5 saves by falling back to the legacy bool.
+                var kind = EffectiveKind;
+                if (kind == BannerKings.CampaignContent.Economy.Layered.CargoKind.Slaves)
                     template = "{=cCzJ9Nk6}Slave Caravan from {ORIGIN}";
+                else if (kind == BannerKings.CampaignContent.Economy.Layered.CargoKind.Food)
+                    template = "Food Caravan from {ORIGIN}";
+                else if (kind == BannerKings.CampaignContent.Economy.Layered.CargoKind.Raw)
+                    template = "Raw Goods Caravan from {ORIGIN}";
+                else if (kind == BannerKings.CampaignContent.Economy.Layered.CargoKind.Finished)
+                    template = "Trade Caravan from {ORIGIN}";
                 else if (Trading)
                     template = "{=ds9BcMxr}Traders from {ORIGIN}";
                 // Population transfers (resettlement of free populations) carry
@@ -145,10 +176,70 @@ namespace BannerKings.Components
                 target,
                 "{=cCzJ9Nk6}Slave Caravan from {ORIGIN}",
                 PopType.None);
+            // Phase 5: stamp the cargo discriminator. Forward saves now
+            // identify slave caravans via Kind, not just the legacy bool.
+            // Old saves' caravans have Kind=Unset and EffectiveKind falls
+            // back to the SlaveCaravan bool — same outward behavior.
+            if (caravan.PartyComponent is PopulationPartyComponent ppc)
+                ppc.Kind = BannerKings.CampaignContent.Economy.Layered.CargoKind.Slaves;
             caravan.AddPrisoner(CharacterObject.All.FirstOrDefault(x => x.StringId == "looter"), slaves);
             caravan.InitializeMobilePartyAtPosition(template, origin.GatePosition);
             GiveMounts(ref caravan);
             GiveFood(ref caravan);
+        }
+
+        // Phase 5 — inter-cluster food caravan. Same overland primitive
+        // as CreateSlaveCaravan; differs in cargo (food items in the
+        // ItemRoster instead of slave prisoners) and in the Kind tag
+        // (CargoKind.Food). When the caravan arrives at target, vanilla
+        // settlement-entry handling absorbs the food into the town's
+        // FoodStocks naturally — no special arrival handler needed.
+        //
+        // Caller responsibilities:
+        //   - origin must have FoodStocks high enough to deduct `amount`
+        //     without zeroing out (caller deducts from origin manually
+        //     after this returns; this method only spawns the carrier).
+        //   - amount > 0; we don't validate.
+        public static MobileParty CreateFoodCaravan(Settlement origin, Settlement target, int foodAmount)
+        {
+            if (origin == null || target == null || foodAmount <= 0) return null;
+            var culture = origin.Culture;
+            PartyTemplateObject template = null;
+            System.Func<PartyTemplateObject, bool> isLand =
+                t => t != null && (t.ShipHulls == null || t.ShipHulls.Count == 0);
+            if (culture?.EliteCaravanPartyTemplates != null && culture.EliteCaravanPartyTemplates.Count > 0)
+                template = culture.EliteCaravanPartyTemplates.GetRandomElementWithPredicate(t => isLand(t));
+            if (template == null && culture?.CaravanPartyTemplates != null && culture.CaravanPartyTemplates.Count > 0)
+                template = culture.CaravanPartyTemplates.GetRandomElementWithPredicate(t => isLand(t));
+            if (template == null) return null;
+
+            var caravan = CreateParty("foodcaravan_" + origin.Name, origin,
+                false,                  // SlaveCaravan = false — Kind tag is the new authority
+                target,
+                "Food Caravan from {ORIGIN}",
+                PopType.None);
+            if (caravan.PartyComponent is PopulationPartyComponent ppc)
+                ppc.Kind = BannerKings.CampaignContent.Economy.Layered.CargoKind.Food;
+
+            // Stock the food. Use vanilla grain item by StringId —
+            // available across all 1.3.x DLC variants. "Grain" item
+            // belongs to the Grain ItemCategory which vanilla town-
+            // entry handlers absorb into FoodStocks naturally.
+            var grain = TaleWorlds.ObjectSystem.MBObjectManager.Instance?
+                .GetObject<TaleWorlds.Core.ItemObject>("grain");
+            if (grain != null) caravan.ItemRoster.AddToCounts(grain, foodAmount);
+
+            caravan.InitializeMobilePartyAtPosition(template, origin.GatePosition);
+            GiveMounts(ref caravan);
+            GiveFood(ref caravan);
+            // Re-issue the move target AFTER initialization. Without this, the
+            // caravan was auto-entering its origin on the very first tick —
+            // observed in BK_food_caravans.txt: caravans dispatched to EN6
+            // delivered to their origin EW2 with zero TickHourly fires. Slave
+            // caravans don't expose this because their target is a village
+            // (different vanilla auto-entry path).
+            caravan.SetMoveGoToSettlement(target, MobileParty.NavigationType.Default, false);
+            return caravan;
         }
 
         public static MobileParty CreateTravellerParty(string id, Settlement origin, Settlement target, string name, int count,
@@ -331,6 +422,21 @@ namespace BannerKings.Components
                     return;
                 }
 
+                // Stuck-in-transit recovery. After the OnSettlementEntered
+                // transit-skip guard, the party can be parked INSIDE a
+                // non-target settlement with vanilla moveTo == that
+                // settlement (the engine considers the move complete). It
+                // would sit there forever because the intermediate-preserve
+                // check below treats moveTo as a safe intermediate. Boot it
+                // out and re-issue the move to our real target.
+                if (MobileParty.CurrentSettlement != null
+                    && MobileParty.CurrentSettlement != target)
+                {
+                    try { LeaveSettlementAction.ApplyForParty(MobileParty); } catch { }
+                    try { MobileParty.SetMoveGoToSettlement(target, MobileParty.NavigationType.Default, false); } catch { }
+                    return;
+                }
+
                 // Arrival check #2: pathfind distance is at the gate.
                 // 1f was too tight in the wild — saves had ~200
                 // population parties sitting next to their target with
@@ -364,16 +470,24 @@ namespace BannerKings.Components
                 var moveTarget = MobileParty.TargetSettlement;
                 if (moveTarget != null && moveTarget != target)
                 {
-                    bool intermediateUnsafe =
-                        moveTarget.IsUnderSiege ||
-                        (moveTarget.IsVillage && moveTarget.Village.VillageState is Village.VillageStates.Looted or Village.VillageStates.BeingRaided)
-                        // Hostile-faction flip: the intermediate's owner
-                        // declared war on us mid-route. Without this check
-                        // we'd happily walk the party into a freshly
-                        // hostile town and trigger an encounter.
-                        || (moveTarget.MapFaction != null && MobileParty.MapFaction != null
-                            && moveTarget.MapFaction.IsAtWarWith(MobileParty.MapFaction));
-                    if (!intermediateUnsafe) return;
+                    // Food caravans don't hop-route — they walk direct to the
+                    // stagnant target. Vanilla AI was observed flipping moveTo
+                    // back to HomeSettlement every few ticks, which the
+                    // intermediate-preserve below would freeze in place.
+                    // Skip the preserve for Food and force re-issue below.
+                    if (Kind != BannerKings.CampaignContent.Economy.Layered.CargoKind.Food)
+                    {
+                        bool intermediateUnsafe =
+                            moveTarget.IsUnderSiege ||
+                            (moveTarget.IsVillage && moveTarget.Village.VillageState is Village.VillageStates.Looted or Village.VillageStates.BeingRaided)
+                            // Hostile-faction flip: the intermediate's owner
+                            // declared war on us mid-route. Without this check
+                            // we'd happily walk the party into a freshly
+                            // hostile town and trigger an encounter.
+                            || (moveTarget.MapFaction != null && MobileParty.MapFaction != null
+                                && moveTarget.MapFaction.IsAtWarWith(MobileParty.MapFaction));
+                        if (!intermediateUnsafe) return;
+                    }
                 }
 
                 // Re-issue the move every hourly tick so AI-disabled parties

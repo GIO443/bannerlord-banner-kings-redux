@@ -1040,8 +1040,15 @@ namespace BannerKings.Behaviours.Shipping
                     // happens on load only now; mid-game an orphan slave
                     // caravan is left visible so the spawn / target-update
                     // logic bug surfaces.
+                    // Phase 5: gate the slave-caravan rescue on the Kind
+                    // discriminator AS WELL AS the legacy bool. Food /
+                    // Raw / Finished caravans share the same component
+                    // class; without the Kind check we'd silently destroy
+                    // them on load if their TargetSettlement got fiddled
+                    // by an unrelated mod. Belt and suspenders — both
+                    // checks must agree before we destroy.
                     if (party.PartyComponent is BannerKings.Components.PopulationPartyComponent ppc
-                        && ppc.SlaveCaravan
+                        && ppc.EffectiveKind == BannerKings.CampaignContent.Economy.Layered.CargoKind.Slaves
                         && (party.TargetSettlement == null || party.TargetSettlement != ppc.TargetSettlement))
                     {
                         toDestroy ??= new System.Collections.Generic.List<MobileParty>();
@@ -1543,8 +1550,12 @@ namespace BannerKings.Behaviours.Shipping
                     }
 
                     // E — legacy slave caravan with no live move target.
+                    // Phase 5: Kind discriminator gates the cleanup so
+                    // raw-goods caravans (Food/Raw/Finished) don't get
+                    // swept up by the same path. EffectiveKind handles
+                    // pre-Phase-5 saves where Kind defaults to Unset.
                     if (party.PartyComponent is BannerKings.Components.PopulationPartyComponent ppc
-                        && ppc.SlaveCaravan
+                        && ppc.EffectiveKind == BannerKings.CampaignContent.Economy.Layered.CargoKind.Slaves
                         && (party.TargetSettlement == null || party.TargetSettlement != ppc.TargetSettlement))
                     {
                         staleSlaveCaravans ??= new List<MobileParty>();

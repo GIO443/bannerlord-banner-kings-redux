@@ -1,4 +1,5 @@
 ﻿using BannerKings.Behaviours;
+using BannerKings.CampaignContent.Economy.Layered;
 using BannerKings.Managers.Helpers;
 using BannerKings.Managers.Innovations;
 using BannerKings.Managers.Court;
@@ -2293,6 +2294,706 @@ namespace BannerKings
                 LastWriteResult = $"per-save log cleaner: cleared {deleted} BK_*.txt file(s) in {DiagnosticDir}";
             }
             catch { /* defensive: never throw out of a load-time hook */ }
+        }
+
+        // ----- Layered economy rework — Phase 1 validation cheats ------
+        //
+        // bannerkings.dump_economy_state — write every village's class,
+        // every town's industry, every estate's spec to BK_economy_state.txt.
+        // Use this after a fresh load to verify the assignment behavior
+        // ran (counts of Unset should be ~0 except for modded settlements
+        // with unrecognized vanilla types).
+        [CommandLineFunctionality.CommandLineArgumentFunction("dump_economy_state", "bannerkings")]
+        public static string DumpEconomyState(List<string> strings)
+        {
+            try
+            {
+                var sb = new StringBuilder();
+                sb.AppendLine("# BK layered economy state dump");
+                sb.AppendLine($"# captured at year {CampaignTime.Now.GetYear} day {CampaignTime.Now.GetDayOfYear}");
+                sb.AppendLine();
+
+                int villageCount = 0, townCount = 0, estateCount = 0;
+                int villageUnset = 0, townUnset = 0, estateUnset = 0;
+                var classHist = new Dictionary<VillageClass, int>();
+                var indHist = new Dictionary<TownIndustry, int>();
+                var specHist = new Dictionary<EstateSpec, int>();
+
+                sb.AppendLine("## villages");
+                foreach (var s in Settlement.All)
+                {
+                    if (s == null || !s.IsVillage) continue;
+                    villageCount++;
+                    var data = BannerKingsConfig.Instance.PopulationManager?.GetPopData(s);
+                    var cls = data?.LandData?.VillageClass ?? VillageClass.Unset;
+                    if (cls == VillageClass.Unset) villageUnset++;
+                    classHist.TryGetValue(cls, out var n); classHist[cls] = n + 1;
+                    var vt = s.Village?.VillageType?.StringId ?? "?";
+                    var bound = s.Village?.TradeBound?.StringId ?? "?";
+                    sb.AppendLine($"  {s.StringId,-32} {cls,-18} vanilla={vt,-22} tradeBound={bound}");
+                }
+
+                sb.AppendLine();
+                sb.AppendLine("## towns");
+                foreach (var s in Settlement.All)
+                {
+                    if (s == null || !s.IsTown) continue;
+                    townCount++;
+                    var data = BannerKingsConfig.Instance.PopulationManager?.GetPopData(s);
+                    var ind = data?.EconomicData?.TownIndustry ?? TownIndustry.Unset;
+                    if (ind == TownIndustry.Unset) townUnset++;
+                    indHist.TryGetValue(ind, out var n); indHist[ind] = n + 1;
+                    var workshopMix = (s.Town?.Workshops != null)
+                        ? string.Join(",", s.Town.Workshops.Where(w => w?.WorkshopType != null).Select(w => w.WorkshopType.StringId))
+                        : "";
+                    sb.AppendLine($"  {s.StringId,-32} {ind,-14} workshops=[{workshopMix}]");
+                }
+
+                sb.AppendLine();
+                sb.AppendLine("## estates");
+                foreach (var s in Settlement.All)
+                {
+                    if (s == null) continue;
+                    var data = BannerKingsConfig.Instance.PopulationManager?.GetPopData(s);
+                    var estates = data?.EstateData?.Estates;
+                    if (estates == null) continue;
+                    foreach (var estate in estates)
+                    {
+                        if (estate == null) continue;
+                        estateCount++;
+                        var spec = estate.Spec;
+                        if (spec == EstateSpec.Unset) estateUnset++;
+                        specHist.TryGetValue(spec, out var n); specHist[spec] = n + 1;
+                        var ownerName = estate.Owner?.StringId ?? "(unowned)";
+                        var ownerOcc = estate.Owner?.Occupation.ToString() ?? "?";
+                        sb.AppendLine($"  {s.StringId,-32} owner={ownerName,-30} occ={ownerOcc,-15} spec={spec}");
+                    }
+                }
+
+                sb.AppendLine();
+                sb.AppendLine("## summary");
+                sb.AppendLine($"  villages: {villageCount} total, {villageUnset} Unset");
+                // Sort histogram rows by enum value for stable diffs across
+                // snapshots — Dictionary iteration order is otherwise an
+                // implementation detail.
+                foreach (var kv in classHist.OrderBy(kv => (int)kv.Key))
+                    sb.AppendLine($"    {kv.Key,-18} {kv.Value}");
+                sb.AppendLine($"  towns: {townCount} total, {townUnset} Unset");
+                foreach (var kv in indHist.OrderBy(kv => (int)kv.Key))
+                    sb.AppendLine($"    {kv.Key,-14} {kv.Value}");
+                sb.AppendLine($"  estates: {estateCount} total, {estateUnset} Unset");
+                foreach (var kv in specHist.OrderBy(kv => (int)kv.Key))
+                    sb.AppendLine($"    {kv.Key,-12} {kv.Value}");
+
+                WriteDiagnosticFile("economy_state.txt", sb.ToString());
+                string summary = $"dump_economy_state: villages={villageCount}({villageUnset} unset), towns={townCount}({townUnset} unset), estates={estateCount}({estateUnset} unset). {LastWriteResult}";
+                InformationManager.DisplayMessage(new InformationMessage(summary, Color.FromUint(0xFFFFD700)));
+                return summary;
+            }
+            catch (Exception ex)
+            {
+                string err = "dump_economy_state failed: " + ex.GetType().Name + ": " + ex.Message;
+                InformationManager.DisplayMessage(new InformationMessage(err, Color.FromUint(0xFFFF4040)));
+                return err;
+            }
+        }
+
+        // bannerkings.snapshot_clan_income [tag] — capture per-clan daily
+        // income at this moment to BK_clan_income_<tag>.txt for regression
+        // testing across phase boundaries. Tag is freeform; suggested:
+        // "phase0", "phase1", etc. Run before each phase ships, diff after.
+        [CommandLineFunctionality.CommandLineArgumentFunction("snapshot_clan_income", "bannerkings")]
+        public static string SnapshotClanIncome(List<string> strings)
+        {
+            try
+            {
+                string tag = (strings != null && strings.Count > 0) ? strings[0] : "now";
+                var sb = new StringBuilder();
+                sb.AppendLine($"# clan-income snapshot tag={tag} time={CampaignTime.Now}");
+                sb.AppendLine($"# columns: clan_id  tier  gold  daily_change  estates_owned");
+                sb.AppendLine();
+
+                // Pre-build a Hero -> estate-count map in one pass over
+                // Settlement.All. Avoids the O(clans × heroes × settlements)
+                // explosion when invoked on a mature campaign.
+                var estateCountByOwner = new Dictionary<Hero, int>();
+                foreach (var s in Settlement.All)
+                {
+                    var data = BannerKingsConfig.Instance.PopulationManager?.GetPopData(s);
+                    var estates = data?.EstateData?.Estates;
+                    if (estates == null) continue;
+                    foreach (var e in estates)
+                    {
+                        if (e?.Owner == null) continue;
+                        estateCountByOwner.TryGetValue(e.Owner, out var n);
+                        estateCountByOwner[e.Owner] = n + 1;
+                    }
+                }
+
+                int rows = 0;
+                foreach (var clan in Clan.All)
+                {
+                    if (clan == null || clan.IsEliminated) continue;
+                    int estatesOwned = 0;
+                    if (clan.Heroes != null)
+                    {
+                        foreach (var h in clan.Heroes)
+                        {
+                            if (h != null && estateCountByOwner.TryGetValue(h, out var n)) estatesOwned += n;
+                        }
+                    }
+
+                    float dailyChange = 0f;
+                    try
+                    {
+                        var fin = TaleWorlds.CampaignSystem.Campaign.Current?.Models?.ClanFinanceModel;
+                        if (fin != null) dailyChange = fin.CalculateClanIncome(clan).ResultNumber - fin.CalculateClanExpenses(clan).ResultNumber;
+                    }
+                    catch { /* tolerate */ }
+
+                    sb.AppendLine($"{clan.StringId,-30}  {clan.Tier}  {clan.Gold,8}  {dailyChange,+8:n0}  {estatesOwned}");
+                    rows++;
+                }
+
+                WriteDiagnosticFile("clan_income_" + tag + ".txt", sb.ToString());
+                string summary = $"snapshot_clan_income: {rows} clans → BK_clan_income_{tag}.txt. {LastWriteResult}";
+                InformationManager.DisplayMessage(new InformationMessage(summary, Color.FromUint(0xFFFFD700)));
+                return summary;
+            }
+            catch (Exception ex)
+            {
+                string err = "snapshot_clan_income failed: " + ex.GetType().Name + ": " + ex.Message;
+                InformationManager.DisplayMessage(new InformationMessage(err, Color.FromUint(0xFFFF4040)));
+                return err;
+            }
+        }
+
+        // bannerkings.dump_estate_yields — for every estate in the world,
+        // dump the layered yield breakdown (SpecVolume × SpecQuality ×
+        // WorkerFitMean × IndustryDemand → Final) plus the per-estate
+        // food balance. Use after enabling MCM toggle LayeredEconomyYields
+        // to verify Phase 2 math is being applied as expected.
+        [CommandLineFunctionality.CommandLineArgumentFunction("dump_estate_yields", "bannerkings")]
+        public static string DumpEstateYields(List<string> strings)
+        {
+            try
+            {
+                var sb = new StringBuilder();
+                bool toggleOn = BannerKings.Settings.BannerKingsSettings.Instance?.LayeredEconomyYields == true;
+                sb.AppendLine("# BK layered estate yield dump");
+                sb.AppendLine($"# captured at year {CampaignTime.Now.GetYear} day {CampaignTime.Now.GetDayOfYear}");
+                sb.AppendLine($"# MCM LayeredEconomyYields = {toggleOn} (off → multiplier is bypassed)");
+                sb.AppendLine();
+                sb.AppendLine("# columns: settlement  spec  class  acres  labor  vol×qty×fit=final  pre→post_denar/day  food/day");
+                sb.AppendLine("# pre = vanilla pre-rework predicted denar/day; post = with multiplier.");
+                sb.AppendLine("# When toggle is OFF, post still computes the multiplier here (cheat-only)");
+                sb.AppendLine("# but actual gameplay payout uses pre. When toggle is ON, payout uses post.");
+                sb.AppendLine();
+
+                int rows = 0;
+                foreach (var s in Settlement.All)
+                {
+                    if (s == null) continue;
+                    var data = BannerKingsConfig.Instance.PopulationManager?.GetPopData(s);
+                    var estates = data?.EstateData?.Estates;
+                    if (estates == null) continue;
+                    foreach (var estate in estates)
+                    {
+                        if (estate == null) continue;
+                        var br = EstateYieldCalculator.GoldMultiplier(estate);
+                        var food = EstateYieldCalculator.DailyFoodBalance(estate);
+                        var spec = estate.GetSpec();
+                        var cls = s.Village?.GetVillageClass() ?? VillageClass.Unset;
+
+                        float effAcres = estate.Farmland + (estate.Pastureland * 0.5f) + (estate.Woodland * 0.15f);
+                        int totalLabor = estate.Population + estate.Slaves;
+                        float wf = effAcres > 0 ? Math.Min(1f, totalLabor / (effAcres * 0.5f)) : 0f;
+                        float keepRate = Math.Max(0f, 1f - estate.TaxRatio.ResultNumber);
+                        // Mirror EstateData.DailyProductionIncome:
+                        // gross = effAcres × workforceFactor × AcrePriceMultiplier(1.0)
+                        // net   = gross × keepRate
+                        // The 0.8f tail-share came from the old clan-finance
+                        // 80%-drain model and is no longer in the production
+                        // tick; dropped to match the live formula.
+                        float preGross = effAcres * wf * 1.0f;
+                        float prePerDay = preGross * keepRate;
+                        float postPerDay = prePerDay * br.Final;
+
+                        sb.AppendLine(
+                            $"  {s.StringId,-32} {spec,-10} {cls,-16} acres={effAcres,5:0.0} lab={totalLabor,4} " +
+                            $"{br.SpecVolume:0.00}×{br.SpecQuality:0.00}×{br.WorkerFitMean:0.00}={br.Final:0.000}  " +
+                            $"{prePerDay,7:0.0}→{postPerDay,7:0.0}  food={food:+0.00;-0.00;0.00}/day");
+                        rows++;
+                    }
+                }
+
+                WriteDiagnosticFile("estate_yields.txt", sb.ToString());
+                string summary = $"dump_estate_yields: {rows} estates dumped, toggle={toggleOn}. {LastWriteResult}";
+                InformationManager.DisplayMessage(new InformationMessage(summary, Color.FromUint(0xFFFFD700)));
+                return summary;
+            }
+            catch (Exception ex)
+            {
+                string err = "dump_estate_yields failed: " + ex.GetType().Name + ": " + ex.Message;
+                InformationManager.DisplayMessage(new InformationMessage(err, Color.FromUint(0xFFFF4040)));
+                return err;
+            }
+        }
+
+        // bannerkings.dump_clusters — for every town, dump the cluster
+        // overview: town industry, bound village classes, IndustryFit
+        // score, food balance. Phase 3 of the layered economy rework.
+        [CommandLineFunctionality.CommandLineArgumentFunction("dump_clusters", "bannerkings")]
+        public static string DumpClusters(List<string> strings)
+        {
+            try
+            {
+                var sb = new StringBuilder();
+                sb.AppendLine("# BK economic cluster dump");
+                sb.AppendLine($"# captured at year {CampaignTime.Now.GetYear} day {CampaignTime.Now.GetDayOfYear}");
+                sb.AppendLine();
+
+                int rows = 0;
+                int healthy = 0, mismatch = 0, foodNeg = 0;
+                // Sort by StringId so diffs across saves are stable.
+                var towns = Settlement.All.Where(x => x != null && x.IsTown)
+                                          .OrderBy(x => x.StringId)
+                                          .ToList();
+                foreach (var s in towns)
+                {
+                    var cluster = EconomicCluster.Compute(s.Town);
+                    rows++;
+                    // bound=0 clusters (freshly captured / mid-rebellion)
+                    // shouldn't pollute the mismatch tally — IndustryFit is
+                    // 0 by definition there with no signal to interpret.
+                    if (cluster.BoundVillages.Count > 0)
+                    {
+                        if (cluster.IndustryFit >= 0.75f) healthy++;
+                        else if (cluster.IndustryFit <= 0.25f) mismatch++;
+                    }
+                    if (cluster.FoodBalance < 0) foodNeg++;
+
+                    var classMix = string.Join(",", cluster.ClassCounts.OrderBy(kv => (int)kv.Key).Select(kv => $"{kv.Key}={kv.Value}"));
+                    sb.AppendLine($"  {s.StringId,-32} {cluster.Industry,-12} fit={cluster.IndustryFit,5:0.00}  food={cluster.FoodBalance:+0.00;-0.00;0.00}/d  bound={cluster.BoundVillages.Count}  [{classMix}]");
+                }
+
+                sb.AppendLine();
+                sb.AppendLine($"## summary: {rows} clusters, {healthy} healthy (fit≥0.75, bound>0), {mismatch} mismatch (fit≤0.25, bound>0), {foodNeg} food-deficit");
+
+                WriteDiagnosticFile("clusters.txt", sb.ToString());
+                string summary = $"dump_clusters: {rows} clusters dumped — {healthy} healthy, {mismatch} mismatch, {foodNeg} food-deficit. {LastWriteResult}";
+                InformationManager.DisplayMessage(new InformationMessage(summary, Color.FromUint(0xFFFFD700)));
+                return summary;
+            }
+            catch (Exception ex)
+            {
+                string err = "dump_clusters failed: " + ex.GetType().Name + ": " + ex.Message;
+                InformationManager.DisplayMessage(new InformationMessage(err, Color.FromUint(0xFFFF4040)));
+                return err;
+            }
+        }
+
+        // bannerkings.dump_food_status — for every town, dump the
+        // ClusterFoodDeficitDays counter, stagnation status, and which
+        // bound villages are eating the penalty.
+        [CommandLineFunctionality.CommandLineArgumentFunction("dump_food_status", "bannerkings")]
+        public static string DumpFoodStatus(List<string> strings)
+        {
+            try
+            {
+                var sb = new StringBuilder();
+                sb.AppendLine("# BK cluster food deficit dump");
+                sb.AppendLine($"# captured at year {CampaignTime.Now.GetYear} day {CampaignTime.Now.GetDayOfYear}");
+                sb.AppendLine($"# enter threshold = {ClusterFoodTracker.StagnationEnterThreshold} days, exit = {ClusterFoodTracker.StagnationExitThreshold}");
+                sb.AppendLine();
+
+                int rows = 0, stagnant = 0, recovering = 0;
+                var towns = Settlement.All.Where(x => x != null && x.IsTown)
+                                          .OrderBy(x => x.StringId).ToList();
+                foreach (var s in towns)
+                {
+                    var data = BannerKingsConfig.Instance.PopulationManager?.GetPopData(s);
+                    if (data?.EconomicData == null) continue;
+                    rows++;
+                    int days = data.EconomicData.ClusterFoodDeficitDays;
+                    bool isStagnant = ClusterFoodTracker.IsClusterStagnant(s.Town);
+                    if (isStagnant) stagnant++;
+                    else if (days > 0 && days < ClusterFoodTracker.StagnationEnterThreshold) recovering++;
+                    string state = isStagnant ? "STAGNANT" : days > 0 ? "deficit" : "ok";
+                    sb.AppendLine($"  {s.StringId,-32} foodChange={s.Town.FoodChange,7:0.0}  stocks={s.Town.FoodStocks,7:0}  deficit={days,3}d  {state}");
+                }
+                sb.AppendLine();
+                sb.AppendLine($"## summary: {rows} towns, {stagnant} stagnant, {recovering} accumulating deficit");
+
+                WriteDiagnosticFile("food_status.txt", sb.ToString());
+                string summary = $"dump_food_status: {rows} towns, {stagnant} stagnant, {recovering} accumulating. {LastWriteResult}";
+                InformationManager.DisplayMessage(new InformationMessage(summary, Color.FromUint(0xFFFFD700)));
+                return summary;
+            }
+            catch (Exception ex)
+            {
+                string err = "dump_food_status failed: " + ex.GetType().Name + ": " + ex.Message;
+                InformationManager.DisplayMessage(new InformationMessage(err, Color.FromUint(0xFFFF4040)));
+                return err;
+            }
+        }
+
+        // bannerkings.test_force_deficit <town_id> [days] — set the
+        // ClusterFoodDeficitDays counter directly for testing the
+        // stagnation gate without waiting for an actual food crisis.
+        [CommandLineFunctionality.CommandLineArgumentFunction("test_force_deficit", "bannerkings")]
+        public static string TestForceDeficit(List<string> strings)
+        {
+            if (strings == null || strings.Count < 1)
+                return "usage: bannerkings.test_force_deficit <town_id> [days]";
+            string id = strings[0];
+            int days = ClusterFoodTracker.StagnationEnterThreshold + 1;
+            if (strings.Count >= 2 && int.TryParse(strings[1], out var parsedDays)) days = parsedDays;
+
+            var s = Settlement.Find(id);
+            if (s == null || !s.IsTown) return $"test_force_deficit: {id} not found or not a town";
+            var data = BannerKingsConfig.Instance.PopulationManager?.GetPopData(s);
+            if (data?.EconomicData == null) return $"test_force_deficit: {id} has no BK economic data";
+            data.EconomicData.ClusterFoodDeficitDays = days;
+            // Also flip the hysteresis bool to match the counter, so the
+            // stagnation gate fires immediately. Without this, the bool only
+            // updates on the next daily tick — making the cheat useless for
+            // single-snapshot testing.
+            data.EconomicData.ClusterIsStagnant = days >= ClusterFoodTracker.StagnationEnterThreshold;
+            string msg = $"test_force_deficit: {id} ClusterFoodDeficitDays = {days} (stagnant: {ClusterFoodTracker.IsClusterStagnant(s.Town)})";
+            InformationManager.DisplayMessage(new InformationMessage(msg, Color.FromUint(0xFFFFD700)));
+            return msg;
+        }
+
+        // bannerkings.dump_trade_caravans — every PopulationPartyComponent
+        // party in the world with its CargoKind / origin / target. Phase 5
+        // validation: confirm slave caravans show Slaves, food caravans
+        // show Food, and nothing weird shows up as Unset.
+        [CommandLineFunctionality.CommandLineArgumentFunction("dump_trade_caravans", "bannerkings")]
+        public static string DumpTradeCaravans(List<string> strings)
+        {
+            try
+            {
+                var sb = new StringBuilder();
+                sb.AppendLine("# BK trade caravan dump");
+                sb.AppendLine($"# captured at year {CampaignTime.Now.GetYear} day {CampaignTime.Now.GetDayOfYear}");
+                sb.AppendLine();
+
+                int rows = 0;
+                var hist = new Dictionary<CargoKind, int>();
+                foreach (var party in MobileParty.All.OrderBy(p => p?.StringId))
+                {
+                    if (party?.PartyComponent is not BannerKings.Components.PopulationPartyComponent ppc) continue;
+                    rows++;
+                    var kind = ppc.EffectiveKind;
+                    hist.TryGetValue(kind, out var n); hist[kind] = n + 1;
+                    var origin = ppc.HomeSettlement?.StringId ?? "?";
+                    var target = ppc.TargetSettlement?.StringId ?? "?";
+                    var atSea = party.IsCurrentlyAtSea ? "AT_SEA" : "";
+                    sb.AppendLine($"  {party.StringId,-40} kind={kind,-10} {origin,-24} → {target,-24} {atSea}");
+                }
+                sb.AppendLine();
+                sb.AppendLine("## summary");
+                foreach (var kv in hist.OrderBy(kv => (int)kv.Key)) sb.AppendLine($"  {kv.Key,-10} {kv.Value}");
+                sb.AppendLine($"  total {rows}");
+
+                WriteDiagnosticFile("trade_caravans.txt", sb.ToString());
+                string summary = $"dump_trade_caravans: {rows} parties dumped. {LastWriteResult}";
+                InformationManager.DisplayMessage(new InformationMessage(summary, Color.FromUint(0xFFFFD700)));
+                return summary;
+            }
+            catch (Exception ex)
+            {
+                string err = "dump_trade_caravans failed: " + ex.GetType().Name + ": " + ex.Message;
+                InformationManager.DisplayMessage(new InformationMessage(err, Color.FromUint(0xFFFF4040)));
+                return err;
+            }
+        }
+
+        // bannerkings.test_dispatch_food_caravan <from_town> <to_town> [amount]
+        // — manually spawn a food caravan, bypassing surplus / stagnation /
+        // cooldown checks. Useful for verifying the primitive without
+        // waiting for an organic dispatch.
+        [CommandLineFunctionality.CommandLineArgumentFunction("test_dispatch_food_caravan", "bannerkings")]
+        public static string TestDispatchFoodCaravan(List<string> strings)
+        {
+            if (strings == null || strings.Count < 2)
+                return "usage: bannerkings.test_dispatch_food_caravan <from_town> <to_town> [amount]";
+            var from = Settlement.Find(strings[0]);
+            var to = Settlement.Find(strings[1]);
+            int amount = 50;
+            if (strings.Count >= 3 && int.TryParse(strings[2], out var parsed)) amount = parsed;
+            if (from == null || !from.IsTown) return $"from {strings[0]} not found / not a town";
+            if (to == null || !to.IsTown) return $"to {strings[1]} not found / not a town";
+            var caravan = BannerKings.Components.PopulationPartyComponent.CreateFoodCaravan(from, to, amount);
+            if (caravan == null) return "CreateFoodCaravan returned null (no land template?)";
+            string msg = $"test_dispatch_food_caravan: spawned {caravan.StringId} from {from.StringId} → {to.StringId} amount={amount}";
+            InformationManager.DisplayMessage(new InformationMessage(msg, Color.FromUint(0xFFFFD700)));
+            return msg;
+        }
+
+        // ----- Phase 7 player levers (console-driven for now; UI is a -----
+        // follow-up branch). The triad below covers every player-side
+        // decision in the rework: estate spec, town industry, and the
+        // village-level Growth/class transition decree (Phase 8).
+
+        // bannerkings.set_estate_spec <settlement_id> <owner_string_id> <spec>
+        // — change ANY estate's spec by owner StringId (player-owned,
+        // notable-owned, AI-lord-owned). Stamps LastSpecChange so the
+        // AI's 60-day cooldown gates the next AI re-spec attempt.
+        // The cheat itself is intentionally ungated — the UI lever in
+        // Phase 7-UI will enforce the cooldown for player decisions.
+        // Cluster-fit + yield math observes the change on the next
+        // economic read; no explicit invalidation needed.
+        [CommandLineFunctionality.CommandLineArgumentFunction("set_estate_spec", "bannerkings")]
+        public static string SetEstateSpec(List<string> strings)
+        {
+            if (strings == null || strings.Count < 3)
+                return "usage: bannerkings.set_estate_spec <settlement_id> <owner_id> <Yield|Quality|Sustained|Levy>";
+            var s = Settlement.Find(strings[0]);
+            if (s == null) return $"settlement {strings[0]} not found";
+            if (!Enum.TryParse<EstateSpec>(strings[2], true, out var newSpec) || newSpec == EstateSpec.Unset)
+                return $"spec {strings[2]} invalid (Yield|Quality|Sustained|Levy)";
+            var data = BannerKingsConfig.Instance.PopulationManager?.GetPopData(s);
+            var estates = data?.EstateData?.Estates;
+            if (estates == null) return "no estates on this settlement";
+            int matched = 0;
+            foreach (var e in estates)
+            {
+                if (e?.Owner == null) continue;
+                if (e.Owner.StringId != strings[1]) continue;
+                e.Spec = newSpec;
+                e.LastSpecChange = CampaignTime.Now;
+                matched++;
+            }
+            if (matched == 0) return $"no estate owned by {strings[1]} on {strings[0]}";
+            string msg = $"set_estate_spec: {matched} estate(s) on {strings[0]} owned by {strings[1]} → {newSpec}";
+            InformationManager.DisplayMessage(new InformationMessage(msg, Color.FromUint(0xFFFFD700)));
+            return msg;
+        }
+
+        // bannerkings.set_town_industry <town_id> <industry> — change
+        // the town's industry tag. Phase 7 hard-flips it (no gradual
+        // workshop conversion); a future polish pass would walk the
+        // workshop list and gradually convert types over months.
+        [CommandLineFunctionality.CommandLineArgumentFunction("set_town_industry", "bannerkings")]
+        public static string SetTownIndustry(List<string> strings)
+        {
+            if (strings == null || strings.Count < 2)
+                return "usage: bannerkings.set_town_industry <town_id> <Granary|Foundry|Loomhouse|Stable|CaravanHub>";
+            var s = Settlement.Find(strings[0]);
+            if (s == null || !s.IsTown) return $"{strings[0]} not found / not a town";
+            if (!Enum.TryParse<TownIndustry>(strings[1], true, out var ind) || ind == TownIndustry.Unset)
+                return $"industry {strings[1]} invalid (Granary|Foundry|Loomhouse|Stable|CaravanHub)";
+            var data = BannerKingsConfig.Instance.PopulationManager?.GetPopData(s);
+            if (data?.EconomicData == null) return $"{strings[0]} has no BK economic data";
+            data.EconomicData.TownIndustry = ind;
+            string msg = $"set_town_industry: {strings[0]} → {ind}";
+            InformationManager.DisplayMessage(new InformationMessage(msg, Color.FromUint(0xFFFFD700)));
+            return msg;
+        }
+
+        // bannerkings.start_growth_decree <village_id> — start a 2-year
+        // Growth decree on the named village. Output halves; hearth
+        // grows ~2× faster across the period. Mutually exclusive with
+        // ClassTransition.
+        [CommandLineFunctionality.CommandLineArgumentFunction("start_growth_decree", "bannerkings")]
+        public static string StartGrowthDecree(List<string> strings)
+        {
+            if (strings == null || strings.Count < 1) return "usage: bannerkings.start_growth_decree <village_id>";
+            var s = Settlement.Find(strings[0]);
+            if (s == null || !s.IsVillage) return $"{strings[0]} not found / not a village";
+            bool ok = VillageDecreeManager.StartDecree(s, DecreeKind.Growth);
+            string msg = ok
+                ? $"start_growth_decree: {s.StringId} now under Growth decree (2 in-game years)"
+                : $"start_growth_decree: refused — already has an active decree?";
+            InformationManager.DisplayMessage(new InformationMessage(msg, Color.FromUint(0xFFFFD700)));
+            return msg;
+        }
+
+        // bannerkings.start_class_transition <village_id> <new_class>
+        // — start a 2-year class transition. Output halves until
+        // completion; on completion, VillageClass swaps to new_class.
+        [CommandLineFunctionality.CommandLineArgumentFunction("start_class_transition", "bannerkings")]
+        public static string StartClassTransition(List<string> strings)
+        {
+            if (strings == null || strings.Count < 2)
+                return "usage: bannerkings.start_class_transition <village_id> <Cropland|FibreFarm|Pastoral|StudFarm|Extractive|CoastalFishery>";
+            var s = Settlement.Find(strings[0]);
+            if (s == null || !s.IsVillage) return $"{strings[0]} not found / not a village";
+            if (!Enum.TryParse<VillageClass>(strings[1], true, out var target) || target == VillageClass.Unset)
+                return $"target class {strings[1]} invalid";
+            bool ok = VillageDecreeManager.StartDecree(s, DecreeKind.ClassTransition, target);
+            string msg = ok
+                ? $"start_class_transition: {s.StringId} → {target} in 2 in-game years"
+                : $"start_class_transition: refused — already has an active decree?";
+            InformationManager.DisplayMessage(new InformationMessage(msg, Color.FromUint(0xFFFFD700)));
+            return msg;
+        }
+
+        // bannerkings.cancel_decree <village_id> — abort any active
+        // decree. No refund of progress.
+        [CommandLineFunctionality.CommandLineArgumentFunction("cancel_decree", "bannerkings")]
+        public static string CancelDecree(List<string> strings)
+        {
+            if (strings == null || strings.Count < 1) return "usage: bannerkings.cancel_decree <village_id>";
+            var s = Settlement.Find(strings[0]);
+            if (s == null || !s.IsVillage) return $"{strings[0]} not found / not a village";
+            var data = BannerKingsConfig.Instance.PopulationManager?.GetPopData(s);
+            var was = data?.LandData?.ActiveDecree ?? DecreeKind.None;
+            VillageDecreeManager.CancelDecree(s);
+            string msg = was == DecreeKind.None
+                ? $"cancel_decree: {s.StringId} had no active decree (no-op)"
+                : $"cancel_decree: {s.StringId} {was} aborted";
+            InformationManager.DisplayMessage(new InformationMessage(msg, Color.FromUint(0xFFFFD700)));
+            return msg;
+        }
+
+        // bannerkings.test_eval_clan <clan_id> — force-run EstatePolicyAI
+        // on the named clan immediately, ignoring the 30-day cadence
+        // gate. Logs decision trace to BK_ai_estate_decisions.txt.
+        [CommandLineFunctionality.CommandLineArgumentFunction("test_eval_clan", "bannerkings")]
+        public static string TestEvalClan(List<string> strings)
+        {
+            if (strings == null || strings.Count < 1) return "usage: bannerkings.test_eval_clan <clan_id>";
+            var clan = Clan.All.FirstOrDefault(c => c?.StringId == strings[0]);
+            if (clan == null) return $"clan {strings[0]} not found";
+            EstatePolicyAI.EvaluateClanForce(clan);
+            string msg = $"test_eval_clan: ran on {clan.StringId}. See BK_ai_estate_decisions.txt for the trace.";
+            InformationManager.DisplayMessage(new InformationMessage(msg, Color.FromUint(0xFFFFD700)));
+            return msg;
+        }
+
+        // bannerkings.dump_player_estates — dumps every estate owned by
+        // any hero in the player's clan, with current blocker reason,
+        // production formula breakdown, and last paid income. Use to
+        // diagnose "why is my estate paying 0?" — the tooltip in-game
+        // shows the same data but per-estate.
+        [CommandLineFunctionality.CommandLineArgumentFunction("dump_player_estates", "bannerkings")]
+        public static string DumpPlayerEstates(List<string> strings)
+        {
+            try
+            {
+                var sb = new StringBuilder();
+                sb.AppendLine($"# BK player-estates diagnostic dump");
+                sb.AppendLine($"# captured at year {CampaignTime.Now.GetYear} day {CampaignTime.Now.GetDayOfYear}");
+                sb.AppendLine();
+
+                int rows = 0;
+                foreach (var hero in Clan.PlayerClan.Heroes)
+                {
+                    if (hero == null) continue;
+                    var estates = BannerKingsConfig.Instance.PopulationManager?.GetEstates(hero);
+                    if (estates == null) continue;
+                    foreach (var estate in estates)
+                    {
+                        if (estate == null) continue;
+                        rows++;
+                        var settlement = estate.EstatesData?.Settlement;
+                        var villageFaction = settlement?.MapFaction?.Name?.ToString() ?? "(none)";
+                        var ownerFaction = hero.MapFaction?.Name?.ToString() ?? "(none)";
+                        bool atWar = settlement?.MapFaction != null && hero.MapFaction != null
+                            && settlement.MapFaction.IsAtWarWith(hero.MapFaction);
+                        string blocker = estate.IncomeBlockedReason ?? "(none)";
+                        float effAcres = estate.Farmland + estate.Pastureland * 0.5f + estate.Woodland * 0.15f;
+                        int totalLabor = estate.Population + estate.Slaves;
+                        float satPct = estate.WorkforceSaturation * 100f;
+                        int est = (int)estate.EstimatedDailyIncome;
+
+                        sb.AppendLine($"  estate at {settlement?.StringId ?? "?"}  owner={hero.StringId}");
+                        sb.AppendLine($"    spec={estate.Spec}  village={(settlement?.Village?.GetVillageClass())}");
+                        sb.AppendLine($"    village faction = {villageFaction}");
+                        sb.AppendLine($"    owner faction   = {ownerFaction}");
+                        sb.AppendLine($"    at war          = {atWar}");
+                        sb.AppendLine($"    blocker         = {blocker}");
+                        sb.AppendLine($"    eff acres       = {effAcres:0.0}  ({estate.Farmland:0.0}/{estate.Pastureland:0.0}/{estate.Woodland:0.0})");
+                        sb.AppendLine($"    labor           = {totalLabor}  ({estate.Population} pop + {estate.Slaves} slaves)");
+                        sb.AppendLine($"    saturation      = {satPct:0}%");
+                        sb.AppendLine($"    tax rate        = {(estate.TaxRatio.ResultNumber * 100f):0}%");
+                        sb.AppendLine($"    estimated/day   = {est} denar");
+                        sb.AppendLine($"    last paid       = {estate.LastIncome} denar");
+                        sb.AppendLine($"    accumulated buf = {estate.TaxAccumulated} denar");
+
+                        // Two-collection sync check: PopulationManager.GetEstates(hero)
+                        // returns the hero→estates index; EstateData.Estates is the
+                        // per-village list iterated by DailyProductionIncome. They
+                        // can drift after a buy/grant/reclaim if SetOwner doesn't
+                        // refresh both sides — symptom is "no blocker, healthy
+                        // math, but never paid" because production iterates the
+                        // village list while blocker/registration check uses the
+                        // hero list.
+                        var estateData = BannerKingsConfig.Instance.PopulationManager
+                            ?.GetPopData(settlement)?.EstateData;
+                        bool inVillageList = estateData?.Estates?.Contains(estate) == true;
+                        sb.AppendLine($"    in PopulationManager (hero) list = True");
+                        sb.AppendLine($"    in EstateData.Estates (village)  = {inVillageList}  {(inVillageList ? "" : "  ← BUG: production tick skips this estate")}");
+                        sb.AppendLine($"    estate.IsDisabled = {estate.IsDisabled}");
+                        sb.AppendLine();
+                    }
+                }
+
+                WriteDiagnosticFile("player_estates.txt", sb.ToString());
+                string summary = $"dump_player_estates: {rows} estates dumped. {LastWriteResult}";
+                InformationManager.DisplayMessage(new InformationMessage(summary, Color.FromUint(0xFFFFD700)));
+                return summary;
+            }
+            catch (Exception ex)
+            {
+                string err = "dump_player_estates failed: " + ex.GetType().Name + ": " + ex.Message;
+                InformationManager.DisplayMessage(new InformationMessage(err, Color.FromUint(0xFFFF4040)));
+                return err;
+            }
+        }
+
+        // bannerkings.reclassify_economy — wipes every town's TownIndustry
+        // back to Unset, then runs DefaultTownIndustries.InferIndustry on
+        // each. Use after tuning the workshop→industry map to apply the
+        // new mappings to an existing save without restarting the campaign.
+        // Does NOT touch village classes or estate specs.
+        [CommandLineFunctionality.CommandLineArgumentFunction("reclassify_economy", "bannerkings")]
+        public static string ReclassifyEconomy(List<string> strings)
+        {
+            try
+            {
+                int reset = 0, assigned = 0;
+                foreach (var s in Settlement.All)
+                {
+                    if (s == null || !s.IsTown) continue;
+                    var data = BannerKingsConfig.Instance.PopulationManager?.GetPopData(s);
+                    if (data?.EconomicData == null) continue;
+                    data.EconomicData.TownIndustry = TownIndustry.Unset;
+                    reset++;
+                    var ind = DefaultTownIndustries.InferIndustry(s.Town);
+                    data.EconomicData.TownIndustry = ind;
+                    if (ind != TownIndustry.Unset) assigned++;
+                }
+                string msg = $"reclassify_economy: {reset} towns wiped, {assigned} re-assigned";
+                InformationManager.DisplayMessage(new InformationMessage(msg, Color.FromUint(0xFFFFD700)));
+                return msg;
+            }
+            catch (Exception ex)
+            {
+                return "reclassify_economy failed: " + ex.GetType().Name + ": " + ex.Message;
+            }
+        }
+
+        // bannerkings.classify_village <village_id> — re-runs DefaultVillageClasses
+        // on a single village and prints the path it took. Useful when a
+        // village shows Unset and you want to see why.
+        [CommandLineFunctionality.CommandLineArgumentFunction("classify_village", "bannerkings")]
+        public static string ClassifyVillage(List<string> strings)
+        {
+            if (strings == null || strings.Count < 1)
+                return "usage: bannerkings.classify_village <village_id>";
+            string id = strings[0];
+            var s = Settlement.Find(id);
+            if (s == null || !s.IsVillage)
+                return $"classify_village: {id} not found or not a village";
+            var vt = s.Village?.VillageType;
+            var cls = DefaultVillageClasses.GetClass(vt);
+            string msg = $"classify_village {id}: vanillaType={vt?.StringId ?? "(null)"} → BK class={cls}";
+            InformationManager.DisplayMessage(new InformationMessage(msg, Color.FromUint(0xFFFFD700)));
+            return msg;
         }
     }
 }

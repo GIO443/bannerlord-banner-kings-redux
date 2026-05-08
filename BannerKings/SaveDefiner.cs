@@ -61,6 +61,7 @@ using BannerKings.Behaviours.Relations;
 using BannerKings.Managers.Institutions.Religions.Faiths.Groups;
 using BannerKings.Managers.Institutions.Religions.Faiths.Societies;
 using BannerKings.CampaignContent;
+using BannerKings.CampaignContent.Economy.Layered;
 using BannerKings.Behaviours;
 
 namespace BannerKings
@@ -232,6 +233,13 @@ namespace BannerKings
             AddClassDefinition(typeof(RaidCapturePolicyManager), 1101);
             AddEnumDefinition(typeof(RaidCaptureMode), 1102);
             AddEnumDefinition(typeof(CaptiveDisposition), 1103);
+
+            // Layered village/estate/town economy rework — Phase 1.
+            AddEnumDefinition(typeof(VillageClass), 1110);
+            AddEnumDefinition(typeof(TownIndustry), 1111);
+            AddEnumDefinition(typeof(EstateSpec), 1112);
+            AddEnumDefinition(typeof(CargoKind), 1113);
+            AddEnumDefinition(typeof(DecreeKind), 1114);
         }
 
         protected override void DefineContainerDefinitions()

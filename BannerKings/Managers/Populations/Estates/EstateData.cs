@@ -33,6 +33,12 @@ namespace BannerKings.Managers.Populations.Estates
                 {
                     continue;
                 }
+                // Same custody rule as DailyProductionIncome: blocked
+                // estates don't get a trade-tax share either.
+                if (estate.IncomeBlockedReason != null)
+                {
+                    continue;
+                }
 
                 // Probabilistic rounding instead of int-cast truncation. For
                 // small estates (low population, low workforce proportion)
@@ -47,7 +53,16 @@ namespace BannerKings.Managers.Populations.Estates
                     * (1f - estate.TaxRatio.ResultNumber));
                 int result = MBRandom.RoundRandomized(share);
                 totalDeducted += result;
-                estate.TaxAccumulated += result;
+                // Direct payment for trade-tax share too. Same reason as
+                // DailyProductionIncome — buffer eliminated; pay the owner
+                // immediately so payouts are deterministic per villager
+                // trade event.
+                if (result > 0 && estate.Owner != null)
+                {
+                    TaleWorlds.CampaignSystem.Actions.GiveGoldAction.ApplyBetweenCharacters(
+                        null, estate.Owner, result, false);
+                    estate.LastIncome += result;
+                }
             }
 
             Settlement.Village.TradeTaxAccumulated += tradeTax - totalDeducted;
@@ -69,10 +84,12 @@ namespace BannerKings.Managers.Populations.Estates
         // RequiredLaborForAcres scales with the land mix; workforceFactor
         // saturates at 1, so over-population doesn't increase yield (matching
         // the existing WorkforceSaturation tooltip semantics).
-        // AcrePriceMultiplier is 0.4 — calibrated so a typical 100-acre,
-        // fully-staffed allodial estate yields ~40 denar/day, comparable to
-        // a workshop and roughly matching the "estates as a passive income
-        // stream" design intent in the wiki.
+        // AcrePriceMultiplier is 1.0 — recalibrated for workshop-parity
+        // profit/cost ratio. Earlier 0.4 produced ~25 denar/day on a
+        // 250-acre estate at typical 45% workforce saturation, vs ~80–150
+        // denar/day for an equivalently priced workshop. Tripling to ~75
+        // denar/day brings allodial estates to roughly the same payback
+        // window (~1–2 in-game years) as workshops.
         public void DailyProductionIncome()
         {
             try
@@ -81,6 +98,9 @@ namespace BannerKings.Managers.Populations.Estates
                 foreach (var estate in Estates)
                 {
                     if (estate == null || estate.IsDisabled) continue;
+                    // Estates under enemy custody (war between village faction
+                    // and owner faction) don't accrue income — no back-pay.
+                    if (estate.IncomeBlockedReason != null) continue;
                     float farm = estate.Farmland;
                     float pasture = estate.Pastureland;
                     float wood = estate.Woodland;
@@ -97,13 +117,44 @@ namespace BannerKings.Managers.Populations.Estates
                         : 0f;
                     if (workforceFactor <= 0f) continue;
 
-                    const float AcrePriceMultiplier = 0.4f;
+                    const float AcrePriceMultiplier = 1.0f;
                     float keepRate = 1f - estate.TaxRatio.ResultNumber;
                     if (keepRate < 0f) keepRate = 0f;
                     float gross = effectiveAcres * workforceFactor * AcrePriceMultiplier;
+
+                    // Phase 2 layered-economy yield multiplier — gated behind
+                    // MCM toggle so the rework is opt-in until playtest
+                    // confirms regression baseline. When off, the multiplier
+                    // is exactly 1.0 and the formula reduces to the original
+                    // vanilla path. When on, EstateSpec × VillageClass ×
+                    // pop-weighted worker-fit multiplies gross. Industry-
+                    // demand stays at 1.0 here; Phase 3 cluster aggregation
+                    // adds the cluster-fit factor.
+                    if (BannerKings.Settings.BannerKingsSettings.Instance?.LayeredEconomyYields == true)
+                    {
+                        var br = BannerKings.CampaignContent.Economy.Layered.EstateYieldCalculator.GoldMultiplier(estate);
+                        gross *= br.Final;
+                    }
+
                     float net = gross * keepRate;
                     int delta = MBRandom.RoundRandomized(net);
-                    if (delta > 0) estate.TaxAccumulated += delta;
+                    if (delta > 0 && estate.Owner != null)
+                    {
+                        // Direct payment — no buffer. Removed the
+                        // TaxAccumulated → 80% asymptote dance because the
+                        // drain timing relative to settlement/clan ticks was
+                        // producing inconsistent payouts (50/0/0/0/500 over
+                        // five days with no business reason). Now each day's
+                        // production goes straight to the owner's gold;
+                        // LastIncome records what was paid for UI display.
+                        TaleWorlds.CampaignSystem.Actions.GiveGoldAction.ApplyBetweenCharacters(
+                            null, estate.Owner, delta, false);
+                        estate.LastIncome = delta;
+                    }
+                    else
+                    {
+                        estate.LastIncome = 0;
+                    }
                 }
             }
             catch { /* never throw out of a daily tick */ }

@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using BannerKings.CampaignContent.Economy.Layered;
 using BannerKings.Managers.Innovations;
 using BannerKings.Managers.Institutions.Religions.Doctrines;
 using BannerKings.Managers.Policies;
@@ -36,6 +37,22 @@ namespace BannerKings.Managers.Populations
         [SaveableProperty(6)] private float terrainDifficulty { get; set; }
 
         [SaveableProperty(7)] private float[] composition { get; set; }
+
+        // Phase 1 of village/estate/town economy rework. Defaults to Unset
+        // on existing saves; LayeredEconomyAssignmentBehavior populates it
+        // from DefaultVillageClasses on session start. After Phase 1 lands
+        // this is the SINGLE source of truth for "what does this village
+        // produce" — never read VillageType for class purposes.
+        [SaveableProperty(8)] public VillageClass VillageClass { get; set; } = VillageClass.Unset;
+
+        // Phase 8 — village-level long-form decrees (Growth, class
+        // transition). Mutually exclusive; only one active at a time.
+        // ActiveDecree=None when nothing is in flight; DecreeStartTime
+        // is CampaignTime.Zero in that case. DecreeTargetClass is only
+        // meaningful for ClassTransition.
+        [SaveableProperty(9)] public DecreeKind ActiveDecree { get; set; } = DecreeKind.None;
+        [SaveableProperty(10)] public CampaignTime DecreeStartTime { get; set; } = CampaignTime.Zero;
+        [SaveableProperty(11)] public VillageClass DecreeTargetClass { get; set; } = VillageClass.Unset;
 
         public float[] Composition => composition;
 

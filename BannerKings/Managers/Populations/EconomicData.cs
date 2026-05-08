@@ -1,4 +1,5 @@
 using BannerKings.Behaviours.Diplomacy;
+using BannerKings.CampaignContent.Economy.Layered;
 using BannerKings.Managers.Institutions.Guilds;
 using TaleWorlds.CampaignSystem;
 using TaleWorlds.CampaignSystem.Party;
@@ -28,6 +29,30 @@ namespace BannerKings.Managers.Populations
 
         [SaveableProperty(3)] private float stateSlaves { get; set; }
         [SaveableProperty(4)] public int ConsumedValue { get; set; }
+
+        // Phase 1 of village/estate/town economy rework. Defaults to Unset
+        // on existing saves; LayeredEconomyAssignmentBehavior populates it
+        // from DefaultTownIndustries.InferIndustry on session start. After
+        // Phase 1 lands this is the single source of truth for the town's
+        // industry archetype.
+        [SaveableProperty(5)] public TownIndustry TownIndustry { get; set; } = TownIndustry.Unset;
+
+        // Phase 4 — food deficit gating. Daily ticked counter of how many
+        // consecutive days the town has been in a food deficit (vanilla
+        // FoodChange < 0 + FoodStocks below a threshold). When ≥ the
+        // stagnation threshold, non-food bound villages take a yield
+        // penalty until the deficit closes. Decrements on surplus days
+        // (one-step-back-per-good-day) so a brief famine doesn't
+        // permanently scar the cluster.
+        [SaveableProperty(6)] public int ClusterFoodDeficitDays { get; set; } = 0;
+
+        // Phase 4 hysteresis state. When ClusterFoodDeficitDays crosses
+        // the enter threshold, this flips to true and stays true until
+        // the counter drops to or below the exit threshold. Decouples
+        // "is currently stagnant" from "raw counter value" so a
+        // borderline town with FoodChange flapping ±0 doesn't oscillate
+        // the stagnation gate every day.
+        [SaveableProperty(7)] public bool ClusterIsStagnant { get; set; } = false;
 
         public Guild Guild => guild;
         public float Tariff => BannerKingsConfig.Instance.TaxModel.GetTownTaxRatio(settlement.Town);

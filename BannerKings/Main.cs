@@ -1,5 +1,6 @@
 ﻿using BannerKings.Behaviours;
 using BannerKings.Behaviours.Criminality;
+using BannerKings.CampaignContent.Economy.Layered;
 using BannerKings.Behaviours.Raids;
 using BannerKings.Behaviours.Diplomacy;
 using BannerKings.Behaviours.Feasts;
@@ -106,6 +107,11 @@ namespace BannerKings
             GameTexts.SetVariable("SPEED_ICON", BannerKings.Utils.TextHelper.SPEED_ICON);
 
             campaignStarter.AddBehavior(new BKManagerBehavior());
+            // Layered village/estate/town economy rework — Phase 1+4+6+8.
+            campaignStarter.AddBehavior(new LayeredEconomyAssignmentBehavior());
+            campaignStarter.AddBehavior(new ClusterFoodTracker());
+            campaignStarter.AddBehavior(new EstatePolicyAI());
+            campaignStarter.AddBehavior(new VillageDecreeManager());
             campaignStarter.AddBehavior(new BKEducationBehavior());
             campaignStarter.AddBehavior(new BKSettlementActions());
             campaignStarter.AddBehavior(new BKKnighthoodBehavior());
