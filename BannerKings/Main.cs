@@ -170,6 +170,7 @@ namespace BannerKings
             {
                 campaignStarter.AddBehavior(new BannerKings.Behaviours.Estates.BKLandGrantBehavior());
                 campaignStarter.AddBehavior(new BannerKings.Behaviours.Estates.BKVillageSupplyAutoBehavior());
+                campaignStarter.AddBehavior(new BannerKings.Behaviours.Estates.BKLandsLaborBehavior());
             }
             campaignStarter.AddBehavior(new BannerKings.Behaviours.Diag.AiDecisionTraceBehavior());
             campaignStarter.AddBehavior(new BannerKings.Behaviours.Diag.RecruitmentAuditBehavior());

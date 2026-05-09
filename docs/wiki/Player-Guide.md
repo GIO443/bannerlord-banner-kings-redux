@@ -288,15 +288,31 @@ panel still shows the full breakdown (serfs / slaves / craftsmen /
 tenants / nobles) with growth, food, tax differentials. One source of
 truth, two views.
 
-**Conscript slaves to the lands' labor force.** EOF's slave-driven land
-production reads from `Settlement.Party.PrisonRoster` — captives the
-player physically dropped off via the lands slave-management screen.
-That mechanism still works, but for villages where you already hold BK
-slaves in the general population, walk into the village → Banner Kings
-submenu → **Conscript slaves to lands ({N} available)**. One click moves
-the maximum eligible amount (capped by EOF's prison size = lord-lands ×
-10) from BK's slave count into EOF's roster. No gold cost — they're
-already in the village, just being reassigned to land work.
+**Conscript slaves to the lands' labor force.** Quick one-shot for
+villages where you already hold BK slaves in the general population:
+walk into the village → Banner Kings submenu → **Conscript slaves to
+lands ({N} available)**. One click moves the maximum eligible amount
+(capped by EOF's prison size = lord-lands × 10) from BK's slave count
+into EOF's roster. No gold cost — they're already in the village,
+just being reassigned to land work.
+
+**Or set quotas and let it run.** Phase 1 of the slave-trade pipeline.
+Walk into a village where you hold lord-lands → Banner Kings submenu →
+**Configure lands quotas (slaves: X / guards: Y)**. You'll be asked
+two numbers in sequence:
+
+- **Slave quota** — daily tick auto-buys slaves from the *bound town's*
+  BK slave population at 200g each, drip-rate 2/day, until the
+  village prison roster reaches the quota. Cost goes to the town's
+  gold pool. Capped by EOF's prison size (lord-lands × 10).
+- **Guard quota** — daily tick auto-hires volunteers from the village's
+  notables into the lands garrison, paid at vanilla recruitment cost,
+  drip-rate 1/day. Capped by EOF at half the prison count (so guards
+  scale with slaves you've imported).
+
+Set 0 to disable either. Both default off. The drip rate models the
+abstract caravan delivery; phase 2 will replace this with visible
+slave-caravan parties on the map.
 
 **Old BK estates are paused under EOF.** The legacy estate loop (daily
 income, retinue militia, AI estate decisions, management UI, clan-finance
@@ -391,6 +407,8 @@ bannerkings.land_grant <village_name> | <hero>   # MainHero grants 1 land to her
 bannerkings.land_set_auto_supply <village> on    # enable auto-supply
 bannerkings.land_set_auto_supply <village> off   # disable auto-supply
 bannerkings.land_conscript_slaves <village>      # transfer max BK slaves to EOF lands roster
+bannerkings.land_set_slave_quota <village> <n>   # set daily slave-import quota
+bannerkings.land_set_guard_quota <village> <n>   # set daily guard-hire quota
 ```
 
 Plus vanilla `campaign.cheat_mode 1`,

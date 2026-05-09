@@ -482,6 +482,14 @@ namespace BannerKings.Behaviours
                 MenuConscriptSlavesCondition,
                 MenuConscriptSlavesConsequence, false, 7);
 
+            // Configure lands labor quotas (slaves auto-imported from bound
+            // town, guards auto-hired from village notables). Daily tick fills
+            // toward the quota; both default to 0 (off).
+            campaignGameStarter.AddGameMenuOption("bannerkings", "configure_quotas",
+                "{=BK_QuotasMenu}Configure lands quotas (slaves: {SLAVE_Q} / guards: {GUARD_Q})",
+                MenuConfigureQuotasCondition,
+                MenuConfigureQuotasConsequence, false, 8);
+
             campaignGameStarter.AddGameMenuOption("bannerkings", "bannerkings_leave", "{=1kJ3hNWg}Leave",
                 delegate (MenuCallbackArgs x)
                 {
@@ -1198,6 +1206,103 @@ namespace BannerKings.Behaviours
             InformationManager.ShowInquiry(new InquiryData(title, desc, true, true,
                 GameTexts.FindText("str_yes").ToString(), GameTexts.FindText("str_no").ToString(),
                 delegate { ExecuteConscriptSlaves(settlement, transfer); }, null));
+        }
+
+        // ---- Lands quotas (slaves + guards) ----
+
+        private static bool MenuConfigureQuotasCondition(MenuCallbackArgs args)
+        {
+            if (!BannerKings.Utils.ModCompat.EconomyOverhaul) return false;
+            var settlement = Settlement.CurrentSettlement;
+            if (settlement?.Village == null) return false;
+            int lordLands = BannerKings.Patches.EconomyOverhaulCompatPatches
+                .EofLandsBridge.GetLordLandsOwned(settlement.Village);
+            if (lordLands <= 0) return false;
+
+            var labor = BannerKings.Behaviours.Estates.BKLandsLaborBehavior.Instance;
+            int sQ = labor?.GetSlaveQuota(settlement) ?? 0;
+            int gQ = labor?.GetGuardQuota(settlement) ?? 0;
+            MBTextManager.SetTextVariable("SLAVE_Q", sQ);
+            MBTextManager.SetTextVariable("GUARD_Q", gQ);
+            args.optionLeaveType = GameMenuOption.LeaveType.Manage;
+            return true;
+        }
+
+        private static void MenuConfigureQuotasConsequence(MenuCallbackArgs args)
+        {
+            var settlement = Settlement.CurrentSettlement;
+            if (settlement?.Village == null) return;
+            ShowSlaveQuotaInquiry(settlement);
+        }
+
+        private static void ShowSlaveQuotaInquiry(Settlement settlement)
+        {
+            var labor = BannerKings.Behaviours.Estates.BKLandsLaborBehavior.Instance;
+            if (labor == null) return;
+            int lordLands = BannerKings.Patches.EconomyOverhaulCompatPatches
+                .EofLandsBridge.GetLordLandsOwned(settlement.Village);
+            int prisonCap = lordLands * 10;
+            int currentSlaves = labor.GetSlaveQuota(settlement);
+            string title = new TextObject("{=BK_SlaveQuotaTitle}Slave quota for {VILLAGE}")
+                .SetTextVariable("VILLAGE", settlement.Name).ToString();
+            string desc = new TextObject(
+                "{=BK_SlaveQuotaText}Daily tick auto-buys slaves from {TOWN}'s slave population at {PRICE}g each, up to this quota. EOF's prison-size cap here is {CAP} (lord-lands × 10). Set 0 to disable. Current: {CUR}.")
+                .SetTextVariable("TOWN", settlement.Village?.Bound?.Name ?? new TextObject("the bound town"))
+                .SetTextVariable("PRICE", 200)
+                .SetTextVariable("CAP", prisonCap)
+                .SetTextVariable("CUR", currentSlaves).ToString();
+            InformationManager.ShowTextInquiry(new TextInquiryData(
+                title, desc, true, true,
+                GameTexts.FindText("str_done").ToString(),
+                GameTexts.FindText("str_cancel").ToString(),
+                delegate (string input)
+                {
+                    if (int.TryParse(input?.Trim() ?? "0", out int n))
+                    {
+                        n = MathF.Max(0, MathF.Min(n, prisonCap));
+                        labor.SetSlaveQuota(settlement, n);
+                        MBInformationManager.AddQuickInformation(new TextObject(
+                            "{=BK_SlaveQuotaSet}Slave quota for {VILLAGE} set to {N}.")
+                            .SetTextVariable("VILLAGE", settlement.Name).SetTextVariable("N", n));
+                    }
+                    ShowGuardQuotaInquiry(settlement);
+                },
+                delegate { ShowGuardQuotaInquiry(settlement); },
+                false, null));
+        }
+
+        private static void ShowGuardQuotaInquiry(Settlement settlement)
+        {
+            var labor = BannerKings.Behaviours.Estates.BKLandsLaborBehavior.Instance;
+            if (labor == null) return;
+            int prisonCount = settlement.Party?.PrisonRoster?.TotalManCount ?? 0;
+            int guardCap = prisonCount / 2;
+            int currentGuards = labor.GetGuardQuota(settlement);
+            string title = new TextObject("{=BK_GuardQuotaTitle}Guard quota for {VILLAGE}")
+                .SetTextVariable("VILLAGE", settlement.Name).ToString();
+            string desc = new TextObject(
+                "{=BK_GuardQuotaText}Daily tick auto-hires volunteers from {VILLAGE}'s notables into the lands garrison, paid at vanilla recruitment cost. EOF caps the garrison at half the prison count: {CAP}. Set 0 to disable. Current: {CUR}.")
+                .SetTextVariable("VILLAGE", settlement.Name)
+                .SetTextVariable("CAP", guardCap)
+                .SetTextVariable("CUR", currentGuards).ToString();
+            InformationManager.ShowTextInquiry(new TextInquiryData(
+                title, desc, true, true,
+                GameTexts.FindText("str_done").ToString(),
+                GameTexts.FindText("str_cancel").ToString(),
+                delegate (string input)
+                {
+                    if (int.TryParse(input?.Trim() ?? "0", out int n))
+                    {
+                        n = MathF.Max(0, n);
+                        labor.SetGuardQuota(settlement, n);
+                        MBInformationManager.AddQuickInformation(new TextObject(
+                            "{=BK_GuardQuotaSet}Guard quota for {VILLAGE} set to {N}.")
+                            .SetTextVariable("VILLAGE", settlement.Name).SetTextVariable("N", n));
+                    }
+                    GameMenu.SwitchToMenu("bannerkings");
+                },
+                delegate { GameMenu.SwitchToMenu("bannerkings"); },
+                false, null));
         }
 
         public static void ExecuteConscriptSlaves(Settlement settlement, int count)

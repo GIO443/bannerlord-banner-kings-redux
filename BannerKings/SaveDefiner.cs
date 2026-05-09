@@ -330,6 +330,9 @@ namespace BannerKings
 
             // BKVillageSupplyAutoBehavior — per-village auto-refill toggle.
             ConstructContainerDefinition(typeof(Dictionary<Settlement, bool>));
+
+            // BKLandsLaborBehavior — per-village slave + guard quotas.
+            ConstructContainerDefinition(typeof(Dictionary<Settlement, int>));
         }
     }
 }

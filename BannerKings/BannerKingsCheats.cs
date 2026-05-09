@@ -144,6 +144,40 @@ namespace BannerKings
             return $"Buy failed: {fail}";
         }
 
+        [CommandLineFunctionality.CommandLineArgumentFunction("land_set_slave_quota", "bannerkings")]
+        public static string LandSetSlaveQuota(List<string> strings)
+        {
+            if (!CampaignCheats.CheckCheatUsage(ref CampaignCheats.ErrorType)) return CampaignCheats.ErrorType;
+            if (strings == null || strings.Count < 2)
+                return "Format: bannerkings.land_set_slave_quota [village_name_or_id] [count]";
+            string token = strings[0].Trim();
+            if (!int.TryParse(strings[1], out int n)) return "Invalid count.";
+            var settlement = Settlement.All.FirstOrDefault(s => s != null
+                && (s.StringId == token || s.Name?.ToString() == token) && s.IsVillage);
+            if (settlement?.Village == null) return $"No village found matching '{token}'.";
+            var labor = BannerKings.Behaviours.Estates.BKLandsLaborBehavior.Instance;
+            if (labor == null) return "BKLandsLaborBehavior not registered.";
+            labor.SetSlaveQuota(settlement, System.Math.Max(0, n));
+            return $"Slave quota for {settlement.Name} set to {labor.GetSlaveQuota(settlement)}.";
+        }
+
+        [CommandLineFunctionality.CommandLineArgumentFunction("land_set_guard_quota", "bannerkings")]
+        public static string LandSetGuardQuota(List<string> strings)
+        {
+            if (!CampaignCheats.CheckCheatUsage(ref CampaignCheats.ErrorType)) return CampaignCheats.ErrorType;
+            if (strings == null || strings.Count < 2)
+                return "Format: bannerkings.land_set_guard_quota [village_name_or_id] [count]";
+            string token = strings[0].Trim();
+            if (!int.TryParse(strings[1], out int n)) return "Invalid count.";
+            var settlement = Settlement.All.FirstOrDefault(s => s != null
+                && (s.StringId == token || s.Name?.ToString() == token) && s.IsVillage);
+            if (settlement?.Village == null) return $"No village found matching '{token}'.";
+            var labor = BannerKings.Behaviours.Estates.BKLandsLaborBehavior.Instance;
+            if (labor == null) return "BKLandsLaborBehavior not registered.";
+            labor.SetGuardQuota(settlement, System.Math.Max(0, n));
+            return $"Guard quota for {settlement.Name} set to {labor.GetGuardQuota(settlement)}.";
+        }
+
         [CommandLineFunctionality.CommandLineArgumentFunction("land_conscript_slaves", "bannerkings")]
         public static string LandConscriptSlaves(List<string> strings)
         {
