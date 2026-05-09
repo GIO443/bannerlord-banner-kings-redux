@@ -2,6 +2,7 @@
 using Bannerlord.UIExtenderEx.Prefabs2;
 using System.Collections.Generic;
 using System.Xml;
+using BannerKings.Utils;
 
 namespace BannerKings.UI.VanillaTabs.Clans
 {
@@ -15,6 +16,17 @@ namespace BannerKings.UI.VanillaTabs.Clans
 
             public ClanWorkshopInfoPatch()
             {
+                // Under Economy Overhaul Framework, EOF's WorkshopOverhaulBridge widget
+                // (injected into the WarehouseOptions panel of the same prefab) is the
+                // canonical workshop UI — Lv1–5 upgrades, auto-buy/sell, capital bonus.
+                // BK's upgrade button calls into BK's WorkshopModel which we no longer
+                // register under EOF; suppress the BK section to avoid a dead button.
+                if (ModCompat.EconomyOverhaul)
+                {
+                    nodes = new List<XmlNode>();
+                    return;
+                }
+
                 var list = new XmlDocument();
                 list.LoadXml(
                    "<ListPanel DataSource=\"{..\\WorkshopInfo}\" WidthSizePolicy=\"StretchToParent\" HeightSizePolicy=\"StretchToParent\" StackLayout.LayoutMethod=\"VerticalBottomToTop\"><ItemTemplate><Widget WidthSizePolicy=\"StretchToParent\" HeightSizePolicy=\"CoverChildren\"><Children><ListPanel WidthSizePolicy=\"StretchToParent\" HeightSizePolicy=\"CoverChildren\" MarginBottom=\"15\" StackLayout.LayoutMethod=\"HorizontalLeftToRight\"><Children><TextWidget WidthSizePolicy=\"CoverChildren\" HeightSizePolicy=\"CoverChildren\" Brush=\"Clan.Stat.Name.Text\" Text=\"@Description\" /><TextWidget WidthSizePolicy=\"CoverChildren\" HeightSizePolicy=\"CoverChildren\" Brush=\"Clan.Stat.Value.Text\" MarginLeft=\"10\" Text=\"@Value\" /></Children></ListPanel></Children><HintWidget WidthSizePolicy=\"StretchToParent\" HeightSizePolicy=\"StretchToParent\" DataSource=\"{Hint}\" Command.HoverBegin=\"ExecuteBeginHint\" Command.HoverEnd=\"ExecuteEndHint\" /></Widget></ItemTemplate></ListPanel>");

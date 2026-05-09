@@ -180,10 +180,34 @@ namespace BannerKings.Behaviours
             }
 
             var flag = false;
-            var basicVolunteer = TaleWorlds.CampaignSystem.Campaign.Current.Models.VolunteerModel.GetBasicVolunteer(hero);
+            CharacterObject basicVolunteer;
+            try
+            {
+                basicVolunteer = TaleWorlds.CampaignSystem.Campaign.Current.Models.VolunteerModel.GetBasicVolunteer(hero);
+            }
+            catch
+            {
+                // The active VolunteerModel can be a vanilla-derived subclass
+                // installed by another mod (e.g. Economy Overhaul Framework's
+                // BLM_DefaultVolunteerModel). BK's BKVolunteerModel null-guards
+                // hero state defensively; vanilla DefaultVolunteerModel does
+                // not, and inheriting subclasses can re-expose the NRE-prone
+                // path. Skip this notable's volunteer refresh on this tick.
+                return;
+            }
             for (var i = 0; i < 6; i++)
             {
-                if (!(MBRandom.RandomFloat < TaleWorlds.CampaignSystem.Campaign.Current.Models.VolunteerModel.GetDailyVolunteerProductionProbability(hero, i, settlement)))
+                float probability;
+                try
+                {
+                    probability = TaleWorlds.CampaignSystem.Campaign.Current.Models.VolunteerModel.GetDailyVolunteerProductionProbability(hero, i, settlement);
+                }
+                catch
+                {
+                    // See note above. Skip this slot for this tick.
+                    continue;
+                }
+                if (!(MBRandom.RandomFloat < probability))
                 {
                     continue;
                 }

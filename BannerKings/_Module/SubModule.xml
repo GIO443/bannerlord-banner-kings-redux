@@ -4,7 +4,7 @@
         xsi:noNamespaceSchemaLocation="https://raw.githubusercontent.com/BUTR/Bannerlord.XmlSchemas/master/SubModule.xsd">
 	<Id value="BannerKings.Redux" />
 	<Name value="Banner Kings — Redux" />
-	<Version value="v1.6.15.0" />
+	<Version value="v1.7.0.0" />
 	<Official value="false" />
 	<DefaultModule value="true" />
 	<ModuleCategory value="Singleplayer" />
@@ -40,6 +40,7 @@
 		<DependedModuleMetadata id="BuyLandAtVillages" order="LoadAfterThis" optional="true" />
 		<DependedModuleMetadata id="RBMCombat" order="LoadAfterThis" optional="true" />
 		<DependedModuleMetadata id="AIInfluence" order="LoadAfterThis" optional="true" />
+		<DependedModuleMetadata id="Bannerlord.EconomyOverhaul" order="LoadAfterThis" optional="true" />
 		<DependedModuleMetadata id="realmofthrones.core" order="LoadAfterThis" optional="true" />
 	</DependedModuleMetadatas>
 	<!-- Community Dependency Metadata -->

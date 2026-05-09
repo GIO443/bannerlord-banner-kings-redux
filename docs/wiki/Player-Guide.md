@@ -117,6 +117,43 @@ death (configured per estate's contract).
 **Seize:** Available to a liege when a vassal's estate becomes claimable
 — owner died heirless, treason, banditry, etc. *Court → Estates → Seize*.
 
+## How does the estate retinue (militia reserve) work?
+
+Each owned estate maintains a small reserve of militia trained from its
+free population. The reserve passively defends the estate's village if
+raided. You can withdraw from it (drains the estate's population — the
+peasants leave the land to fight) or deposit into it (no population
+change — paid retainers being added to the muster).
+
+**Cap:** `5 + (Population × 0.03 × specMult) + ManorBonus`
+- Spec multipliers: Levy ×2, Growth ×0.5, others ×1
+- Manor village building: +5 per level (shared across all estates in
+  the village)
+- Slaves never count — only free population (Serfs / Tenants).
+
+**Regen:** each below-cap slot rolls a daily ~10% chance to add 1
+militia troop, modified by:
+- Estate spec (Levy ×3, Growth ×0.5)
+- Village draft policy (Conscription ×1.25, Demobilization ×0.75)
+- Manor building (additive +10% per level)
+
+So a 200-pop Levy-spec estate with a level-2 Manor in a Conscription
+village fills its ~32-troop cap in about 2-3 days per slot. A
+50-pop Yield-spec estate with no Manor sits at ~6-troop cap and
+trickles up over weeks.
+
+**Use:**
+1. Open the estate panel and click *Retinue* (only works while you're
+   at the village).
+2. Pick *Withdraw* (drains pop) or *Deposit* (free troop stash, no pop
+   change).
+3. Enter how many troops to move.
+
+The retinue is militia tier only (vanilla `MilitiaPartyTemplate` —
+basic spearmen / archers). It auto-deploys with the village when raided
+regardless of who owns the retinue, so AI-owned retinues defend their
+own estates without you doing anything.
+
 ## How do I trade in a castle?
 
 Banner Kings — Redux re-enables castle trade (vanilla castles have no
@@ -208,6 +245,53 @@ ineligible for the bonus.
 ---
 
 # Per-system FAQ
+
+## Economy: Hearth and Population
+
+If you're running [**Economy Overhaul Framework**](Troubleshooting#mod-compatibility)
+(Nexus #9558) alongside Banner Kings, the two systems hand off cleanly because
+they answer different questions about a village.
+
+**Hearth is village development / capital.** The vanilla `Hearths` number
+on a village info card (typically 30–1200) represents settled households,
+workshops, ploughs, market stalls — the *means of production*. Raids
+destroy infrastructure, dropping Hearth fast (vanilla raid penalty plus
+EOF's −50 on looted state). Peace and villager activity rebuild it slowly.
+Under EOF, Hearth is the primary driver of how much trade goods a village
+produces per day.
+
+**BK Population is labor / demographics.** The serfs / slaves / freemen /
+nobles class breakdown shown in the BK settlement panel is the actual
+*people who live there*. It drives BK's rent, tax-by-class, militia
+composition, retainer recruitment, and food consumption modelling. It
+grows on a separate clock from Hearth — recovers slowly from raids but
+doesn't crater the way Hearth does.
+
+The two numbers can legitimately diverge. A village with **high BK
+Population, low Hearth** is "lots of mouths, recently raided, infrastructure
+burned" — production is tanked, food is still consumed, and labor will
+slowly rebuild the capital. A village with **low Population, high Hearth**
+is "depopulated but well-developed" — capacity is there, no one to work it.
+
+**Estates are paused under EOF.** The estate gameplay loop (daily income,
+retinue militia, AI estate decisions, management UI, clan-finance entries,
+visit-panel "Manage Estate" option) is dormant when EOF is loaded. Estate
+*ownership records persist in the save* — nothing is deleted — but no
+income flows and the UI surface is hidden. The estate system is being
+redesigned around the labor/capital frame (estate-as-village-workshop):
+each estate becomes a parcel that contributes both workforce and capital
+improvements to the village's primary product, taking a share of output
+proportional to its contribution. That redesign is a later phase; until
+then, estates exist in spirit only and the gate flips back on
+transparently when the rebuild ships.
+
+**What changes vs. BK alone:** under EOF, BK's class-weighted town food
+consumption, BK's prosperity model, BK's loyalty model, BK's workshop
+model, and BK's estate gameplay loop all defer to EOF or pause. Workshops
+in particular are entirely EOF's domain — its Lv1–5 upgrades, auto-buy/sell,
+and warehouse management replace the BK upgrade button. All other BK
+systems (titles, religion, education, militia, caravans, shipping,
+retainer, tax-by-class, marriage, kingdom decisions) keep running unchanged.
 
 ## Population
 

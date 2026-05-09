@@ -110,7 +110,8 @@ namespace BannerKings
             // Layered village/estate/town economy rework — Phase 1+4+6+8.
             campaignStarter.AddBehavior(new LayeredEconomyAssignmentBehavior());
             campaignStarter.AddBehavior(new ClusterFoodTracker());
-            campaignStarter.AddBehavior(new EstatePolicyAI());
+            if (BannerKings.Utils.BKFeatureGates.EstatesEnabled)
+                campaignStarter.AddBehavior(new EstatePolicyAI());
             campaignStarter.AddBehavior(new VillageDecreeManager());
             campaignStarter.AddBehavior(new BKEducationBehavior());
             campaignStarter.AddBehavior(new BKSettlementActions());
@@ -136,6 +137,8 @@ namespace BannerKings
             campaignStarter.AddBehavior(new BKCapitalBehavior());
             campaignStarter.AddBehavior(new BKMarriageBehavior());
             campaignStarter.AddBehavior(new BKRetainerBehavior());
+            if (BannerKings.Utils.BKFeatureGates.EstatesEnabled)
+                campaignStarter.AddBehavior(new BannerKings.Behaviours.Retainer.BKEstateRetinueBehavior());
             campaignStarter.AddBehavior(new BKFeastBehavior());
             
             campaignStarter.AddBehavior(new BKWorkshopBehavior());
@@ -158,7 +161,8 @@ namespace BannerKings
             campaignStarter.AddBehavior(new BKMercenaryCompanyBehavior());
             campaignStarter.AddBehavior(new BKAIVisitSettlementBehavior());
             campaignStarter.AddBehavior(new BKRaidCaptureBehavior());
-            campaignStarter.AddBehavior(new BKEstateIncomeBehavior());
+            if (BannerKings.Utils.BKFeatureGates.EstatesEnabled)
+                campaignStarter.AddBehavior(new BKEstateIncomeBehavior());
             campaignStarter.AddBehavior(new BannerKings.Behaviours.Diag.AiDecisionTraceBehavior());
             campaignStarter.AddBehavior(new BannerKings.Behaviours.Diag.RecruitmentAuditBehavior());
             campaignStarter.AddBehavior(new BannerKings.Behaviours.Diag.ArmyFormationAuditBehavior());
@@ -174,9 +178,19 @@ namespace BannerKings
             // factors.
             campaignStarter.AddModel(new BKPrisonerModel());
             campaignStarter.AddModel(BannerKingsConfig.Instance.CompanionModel);
-            campaignStarter.AddModel(BannerKingsConfig.Instance.ProsperityModel);
+            // Economy Overhaul Framework hard-replaces Prosperity, Loyalty and
+            // SettlementFood — its model subclasses don't take a baseModel ref and
+            // call base.* (vanilla), bypassing BK's overrides entirely. Skip
+            // registering BK's competing models when EOF is loaded so we don't
+            // pay the perf cost of a model whose output gets discarded. Other
+            // BK economy models (PriceFactor, ClanFinance, Construction, Tax,
+            // Economy, VillageProduction) stay registered — EOF wraps + delegates
+            // those, so BK's logic survives stacked underneath.
+            if (!ModCompat.EconomyOverhaul)
+                campaignStarter.AddModel(BannerKingsConfig.Instance.ProsperityModel);
             campaignStarter.AddModel(BannerKingsConfig.Instance.TaxModel);
-            campaignStarter.AddModel(new BKFoodModel());
+            if (!ModCompat.EconomyOverhaul)
+                campaignStarter.AddModel(new BKFoodModel());
             campaignStarter.AddModel(BannerKingsConfig.Instance.ConstructionModel);
             campaignStarter.AddModel(new BKMilitiaModel());
             // Defer to AI Influence (AI Diplomacy) when present — that mod owns the
@@ -185,11 +199,20 @@ namespace BannerKings
             // config-level instance is intentionally not unregistered.
             if (!ModCompat.AIInfluence)
                 campaignStarter.AddModel(BannerKingsConfig.Instance.InfluenceModel);
-            campaignStarter.AddModel(new BKLoyaltyModel());
+            if (!ModCompat.EconomyOverhaul)
+                campaignStarter.AddModel(new BKLoyaltyModel());
             campaignStarter.AddModel(BannerKingsConfig.Instance.VillageProductionModel);
             campaignStarter.AddModel(BannerKingsConfig.Instance.EconomyModel);
             campaignStarter.AddModel(new BKPriceFactorModel());
-            campaignStarter.AddModel(BannerKingsConfig.Instance.WorkshopModel);
+            // EOF Harmony-patches DefaultWorkshopModel.GetEffectiveConversionSpeedOfProduction
+            // to apply per-workshop upgrade-level scaling. BKWorkshopModel inherits from the
+            // abstract WorkshopModel directly, not DefaultWorkshopModel, so EOF's patch never
+            // reaches BK's instance — upgrades would raise wages (entity property patch fires
+            // universally) but not production speed, leaving upgraded workshops net-negative
+            // for the player. Cede the WorkshopModel slot to vanilla under EOF; BK's
+            // workshop count cap, custom buying/inventory costs, and tax are lost in trade.
+            if (!ModCompat.EconomyOverhaul)
+                campaignStarter.AddModel(BannerKingsConfig.Instance.WorkshopModel);
             campaignStarter.AddModel(BannerKingsConfig.Instance.ClanFinanceModel);
             campaignStarter.AddModel(BannerKingsConfig.Instance.ArmyManagementModel);
             campaignStarter.AddModel(BannerKingsConfig.Instance.VolunteerModel);

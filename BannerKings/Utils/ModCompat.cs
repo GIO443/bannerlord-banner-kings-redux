@@ -44,6 +44,13 @@ namespace BannerKings.Utils
         public const string AIInfluenceId = "AIInfluence";
         public const string AIInfluenceAsm = "AIInfluence";
 
+        // Economy Overhaul Framework — https://www.nexusmods.com/mountandblade2bannerlord/mods/9558
+        // Module folder `Bannerlord.Economy_Overhaul`, module Id `Bannerlord.EconomyOverhaul`,
+        // assembly `Bannerlord.Economy_Overhaul`. Decorator-pattern overhaul that wraps
+        // existing economy models (BK survives stacked underneath where EOF delegates).
+        public const string EconomyOverhaulId = "Bannerlord.EconomyOverhaul";
+        public const string EconomyOverhaulAsm = "Bannerlord.Economy_Overhaul";
+
         // Realm of Thrones — total conversion replacing Calradia with Westeros.
         // BK doesn't ship ROT-specific data; a separate compat patch mod is
         // expected to register ROT lifestyles, titles, lanes, etc. via BK's
@@ -98,6 +105,10 @@ namespace BannerKings.Utils
         /// <summary>True if AI Influence (AI Diplomacy) is loaded.</summary>
         public static bool AIInfluence
             => IsLoaded(AIInfluenceId, AIInfluenceAsm);
+
+        /// <summary>True if Economy Overhaul Framework is loaded.</summary>
+        public static bool EconomyOverhaul
+            => IsLoaded(EconomyOverhaulId, EconomyOverhaulAsm);
 
         /// <summary>True if the Realm of Thrones total-conversion module is loaded.</summary>
         public static bool RealmOfThrones

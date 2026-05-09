@@ -223,10 +223,19 @@ namespace BannerKings.Behaviours.Workshops
 
         private void OnTownDailyTick(Town town)
         {
+            // Under Economy Overhaul Framework, EOF's WorkshopBehavior owns the
+            // per-workshop daily processing (auto-sell, auto-buy, capital bonus,
+            // upgrade tick) and BK's workshop UI is hidden. The BK inventory
+            // tick still has a vacant-workshop reassignment side-effect we want
+            // to keep, so we run only that branch and skip the inventory tick.
+            bool eof = BannerKings.Utils.ModCompat.EconomyOverhaul;
             foreach (var workshop in town.Workshops)
             {
-                AddInventory(workshop);
-                inventories[workshop].Tick();
+                if (!eof)
+                {
+                    AddInventory(workshop);
+                    inventories[workshop].Tick();
+                }
 
                 if (workshop.Owner == null)
                 {

@@ -946,6 +946,10 @@ namespace BannerKings.Behaviours
         private static bool MenuEstatesManageCondition(MenuCallbackArgs args)
         {
             args.optionLeaveType = GameMenuOption.LeaveType.Ransom;
+            // Estate gameplay loop is paused under EOF (see BKFeatureGates.EstatesEnabled).
+            // Hide the menu entry — data persists, but the management UI is dormant
+            // until the estate-as-village-workshop redesign lands.
+            if (!BannerKings.Utils.BKFeatureGates.EstatesEnabled) return false;
             var settlement = Settlement.CurrentSettlement;
             var data = BannerKingsConfig.Instance.PopulationManager.GetPopData(settlement);
             return data != null && data.EstateData != null;

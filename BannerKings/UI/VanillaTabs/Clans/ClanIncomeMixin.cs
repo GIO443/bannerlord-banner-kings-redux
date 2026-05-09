@@ -43,11 +43,16 @@ namespace BannerKings.UI.VanillaTabs.Clans
             viewModel.Incomes.Clear();
             Estates.Clear();
 
-            foreach (Estate estate in BannerKingsConfig.Instance.PopulationManager.GetEstates(Hero.MainHero))
+            // Estate gameplay loop is paused under EOF (see BKFeatureGates.EstatesEnabled).
+            // Skip the clan-finance estate income rows — data persists, the UI is dormant.
+            if (BannerKings.Utils.BKFeatureGates.EstatesEnabled)
             {
-                Estates.Add(new ClanIncomeEstateVM(estate,
-                    OnEstateSelection,
-                    viewModel.OnRefresh));
+                foreach (Estate estate in BannerKingsConfig.Instance.PopulationManager.GetEstates(Hero.MainHero))
+                {
+                    Estates.Add(new ClanIncomeEstateVM(estate,
+                        OnEstateSelection,
+                        viewModel.OnRefresh));
+                }
             }
 
             if (viewModel.CurrentSelectedSupporterGroup != null || viewModel.CurrentSelectedSupporterGroup != null ||
