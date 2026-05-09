@@ -137,8 +137,14 @@ namespace BannerKings
             campaignStarter.AddBehavior(new BKCapitalBehavior());
             campaignStarter.AddBehavior(new BKMarriageBehavior());
             campaignStarter.AddBehavior(new BKRetainerBehavior());
-            if (BannerKings.Utils.BKFeatureGates.EstatesEnabled)
-                campaignStarter.AddBehavior(new BannerKings.Behaviours.Retainer.BKEstateRetinueBehavior());
+            // Legacy estate retinue behavior is part of the paused estate
+            // loop. Its implementation files (BKEstateRetinueBehavior /
+            // BKEstateRetinueModel) were never committed in v1.6.x, so the
+            // registration line that used to reference them broke every
+            // release CI from v1.7.0.0 through v1.8.8.0. Removing the
+            // registration entirely; estates are in spirit only pending the
+            // estate-as-village-workshop redesign and the retinue mechanic
+            // will be revisited then.
             campaignStarter.AddBehavior(new BKFeastBehavior());
             
             campaignStarter.AddBehavior(new BKWorkshopBehavior());
