@@ -341,11 +341,13 @@ tools and packs of horses to every village you own, on a schedule.
 
 To turn that off: walk into any village where you've bought at least
 one EOF land (warehouse unlocked) → **Banner Kings** submenu → **Toggle
-land auto-supply**. While ON, BK tops the warehouse up daily to a
-4-week buffer of tools + animals (above the daily-bonus thresholds).
-Cost = local market price × 1.1 per unit, debited from your gold. If
-you're broke the refill silently skips that day; EOF's normal
-maluses then take over.
+land auto-supply**. While ON, BK tops the warehouse up daily to 25
+horses and 2 tools (the first daily-bonus tier — higher tiers are
+diminishing returns you can chase manually if you want), with a
+2-week buffer above that for project-malus spikes. Cost = local
+market price × 1.1 per unit, debited from your gold. If you're
+broke the refill silently skips that day; EOF's normal maluses
+then take over.
 
 Toggle is per-village, off by default, and saved.
 

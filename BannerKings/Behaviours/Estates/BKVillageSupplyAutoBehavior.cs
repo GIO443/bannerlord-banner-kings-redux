@@ -30,12 +30,16 @@ namespace BannerKings.Behaviours.Estates
         public static BKVillageSupplyAutoBehavior Instance { get; private set; }
 
         // Stock target = max(BUFFER_WEEKS × weekly consumption, baseline floor).
-        // Floor is set above EOF's daily-bonus thresholds: 30 horses gives
-        // ~1 bonus item / day; 2 tools max out the tool bonus. We aim higher
-        // for headroom so a single missed tick doesn't crater output.
-        private const int BUFFER_WEEKS = 4;
-        private const int HORSE_FLOOR = 60;
-        private const int TOOL_FLOOR = 5;
+        // Floors match EOF's daily-bonus thresholds without overshooting:
+        //   - 25 horses = 1 bonus item / day (the first tier in
+        //     CalculateDailyBonusItemsFromSupplies); higher tiers are
+        //     diminishing returns the player can pursue manually if they want.
+        //   - 2 tools fully maxes out the tool bonus; anything above is waste.
+        // Buffer is short (2 weeks) so the daily refill spend stays modest;
+        // initial top-up is ~25 horses worth, not a 12-tier headroom spike.
+        private const int BUFFER_WEEKS = 2;
+        private const int HORSE_FLOOR = 25;
+        private const int TOOL_FLOOR = 2;
         private const float TRANSPORT_SURCHARGE = 1.1f;
 
         private Dictionary<Settlement, bool> _enabled = new();
