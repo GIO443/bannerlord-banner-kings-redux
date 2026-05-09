@@ -136,6 +136,37 @@ What you should see in-game: open a Khuzait or Vlandian herding
 village's production tooltip — the warhorse line will show a
 **+35 % "Culture"** modifier on top of the base pasture math.
 
+## Faiths
+
+Each culture has one natural faith. Heroes are assigned the natural
+faith of their culture on session-launch (or the next daily tick after
+load on existing saves). Switching faith is done in dialogue with a
+preacher notable — see [Player guide → Religion](Player-Guide#religion).
+
+| Culture | Faith | Type | Faith group | Main divinity | Notable doctrines |
+|---|---|---|---|---|---|
+| Empire | **Darusosian Path** | Henotheistic | Imperial Orders (pontifex) | Iovis (Sky-Father) | Legalism, Renovatio Imperi, Tolerant, Astrology, Esotericism |
+| Vlandia | **Canticles of Caïon** | Henotheistic | Canonical See (primarch) | Caïon (Crowner) | Legalism, Honoured Childbirth, Warlike, Literalism |
+| Battania | **Amra Druidh** | Polytheistic | Druidic Circles (arch-druid) | Pérkos (Thunder-Wielder) | Druidism, Animism, Shamanism, Ancestor Worship |
+| Aserai | **Path of Akhmar** | Monotheistic | Ulama of the Sun (imam) | Akhmar (the Most High) | Tolerant, Legalism, Literalism, Heathen Taxation |
+| Khuzait | **Six Winds** | Polytheistic | Sky-Shamans (khan-shaman) | Tengri (Eternal Sky) | Ancestor Worship, Shamanism, Pastoralism, Warlike |
+| Sturgia | **Old Gods of the North** | Polytheistic | Eldercouncil (eldgothi) | Pérkos (Thunder-Wielder) | Ancestor Worship, Childbirth, Warlike, Tolerant |
+| Nord (War Sails) | **Osfeydian Tradition** | Polytheistic | Hraef-Sworn (hrafnskáld) | Hreinwald (Sea-King) | Reavers, Osric's Vengeance, Warlike, Ancestor Worship |
+
+Each faith carries a **pantheon of secondary cults** you can request a
+blessing from once you've earned enough piety — Astaronia, Darusos,
+Marcosus, Belisaria, Reginus, Máthair, Iarnan, Eilean, Etugen, Sülde,
+Asra, Frydan, Mátr, Vethari, Skǫll. The pantheons overlap deliberately
+where lore allows: Pérkos is recognised by both the Battanian and
+Sturgian faiths, and the Nord pantheon syncretises Pérkos and Vethari
+from their Sturgian neighbours.
+
+Doctrines determine what a faith *does* — they grant piety from
+specific actions (battle wins, occupations, raids, childbirth,
+education projects) and unlock or restrict behaviours (mercy-on-siege
+relations, council eligibility, holy-war availability). Each faith
+ships with four to five baseline doctrines, listed above.
+
 ---
 
 ← [Getting started](Getting-Started) · [Home](Home) · [Player guide →](Player-Guide)

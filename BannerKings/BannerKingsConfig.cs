@@ -196,6 +196,10 @@ namespace BannerKings
             DefaultBookTypes.Instance.Initialize();
             DefaultLifestyles.Instance.Initialize();
             DefaultDemesneLaws.Instance.Initialize();
+            // Faiths bind MarriageDoctrine references at construction time, so
+            // marriage and war doctrines must be live before DefaultFaiths runs.
+            DefaultMarriageDoctrines.Instance.Initialize();
+            DefaultWarDoctrines.Instance.Initialize();
             DefaultFaithGroups.Instance.Initialize();
             DefaultFaiths.Instance.Initialize();
             DefaultReligions.Instance.Initialize();
@@ -217,8 +221,6 @@ namespace BannerKings
             DefaultMarketGroups.Instance.Initialize();
             DefaultRecruitSpawns.Instance.Initialize();
             DefaultCulturalStandings.Instance.Initialize();
-            DefaultMarriageDoctrines.Instance.Initialize();
-            DefaultWarDoctrines.Instance.Initialize();
             DefaultTraitEffects.Instance.Initialize();
             foreach (ITypeInitializer init in modInitializers)
             {

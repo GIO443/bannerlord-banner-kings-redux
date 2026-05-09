@@ -140,6 +140,7 @@ namespace BannerKings
             AddClassDefinition(typeof(Clergyman), 73);
             AddClassDefinition(typeof(PolytheisticFaith), 74);
             AddClassDefinition(typeof(MonotheisticFaith), 75);
+            AddClassDefinition(typeof(PresetFaith), 76);
 
             AddClassDefinition(typeof(FaithGroup), 79);
             AddClassDefinition(typeof(AppointedGroup), 80);

@@ -734,6 +734,84 @@ group type.
 When you side with a clan in a kingdom decision, they gain a relation
 modifier with you (+8 to +25 by support strength) for 5 years.
 
+## Religion
+
+**Q: How do I see what faith my character is in?**
+Open the character page → there's a religion tab/panel showing your
+current faith, its main god, the secondary cults, your current piety,
+and the doctrines the faith holds. Heroes are assigned the natural
+faith of their culture automatically — empire→Darusosian Path,
+vlandia→Canticles of Caïon, battania→Amra Druidh, aserai→Path of
+Akhmar, khuzait→Six Winds, sturgia→Old Gods of the North,
+nord→Osfeydian Tradition. See [Systems reference → Faiths](Systems-Reference#faiths)
+for the full list.
+
+**Q: How do I change faith?**
+Walk into a town or castle that's holding a preacher notable of the
+target faith. Talk to them → choose **"I would like to be inducted."**
+Costs you a chunk of clan renown if you're converting from another
+faith (—100 if you're the clan leader, —50 otherwise) and resets your
+piety in the new faith to zero. Lords of your old faith may take it
+poorly.
+
+**Q: How do I find a preacher?**
+Preachers spawn as notables in towns and castles of cultures that
+match the faith. Towns get up to rank-3 preachers (pontifex, primarch,
+arch-druid); castles get rank-2; villages get rank-1. The preacher's
+name carries the rank title — *Pontifex Aurelius*, *Primarch Roland*,
+*Arch-Druid Caelin*, *Imam Yusef*, *Khan-Shaman Bagatur*, *Eldgothi
+Sigmar*, *Hrafnskáld Hrolf*. Open the settlement's notable list and
+look for the religious title in front of the name.
+
+**Q: How do I earn piety?**
+Daily piety ticks based on faith doctrines and your behaviour:
+
+- **Warlike** faiths (most of them) — piety equal to the influence
+  reward of every won battle.
+- **Reavers / Osric's Vengeance** (Nord) — piety from raid and
+  occupation income.
+- **Renovatio Imperi** (Empire) — piety from showing mercy on siege
+  victory in Imperial fiefs (also gains relations with all notables).
+- **Childbirth** (Vlandia, Sturgia) — clan renown bonus on every birth
+  in the faith.
+- **Astrology / Esotericism** (Empire) — piety from finishing
+  education projects, faster cultural innovation if Cultural Head.
+- **Ancestor Worship** — piety from clan renown gain in general.
+
+You can also perform **rites** (see below) for one-shot piety
+rewards.
+
+**Q: How do I request a blessing?**
+Talk to a preacher of your faith → **"{Boon-action}"** (varies per
+faith — *I would seek a blessing of the Triad*, *Father, would you
+sing a canticle for me?*, *Imam, give me a sun-blessing*, etc.) →
+pick one of the secondary divinities. Costs piety; grants a temporary
+in-character bonus tied to that divinity (combat, fertility, trade,
+etc — read the inquiry tooltip for the specific effect). You hold one
+blessing at a time.
+
+**Q: How do I perform a rite?**
+Talk to a preacher of your faith → **"I would like to perform a rite."**
+Each faith ships with one or more rites tied to its lore — Imperial
+faiths perform the Astaronia Festival and the execution of Western /
+Northern Imperial prisoners; Battanians offer iron and great-swords
+into the sacred lynns; Vlandians offer lances and warhorses; Northern
+faiths offer axes and hold the Pérkos festival; Aserai and Khuzait
+faiths currently have no rites in this version. Each rite has a
+cooldown (years) and prerequisites — the inquiry will list them up
+front.
+
+**Q: I'm playing Nord — what's the Osfeydian Tradition?**
+The reaver-faith of the Nordvyg, named for the burnt shore where the
+Wilunding host first beached under Osric. Hreinwald the Sea-King is
+its chief divinity; Skǫll the Wolf of the Deep takes the wake; Vethari
+(named ancestors) and a syncretised Pérkos sit alongside. Doctrines
+are Reavers, Osric's Vengeance, Warlike, and Ancestor Worship — every
+raid you complete and every fief you occupy converts directly into
+piety. The faith has no organised priesthood: chieftains lead the
+offering, and the rank title for any Nord preacher you find is
+*Hrafnskáld* (raven-skald).
+
 ## Mercenaries & combat
 
 **Q: Custom troop daily wage seems insane.**
