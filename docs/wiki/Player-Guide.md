@@ -273,17 +273,47 @@ burned" — production is tanked, food is still consumed, and labor will
 slowly rebuild the capital. A village with **low Population, high Hearth**
 is "depopulated but well-developed" — capacity is there, no one to work it.
 
-**Estates are paused under EOF.** The estate gameplay loop (daily income,
-retinue militia, AI estate decisions, management UI, clan-finance entries,
-visit-panel "Manage Estate" option) is dormant when EOF is loaded. Estate
-*ownership records persist in the save* — nothing is deleted — but no
-income flows and the UI surface is hidden. The estate system is being
-redesigned around the labor/capital frame (estate-as-village-workshop):
-each estate becomes a parcel that contributes both workforce and capital
-improvements to the village's primary product, taking a share of output
-proportional to its contribution. That redesign is a later phase; until
-then, estates exist in spirit only and the gate flips back on
-transparently when the rebuild ships.
+**Old BK estates are paused under EOF.** The legacy estate loop (daily
+income, retinue militia, AI estate decisions, management UI, clan-finance
+entries, visit-panel "Manage Estate" option) is dormant when EOF is loaded.
+Old estate ownership records persist in saves — nothing is deleted — but
+the gameplay surface is hidden pending redesign.
+
+**New: vassal-knight land grants.** As of v1.8.0.0, you can grant lands in
+your villages to knights in your clan. This builds on EOF's existing
+"lord lands" system (every village holds 1–2 lands assigned to its bound
+town's owner at game start). To grant:
+
+1. Be the owner of the village's bound town (i.e. you're the village's liege).
+2. Have at least one knight in your clan — promote a clan member to
+   knighthood first if needed (existing BK Knighthood mechanic).
+3. Walk into the village → **Banner Kings** submenu → **Grant lands to
+   vassal knight**.
+4. Pick a knight, then pick **Grant +1** or **Revoke -1**.
+
+The knight gets daily income from their granted lands, scaled by EOF's
+hearth-bracket production formula. You as liege take a tax cut driven by
+your kingdom's **Tenancy** demesne law:
+
+| Tenancy law | Liege's daily skim |
+|---|---|
+| Tenancy Full | 25% |
+| Tenancy Mixed | 15% |
+| Tenancy None | 5% |
+| (no law set) | 10% |
+
+Granted lands also gate land *purchases* via the **Estate Tenure** law:
+
+- **Fee Tail** — only the holder's bloodline (parents, children, siblings,
+  spouse) can buy lands in that fief. Non-kin attempts return a "Fee Tail
+  tenure restricts land purchases" message.
+- **Quia Emptores** / **Allodial** — free purchase, no kinship gate.
+
+The granted-knight's daily income flows into their personal gold via
+vanilla mechanics, so it naturally funds their party recruitment without
+extra plumbing. Knight party AI bias toward their granted village(s) and
+AI lieges granting their own knighthoods are planned for a follow-up
+release.
 
 **What changes vs. BK alone:** under EOF, BK's class-weighted town food
 consumption, BK's prosperity model, BK's loyalty model, BK's workshop

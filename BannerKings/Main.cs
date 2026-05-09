@@ -163,6 +163,11 @@ namespace BannerKings
             campaignStarter.AddBehavior(new BKRaidCaptureBehavior());
             if (BannerKings.Utils.BKFeatureGates.EstatesEnabled)
                 campaignStarter.AddBehavior(new BKEstateIncomeBehavior());
+            // Vassal-knight land grants on top of EOF's lord-lands system.
+            // Only registered when EOF is loaded; without EOF the behavior has
+            // no income source to redirect and the grant table sits unused.
+            if (BannerKings.Utils.ModCompat.EconomyOverhaul)
+                campaignStarter.AddBehavior(new BannerKings.Behaviours.Estates.BKLandGrantBehavior());
             campaignStarter.AddBehavior(new BannerKings.Behaviours.Diag.AiDecisionTraceBehavior());
             campaignStarter.AddBehavior(new BannerKings.Behaviours.Diag.RecruitmentAuditBehavior());
             campaignStarter.AddBehavior(new BannerKings.Behaviours.Diag.ArmyFormationAuditBehavior());

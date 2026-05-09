@@ -446,6 +446,13 @@ namespace BannerKings.Behaviours
                 MenuVillageBuildingCondition,
                 MenuVillageProjectsConsequence, false, 2);
 
+            // Vassal-knight land grants (only when EOF is loaded — the underlying
+            // lord-lands data lives in EOF's VillageAddonsBehavior).
+            campaignGameStarter.AddGameMenuOption("bannerkings", "manage_grant_lands",
+                "{=BK_GrantLandsMenu}Grant lands to vassal knight",
+                MenuGrantLandsCondition,
+                MenuGrantLandsConsequence, false, 3);
+
             campaignGameStarter.AddGameMenuOption("bannerkings", "bannerkings_leave", "{=1kJ3hNWg}Leave",
                 delegate (MenuCallbackArgs x)
                 {
@@ -953,6 +960,134 @@ namespace BannerKings.Behaviours
             var settlement = Settlement.CurrentSettlement;
             var data = BannerKingsConfig.Instance.PopulationManager.GetPopData(settlement);
             return data != null && data.EstateData != null;
+        }
+
+        private static bool MenuGrantLandsCondition(MenuCallbackArgs args)
+        {
+            if (!BannerKings.Utils.ModCompat.EconomyOverhaul) return false;
+            var settlement = Settlement.CurrentSettlement;
+            var village = settlement?.Village;
+            if (village == null) return false;
+            // Player must be the village's bound-town lord to grant.
+            var lord = BannerKings.Behaviours.Estates.BKLandGrantBehavior.ResolveBoundTownLord(village);
+            if (lord != Hero.MainHero) return false;
+            args.optionLeaveType = GameMenuOption.LeaveType.Manage;
+            return true;
+        }
+
+        private static void MenuGrantLandsConsequence(MenuCallbackArgs args)
+        {
+            var village = Settlement.CurrentSettlement?.Village;
+            var beh = BannerKings.Behaviours.Estates.BKLandGrantBehavior.Instance;
+            if (village == null || beh == null) return;
+
+            int totalLordLands = BannerKings.Patches.EconomyOverhaulCompatPatches
+                .EofLandsBridge.GetLordLandsOwned(village);
+            int alreadyGranted = beh.GetTotalGrantedInVillage(village);
+            int available = System.Math.Max(0, totalLordLands - alreadyGranted);
+
+            var elements = new System.Collections.Generic.List<InquiryElement>();
+            foreach (var member in Clan.PlayerClan.Heroes)
+            {
+                if (member == null || member == Hero.MainHero || member.IsDead) continue;
+                if (BannerKingsConfig.Instance?.TitleManager == null) continue;
+                if (!BannerKingsConfig.Instance.TitleManager.IsKnight(member)) continue;
+                int currentGrants = beh.GetGrantedLands(village, member);
+                string label = currentGrants > 0
+                    ? string.Format("{0} ({1})", member.Name, currentGrants)
+                    : member.Name.ToString();
+                string hint = string.Format("Currently holds {0} lands here. Available to grant: {1}.",
+                    currentGrants, available);
+                elements.Add(new InquiryElement(member, label, null, true, hint));
+            }
+
+            if (elements.Count == 0)
+            {
+                MBInformationManager.AddQuickInformation(new TextObject(
+                    "{=BK_NoKnightCandidates}You have no knights in your clan. Grant knighthood to a companion or clan member first."));
+                return;
+            }
+
+            string title = new TextObject("{=BK_GrantLandTitle}Grant land in {VILLAGE}")
+                .SetTextVariable("VILLAGE", village.Name).ToString();
+            string desc = new TextObject(
+                "{=BK_GrantLandHint}Available lord lands to grant: {N}. Select a knight, then choose to grant or revoke.")
+                .SetTextVariable("N", available).ToString();
+
+            MBInformationManager.ShowMultiSelectionInquiry(new MultiSelectionInquiryData(
+                title,
+                desc,
+                elements,
+                true,
+                1, 1,
+                GameTexts.FindText("str_done").ToString(),
+                GameTexts.FindText("str_cancel").ToString(),
+                delegate (System.Collections.Generic.List<InquiryElement> selected)
+                {
+                    if (selected == null || selected.Count == 0) return;
+                    var grantee = selected[0].Identifier as Hero;
+                    if (grantee == null) return;
+                    ShowGrantRevokeChoice(village, grantee);
+                },
+                null));
+        }
+
+        private static void ShowGrantRevokeChoice(Village v, Hero grantee)
+        {
+            var beh = BannerKings.Behaviours.Estates.BKLandGrantBehavior.Instance;
+            if (beh == null) return;
+
+            int currentGrants = beh.GetGrantedLands(v, grantee);
+            int totalLordLands = BannerKings.Patches.EconomyOverhaulCompatPatches
+                .EofLandsBridge.GetLordLandsOwned(v);
+            int alreadyGranted = beh.GetTotalGrantedInVillage(v);
+            int available = System.Math.Max(0, totalLordLands - alreadyGranted);
+
+            string title = new TextObject("{=BK_GrantOrRevoke}Land action").ToString();
+            string desc = new TextObject(
+                "{=BK_GrantOrRevokeText}{KNIGHT} currently holds {N} lands in {VILLAGE}.\n\nGrant +1 (available: {AVAIL}) or revoke -1?")
+                .SetTextVariable("KNIGHT", grantee.Name)
+                .SetTextVariable("N", currentGrants)
+                .SetTextVariable("VILLAGE", v.Name)
+                .SetTextVariable("AVAIL", available).ToString();
+
+            InformationManager.ShowInquiry(new InquiryData(
+                title,
+                desc,
+                available > 0,
+                currentGrants > 0,
+                new TextObject("{=BK_GrantBtn}Grant +1").ToString(),
+                new TextObject("{=BK_RevokeBtn}Revoke -1").ToString(),
+                delegate
+                {
+                    if (beh.TryGrantLand(v, Hero.MainHero, grantee, out var fail))
+                    {
+                        MBInformationManager.AddQuickInformation(new TextObject(
+                            "{=BK_GrantSuccess}Granted 1 land to {KNIGHT} in {VILLAGE}.")
+                            .SetTextVariable("KNIGHT", grantee.Name).SetTextVariable("VILLAGE", v.Name));
+                    }
+                    else
+                    {
+                        MBInformationManager.AddQuickInformation(new TextObject(
+                            "{=BK_GrantFail}Cannot grant: {REASON}.")
+                            .SetTextVariable("REASON", fail ?? "unknown"));
+                    }
+                },
+                delegate
+                {
+                    if (beh.TryRevokeLand(v, Hero.MainHero, grantee, out var fail))
+                    {
+                        MBInformationManager.AddQuickInformation(new TextObject(
+                            "{=BK_RevokeSuccess}Revoked 1 land from {KNIGHT} in {VILLAGE}.")
+                            .SetTextVariable("KNIGHT", grantee.Name).SetTextVariable("VILLAGE", v.Name));
+                    }
+                    else
+                    {
+                        MBInformationManager.AddQuickInformation(new TextObject(
+                            "{=BK_RevokeFail}Cannot revoke: {REASON}.")
+                            .SetTextVariable("REASON", fail ?? "unknown"));
+                    }
+                }));
         }
 
         private static bool MenuSettlementManageCondition(MenuCallbackArgs args)
