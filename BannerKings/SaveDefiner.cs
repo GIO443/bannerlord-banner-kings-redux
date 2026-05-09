@@ -327,6 +327,9 @@ namespace BannerKings
             // BKLandGrantBehavior — vassal-knight land grants (phase 2A.1).
             ConstructContainerDefinition(typeof(Dictionary<Hero, int>));
             ConstructContainerDefinition(typeof(Dictionary<Settlement, Dictionary<Hero, int>>));
+
+            // BKVillageSupplyAutoBehavior — per-village auto-refill toggle.
+            ConstructContainerDefinition(typeof(Dictionary<Settlement, bool>));
         }
     }
 }

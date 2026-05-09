@@ -164,6 +164,79 @@ namespace BannerKings.Patches
                 catch { return 0f; }
             }
 
+            // Warehouse access for the supply auto-refill behavior. EOF's
+            // GetOrCreateWarehouseRoster is private; we reflect into it once
+            // and cache the MethodInfo. HasWarehouse and the consumption
+            // accessors are public on VillageAddonsBehavior.
+            private static MethodInfo _hasWarehouseMethod;
+            private static MethodInfo _getOrCreateWarehouseMethod;
+            private static MethodInfo _getWeeklyToolsMethod;
+            private static MethodInfo _getWeeklyHorsesMethod;
+
+            public static bool HasWarehouse(Settlement s)
+            {
+                if (s == null) return false;
+                EnsureResolved();
+                if (_addonsBehaviorType == null) return false;
+                if (_hasWarehouseMethod == null)
+                    _hasWarehouseMethod = AccessTools.Method(_addonsBehaviorType, "HasWarehouse",
+                        new[] { typeof(Settlement) });
+                if (_hasWarehouseMethod == null) return false;
+                var beh = GetVillageAddonsBehavior();
+                if (beh == null) return false;
+                try { return (bool)_hasWarehouseMethod.Invoke(beh, new object[] { s }); }
+                catch { return false; }
+            }
+
+            public static TaleWorlds.CampaignSystem.Roster.ItemRoster GetWarehouseRoster(Settlement s)
+            {
+                if (s == null) return null;
+                EnsureResolved();
+                if (_addonsBehaviorType == null) return null;
+                if (_getOrCreateWarehouseMethod == null)
+                    _getOrCreateWarehouseMethod = AccessTools.Method(_addonsBehaviorType,
+                        "GetOrCreateWarehouseRoster", new[] { typeof(Settlement) });
+                if (_getOrCreateWarehouseMethod == null) return null;
+                var beh = GetVillageAddonsBehavior();
+                if (beh == null) return null;
+                try
+                {
+                    return _getOrCreateWarehouseMethod.Invoke(beh, new object[] { s })
+                        as TaleWorlds.CampaignSystem.Roster.ItemRoster;
+                }
+                catch { return null; }
+            }
+
+            public static int GetWeeklyToolsConsumption(Settlement s)
+            {
+                if (s == null) return 0;
+                EnsureResolved();
+                if (_addonsBehaviorType == null) return 0;
+                if (_getWeeklyToolsMethod == null)
+                    _getWeeklyToolsMethod = AccessTools.Method(_addonsBehaviorType,
+                        "GetWeeklyToolsConsumption", new[] { typeof(Settlement) });
+                if (_getWeeklyToolsMethod == null) return 0;
+                var beh = GetVillageAddonsBehavior();
+                if (beh == null) return 0;
+                try { return (int)_getWeeklyToolsMethod.Invoke(beh, new object[] { s }); }
+                catch { return 0; }
+            }
+
+            public static int GetWeeklyHorseConsumption(Settlement s)
+            {
+                if (s == null) return 0;
+                EnsureResolved();
+                if (_addonsBehaviorType == null) return 0;
+                if (_getWeeklyHorsesMethod == null)
+                    _getWeeklyHorsesMethod = AccessTools.Method(_addonsBehaviorType,
+                        "GetWeeklyHorseConsumption", new[] { typeof(Settlement) });
+                if (_getWeeklyHorsesMethod == null) return 0;
+                var beh = GetVillageAddonsBehavior();
+                if (beh == null) return 0;
+                try { return (int)_getWeeklyHorsesMethod.Invoke(beh, new object[] { s }); }
+                catch { return 0; }
+            }
+
             private static object _cachedBehavior;
             private static Campaign _cachedCampaign;
             private static MethodInfo _getCampaignBehaviorGeneric;

@@ -332,12 +332,31 @@ If you own the village's bound town, you can grant lands as a favor
 Daily income flows to the grantee just like a purchased land, with the
 liege's tenancy tax skim applied (or 0 under Allodial).
 
+### Auto-supply toggle (delegate the tools/horses run)
+
+EOF drains every village warehouse weekly: ~1 tool plus ~5 draft animals
+at base rate, more when project mali stack. Letting it run dry triggers
+production maluses, so without this BK feature you'd ferry crates of
+tools and packs of horses to every village you own, on a schedule.
+
+To turn that off: walk into any village where you've bought at least
+one EOF land (warehouse unlocked) → **Banner Kings** submenu → **Toggle
+land auto-supply**. While ON, BK tops the warehouse up daily to a
+4-week buffer of tools + animals (above the daily-bonus thresholds).
+Cost = local market price × 1.1 per unit, debited from your gold. If
+you're broke the refill silently skips that day; EOF's normal
+maluses then take over.
+
+Toggle is per-village, off by default, and saved.
+
 ### Cheat commands for testing
 
 ```
 bannerkings.land_list <village_name>             # show grants + EOF lord-lands count
 bannerkings.land_buy_as_vassal <village_name>    # MainHero buys 1 land
 bannerkings.land_grant <village_name> | <hero>   # MainHero grants 1 land to hero
+bannerkings.land_set_auto_supply <village> on    # enable auto-supply
+bannerkings.land_set_auto_supply <village> off   # disable auto-supply
 ```
 
 Plus vanilla `campaign.cheat_mode 1`,

@@ -167,7 +167,10 @@ namespace BannerKings
             // Only registered when EOF is loaded; without EOF the behavior has
             // no income source to redirect and the grant table sits unused.
             if (BannerKings.Utils.ModCompat.EconomyOverhaul)
+            {
                 campaignStarter.AddBehavior(new BannerKings.Behaviours.Estates.BKLandGrantBehavior());
+                campaignStarter.AddBehavior(new BannerKings.Behaviours.Estates.BKVillageSupplyAutoBehavior());
+            }
             campaignStarter.AddBehavior(new BannerKings.Behaviours.Diag.AiDecisionTraceBehavior());
             campaignStarter.AddBehavior(new BannerKings.Behaviours.Diag.RecruitmentAuditBehavior());
             campaignStarter.AddBehavior(new BannerKings.Behaviours.Diag.ArmyFormationAuditBehavior());

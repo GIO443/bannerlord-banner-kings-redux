@@ -466,6 +466,14 @@ namespace BannerKings.Behaviours
                 MenuSellLandVassalCondition,
                 MenuSellLandVassalConsequence, false, 5);
 
+            // Toggle EOF supply auto-refill (tools + draft animals) for villages
+            // where the player owns lands. Off by default — enabling debits gold
+            // daily to keep the warehouse topped up at local price × 1.1.
+            campaignGameStarter.AddGameMenuOption("bannerkings", "toggle_auto_supply",
+                "{=BK_AutoSupplyMenu}Toggle land auto-supply ({STATE})",
+                MenuToggleAutoSupplyCondition,
+                MenuToggleAutoSupplyConsequence, false, 6);
+
             campaignGameStarter.AddGameMenuOption("bannerkings", "bannerkings_leave", "{=1kJ3hNWg}Leave",
                 delegate (MenuCallbackArgs x)
                 {
@@ -1085,6 +1093,37 @@ namespace BannerKings.Behaviours
                     "{=BK_SellLandFail}Cannot sell: {REASON}.")
                     .SetTextVariable("REASON", fail ?? "unknown"));
             }
+        }
+
+        private static bool MenuToggleAutoSupplyCondition(MenuCallbackArgs args)
+        {
+            if (!BannerKings.Utils.ModCompat.EconomyOverhaul) return false;
+            var supply = BannerKings.Behaviours.Estates.BKVillageSupplyAutoBehavior.Instance;
+            var village = Settlement.CurrentSettlement?.Village;
+            if (village == null || supply == null) return false;
+            // Only meaningful when the player has unlocked a warehouse here
+            // (i.e., owns at least 1 EOF auto-buy land in this village).
+            if (!BannerKings.Patches.EconomyOverhaulCompatPatches.EofLandsBridge.HasWarehouse(village.Settlement))
+                return false;
+            string state = supply.IsEnabled(village.Settlement)
+                ? new TextObject("{=BK_AutoSupplyOn}ON").ToString()
+                : new TextObject("{=BK_AutoSupplyOff}OFF").ToString();
+            MBTextManager.SetTextVariable("STATE", state);
+            args.optionLeaveType = GameMenuOption.LeaveType.Manage;
+            return true;
+        }
+
+        private static void MenuToggleAutoSupplyConsequence(MenuCallbackArgs args)
+        {
+            var supply = BannerKings.Behaviours.Estates.BKVillageSupplyAutoBehavior.Instance;
+            var village = Settlement.CurrentSettlement?.Village;
+            if (village == null || supply == null) return;
+            bool nowOn = supply.Toggle(village.Settlement);
+            MBInformationManager.AddQuickInformation(new TextObject(nowOn
+                ? "{=BK_AutoSupplyEnabled}Auto-supply ENABLED in {VILLAGE}. Tools and horses will be topped up daily at local price × 1.1."
+                : "{=BK_AutoSupplyDisabled}Auto-supply DISABLED in {VILLAGE}.")
+                .SetTextVariable("VILLAGE", village.Name));
+            GameMenu.SwitchToMenu("bannerkings");
         }
 
         private static void MenuGrantLandsConsequence(MenuCallbackArgs args)

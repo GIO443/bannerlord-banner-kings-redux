@@ -144,6 +144,26 @@ namespace BannerKings
             return $"Buy failed: {fail}";
         }
 
+        [CommandLineFunctionality.CommandLineArgumentFunction("land_set_auto_supply", "bannerkings")]
+        public static string LandSetAutoSupply(List<string> strings)
+        {
+            if (!CampaignCheats.CheckCheatUsage(ref CampaignCheats.ErrorType)) return CampaignCheats.ErrorType;
+            if (CampaignCheats.CheckParameters(strings, 0))
+                return "Format: bannerkings.land_set_auto_supply [village_name_or_id] [on|off]";
+            var array = CampaignCheats.ConcatenateString(strings).Split(' ');
+            string token = array[0].Trim();
+            bool on = array.Length > 1
+                ? array[1].Trim().Equals("on", System.StringComparison.OrdinalIgnoreCase)
+                : true;
+            var settlement = Settlement.All.FirstOrDefault(s => s != null
+                && (s.StringId == token || s.Name?.ToString() == token) && s.IsVillage);
+            if (settlement?.Village == null) return $"No village found matching '{token}'.";
+            var supply = BannerKings.Behaviours.Estates.BKVillageSupplyAutoBehavior.Instance;
+            if (supply == null) return "BKVillageSupplyAutoBehavior not registered (EOF not loaded?).";
+            supply.SetEnabled(settlement, on);
+            return $"Auto-supply for {settlement.Name}: {(on ? "ON" : "OFF")}.";
+        }
+
         [CommandLineFunctionality.CommandLineArgumentFunction("land_grant", "bannerkings")]
         public static string LandGrant(List<string> strings)
         {
