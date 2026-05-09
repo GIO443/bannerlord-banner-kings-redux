@@ -273,16 +273,30 @@ burned" — production is tanked, food is still consumed, and labor will
 slowly rebuild the capital. A village with **low Population, high Hearth**
 is "depopulated but well-developed" — capacity is there, no one to work it.
 
-**Two population panels — that's expected.** EOF adds its own town panel
-showing a `poor / affluent / noble` split, computed as `prosperity / 3`
-divided by static percentages from the town's policy (Oligarchic /
-Popular / Martial). It's a display + policy hook, not a demographic
-model. BK's settlement panel shows the actual class breakdown
-(serfs / slaves / freemen / nobles / craftsmen) with growth, food
-consumption, and tax differentials. The numbers won't match because the
-abstractions don't match — EOF's poor/affluent/noble is a coarse
-prosperity ratio for its policy bonuses; BK's classes are a real
-simulation. Both keep running.
+**EOF's town population panel now shows BK numbers.** EOF originally
+displayed `prosperity / 3` divided by policy-driven percentages. As of
+v1.8.3.0, BK rewrites the three buckets from its real demographic data:
+
+- **Poor** = BK Serfs + Slaves
+- **Affluent** = BK Craftsmen + Tenants
+- **Noble** = BK Nobles
+
+The panel UI is unchanged and EOF's policy switcher (Oligarchic /
+Popular / Martial) still drives EOF's loyalty / security / prosperity
+bonuses — only the displayed numbers are BK's now. BK's own settlement
+panel still shows the full breakdown (serfs / slaves / craftsmen /
+tenants / nobles) with growth, food, tax differentials. One source of
+truth, two views.
+
+**Conscript slaves to the lands' labor force.** EOF's slave-driven land
+production reads from `Settlement.Party.PrisonRoster` — captives the
+player physically dropped off via the lands slave-management screen.
+That mechanism still works, but for villages where you already hold BK
+slaves in the general population, walk into the village → Banner Kings
+submenu → **Conscript slaves to lands ({N} available)**. One click moves
+the maximum eligible amount (capped by EOF's prison size = lord-lands ×
+10) from BK's slave count into EOF's roster. No gold cost — they're
+already in the village, just being reassigned to land work.
 
 **Old BK estates are paused under EOF.** The legacy estate loop (daily
 income, retinue militia, AI estate decisions, management UI, clan-finance
@@ -376,6 +390,7 @@ bannerkings.land_buy_as_vassal <village_name>    # MainHero buys 1 land
 bannerkings.land_grant <village_name> | <hero>   # MainHero grants 1 land to hero
 bannerkings.land_set_auto_supply <village> on    # enable auto-supply
 bannerkings.land_set_auto_supply <village> off   # disable auto-supply
+bannerkings.land_conscript_slaves <village>      # transfer max BK slaves to EOF lands roster
 ```
 
 Plus vanilla `campaign.cheat_mode 1`,

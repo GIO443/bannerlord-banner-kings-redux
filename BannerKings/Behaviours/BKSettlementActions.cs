@@ -474,6 +474,14 @@ namespace BannerKings.Behaviours
                 MenuToggleAutoSupplyCondition,
                 MenuToggleAutoSupplyConsequence, false, 6);
 
+            // Conscript BK Slaves into EOF's land prison roster (the labor pool
+            // EOF reads for slave-driven production efficiency). One-click
+            // bridge from BK's abstract slave count to EOF's concrete roster.
+            campaignGameStarter.AddGameMenuOption("bannerkings", "conscript_slaves",
+                "{=BK_ConscriptSlavesMenu}Conscript slaves to lands ({TRANSFER} available)",
+                MenuConscriptSlavesCondition,
+                MenuConscriptSlavesConsequence, false, 7);
+
             campaignGameStarter.AddGameMenuOption("bannerkings", "bannerkings_leave", "{=1kJ3hNWg}Leave",
                 delegate (MenuCallbackArgs x)
                 {
@@ -1124,6 +1132,98 @@ namespace BannerKings.Behaviours
                 : "{=BK_AutoSupplyDisabled}Auto-supply DISABLED in {VILLAGE}.")
                 .SetTextVariable("VILLAGE", village.Name));
             GameMenu.SwitchToMenu("bannerkings");
+        }
+
+        // ---- Slave conscription (BK Slaves -> EOF prison roster) ----
+
+        // Public wrapper for the cheat command.
+        public static int CalculateConscriptCapacityPublic(Settlement settlement)
+            => CalculateConscriptCapacity(settlement);
+
+        private static int CalculateConscriptCapacity(Settlement settlement)
+        {
+            if (settlement?.Village == null) return 0;
+            var data = BannerKingsConfig.Instance?.PopulationManager?.GetPopData(settlement);
+            if (data == null) return 0;
+            int bkSlaves = data.GetTypeCount(BannerKings.Managers.PopulationManager.PopType.Slaves);
+            if (bkSlaves <= 0) return 0;
+
+            int lordLands = BannerKings.Patches.EconomyOverhaulCompatPatches
+                .EofLandsBridge.GetLordLandsOwned(settlement.Village);
+            // EOF caps prison roster at lands × 10 (see VillageAddonsBehavior
+            // IsTroopTransferable). Add player-owned EOF lands too if any.
+            // Net cap = (lordLands + playerLands) * 10 - currentPrison.
+            // We only have GetLordLandsOwned exposed; for the player-lands cap
+            // we'd need another bridge call. lordLands alone is the right
+            // floor — using it underestimates capacity but never overflows.
+            int capPerLand = 10;
+            int totalCap = MathF.Max(0, lordLands * capPerLand);
+            int currentPrison = settlement.Party?.PrisonRoster?.TotalManCount ?? 0;
+            int spare = MathF.Max(0, totalCap - currentPrison);
+            return MathF.Min(bkSlaves, spare);
+        }
+
+        private static bool MenuConscriptSlavesCondition(MenuCallbackArgs args)
+        {
+            if (!BannerKings.Utils.ModCompat.EconomyOverhaul) return false;
+            var settlement = Settlement.CurrentSettlement;
+            if (settlement?.Village == null) return false;
+            int transfer = CalculateConscriptCapacity(settlement);
+            if (transfer <= 0)
+            {
+                args.IsEnabled = false;
+                args.Tooltip = new TextObject("{=BK_ConscriptUnavailable}No BK slaves available, or EOF lands prison is at capacity.");
+            }
+            MBTextManager.SetTextVariable("TRANSFER", transfer);
+            args.optionLeaveType = GameMenuOption.LeaveType.Raid;
+            return true;
+        }
+
+        private static void MenuConscriptSlavesConsequence(MenuCallbackArgs args)
+        {
+            var settlement = Settlement.CurrentSettlement;
+            if (settlement?.Village == null) return;
+            int transfer = CalculateConscriptCapacity(settlement);
+            if (transfer <= 0)
+            {
+                MBInformationManager.AddQuickInformation(new TextObject(
+                    "{=BK_ConscriptNothingToTransfer}Nothing to transfer."));
+                return;
+            }
+            string title = new TextObject("{=BK_ConscriptSlavesTitle}Conscript slaves").ToString();
+            string desc = new TextObject(
+                "{=BK_ConscriptSlavesText}Move {N} slaves from {VILLAGE}'s general population into the lands' labor force?\n\nThis decrements BK's slave count by {N} and adds {N} bodies to EOF's prison roster (the pool that drives slave-production efficiency). No gold cost — they're already here.")
+                .SetTextVariable("N", transfer)
+                .SetTextVariable("VILLAGE", settlement.Name).ToString();
+            InformationManager.ShowInquiry(new InquiryData(title, desc, true, true,
+                GameTexts.FindText("str_yes").ToString(), GameTexts.FindText("str_no").ToString(),
+                delegate { ExecuteConscriptSlaves(settlement, transfer); }, null));
+        }
+
+        public static void ExecuteConscriptSlaves(Settlement settlement, int count)
+        {
+            if (settlement?.Village == null || count <= 0) return;
+            var data = BannerKingsConfig.Instance?.PopulationManager?.GetPopData(settlement);
+            if (data == null) return;
+
+            int actualCount = MathF.Min(count, CalculateConscriptCapacity(settlement));
+            if (actualCount <= 0) return;
+
+            // Pick a representative captive character. Vanilla uses culture-
+            // basic-troop characters in many rosters; we follow the same
+            // pattern so EOF's prison roster has valid CharacterObjects.
+            var character = settlement.Culture?.BasicTroop;
+            if (character == null) return;
+
+            var prison = settlement.Party?.PrisonRoster;
+            if (prison == null) return;
+
+            data.UpdatePopType(BannerKings.Managers.PopulationManager.PopType.Slaves, -actualCount);
+            prison.AddToCounts(character, actualCount);
+
+            MBInformationManager.AddQuickInformation(new TextObject(
+                "{=BK_ConscriptSlavesDone}{N} slaves moved into the lands' labor force in {VILLAGE}.")
+                .SetTextVariable("N", actualCount).SetTextVariable("VILLAGE", settlement.Name));
         }
 
         private static void MenuGrantLandsConsequence(MenuCallbackArgs args)

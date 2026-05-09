@@ -144,6 +144,24 @@ namespace BannerKings
             return $"Buy failed: {fail}";
         }
 
+        [CommandLineFunctionality.CommandLineArgumentFunction("land_conscript_slaves", "bannerkings")]
+        public static string LandConscriptSlaves(List<string> strings)
+        {
+            if (!CampaignCheats.CheckCheatUsage(ref CampaignCheats.ErrorType)) return CampaignCheats.ErrorType;
+            if (CampaignCheats.CheckParameters(strings, 0))
+                return "Format: bannerkings.land_conscript_slaves [village_name_or_id]";
+            string token = CampaignCheats.ConcatenateString(strings).Trim();
+            var settlement = Settlement.All.FirstOrDefault(s => s != null
+                && (s.StringId == token || s.Name?.ToString() == token) && s.IsVillage);
+            if (settlement?.Village == null) return $"No village found matching '{token}'.";
+            int before = settlement.Party?.PrisonRoster?.TotalManCount ?? 0;
+            int avail = BannerKings.Behaviours.BKSettlementActions.CalculateConscriptCapacityPublic(settlement);
+            if (avail <= 0) return $"No conscript capacity in {settlement.Name}.";
+            BannerKings.Behaviours.BKSettlementActions.ExecuteConscriptSlaves(settlement, avail);
+            int after = settlement.Party?.PrisonRoster?.TotalManCount ?? 0;
+            return $"Conscripted {after - before} slaves into {settlement.Name}'s lands roster.";
+        }
+
         [CommandLineFunctionality.CommandLineArgumentFunction("land_set_auto_supply", "bannerkings")]
         public static string LandSetAutoSupply(List<string> strings)
         {

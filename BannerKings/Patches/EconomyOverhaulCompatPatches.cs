@@ -38,6 +38,9 @@ namespace BannerKings.Patches
         private const string BLM_FarmFunctionType =
             "Bannerlord.Economy_Overhaul.BLM_FarmFunction";
 
+        private const string BLM_PopulationFunctionType =
+            "Bannerlord.Economy_Overhaul.BLM_PopulationFunction";
+
         // Adds an estate-workforce utilization factor to EOF's per-item village
         // production. Saturation 1.0 ≈ baseline, clamped to [0.85, 1.20] so
         // even underpopulated or overpopulated estates only swing output by
@@ -373,6 +376,75 @@ namespace BannerKings.Patches
                 catch
                 {
                     // Defensive: failed redistribution must not break the daily tick.
+                }
+            }
+        }
+
+        // Rewires EOF's town population panel to display BK's class breakdown.
+        //
+        // EOF's BLM_PopulationFunction.CalculateClasses derives "poor /
+        // affluent / noble" from prosperity / 3 split by static percentages
+        // tied to the town's policy. The numbers are display-only with no
+        // demographic depth; players running BK see BK's panel (real serfs/
+        // slaves/freemen/craftsmen/nobles with growth, food, tax) and EOF's
+        // panel side-by-side, with totals that can't be reconciled.
+        //
+        // This postfix overwrites the out parameters with values mapped from
+        // BK's PopulationData classes:
+        //   poor      = Serfs + Slaves
+        //   affluent  = Craftsmen + Tenants
+        //   noble     = Nobles
+        // EOF's policy bonuses (loyalty/security/prosperity) still apply
+        // because they read policyIndex, not the class counts.
+        [HarmonyPatch]
+        internal static class BLM_PopulationCalculateClassesBKPanelPatch
+        {
+            private static System.Type _funcType;
+
+            private static bool Prepare()
+            {
+                if (!ModCompat.EconomyOverhaul) return false;
+                _funcType = AccessTools.TypeByName(BLM_PopulationFunctionType);
+                return _funcType != null
+                    && AccessTools.Method(_funcType, "CalculateClasses",
+                        new[] { typeof(Town), typeof(int),
+                                typeof(int).MakeByRefType(),
+                                typeof(int).MakeByRefType(),
+                                typeof(int).MakeByRefType() }) != null;
+            }
+
+            private static MethodBase TargetMethod()
+                => AccessTools.Method(_funcType, "CalculateClasses",
+                    new[] { typeof(Town), typeof(int),
+                            typeof(int).MakeByRefType(),
+                            typeof(int).MakeByRefType(),
+                            typeof(int).MakeByRefType() });
+
+            private static void Postfix(Town town, int policyIndex,
+                                        ref int poor, ref int affluent, ref int noble)
+            {
+                if (town?.Settlement == null) return;
+                try
+                {
+                    var data = BannerKingsConfig.Instance?.PopulationManager?.GetPopData(town.Settlement);
+                    if (data == null) return;
+                    int serfs = data.GetTypeCount(BannerKings.Managers.PopulationManager.PopType.Serfs);
+                    int slaves = data.GetTypeCount(BannerKings.Managers.PopulationManager.PopType.Slaves);
+                    int craftsmen = data.GetTypeCount(BannerKings.Managers.PopulationManager.PopType.Craftsmen);
+                    int tenants = data.GetTypeCount(BannerKings.Managers.PopulationManager.PopType.Tenants);
+                    int nobles = data.GetTypeCount(BannerKings.Managers.PopulationManager.PopType.Nobles);
+
+                    int total = serfs + slaves + craftsmen + tenants + nobles;
+                    if (total <= 0) return;
+
+                    poor = serfs + slaves;
+                    affluent = craftsmen + tenants;
+                    noble = nobles;
+                }
+                catch
+                {
+                    // Defensive: panel display falling back to EOF's static
+                    // values is preferable to crashing the panel render.
                 }
             }
         }
