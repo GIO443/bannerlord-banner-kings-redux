@@ -1,12 +1,10 @@
 using System.Collections.Generic;
 using BannerKings.Patches;
 using TaleWorlds.CampaignSystem;
-using TaleWorlds.CampaignSystem.Party;
 using TaleWorlds.CampaignSystem.Roster;
 using TaleWorlds.CampaignSystem.Settlements;
 using TaleWorlds.Core;
 using TaleWorlds.Library;
-using TaleWorlds.ObjectSystem;
 
 namespace BannerKings.Behaviours.Estates
 {
@@ -43,12 +41,6 @@ namespace BannerKings.Behaviours.Estates
         private const float TRANSPORT_SURCHARGE = 1.1f;
 
         private Dictionary<Settlement, bool> _enabled = new();
-
-        // Cached representative items for the categories we restock. Resolved
-        // once, lazily. Falls back to null if no item in the category exists
-        // in this campaign's item pool (extremely unusual; defensive).
-        private static ItemObject _toolItem;
-        private static ItemObject _horseItem;
 
         public BKVillageSupplyAutoBehavior()
         {
@@ -87,6 +79,15 @@ namespace BannerKings.Behaviours.Estates
             return now;
         }
 
+        private static readonly ItemCategory[] _toolCategories = new[] { DefaultItemCategories.Tools };
+        private static readonly ItemCategory[] _horseCategories = new[]
+        {
+            DefaultItemCategories.PackAnimal,
+            DefaultItemCategories.Horse,
+            DefaultItemCategories.WarHorse,
+            DefaultItemCategories.NobleHorse,
+        };
+
         private void OnDailySettlementTick(Settlement s)
         {
             if (s == null || !s.IsVillage) return;
@@ -95,6 +96,12 @@ namespace BannerKings.Behaviours.Estates
 
             var roster = EconomyOverhaulCompatPatches.EofLandsBridge.GetWarehouseRoster(s);
             if (roster == null) return;
+
+            // Source market: the village's bound town. If the bound town has
+            // no stock or doesn't exist, refill silently skips this tick —
+            // EOF's maluses kick in until the local trade network restocks.
+            var sourceTown = s.Village?.Bound?.Town;
+            if (sourceTown?.Settlement?.ItemRoster == null) return;
 
             int weeklyTools = EconomyOverhaulCompatPatches.EofLandsBridge.GetWeeklyToolsConsumption(s);
             int weeklyHorses = EconomyOverhaulCompatPatches.EofLandsBridge.GetWeeklyHorseConsumption(s);
@@ -105,18 +112,10 @@ namespace BannerKings.Behaviours.Estates
             int currentTools = CountInCategory(roster, DefaultItemCategories.Tools);
             int currentHorses = CountAnyHorse(roster);
 
-            EnsureItemCache();
-
-            if (currentTools < targetTools && _toolItem != null)
-            {
-                int needed = targetTools - currentTools;
-                TryRefill(s, roster, _toolItem, needed);
-            }
-            if (currentHorses < targetHorses && _horseItem != null)
-            {
-                int needed = targetHorses - currentHorses;
-                TryRefill(s, roster, _horseItem, needed);
-            }
+            if (currentTools < targetTools)
+                RefillFromTownMarket(sourceTown, roster, _toolCategories, targetTools - currentTools);
+            if (currentHorses < targetHorses)
+                RefillFromTownMarket(sourceTown, roster, _horseCategories, targetHorses - currentHorses);
         }
 
         private static int CountInCategory(ItemRoster roster, ItemCategory cat)
@@ -148,43 +147,54 @@ namespace BannerKings.Behaviours.Estates
             return n;
         }
 
-        private static void EnsureItemCache()
+        // Buys up to amountWanted units of items in the given categories from
+        // the town's market. Real transaction: drains the town's roster,
+        // credits the town's gold, debits MainHero's gold, deposits the items
+        // in the village warehouse. Stops early if the town runs out of stock
+        // OR the hero runs out of gold — partial refills are fine, EOF's
+        // maluses just kick in proportionally.
+        private static void RefillFromTownMarket(Town town, ItemRoster warehouse,
+                                                 ItemCategory[] acceptableCategories,
+                                                 int amountWanted)
         {
-            if (_toolItem != null && _horseItem != null) return;
-            foreach (var item in MBObjectManager.Instance.GetObjectTypeList<ItemObject>())
+            if (amountWanted <= 0 || warehouse == null || town?.Settlement?.ItemRoster == null) return;
+            if (Hero.MainHero == null) return;
+
+            var townRoster = town.Settlement.ItemRoster;
+            int boughtSoFar = 0;
+            // Iterate from the back so AddToCounts(-n) shrinking the roster
+            // doesn't shift indices we still need to visit.
+            for (int i = townRoster.Count - 1; i >= 0 && boughtSoFar < amountWanted; i--)
             {
-                if (item == null || !item.IsTradeGood) continue;
-                if (_toolItem == null && item.ItemCategory == DefaultItemCategories.Tools)
-                    _toolItem = item;
-                if (_horseItem == null
-                    && (item.ItemCategory == DefaultItemCategories.Horse
-                        || item.ItemCategory == DefaultItemCategories.PackAnimal))
-                    _horseItem = item;
-                if (_toolItem != null && _horseItem != null) return;
+                var item = townRoster.GetItemAtIndex(i);
+                if (item?.ItemCategory == null) continue;
+                bool acceptable = false;
+                for (int c = 0; c < acceptableCategories.Length; c++)
+                    if (item.ItemCategory == acceptableCategories[c]) { acceptable = true; break; }
+                if (!acceptable) continue;
+
+                int stock = townRoster.GetElementNumber(i);
+                if (stock <= 0) continue;
+
+                int price = town.GetItemPrice(item);
+                if (price <= 0) price = MathF.Max(1, item.Value);
+                int costPerUnit = MathF.Round(price * TRANSPORT_SURCHARGE);
+                if (costPerUnit <= 0) continue;
+
+                int affordable = Hero.MainHero.Gold / costPerUnit;
+                if (affordable <= 0) break;
+
+                int wanted = amountWanted - boughtSoFar;
+                int toBuy = MathF.Min(wanted, MathF.Min(stock, affordable));
+                if (toBuy <= 0) break;
+
+                int totalCost = costPerUnit * toBuy;
+                Hero.MainHero.ChangeHeroGold(-totalCost);
+                town.ChangeGold(totalCost);
+                townRoster.AddToCounts(item, -toBuy);
+                warehouse.AddToCounts(item, toBuy);
+                boughtSoFar += toBuy;
             }
-        }
-
-        private static void TryRefill(Settlement s, ItemRoster roster, ItemObject item, int amount)
-        {
-            if (amount <= 0 || item == null || Hero.MainHero == null) return;
-
-            int unitPrice = MathF.Max(1, item.Value);
-            try
-            {
-                var local = s.Village?.MarketData?.GetPrice(item, MobileParty.MainParty, isSelling: false, null);
-                if (local.HasValue && local.Value > 0) unitPrice = local.Value;
-            }
-            catch { }
-
-            int costPerUnit = MathF.Round(unitPrice * TRANSPORT_SURCHARGE);
-            int affordable = Hero.MainHero.Gold / MathF.Max(1, costPerUnit);
-            if (affordable <= 0) return;
-
-            int toBuy = MathF.Min(amount, affordable);
-            int totalCost = costPerUnit * toBuy;
-
-            Hero.MainHero.ChangeHeroGold(-totalCost);
-            roster.AddToCounts(item, toBuy);
         }
     }
 }

@@ -344,10 +344,16 @@ one EOF land (warehouse unlocked) → **Banner Kings** submenu → **Toggle
 land auto-supply**. While ON, BK tops the warehouse up daily to 25
 horses and 2 tools (the first daily-bonus tier — higher tiers are
 diminishing returns you can chase manually if you want), with a
-2-week buffer above that for project-malus spikes. Cost = local
-market price × 1.1 per unit, debited from your gold. If you're
-broke the refill silently skips that day; EOF's normal maluses
-then take over.
+2-week buffer above that for project-malus spikes.
+
+The refill is a **real market transaction**: BK buys from the
+village's bound town inventory at `town.GetItemPrice(item) × 1.1`
+(transport surcharge), draining the town's stock and crediting its
+merchant pool. If the town doesn't have enough stock that day, you
+get a partial refill; EOF's maluses kick in proportionally. If you're
+broke, the refill silently skips that day. Either way the local
+trade economy actually feels the demand — caravans noticing tools or
+horses moving out of the bound town will route in to replenish.
 
 Toggle is per-village, off by default, and saved.
 
