@@ -79,15 +79,6 @@ namespace BannerKings.Behaviours.Estates
             return now;
         }
 
-        private static readonly ItemCategory[] _toolCategories = new[] { DefaultItemCategories.Tools };
-        private static readonly ItemCategory[] _horseCategories = new[]
-        {
-            DefaultItemCategories.PackAnimal,
-            DefaultItemCategories.Horse,
-            DefaultItemCategories.WarHorse,
-            DefaultItemCategories.NobleHorse,
-        };
-
         private void OnDailySettlementTick(Settlement s)
         {
             if (s == null || !s.IsVillage) return;
@@ -112,10 +103,26 @@ namespace BannerKings.Behaviours.Estates
             int currentTools = CountInCategory(roster, DefaultItemCategories.Tools);
             int currentHorses = CountAnyHorse(roster);
 
+            // Resolved per-tick rather than in a static field initializer:
+            // DefaultItemCategories accessors NRE if dereferenced before the
+            // game has finished registering categories, and OnGameStart fires
+            // before that's reliably true.
             if (currentTools < targetTools)
-                RefillFromTownMarket(sourceTown, roster, _toolCategories, targetTools - currentTools);
+            {
+                var toolCategories = new[] { DefaultItemCategories.Tools };
+                RefillFromTownMarket(sourceTown, roster, toolCategories, targetTools - currentTools);
+            }
             if (currentHorses < targetHorses)
-                RefillFromTownMarket(sourceTown, roster, _horseCategories, targetHorses - currentHorses);
+            {
+                var horseCategories = new[]
+                {
+                    DefaultItemCategories.PackAnimal,
+                    DefaultItemCategories.Horse,
+                    DefaultItemCategories.WarHorse,
+                    DefaultItemCategories.NobleHorse,
+                };
+                RefillFromTownMarket(sourceTown, roster, horseCategories, targetHorses - currentHorses);
+            }
         }
 
         private static int CountInCategory(ItemRoster roster, ItemCategory cat)

@@ -25,6 +25,8 @@ namespace BannerKings.Managers.CampaignStart
 
         public StartOption Gladiator { get; private set; }
 
+        public StartOption Mariner { get; private set; }
+
         public override IEnumerable<StartOption> All
         {
             get
@@ -35,6 +37,7 @@ namespace BannerKings.Managers.CampaignStart
                 yield return Outlaw;
                 yield return Caravaneer;
                 yield return Gladiator;
+                yield return Mariner;
             }
         }
 
@@ -194,6 +197,37 @@ namespace BannerKings.Managers.CampaignStart
                 null,
                 DefaultLifestyles.Instance.Caravaneer);
 
+            Mariner = new StartOption("start_mariner");
+            Mariner.Initialize(new TextObject("{=BK_StartMariner}Mariner"),
+                new TextObject("{=BK_StartMarinerDesc}You inherited a hull and a small chest of silver from a merchant uncle who never returned from his last voyage. The crew you've gathered are seasoned hands of your homeland's tradition — ready for whatever waters open before you."),
+                new TextObject("{=BK_StartMarinerShort}Start with 10,000 gold, a culture-appropriate ship, and ~8 mariner troops. Requires War Sails (NavalDLC) for the ship; without it, you'll keep the gold and crew."),
+                10000, 4, 8, 50, 0f,
+                () =>
+                {
+                    var culture = Hero.MainHero.Culture;
+                    if (culture == null) return;
+
+                    // Crew: try <culture>_marine_t3 / t4, fall back to basic troop.
+                    var characters = TaleWorlds.ObjectSystem.MBObjectManager.Instance
+                        .GetObjectTypeList<CharacterObject>();
+                    var t3 = characters.FirstOrDefault(c => c?.StringId == culture.StringId + "_marine_t3");
+                    var t4 = characters.FirstOrDefault(c => c?.StringId == culture.StringId + "_marine_t4");
+                    var fallback = culture.BasicTroop;
+                    var roster = MobileParty.MainParty.MemberRoster;
+                    if (t3 != null) roster.AddToCounts(t3, 5);
+                    else if (fallback != null) roster.AddToCounts(fallback, 5);
+                    if (t4 != null) roster.AddToCounts(t4, 3);
+                    else if (t3 != null) roster.AddToCounts(t3, 3);
+                    else if (fallback != null) roster.AddToCounts(fallback, 3);
+
+                    // Boat: only if War Sails is loaded (CultureObject.AvailableShipHulls
+                    // is vanilla but populated by the NavalDLC data load).
+                    if (BannerKings.Utils.ModCompat.WarSails)
+                    {
+                        TryGrantStarterShip(culture);
+                    }
+                });
+
             Gladiator = new StartOption("start_gladiator");
             Gladiator.Initialize(new TextObject("{=wTyw0yfR}Gladiator"),
                 new TextObject("{=ScHHoM2v}You are an promising athlete, roaming the world looking for a good fight, gold and glory."),
@@ -213,6 +247,38 @@ namespace BannerKings.Managers.CampaignStart
                 0f,
                 null,
                 DefaultLifestyles.Instance.Gladiator);
+        }
+
+        private static void TryGrantStarterShip(CultureObject culture)
+        {
+            try
+            {
+                var hulls = culture?.AvailableShipHulls;
+                if (hulls == null || hulls.Count == 0) return;
+                // Pick the cheapest hull (proxy: lowest production weight tends
+                // to track lowest cost). If no weight info exists, just take
+                // the first.
+                TaleWorlds.Core.ShipHull pick = null;
+                float bestWeight = float.MaxValue;
+                foreach (var h in hulls)
+                {
+                    if (h == null) continue;
+                    float w = h.ProductionBuildWeight;
+                    if (w < bestWeight) { bestWeight = w; pick = h; }
+                }
+                if (pick == null) pick = hulls[0];
+                if (pick == null) return;
+
+                var ship = new TaleWorlds.CampaignSystem.Naval.Ship(pick);
+                TaleWorlds.CampaignSystem.Actions.ChangeShipOwnerAction
+                    .ApplyByMobilePartyCreation(MobileParty.MainParty.Party, ship);
+            }
+            catch
+            {
+                // War Sails registered but the type surface may differ across
+                // patches — fail soft so the rest of the start (gold + crew)
+                // still applies.
+            }
         }
     }
 }
