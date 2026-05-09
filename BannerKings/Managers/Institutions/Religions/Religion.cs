@@ -204,5 +204,17 @@ namespace BannerKings.Managers.Institutions.Religions
 
             return base.Equals(obj);
         }
+
+        // Must match the Faith.GetId()-based Equals above.
+        // Without this, two Religion instances with the same Faith.GetId()
+        // compare equal but hash differently → Dictionary buckets them
+        // separately → InitializeReligions adds defaults alongside saved
+        // → save serialises both → reload's MBObjectBase resolver
+        // collapses to one instance → Dictionary.Add throws.
+        public override int GetHashCode()
+        {
+            string id = Faith != null ? Faith.GetId() : StringId;
+            return id != null ? id.GetHashCode() : 0;
+        }
     }
 }

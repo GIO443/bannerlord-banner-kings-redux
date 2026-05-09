@@ -151,6 +151,16 @@ namespace BannerKings.Managers.Institutions.Religions.Faiths
             }
             return base.Equals(obj);
         }
+
+        // Match GetId()-based Equals — see BannerKingsObject.GetHashCode
+        // for the full root-cause writeup. Faith is stored in
+        // Dictionary<Faith, FaithStance> on the Faith itself and is
+        // looked up via DefaultFaiths.GetById.
+        public override int GetHashCode()
+        {
+            string id = GetId();
+            return id != null ? id.GetHashCode() : 0;
+        }
     }
 
     public enum FaithStance
