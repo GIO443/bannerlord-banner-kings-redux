@@ -273,6 +273,17 @@ burned" — production is tanked, food is still consumed, and labor will
 slowly rebuild the capital. A village with **low Population, high Hearth**
 is "depopulated but well-developed" — capacity is there, no one to work it.
 
+**Two population panels — that's expected.** EOF adds its own town panel
+showing a `poor / affluent / noble` split, computed as `prosperity / 3`
+divided by static percentages from the town's policy (Oligarchic /
+Popular / Martial). It's a display + policy hook, not a demographic
+model. BK's settlement panel shows the actual class breakdown
+(serfs / slaves / freemen / nobles / craftsmen) with growth, food
+consumption, and tax differentials. The numbers won't match because the
+abstractions don't match — EOF's poor/affluent/noble is a coarse
+prosperity ratio for its policy bonuses; BK's classes are a real
+simulation. Both keep running.
+
 **Old BK estates are paused under EOF.** The legacy estate loop (daily
 income, retinue militia, AI estate decisions, management UI, clan-finance
 entries, visit-panel "Manage Estate" option) is dormant when EOF is loaded.
