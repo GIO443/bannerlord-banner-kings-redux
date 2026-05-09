@@ -754,7 +754,20 @@ namespace BannerKings.Behaviours
                 if (kind == BannerKings.CampaignContent.Economy.Layered.CargoKind.Slaves)
                 {
                     var slaves = Utils.Helpers.GetRosterCount(party.PrisonRoster);
-                    data.UpdatePopType(PopType.Slaves, slaves);
+                    // Lands integration: if the destination village has EOF
+                    // lord-lands AND a player slave quota, divert a slice of
+                    // the cargo into EOF's prison roster (the lands' labor
+                    // pool) instead of letting it all flow to BK village pop.
+                    // The diverted count is gold-charged to MainHero and paid
+                    // to the bound town's owner. Remainder flows to BK pop.
+                    int diverted = 0;
+                    var labor = BannerKings.Behaviours.Estates.BKLandsLaborBehavior.Instance;
+                    if (labor != null && target?.IsVillage == true)
+                    {
+                        diverted = labor.MaybeDivertSlaveCaravan(target, slaves);
+                    }
+                    int toBkPop = slaves - diverted;
+                    if (toBkPop > 0) data.UpdatePopType(PopType.Slaves, toBkPop);
                 }
                 else if (kind == BannerKings.CampaignContent.Economy.Layered.CargoKind.Food
                          && target.IsTown && target.Town != null)

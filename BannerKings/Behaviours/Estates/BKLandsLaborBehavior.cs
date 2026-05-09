@@ -9,32 +9,35 @@ using TaleWorlds.Library;
 namespace BannerKings.Behaviours.Estates
 {
     /// <summary>
-    /// Phase 1 of the slave-trade pipeline: per-village quotas for slave
-    /// labor and guard troops, filled lazily by a daily tick instead of
-    /// requiring the player to ferry units manually.
+    /// Per-village quotas for slave labor and guard troops, integrated with
+    /// BK's existing slave-caravan flow.
     ///
-    /// Slave fill: drains the bound town's BK Slaves population into the
-    /// village's PrisonRoster (EOF's slave-labor pool), capped by the
-    /// per-village slave quota and EOF's prison size. Cost goes to the
-    /// town's gold pool — slaves are a town commodity bought through the
-    /// caravan trade abstraction.
+    /// Slave fill: hooks BK's existing town-to-village slave caravans
+    /// (BKPartyBehavior.SendSlaveCaravan + AddPopulationPartyBehavior).
+    /// When a slave caravan arrives at a village with EOF lord-lands and
+    /// a positive slave quota, this behavior diverts a slice of the
+    /// inbound slaves into the village's PrisonRoster (EOF's labor pool)
+    /// rather than letting them flow entirely into BK's village slave pop.
+    /// The diversion size is the gap between current prison count and
+    /// quota, capped at EOF's prison size (lord-lands × 10) and the
+    /// caravan's actual cargo. Cost: 200g per diverted slave, debited
+    /// from MainHero, credited to the bound town's owner.
     ///
     /// Guard fill: recruits volunteers from the village's notables into
-    /// the village's MemberRoster (EOF's lands garrison), capped by the
-    /// per-village guard quota. Pays standard vanilla recruitment cost
-    /// to the notable.
+    /// the village's MemberRoster (EOF's lands garrison) on a daily tick.
+    /// Capped by the per-village guard quota and EOF's garrison cap
+    /// (prison count / 2). Pays vanilla recruitment cost per soldier to
+    /// the notable. Daily-drip is the right shape here — no caravan
+    /// equivalent for villager volunteers.
     ///
     /// Both quotas default to 0 (off). Configure per village via the
-    /// "Configure lands quotas" menu option or the cheat commands. Phase
-    /// 2 will replace the abstract daily transfer with visible slave
-    /// caravan parties + raidable cargo on the map.
+    /// "Configure lands quotas" menu option or the cheat commands.
     /// </summary>
     public class BKLandsLaborBehavior : CampaignBehaviorBase
     {
         public static BKLandsLaborBehavior Instance { get; private set; }
 
         private const int SLAVE_PRICE_PER_UNIT = 200;
-        private const int SLAVES_PER_DAY_PER_VILLAGE = 2;
         private const int GUARDS_PER_DAY_PER_VILLAGE = 1;
 
         private Dictionary<Settlement, int> _slaveQuota = new();
@@ -85,45 +88,55 @@ namespace BannerKings.Behaviours.Estates
             int lordLands = EconomyOverhaulCompatPatches.EofLandsBridge.GetLordLandsOwned(s.Village);
             if (lordLands <= 0) return;
 
-            TrySlaveTick(s, lordLands);
+            // Slave fill is now event-driven via MaybeDivertSlaveCaravan,
+            // called from BKPartyBehavior.AddPopulationPartyBehavior on
+            // caravan arrival. Only the guard drip runs on the daily tick.
             TryGuardTick(s, lordLands);
         }
 
-        private void TrySlaveTick(Settlement village, int lordLands)
+        /// <summary>
+        /// Hook invoked from BKPartyBehavior.AddPopulationPartyBehavior when a
+        /// slave caravan arrives at a village. Diverts up to the player's
+        /// slave quota into the village's PrisonRoster (EOF's labor pool)
+        /// and refunds that count from the BK slave pop add the caller is
+        /// about to perform — i.e., the caller passes us the cargo size and
+        /// we return how many to subtract from BK's pop add.
+        /// </summary>
+        public int MaybeDivertSlaveCaravan(Settlement village, int slavesInCargo)
         {
+            if (village?.Village == null || slavesInCargo <= 0) return 0;
+            int lordLands = EconomyOverhaulCompatPatches.EofLandsBridge.GetLordLandsOwned(village.Village);
+            if (lordLands <= 0) return 0;
+
             int quota = GetSlaveQuota(village);
-            if (quota <= 0) return;
+            if (quota <= 0) return 0;
 
             int currentPrison = village.Party?.PrisonRoster?.TotalManCount ?? 0;
             int prisonCap = lordLands * 10;
             int target = MathF.Min(quota, prisonCap);
-            if (currentPrison >= target) return;
-
-            var sourceTown = village.Village?.Bound?.Town;
-            if (sourceTown?.Settlement == null) return;
-            var sourceData = BannerKingsConfig.Instance?.PopulationManager?.GetPopData(sourceTown.Settlement);
-            if (sourceData == null) return;
-            int sourceSlaves = sourceData.GetTypeCount(BannerKings.Managers.PopulationManager.PopType.Slaves);
-            if (sourceSlaves <= 0) return;
+            if (currentPrison >= target) return 0;
 
             int wanted = target - currentPrison;
             int affordable = Hero.MainHero != null
                 ? Hero.MainHero.Gold / MathF.Max(1, SLAVE_PRICE_PER_UNIT)
                 : 0;
-            int toBuy = MathF.Min(SLAVES_PER_DAY_PER_VILLAGE,
-                          MathF.Min(wanted, MathF.Min(sourceSlaves, affordable)));
-            if (toBuy <= 0) return;
+            int divert = MathF.Min(wanted, MathF.Min(slavesInCargo, affordable));
+            if (divert <= 0) return 0;
 
             var character = village.Culture?.BasicTroop;
-            if (character == null) return;
+            if (character == null) return 0;
             var prison = village.Party?.PrisonRoster;
-            if (prison == null) return;
+            if (prison == null) return 0;
 
-            int totalCost = toBuy * SLAVE_PRICE_PER_UNIT;
+            int totalCost = divert * SLAVE_PRICE_PER_UNIT;
             Hero.MainHero.ChangeHeroGold(-totalCost);
-            sourceTown.ChangeGold(totalCost);
-            sourceData.UpdatePopType(BannerKings.Managers.PopulationManager.PopType.Slaves, -toBuy);
-            prison.AddToCounts(character, toBuy);
+            // Caravan originates from the bound town; pay the bound town's
+            // owner for the slice we lifted off the cargo.
+            var lord = village.Village?.Bound?.OwnerClan?.Leader;
+            if (lord != null && lord != Hero.MainHero) lord.ChangeHeroGold(totalCost);
+
+            prison.AddToCounts(character, divert);
+            return divert;
         }
 
         private void TryGuardTick(Settlement village, int lordLands)

@@ -296,23 +296,31 @@ lands ({N} available)**. One click moves the maximum eligible amount
 into EOF's roster. No gold cost — they're already in the village,
 just being reassigned to land work.
 
-**Or set quotas and let it run.** Phase 1 of the slave-trade pipeline.
-Walk into a village where you hold lord-lands → Banner Kings submenu →
-**Configure lands quotas (slaves: X / guards: Y)**. You'll be asked
-two numbers in sequence:
+**Or set quotas and let BK's slave caravans handle it.** BK already runs
+visible slave caravans daily — when a town has surplus BK slaves and a
+bound village has a deficit, it dispatches a real `PopulationPartyComponent`
+party that travels the map (raidable, blockable, vulnerable to bandits)
+and delivers its cargo to the destination village's BK slave pop on
+arrival.
 
-- **Slave quota** — daily tick auto-buys slaves from the *bound town's*
-  BK slave population at 200g each, drip-rate 2/day, until the
-  village prison roster reaches the quota. Cost goes to the town's
-  gold pool. Capped by EOF's prison size (lord-lands × 10).
+The lands integration hooks that arrival. Walk into a village where you
+hold lord-lands → Banner Kings submenu → **Configure lands quotas
+(slaves: X / guards: Y)**:
+
+- **Slave quota** — when a slave caravan arrives, you (the land owner)
+  buy a slice off the cargo at 200g per slave, paid to the bound town's
+  owner. The diverted slaves go into the village's PrisonRoster (the
+  lands' labor pool); the remainder flows into the village's BK slave
+  pop as it always did. Diversion stops at your quota or EOF's prison
+  cap (lord-lands × 10), whichever comes first. No quota set or no
+  caravan arriving = no purchase.
 - **Guard quota** — daily tick auto-hires volunteers from the village's
   notables into the lands garrison, paid at vanilla recruitment cost,
   drip-rate 1/day. Capped by EOF at half the prison count (so guards
-  scale with slaves you've imported).
+  scale with slaves you've imported). This stays on a daily drip
+  because notable volunteers don't have a caravan equivalent.
 
-Set 0 to disable either. Both default off. The drip rate models the
-abstract caravan delivery; phase 2 will replace this with visible
-slave-caravan parties on the map.
+Set 0 to disable either. Both default off.
 
 **Old BK estates are paused under EOF.** The legacy estate loop (daily
 income, retinue militia, AI estate decisions, management UI, clan-finance
