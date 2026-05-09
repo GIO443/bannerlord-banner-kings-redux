@@ -695,7 +695,10 @@ modifier with you (+8 to +25 by support strength) for 5 years.
 **Q: How do I see what faith my character is in?**
 Open the character page → there's a religion tab/panel showing your
 current faith, its main god, the secondary cults, your current piety,
-and the doctrines the faith holds. Heroes are assigned the natural
+and the doctrines the faith holds. Your **piety total** is also surfaced
+on the campaign map's right-side info bar (alongside gold, food, troops)
+once you've been assigned to a faith — hover the row for a breakdown of
+where today's piety came from. Heroes are assigned the natural
 faith of their culture automatically — empire→Darusosian Path,
 vlandia→Canticles of Caïon, battania→Amra Druidh, aserai→Path of
 Akhmar, khuzait→Six Winds, sturgia→Old Gods of the North,

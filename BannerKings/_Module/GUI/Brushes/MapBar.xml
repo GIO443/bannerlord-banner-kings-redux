@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Adds a `piety` icon layer to vanilla's MapBar.Right.Icons brush so the
+     Banner Kings piety MapInfoItemVM (added via MapInfoPietyPatches) can
+     pick it up via IconID="piety". Bannerlord merges same-named brushes
+     across modules, so this only contributes the new layer; the vanilla
+     gold/influence/morale/etc layers stay intact.
+
+     The sprite is reused from General\Icons\Influence@2x — semantically
+     "religious influence" and visually distinct from the coin (gold) and
+     morale icons. -->
+<Brushes>
+  <Brush Name="MapBar.Right.Icons">
+    <Layers>
+      <BrushLayer Name="piety" Sprite="General\Icons\Influence@2x" />
+    </Layers>
+  </Brush>
+</Brushes>
