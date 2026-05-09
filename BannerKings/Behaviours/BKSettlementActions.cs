@@ -453,6 +453,19 @@ namespace BannerKings.Behaviours
                 MenuGrantLandsCondition,
                 MenuGrantLandsConsequence, false, 3);
 
+            // Vassal-side: buy a land in another lord's village to become a knight
+            // under their banner (or, under Allodial, just to own the land outright).
+            campaignGameStarter.AddGameMenuOption("bannerkings", "buy_land_vassal",
+                "{=BK_BuyLandMenu}Buy land here ({COST}{GOLD_ICON})",
+                MenuBuyLandVassalCondition,
+                MenuBuyLandVassalConsequence, false, 4);
+
+            // Vassal-side: divest a land back to the lord at 1/3 the purchase price.
+            campaignGameStarter.AddGameMenuOption("bannerkings", "sell_land_vassal",
+                "{=BK_SellLandMenu}Sell my land here back to the lord",
+                MenuSellLandVassalCondition,
+                MenuSellLandVassalConsequence, false, 5);
+
             campaignGameStarter.AddGameMenuOption("bannerkings", "bannerkings_leave", "{=1kJ3hNWg}Leave",
                 delegate (MenuCallbackArgs x)
                 {
@@ -975,6 +988,105 @@ namespace BannerKings.Behaviours
             return true;
         }
 
+        private static bool MenuBuyLandVassalCondition(MenuCallbackArgs args)
+        {
+            if (!BannerKings.Utils.ModCompat.EconomyOverhaul) return false;
+            var beh = BannerKings.Behaviours.Estates.BKLandGrantBehavior.Instance;
+            var village = Settlement.CurrentSettlement?.Village;
+            if (village == null || beh == null) return false;
+            // Don't show in your own villages — you'd use Grant instead.
+            var lord = BannerKings.Behaviours.Estates.BKLandGrantBehavior.ResolveBoundTownLord(village);
+            if (lord == Hero.MainHero) return false;
+            // Permission check via the kingdom's Estate Tenure law.
+            if (!beh.CanHoldLand(village, Hero.MainHero, out var why))
+            {
+                args.IsEnabled = false;
+                args.Tooltip = new TextObject(why);
+            }
+            else
+            {
+                int totalLordLands = BannerKings.Patches.EconomyOverhaulCompatPatches
+                    .EofLandsBridge.GetLordLandsOwned(village);
+                int alreadyGranted = beh.GetTotalGrantedInVillage(village);
+                if (totalLordLands - alreadyGranted <= 0)
+                {
+                    args.IsEnabled = false;
+                    args.Tooltip = new TextObject("{=BK_NoLandsAvailable}No lord lands available here.");
+                }
+            }
+            int cost = beh.GetLandPurchaseCost(village);
+            MBTextManager.SetTextVariable("COST", cost);
+            args.optionLeaveType = GameMenuOption.LeaveType.Manage;
+            return true;
+        }
+
+        private static void MenuBuyLandVassalConsequence(MenuCallbackArgs args)
+        {
+            var beh = BannerKings.Behaviours.Estates.BKLandGrantBehavior.Instance;
+            var village = Settlement.CurrentSettlement?.Village;
+            if (village == null || beh == null) return;
+            int cost = beh.GetLandPurchaseCost(village);
+            string allodialNote = beh.IsAllodialRealm(village.Settlement)
+                ? "\n\nAllodial tenure: pure ownership, no oath, no daily tax to the lord."
+                : "\n\nFeudal tenure: 1 daily-income share + tenancy tax to the lord. You become a vassal knight under their banner.";
+            string title = new TextObject("{=BK_BuyLandConfirmTitle}Buy land in {VILLAGE}")
+                .SetTextVariable("VILLAGE", village.Name).ToString();
+            string desc = new TextObject(
+                "{=BK_BuyLandConfirmText}Pay {COST}{GOLD_ICON} to {LORD} for 1 land in {VILLAGE}.{NOTE}")
+                .SetTextVariable("COST", cost)
+                .SetTextVariable("LORD", BannerKings.Behaviours.Estates.BKLandGrantBehavior.ResolveBoundTownLord(village)?.Name)
+                .SetTextVariable("VILLAGE", village.Name)
+                .SetTextVariable("NOTE", allodialNote).ToString();
+            InformationManager.ShowInquiry(new InquiryData(title, desc, true, true,
+                GameTexts.FindText("str_yes").ToString(), GameTexts.FindText("str_no").ToString(),
+                delegate
+                {
+                    if (beh.TryBuyLandAsVassal(village, Hero.MainHero, out var fail, out var paid))
+                    {
+                        MBInformationManager.AddQuickInformation(new TextObject(
+                            "{=BK_BuyLandSuccess}You bought 1 land in {VILLAGE} for {COST}{GOLD_ICON}.")
+                            .SetTextVariable("VILLAGE", village.Name).SetTextVariable("COST", paid));
+                    }
+                    else
+                    {
+                        MBInformationManager.AddQuickInformation(new TextObject(
+                            "{=BK_BuyLandFail}Cannot buy: {REASON}.")
+                            .SetTextVariable("REASON", fail ?? "unknown"));
+                    }
+                }, null));
+        }
+
+        private static bool MenuSellLandVassalCondition(MenuCallbackArgs args)
+        {
+            if (!BannerKings.Utils.ModCompat.EconomyOverhaul) return false;
+            var beh = BannerKings.Behaviours.Estates.BKLandGrantBehavior.Instance;
+            var village = Settlement.CurrentSettlement?.Village;
+            if (village == null || beh == null) return false;
+            // Only show if player holds at least 1 land here.
+            if (beh.GetGrantedLands(village, Hero.MainHero) <= 0) return false;
+            args.optionLeaveType = GameMenuOption.LeaveType.Surrender;
+            return true;
+        }
+
+        private static void MenuSellLandVassalConsequence(MenuCallbackArgs args)
+        {
+            var beh = BannerKings.Behaviours.Estates.BKLandGrantBehavior.Instance;
+            var village = Settlement.CurrentSettlement?.Village;
+            if (village == null || beh == null) return;
+            if (beh.TrySellLandBack(village, Hero.MainHero, out var fail, out var refund))
+            {
+                MBInformationManager.AddQuickInformation(new TextObject(
+                    "{=BK_SellLandSuccess}Sold 1 land in {VILLAGE} for {GOLD}{GOLD_ICON}.")
+                    .SetTextVariable("VILLAGE", village.Name).SetTextVariable("GOLD", refund));
+            }
+            else
+            {
+                MBInformationManager.AddQuickInformation(new TextObject(
+                    "{=BK_SellLandFail}Cannot sell: {REASON}.")
+                    .SetTextVariable("REASON", fail ?? "unknown"));
+            }
+        }
+
         private static void MenuGrantLandsConsequence(MenuCallbackArgs args)
         {
             var village = Settlement.CurrentSettlement?.Village;
@@ -986,12 +1098,33 @@ namespace BannerKings.Behaviours
             int alreadyGranted = beh.GetTotalGrantedInVillage(village);
             int available = System.Math.Max(0, totalLordLands - alreadyGranted);
 
-            var elements = new System.Collections.Generic.List<InquiryElement>();
+            // Candidate pool depends on the kingdom's Estate Tenure law.
+            // Allodial: any hero (most permissive — gift allodial title to anyone).
+            // Quia Emptores: any same-kingdom hero with their own clan / lordship.
+            // Fee Tail: only blood kin of the player.
+            // We build a generous candidate list and let CanHoldLand filter it.
+            var seen = new System.Collections.Generic.HashSet<Hero>();
+            var candidates = new System.Collections.Generic.List<Hero>();
             foreach (var member in Clan.PlayerClan.Heroes)
             {
                 if (member == null || member == Hero.MainHero || member.IsDead) continue;
-                if (BannerKingsConfig.Instance?.TitleManager == null) continue;
-                if (!BannerKingsConfig.Instance.TitleManager.IsKnight(member)) continue;
+                if (seen.Add(member)) candidates.Add(member);
+            }
+            var kingdom = Hero.MainHero.MapFaction as Kingdom;
+            if (kingdom != null)
+            {
+                foreach (var c in kingdom.Clans)
+                {
+                    if (c == null || c == Clan.PlayerClan) continue;
+                    if (c.Leader != null && !c.Leader.IsDead && seen.Add(c.Leader))
+                        candidates.Add(c.Leader);
+                }
+            }
+
+            var elements = new System.Collections.Generic.List<InquiryElement>();
+            foreach (var member in candidates)
+            {
+                if (!beh.CanHoldLand(village, member, out _)) continue;
                 int currentGrants = beh.GetGrantedLands(village, member);
                 string label = currentGrants > 0
                     ? string.Format("{0} ({1})", member.Name, currentGrants)

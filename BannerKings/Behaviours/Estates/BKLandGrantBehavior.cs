@@ -79,13 +79,16 @@ namespace BannerKings.Behaviours.Estates
 
         /// <summary>
         /// Liege's tax skim from each grantee's daily land income. Driven by the
-        /// active Tenancy demesne law on the village's title.
+        /// active Tenancy demesne law on the village's title. Returns 0 under
+        /// Allodial — allodial ownership has no feudal obligation, so the lord
+        /// receives no daily income from the holder.
         /// </summary>
         public float GetTaxRate(Settlement s)
         {
             if (s == null) return 0.10f;
             try
             {
+                if (IsAllodialRealm(s)) return 0f;
                 var title = BannerKingsConfig.Instance?.TitleManager?.GetTitle(s);
                 if (title?.Contract == null) return 0.10f;
                 var laws = DefaultDemesneLaws.Instance;
@@ -98,24 +101,75 @@ namespace BannerKings.Behaviours.Estates
         }
 
         /// <summary>
-        /// True if the kingdom's Estate Tenure law permits this grantor → grantee
-        /// transfer. Fee Tail restricts to immediate blood kin; Quia Emptores and
-        /// Allodial allow same-clan grants (which is the only path callers offer).
-        /// Permissive by default if no relevant law is enacted.
+        /// True if the village's title declares Allodial estate tenure — land
+        /// ownership decoupled from any liege relationship. Vassal-knight
+        /// implications and tax skims are skipped under Allodial.
         /// </summary>
-        public bool IsTenurePermissive(Settlement s, Hero grantor, Hero grantee)
+        public bool IsAllodialRealm(Settlement s)
         {
-            if (s == null || grantor == null || grantee == null) return false;
+            if (s == null) return false;
             try
             {
                 var title = BannerKingsConfig.Instance?.TitleManager?.GetTitle(s);
-                if (title?.Contract == null) return true;
-                var laws = DefaultDemesneLaws.Instance;
-                if (title.Contract.IsLawEnacted(laws.EstateTenureFeeTail))
-                    return AreImmediateKin(grantor, grantee);
+                if (title?.Contract == null) return false;
+                return title.Contract.IsLawEnacted(DefaultDemesneLaws.Instance.EstateTenureAllodial);
+            }
+            catch { return false; }
+        }
+
+        /// <summary>
+        /// Resolves who is permitted to hold land in this village under the
+        /// kingdom's Estate Tenure law.
+        ///
+        /// Allodial: anyone with gold (no kingdom or kinship gate).
+        /// Quia Emptores: same kingdom as the village's liege.
+        /// Fee Tail: immediate blood kin of the bound-town lord.
+        /// Default (no tenure law set): same kingdom (Quia-Emptores-equivalent).
+        /// </summary>
+        public bool CanHoldLand(Village v, Hero candidate, out string failReason)
+        {
+            failReason = null;
+            if (v?.Settlement == null) { failReason = "invalid village"; return false; }
+            if (candidate == null || candidate.IsDead) { failReason = "invalid candidate"; return false; }
+
+            if (IsAllodialRealm(v.Settlement)) return true;
+
+            var lord = ResolveBoundTownLord(v);
+            if (lord == null) { failReason = "village has no liege"; return false; }
+
+            try
+            {
+                var title = BannerKingsConfig.Instance?.TitleManager?.GetTitle(v.Settlement);
+                if (title?.Contract != null
+                    && title.Contract.IsLawEnacted(DefaultDemesneLaws.Instance.EstateTenureFeeTail))
+                {
+                    if (!AreImmediateKin(lord, candidate))
+                    {
+                        failReason = "Fee Tail tenure restricts ownership to the lord's immediate kin";
+                        return false;
+                    }
+                    return true;
+                }
             }
             catch { }
-            return true;
+
+            // Quia Emptores or no specific tenure law: same kingdom required.
+            if (lord.MapFaction != null && candidate.MapFaction != null
+                && lord.MapFaction == candidate.MapFaction)
+                return true;
+            failReason = "candidate is not in the same kingdom as the village's liege";
+            return false;
+        }
+
+        /// <summary>
+        /// Cost in gold for a hero to buy 1 lord-land in this village. Mirrors
+        /// EOF's GetLandsCost formula (50 × hearth) so player-buy and
+        /// vassal-buy live on the same price scale.
+        /// </summary>
+        public int GetLandPurchaseCost(Village v)
+        {
+            if (v?.Settlement == null) return 0;
+            return 50 * (int)v.Hearth;
         }
 
         private static bool AreImmediateKin(Hero a, Hero b)
@@ -139,11 +193,6 @@ namespace BannerKings.Behaviours.Estates
             if (grantor == null || grantee == null) { failReason = "invalid hero"; return false; }
             if (grantor == grantee) { failReason = "cannot grant to self"; return false; }
             if (grantee.IsDead) { failReason = "grantee is dead"; return false; }
-            if (grantor.Clan == null || grantor.Clan != grantee.Clan)
-            {
-                failReason = "same-clan only";
-                return false;
-            }
             var lord = ResolveBoundTownLord(v);
             if (lord != grantor)
             {
@@ -157,20 +206,90 @@ namespace BannerKings.Behaviours.Estates
                 failReason = "no ungranted lord lands available";
                 return false;
             }
-            if (!IsTenurePermissive(v.Settlement, grantor, grantee))
+            if (!CanHoldLand(v, grantee, out var why)) { failReason = why; return false; }
+
+            AddGrant(v.Settlement, grantee, 1);
+            return true;
+        }
+
+        /// <summary>
+        /// Vassal buy-in: hero pays the bound-town lord one-time gold for a land
+        /// grant in their village. Subject to the Estate Tenure law (Allodial =
+        /// open market; Quia Emptores = same-kingdom; Fee Tail = blood-kin only).
+        /// Available pool = EOF.GetLordLandsOwned(v) − already-granted.
+        /// </summary>
+        public bool TryBuyLandAsVassal(Village v, Hero buyer, out string failReason, out int cost)
+        {
+            failReason = null;
+            cost = 0;
+            if (v?.Settlement == null) { failReason = "invalid village"; return false; }
+            if (buyer == null || buyer.IsDead) { failReason = "invalid buyer"; return false; }
+            var lord = ResolveBoundTownLord(v);
+            if (lord == null) { failReason = "village has no liege"; return false; }
+            if (lord == buyer)
             {
-                failReason = "Fee Tail restricts grants to blood kin";
+                failReason = "you are already the village's lord; use grant or sell instead";
+                return false;
+            }
+            int totalLordLands = BannerKings.Patches.EconomyOverhaulCompatPatches.EofLandsBridge.GetLordLandsOwned(v);
+            int alreadyGranted = GetTotalGrantedInVillage(v);
+            if (totalLordLands - alreadyGranted <= 0)
+            {
+                failReason = "no lord lands are available for purchase here";
+                return false;
+            }
+            if (!CanHoldLand(v, buyer, out var why)) { failReason = why; return false; }
+
+            cost = GetLandPurchaseCost(v);
+            if (buyer.Gold < cost)
+            {
+                failReason = "buyer cannot afford this land (need " + cost + " gold)";
                 return false;
             }
 
-            if (!_grants.TryGetValue(v.Settlement, out var heroMap))
+            buyer.ChangeHeroGold(-cost);
+            lord.ChangeHeroGold(cost);
+            AddGrant(v.Settlement, buyer, 1);
+            return true;
+        }
+
+        /// <summary>
+        /// Sell-back: hero divests 1 land back to the bound-town lord at 1/3
+        /// the purchase price (mirrors EOF's SellOneLand refund ratio).
+        /// </summary>
+        public bool TrySellLandBack(Village v, Hero seller, out string failReason, out int refund)
+        {
+            failReason = null;
+            refund = 0;
+            if (v?.Settlement == null) { failReason = "invalid village"; return false; }
+            if (seller == null) { failReason = "invalid seller"; return false; }
+            if (!_grants.TryGetValue(v.Settlement, out var heroMap)
+                || !heroMap.TryGetValue(seller, out var n) || n <= 0)
+            {
+                failReason = "you hold no land here";
+                return false;
+            }
+            var lord = ResolveBoundTownLord(v);
+            refund = GetLandPurchaseCost(v) / 3;
+            heroMap[seller] = n - 1;
+            if (heroMap[seller] <= 0) heroMap.Remove(seller);
+            if (refund > 0)
+            {
+                seller.ChangeHeroGold(refund);
+                if (lord != null && lord != seller) lord.ChangeHeroGold(-refund);
+            }
+            return true;
+        }
+
+        private void AddGrant(Settlement s, Hero grantee, int delta)
+        {
+            if (!_grants.TryGetValue(s, out var heroMap))
             {
                 heroMap = new Dictionary<Hero, int>();
-                _grants[v.Settlement] = heroMap;
+                _grants[s] = heroMap;
             }
             heroMap.TryGetValue(grantee, out var current);
-            heroMap[grantee] = current + 1;
-            return true;
+            heroMap[grantee] = current + delta;
         }
 
         public bool TryRevokeLand(Village v, Hero grantor, Hero grantee, out string failReason)

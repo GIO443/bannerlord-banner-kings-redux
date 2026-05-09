@@ -96,6 +96,79 @@ namespace BannerKings
         }
 
 
+        // ---------------- Land grant / buy-as-vassal cheats ----------------
+
+        [CommandLineFunctionality.CommandLineArgumentFunction("land_list", "bannerkings")]
+        public static string LandList(List<string> strings)
+        {
+            if (!CampaignCheats.CheckCheatUsage(ref CampaignCheats.ErrorType)) return CampaignCheats.ErrorType;
+            if (CampaignCheats.CheckParameters(strings, 0))
+                return "Format: bannerkings.land_list [village_name_or_id]";
+            string token = CampaignCheats.ConcatenateString(strings).Trim();
+            var settlement = Settlement.All.FirstOrDefault(s => s != null
+                && (s.StringId == token || (s.Name?.ToString() == token)) && s.IsVillage);
+            if (settlement?.Village == null) return $"No village found matching '{token}'.";
+            var village = settlement.Village;
+            var beh = BannerKings.Behaviours.Estates.BKLandGrantBehavior.Instance;
+            if (beh == null) return "BKLandGrantBehavior not registered (EOF not loaded?).";
+            int totalLordLands = BannerKings.Patches.EconomyOverhaulCompatPatches
+                .EofLandsBridge.GetLordLandsOwned(village);
+            int alreadyGranted = beh.GetTotalGrantedInVillage(village);
+            var lord = BannerKings.Behaviours.Estates.BKLandGrantBehavior.ResolveBoundTownLord(village);
+            var sb = new StringBuilder();
+            sb.AppendLine($"Village: {village.Name} (hearth {(int)village.Hearth})");
+            sb.AppendLine($"  Bound-town lord: {lord?.Name?.ToString() ?? "(none)"}");
+            sb.AppendLine($"  EOF lord-lands: {totalLordLands}, BK granted: {alreadyGranted}, available: {Math.Max(0, totalLordLands - alreadyGranted)}");
+            sb.AppendLine($"  Allodial realm: {beh.IsAllodialRealm(village.Settlement)}, tax rate: {beh.GetTaxRate(village.Settlement):P0}");
+            var grantees = beh.GetGranteesForVillage(village);
+            if (grantees.Count == 0) sb.AppendLine("  No grants.");
+            else foreach (var (h, n) in grantees) sb.AppendLine($"    {h.Name}: {n} land(s)");
+            sb.Append($"  Purchase cost (per land): {beh.GetLandPurchaseCost(village)}g");
+            return sb.ToString();
+        }
+
+        [CommandLineFunctionality.CommandLineArgumentFunction("land_buy_as_vassal", "bannerkings")]
+        public static string LandBuyAsVassal(List<string> strings)
+        {
+            if (!CampaignCheats.CheckCheatUsage(ref CampaignCheats.ErrorType)) return CampaignCheats.ErrorType;
+            if (CampaignCheats.CheckParameters(strings, 0))
+                return "Format: bannerkings.land_buy_as_vassal [village_name_or_id]";
+            string token = CampaignCheats.ConcatenateString(strings).Trim();
+            var settlement = Settlement.All.FirstOrDefault(s => s != null
+                && (s.StringId == token || s.Name?.ToString() == token) && s.IsVillage);
+            if (settlement?.Village == null) return $"No village found matching '{token}'.";
+            var beh = BannerKings.Behaviours.Estates.BKLandGrantBehavior.Instance;
+            if (beh == null) return "BKLandGrantBehavior not registered (EOF not loaded?).";
+            if (beh.TryBuyLandAsVassal(settlement.Village, Hero.MainHero, out var fail, out var cost))
+                return $"Bought 1 land in {settlement.Name} for {cost}g.";
+            return $"Buy failed: {fail}";
+        }
+
+        [CommandLineFunctionality.CommandLineArgumentFunction("land_grant", "bannerkings")]
+        public static string LandGrant(List<string> strings)
+        {
+            if (!CampaignCheats.CheckCheatUsage(ref CampaignCheats.ErrorType)) return CampaignCheats.ErrorType;
+            if (CampaignCheats.CheckParameters(strings, 0))
+                return "Format: bannerkings.land_grant [village_name_or_id] | [hero_name]";
+            var array = CampaignCheats.ConcatenateString(strings).Split('|');
+            if (array.Length != 2)
+                return "Format: bannerkings.land_grant [village_name_or_id] | [hero_name]";
+            string vToken = array[0].Trim();
+            string hToken = array[1].Trim();
+            var settlement = Settlement.All.FirstOrDefault(s => s != null
+                && (s.StringId == vToken || s.Name?.ToString() == vToken) && s.IsVillage);
+            if (settlement?.Village == null) return $"No village found matching '{vToken}'.";
+            var grantee = Hero.AllAliveHeroes.FirstOrDefault(h => h?.Name != null
+                && h.Name.ToString() == hToken);
+            if (grantee == null) return $"No alive hero found matching '{hToken}'.";
+            var beh = BannerKings.Behaviours.Estates.BKLandGrantBehavior.Instance;
+            if (beh == null) return "BKLandGrantBehavior not registered (EOF not loaded?).";
+            if (beh.TryGrantLand(settlement.Village, Hero.MainHero, grantee, out var fail))
+                return $"Granted 1 land in {settlement.Name} to {grantee.Name}.";
+            return $"Grant failed: {fail}";
+        }
+
+
         [CommandLineFunctionality.CommandLineArgumentFunction("add_piety", "bannerkings")]
         public static string AddPiety(List<string> strings)
         {

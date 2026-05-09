@@ -279,21 +279,21 @@ entries, visit-panel "Manage Estate" option) is dormant when EOF is loaded.
 Old estate ownership records persist in saves — nothing is deleted — but
 the gameplay surface is hidden pending redesign.
 
-**New: vassal-knight land grants.** As of v1.8.0.0, you can grant lands in
-your villages to knights in your clan. This builds on EOF's existing
-"lord lands" system (every village holds 1–2 lands assigned to its bound
-town's owner at game start). To grant:
+**New: vassal land grants and purchases.** As of v1.8.1.0, lands within
+EOF's "lord lands" pool can be subdivided to other heroes — either as
+free grants from the bound-town lord, or as purchases by would-be
+vassals. The shape of who can hold land, who pays whom, and whether
+holding land implies knighthood is determined by your kingdom's **Estate
+Tenure** demesne law.
 
-1. Be the owner of the village's bound town (i.e. you're the village's liege).
-2. Have at least one knight in your clan — promote a clan member to
-   knighthood first if needed (existing BK Knighthood mechanic).
-3. Walk into the village → **Banner Kings** submenu → **Grant lands to
-   vassal knight**.
-4. Pick a knight, then pick **Grant +1** or **Revoke -1**.
+| Estate Tenure | Land = knighthood? | Who can hold | Tax to liege | Lord can grant freely |
+|---|---|---|---|---|
+| **Allodial** | No (pure ownership) | Anyone with gold | None (0%) | Yes (gift, no oath) |
+| **Quia Emptores** | Yes (vassal knight) | Same kingdom | Tenancy-rate skim | Yes (same kingdom) |
+| **Fee Tail** | Yes (vassal knight) | Blood kin only | Tenancy-rate skim | Yes (blood kin only) |
 
-The knight gets daily income from their granted lands, scaled by EOF's
-hearth-bracket production formula. You as liege take a tax cut driven by
-your kingdom's **Tenancy** demesne law:
+Under feudal tenure (Quia Emptores or Fee Tail), the liege's daily
+income tax is driven by the **Tenancy** law:
 
 | Tenancy law | Liege's daily skim |
 |---|---|
@@ -302,18 +302,55 @@ your kingdom's **Tenancy** demesne law:
 | Tenancy None | 5% |
 | (no law set) | 10% |
 
-Granted lands also gate land *purchases* via the **Estate Tenure** law:
+### Buy land in someone else's village (become a vassal)
 
-- **Fee Tail** — only the holder's bloodline (parents, children, siblings,
-  spouse) can buy lands in that fief. Non-kin attempts return a "Fee Tail
-  tenure restricts land purchases" message.
-- **Quia Emptores** / **Allodial** — free purchase, no kinship gate.
+1. Walk into a village whose bound-town lord isn't you.
+2. **Banner Kings** submenu → **Buy land here ({COST}g)**.
+3. Pay the cost (50 × hearth) directly to the lord. You now hold 1 land
+   in their fief.
 
-The granted-knight's daily income flows into their personal gold via
-vanilla mechanics, so it naturally funds their party recruitment without
-extra plumbing. Knight party AI bias toward their granted village(s) and
-AI lieges granting their own knighthoods are planned for a follow-up
-release.
+The land produces daily income via EOF's lord-land formula. Under
+feudal tenure you pay daily tax to the lord, are a knight under their
+banner, and your party self-funds from the income. Under Allodial the
+land is yours free and clear with no oath or daily tax.
+
+To divest: **Sell my land here back to the lord** in the same submenu.
+You receive 1/3 of the purchase price; the lord pays from their pocket.
+
+### Grant land in your own village
+
+If you own the village's bound town, you can grant lands as a favor
+(gold-free) to candidates the law permits:
+
+1. Walk into one of your villages → **Banner Kings** submenu →
+   **Grant lands to vassal knight**.
+2. Pick a candidate (under Allodial: any same-kingdom hero;
+   Quia Emptores: any same-kingdom hero with a clan; Fee Tail:
+   blood kin only).
+3. **Grant +1** or **Revoke -1**.
+
+Daily income flows to the grantee just like a purchased land, with the
+liege's tenancy tax skim applied (or 0 under Allodial).
+
+### Cheat commands for testing
+
+```
+bannerkings.land_list <village_name>             # show grants + EOF lord-lands count
+bannerkings.land_buy_as_vassal <village_name>    # MainHero buys 1 land
+bannerkings.land_grant <village_name> | <hero>   # MainHero grants 1 land to hero
+```
+
+Plus vanilla `campaign.cheat_mode 1`,
+`campaign.give_gold_to_main_hero <amt>`, and the in-game Council screen
+to enact the Estate Tenure / Tenancy laws (BK already exposes these).
+
+### Deferred to a follow-up release
+
+- AI lords initiating knighthood grants (and granting to the player).
+- AI heroes purchasing lands in their kingdom's fiefs to spawn
+  vassal-knight clans.
+- Knight party AI bias toward their granted village's region.
+- Periodic cleanup of stale grants (dead heroes, cross-kingdom transfers).
 
 **What changes vs. BK alone:** under EOF, BK's class-weighted town food
 consumption, BK's prosperity model, BK's loyalty model, BK's workshop
