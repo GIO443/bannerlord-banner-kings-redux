@@ -37,15 +37,23 @@ namespace BannerKings.Managers.Institutions.Religions
         {
             Faith faith = DefaultFaiths.Instance.GetById(Faith.StringId);
             if (clergy == null) clergy = new Dictionary<Settlement, Clergyman>();
+            // DefaultReligions.GetById may legitimately return null when the
+            // saved religion was dropped this run (e.g. Osfeyd loaded from a
+            // save where War Sails is no longer present). Keep the saved
+            // FavoredCultures rather than NRE on rel.FavoredCultures.
             Religion rel = DefaultReligions.Instance.GetById(this);
-            FavoredCultures = rel.FavoredCultures;
+            if (rel != null) FavoredCultures = rel.FavoredCultures;
+            else if (FavoredCultures == null) FavoredCultures = new List<CultureObject>();
             Faith = faith;
 
-            var presets = CharacterObject.All.Where(x => x.Occupation == Occupation.Preacher && x.IsTemplate && x.StringId.Contains("bannerkings") && x.StringId.Contains(faith.GetId()));
-            foreach (var preset in presets)
+            if (faith != null)
             {
-                var number = int.Parse(preset.StringId[preset.StringId.Length - 1].ToString());
-                faith.AddPreset(number, preset);
+                var presets = CharacterObject.All.Where(x => x.Occupation == Occupation.Preacher && x.IsTemplate && x.StringId.Contains("bannerkings") && x.StringId.Contains(faith.GetId()));
+                foreach (var preset in presets)
+                {
+                    var number = int.Parse(preset.StringId[preset.StringId.Length - 1].ToString());
+                    faith.AddPreset(number, preset);
+                }
             }
         }
 

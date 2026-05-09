@@ -41,9 +41,18 @@ namespace BannerKings.Managers.Titles
             Succession.PostInitialize();
             Inheritance.PostInitialize();
             GenderLaw.PostInitialize();
+            // Saves predating the DemesneLaws field deserialize the property as
+            // null even though every constructor populates it; mirror the
+            // ContractAspects ??= defense below.
+            DemesneLaws ??= new List<DemesneLaw>(8);
             foreach (var law in DemesneLaws)
             {
+                if (law == null) continue;
+                // Saved StringId may no longer exist in DefaultDemesneLaws if a
+                // law was renamed/removed in a later BK build; GetById returns
+                // null in that case. Skip rather than NRE on type.Name.
                 var type = DefaultDemesneLaws.Instance.GetById(law);
+                if (type == null) continue;
                 law.Initialize(type.Name, type.Description, type.Effects, type.LawType, type.AuthoritarianWeight,
                     type.EgalitarianWeight, type.OligarchicWeight, type.InfluenceCost, type.Culture, type.IsAdequateForKingdom);
             }
@@ -51,6 +60,7 @@ namespace BannerKings.Managers.Titles
             if (ContractAspects == null) ContractAspects = new List<ContractAspect>();
             else foreach (var aspect in ContractAspects)
             {
+                if (aspect == null) continue;
                 aspect.PostInitialize();
             }
 

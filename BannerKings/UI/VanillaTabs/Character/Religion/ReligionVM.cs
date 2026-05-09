@@ -202,9 +202,13 @@ namespace BannerKings.UI.VanillaTabs.Character.Religion
                 .SetTextVariable("TOLERANCE", marriage.UntoleratedExplanation)
                 ));
 
+            // WarDoctrine can be null on faiths that haven't bound one (or
+                // on saves predating the field). Mirror the FaithSeat null
+                // pattern just above instead of NRE'ing the entire tab.
+            var warDoctrine = currentReligion.Faith.WarDoctrine;
             Aspects.Add(new ReligionElementVM(new TextObject("{=!}Warfare Doctrine"),
-                currentReligion.Faith.WarDoctrine.Name,
-                currentReligion.Faith.WarDoctrine.Description));
+                warDoctrine != null ? warDoctrine.Name : new TextObject("{=!}None"),
+                warDoctrine != null ? warDoctrine.Description : new TextObject("{=!}This faith has no warfare doctrine bound.")));
 
             Aspects.Add(new ReligionElementVM(new TextObject("{=!}Faith Type"),
                 currentReligion.Faith.GetFaithTypeName(),

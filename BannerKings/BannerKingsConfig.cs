@@ -196,8 +196,13 @@ namespace BannerKings
             DefaultBookTypes.Instance.Initialize();
             DefaultLifestyles.Instance.Initialize();
             DefaultDemesneLaws.Instance.Initialize();
-            // Faiths bind MarriageDoctrine references at construction time, so
-            // marriage and war doctrines must be live before DefaultFaiths runs.
+            // Faiths bind MarriageDoctrine and WarDoctrine references at
+            // construction time, so both doctrine sets must be live before
+            // DefaultFaiths runs. WarDoctrines additionally read
+            // DefaultCasusBelli.Instance.HolyWar / DivineReclamation, so
+            // CasusBelli must run before WarDoctrines (a Dictionary<CasusBelli,
+            // int> with null keys throws on the second Add).
+            DefaultCasusBelli.Instance.Initialize();
             DefaultMarriageDoctrines.Instance.Initialize();
             DefaultWarDoctrines.Instance.Initialize();
             DefaultFaithGroups.Instance.Initialize();
@@ -205,7 +210,6 @@ namespace BannerKings
             DefaultReligions.Instance.Initialize();
             DefaultCouncilTasks.Instance.Initialize();
             DefaultCouncilPositions.Instance.Initialize();
-            DefaultCasusBelli.Instance.Initialize();
             DefaultDemands.Instance.Initialize();
             DefaultRadicalGroups.Instance.Initialize();
             DefaultInterestGroup.Instance.Initialize();

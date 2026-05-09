@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using BannerKings.Managers.Institutions.Religions.Doctrines;
 using BannerKings.Managers.Institutions.Religions.Doctrines.Marriage;
+using BannerKings.Managers.Institutions.Religions.Doctrines.War;
 using BannerKings.Managers.Institutions.Religions.Faiths.Rites;
 using BannerKings.Managers.Institutions.Religions.Faiths.Rites.Battania;
 using BannerKings.Managers.Institutions.Religions.Faiths.Rites.Empire;
@@ -45,9 +46,7 @@ namespace BannerKings.Managers.Institutions.Religions.Faiths
             var groups = DefaultFaithGroups.Instance;
             var docs = DefaultDoctrines.Instance;
             var marriage = DefaultMarriageDoctrines.Instance;
-            // War doctrines initialise after faiths in BannerKingsConfig.Initialize,
-            // so faiths bind their war doctrine at first lookup via their preset
-            // (kept null here; not yet wired into Faith.WarDoctrine consumption).
+            var war = DefaultWarDoctrines.Instance;
 
             // ----- Darusosian (Empire) -----
             Darusosian = Build(new FaithPreset
@@ -75,6 +74,7 @@ namespace BannerKings.Managers.Institutions.Religions.Faiths
             faithGroup: groups.ImperialOrders,
             doctrines: new List<Doctrine> { docs.Legalism, docs.RenovatioImperi, docs.Tolerant, docs.Astrology, docs.Esotericism },
             marriageDoctrine: marriage.Monogamy,
+            warDoctrine: war.OpenWarfare,
             rites: new List<Rite> { new AstaroniaFestival(), new DarusosianHomage(), new DarusosianExecution() });
 
             // ----- Canticles (Vlandia) -----
@@ -103,6 +103,7 @@ namespace BannerKings.Managers.Institutions.Religions.Faiths
             faithGroup: groups.VlandicCanonical,
             doctrines: new List<Doctrine> { docs.Legalism, docs.Childbirth, docs.Warlike, docs.Literalism },
             marriageDoctrine: marriage.Monogamy,
+            warDoctrine: war.OpenWarfare,
             rites: new List<Rite> { new LanceOffering(), new VlandiaHorse() });
 
             // ----- Amra (Battania) -----
@@ -130,6 +131,7 @@ namespace BannerKings.Managers.Institutions.Religions.Faiths
             faithGroup: groups.DruidicCircles,
             doctrines: new List<Doctrine> { docs.Druidism, docs.Animism, docs.Shamanism, docs.AncestorWorship },
             marriageDoctrine: marriage.Concubinage,
+            warDoctrine: war.NoWarfare,
             rites: new List<Rite> { new IronOffering(), new GreatSwordOffering() });
 
             // ----- Asera (Aserai) -----
@@ -156,6 +158,7 @@ namespace BannerKings.Managers.Institutions.Religions.Faiths
             faithGroup: groups.AseraiUlama,
             doctrines: new List<Doctrine> { docs.Tolerant, docs.Legalism, docs.Literalism, docs.HeathenTax },
             marriageDoctrine: marriage.Polygamy,
+            warDoctrine: war.Reclamation,
             rites: new List<Rite>());
 
             // ----- SixWinds (Khuzait) -----
@@ -182,6 +185,7 @@ namespace BannerKings.Managers.Institutions.Religions.Faiths
             faithGroup: groups.SteppeKhanate,
             doctrines: new List<Doctrine> { docs.AncestorWorship, docs.Shamanism, docs.Pastoralism, docs.Warlike },
             marriageDoctrine: marriage.AvunculatePolygamy,
+            warDoctrine: war.OpenWarfare,
             rites: new List<Rite>());
 
             // ----- Treelore (Sturgia) -----
@@ -208,6 +212,7 @@ namespace BannerKings.Managers.Institutions.Religions.Faiths
             faithGroup: groups.NorthernElders,
             doctrines: new List<Doctrine> { docs.AncestorWorship, docs.Childbirth, docs.Warlike, docs.Tolerant },
             marriageDoctrine: marriage.Monogamy,
+            warDoctrine: war.OpenWarfare,
             rites: new List<Rite> { new AxeOffering(), new TreeloreFestival() });
 
             // ----- Osfeyd (Nord) -----
@@ -234,6 +239,7 @@ namespace BannerKings.Managers.Institutions.Religions.Faiths
             faithGroup: groups.NordChieftains,
             doctrines: new List<Doctrine> { docs.Reavers, docs.OsricsVengeance, docs.Warlike, docs.AncestorWorship },
             marriageDoctrine: marriage.Monogamy,
+            warDoctrine: war.OpenWarfare,
             rites: new List<Rite> { new AxeOffering() });
         }
 
@@ -243,6 +249,7 @@ namespace BannerKings.Managers.Institutions.Religions.Faiths
             Groups.FaithGroup faithGroup,
             List<Doctrine> doctrines,
             MarriageDoctrine marriageDoctrine,
+            WarDoctrine warDoctrine,
             List<Rite> rites)
         {
             var faith = new PresetFaith(preset);
@@ -251,7 +258,7 @@ namespace BannerKings.Managers.Institutions.Religions.Faiths
                 faithGroup,
                 doctrines ?? new List<Doctrine>(),
                 marriageDoctrine,
-                warDoctrine: null,
+                warDoctrine,
                 rites ?? new List<Rite>(),
                 societies: new List<Society>());
             return faith;
