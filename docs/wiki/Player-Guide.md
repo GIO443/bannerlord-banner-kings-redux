@@ -348,6 +348,12 @@ liege's tenancy tax skim applied (or 0 under Allodial).
 
 ### AI lieges granting land
 
+> **Requires Economy Overhaul Framework (EOF).** This system grants
+> EOF lord-lands; without EOF the behaviour isn't even registered.
+> If you're playing without EOF, AI clans will not grant you (or each
+> other) anything — knighthoods are player-driven only via the
+> dialogue path under "How do I become a vassal?".
+
 AI vassal clans (tier ≥ 2, kingdom-bound, with un-granted lord-lands in
 their bound villages) periodically grant a land to either a clan member
 or, with player consent, the player. Roll happens on the daily clan
