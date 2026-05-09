@@ -55,7 +55,13 @@ namespace BannerKings.Managers.Titles.Laws
             {
                 yield return EstateTenureQuiaEmptores;
                 yield return EstateTenureAllodial;
-                yield return EstateTenureFeeTail;
+                // EstateTenureFeeTail removed from the council vote list as of
+                // v1.8.7.0 — its blood-kin restriction was too punishing for
+                // player gameplay. The field declaration stays so existing
+                // saves with Fee Tail enacted still deserialize cleanly; the
+                // law just behaves like Quia Emptores at runtime (no kin
+                // gate). New kingdom defaults below seed Quia Emptores
+                // instead.
                 yield return NoblesMilitaryServiceDuties;
                 yield return NoblesTaxDuties;
                 yield return NoblesLaxDuties;
@@ -117,7 +123,7 @@ namespace BannerKings.Managers.Titles.Laws
             if (government == DefaultGovernments.Instance.Feudal)
             {
                 list.Add(DraftingVassalage.GetCopy());
-                list.Add(EstateTenureFeeTail.GetCopy());
+                list.Add(EstateTenureQuiaEmptores.GetCopy());
 
                 if (culture != null)
                 {
@@ -162,7 +168,7 @@ namespace BannerKings.Managers.Titles.Laws
             else
             {
                 list.Add(DraftingFreeContracts.GetCopy());
-                list.Add(EstateTenureFeeTail.GetCopy());
+                list.Add(EstateTenureQuiaEmptores.GetCopy());
                 list.Add(TenancyMixed.GetCopy());
                 list.Add(ArmyLegion.GetCopy());
             }

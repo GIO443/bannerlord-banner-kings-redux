@@ -121,10 +121,9 @@ namespace BannerKings.Behaviours.Estates
         /// Resolves who is permitted to hold land in this village under the
         /// kingdom's Estate Tenure law.
         ///
-        /// Allodial: anyone with gold (no kingdom or kinship gate).
-        /// Quia Emptores: same kingdom as the village's liege.
-        /// Fee Tail: immediate blood kin of the bound-town lord.
-        /// Default (no tenure law set): same kingdom (Quia-Emptores-equivalent).
+        /// Allodial: anyone with gold (no kingdom gate).
+        /// Quia Emptores (and default / legacy Fee Tail saves): same kingdom
+        /// as the village's liege.
         /// </summary>
         public bool CanHoldLand(Village v, Hero candidate, out string failReason)
         {
@@ -137,23 +136,9 @@ namespace BannerKings.Behaviours.Estates
             var lord = ResolveBoundTownLord(v);
             if (lord == null) { failReason = "village has no liege"; return false; }
 
-            try
-            {
-                var title = BannerKingsConfig.Instance?.TitleManager?.GetTitle(v.Settlement);
-                if (title?.Contract != null
-                    && title.Contract.IsLawEnacted(DefaultDemesneLaws.Instance.EstateTenureFeeTail))
-                {
-                    if (!AreImmediateKin(lord, candidate))
-                    {
-                        failReason = "Fee Tail tenure restricts ownership to the lord's immediate kin";
-                        return false;
-                    }
-                    return true;
-                }
-            }
-            catch { }
-
-            // Quia Emptores or no specific tenure law: same kingdom required.
+            // Fee Tail's kin-only restriction was removed in v1.8.7.0 — too
+            // limiting for the player. Old saves with Fee Tail enacted now
+            // behave like Quia Emptores: same-kingdom is enough.
             if (lord.MapFaction != null && candidate.MapFaction != null
                 && lord.MapFaction == candidate.MapFaction)
                 return true;

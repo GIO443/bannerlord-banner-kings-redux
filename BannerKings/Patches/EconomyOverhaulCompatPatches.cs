@@ -450,6 +450,10 @@ namespace BannerKings.Patches
         }
 
         // Gates EOF's TryBuyOneLand by the village's title's Estate Tenure law.
+        // (As of v1.8.7.0 Fee Tail is removed from active law options; this
+        // prefix is kept for forward compatibility in case a future tenure
+        // law needs a similar gate, but the Prepare() now returns false so
+        // it's a no-op until a new gate is wired in.)
         // Fee Tail prohibits buying land in fiefs you don't already hold (estates
         // are entailed within the holder's lineage); Quia Emptores and Allodial
         // permit free purchase. Permissive default if no tenure law is enacted.
@@ -458,55 +462,17 @@ namespace BannerKings.Patches
         {
             private static Type _addonsBehaviorType;
 
-            private static bool Prepare()
-            {
-                if (!ModCompat.EconomyOverhaul) return false;
-                _addonsBehaviorType = AccessTools.TypeByName(VillageAddonsBehaviorType);
-                return _addonsBehaviorType != null
-                    && AccessTools.Method(_addonsBehaviorType, "TryBuyOneLand",
-                        new[] { typeof(Village) }) != null;
-            }
+            // Prepare always false post-v1.8.7.0 — no active gate. Method
+            // resolution and stub kept so the structure is in place to add
+            // future tenure-based purchase gates without rewriting the
+            // patch class.
+            private static bool Prepare() => false;
 
             private static MethodBase TargetMethod()
                 => AccessTools.Method(_addonsBehaviorType, "TryBuyOneLand",
                     new[] { typeof(Village) });
 
-            private static bool Prefix(Village v, ref bool __result)
-            {
-                if (v?.Settlement == null) return true;
-                try
-                {
-                    var title = BannerKingsConfig.Instance?.TitleManager?.GetTitle(v.Settlement);
-                    if (title?.Contract == null) return true;
-                    if (title.Contract.IsLawEnacted(DefaultDemesneLaws.Instance.EstateTenureFeeTail))
-                    {
-                        var lord = BKLandGrantBehavior.ResolveBoundTownLord(v);
-                        bool playerIsLord = lord == Hero.MainHero;
-                        bool playerIsBloodKin = lord != null && AreImmediateKin(Hero.MainHero, lord);
-                        if (!playerIsLord && !playerIsBloodKin)
-                        {
-                            MBInformationManager.AddQuickInformation(new TextObject(
-                                "{=BK_FeeTailBlock}Fee Tail tenure restricts land purchases to the holder's lineage."));
-                            __result = false;
-                            return false;
-                        }
-                    }
-                }
-                catch { /* permissive on lookup failure */ }
-                return true;
-            }
-
-            private static bool AreImmediateKin(Hero a, Hero b)
-            {
-                if (a == null || b == null) return false;
-                if (a == b) return true;
-                if (a.Father == b || a.Mother == b) return true;
-                if (b.Father == a || b.Mother == a) return true;
-                if (a.Father != null && a.Father == b.Father) return true;
-                if (a.Mother != null && a.Mother == b.Mother) return true;
-                if (a.Spouse == b) return true;
-                return false;
-            }
+            private static bool Prefix(Village v, ref bool __result) => true;
         }
     }
 }

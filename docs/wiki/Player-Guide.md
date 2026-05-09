@@ -339,7 +339,10 @@ Tenure** demesne law.
 |---|---|---|---|---|
 | **Allodial** | No (pure ownership) | Anyone with gold | None (0%) | Yes (gift, no oath) |
 | **Quia Emptores** | Yes (vassal knight) | Same kingdom | Tenancy-rate skim | Yes (same kingdom) |
-| **Fee Tail** | Yes (vassal knight) | Blood kin only | Tenancy-rate skim | Yes (blood kin only) |
+
+(Fee Tail was removed in v1.8.7.0 — its blood-kin-only restriction was
+too punishing for player gameplay. Old saves with Fee Tail enacted
+behave like Quia Emptores at runtime.)
 
 Under feudal tenure (Quia Emptores or Fee Tail), the liege's daily
 income tax is driven by the **Tenancy** law:
