@@ -381,6 +381,34 @@ If you own the village's bound town, you can grant lands as a favor
 Daily income flows to the grantee just like a purchased land, with the
 liege's tenancy tax skim applied (or 0 under Allodial).
 
+### AI lieges granting land
+
+AI vassal clans (tier ≥ 2, kingdom-bound, with un-granted lord-lands in
+their bound villages) periodically grant a land to either a clan member
+or, with player consent, the player. Roll happens on the daily clan
+tick at ~0.6% per day per eligible clan (≈ once a week per clan when
+conditions hold).
+
+Recipients:
+- **Clan companion / kin** (most grants). Goes through silently and
+  appears in the BK grant table; the recipient becomes a vassal knight
+  of the grantor's fief.
+- **The player** (~20% of grants when eligible). Triggers an inquiry —
+  *"{Lord} of {Clan} offers you a parcel of land in {Village} as a
+  sworn-vassal grant. Accepting binds you to {Lord} as your liege for
+  that fief. Refusing has no cost. Accept?"* — decline is free, accept
+  records the grant. Player must be in the same kingdom as the
+  grantor and have at least +25 relation.
+
+Eligibility for the recipient is checked against the village's Estate
+Tenure law via the same `CanHoldLand` rule as player-driven grants:
+Allodial accepts anyone, Quia Emptores requires same kingdom, Fee Tail
+requires blood kin (so AI lords can grant to family but not to
+unrelated companions under Fee Tail).
+
+A kingdom-wide notification fires when a grant occurs in the player's
+kingdom or involves the player directly.
+
 ### Auto-supply toggle (delegate the tools/horses run)
 
 EOF drains every village warehouse weekly: ~1 tool plus ~5 draft animals
