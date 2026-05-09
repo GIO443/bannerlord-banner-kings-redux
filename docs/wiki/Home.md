@@ -24,12 +24,10 @@ while attribution and licensing details are sorted with the original
 author — GitHub Releases is where you grab the build in the meantime.
 Extract the zip into your Bannerlord install per [Installing](Installing).
 
-Two parallel release lines are maintained:
-
-| Line | What's different | Latest |
-|---|---|---|
-| **🟢 1.6.x** *(recommended)* | Graph-driven shipping + adaptive risk weighting; raid capture system. | [Latest 1.6.x](https://github.com/GIO443/bannerlord-banner-kings-redux/releases/latest) |
-| **🔵 1.5.x** *(stable maintenance)* | Original lane-overlap shipping; pre-raid-capture flow. | [v1.5.8.0](https://github.com/GIO443/bannerlord-banner-kings-redux/releases/tag/v1.5.8.0) |
+Releases are tagged on the 1.8.x line; the latest tag is the recommended
+build. Older 1.5.x / 1.6.x tags remain available on the releases page if
+you specifically need to roll back, but no new fixes are backported to
+them.
 
 ---
 

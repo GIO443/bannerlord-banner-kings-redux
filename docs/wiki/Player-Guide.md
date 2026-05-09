@@ -117,43 +117,6 @@ death (configured per estate's contract).
 **Seize:** Available to a liege when a vassal's estate becomes claimable
 — owner died heirless, treason, banditry, etc. *Court → Estates → Seize*.
 
-## How does the estate retinue (militia reserve) work?
-
-Each owned estate maintains a small reserve of militia trained from its
-free population. The reserve passively defends the estate's village if
-raided. You can withdraw from it (drains the estate's population — the
-peasants leave the land to fight) or deposit into it (no population
-change — paid retainers being added to the muster).
-
-**Cap:** `5 + (Population × 0.03 × specMult) + ManorBonus`
-- Spec multipliers: Levy ×2, Growth ×0.5, others ×1
-- Manor village building: +5 per level (shared across all estates in
-  the village)
-- Slaves never count — only free population (Serfs / Tenants).
-
-**Regen:** each below-cap slot rolls a daily ~10% chance to add 1
-militia troop, modified by:
-- Estate spec (Levy ×3, Growth ×0.5)
-- Village draft policy (Conscription ×1.25, Demobilization ×0.75)
-- Manor building (additive +10% per level)
-
-So a 200-pop Levy-spec estate with a level-2 Manor in a Conscription
-village fills its ~32-troop cap in about 2-3 days per slot. A
-50-pop Yield-spec estate with no Manor sits at ~6-troop cap and
-trickles up over weeks.
-
-**Use:**
-1. Open the estate panel and click *Retinue* (only works while you're
-   at the village).
-2. Pick *Withdraw* (drains pop) or *Deposit* (free troop stash, no pop
-   change).
-3. Enter how many troops to move.
-
-The retinue is militia tier only (vanilla `MilitiaPartyTemplate` —
-basic spearmen / archers). It auto-deploys with the village when raided
-regardless of who owns the retinue, so AI-owned retinues defend their
-own estates without you doing anything.
-
 ## How do I trade in a castle?
 
 Banner Kings — Redux re-enables castle trade (vanilla castles have no
@@ -323,8 +286,8 @@ hold lord-lands → Banner Kings submenu → **Configure lands quotas
 Set 0 to disable either. Both default off.
 
 **Old BK estates are paused under EOF.** The legacy estate loop (daily
-income, retinue militia, AI estate decisions, management UI, clan-finance
-entries, visit-panel "Manage Estate" option) is dormant when EOF is loaded.
+income, AI estate decisions, management UI, clan-finance entries,
+visit-panel "Manage Estate" option) is dormant when EOF is loaded.
 Old estate ownership records persist in saves — nothing is deleted — but
 the gameplay surface is hidden pending redesign.
 
@@ -344,8 +307,8 @@ Tenure** demesne law.
 too punishing for player gameplay. Old saves with Fee Tail enacted
 behave like Quia Emptores at runtime.)
 
-Under feudal tenure (Quia Emptores or Fee Tail), the liege's daily
-income tax is driven by the **Tenancy** law:
+Under feudal tenure (Quia Emptores), the liege's daily income tax is
+driven by the **Tenancy** law:
 
 | Tenancy law | Liege's daily skim |
 |---|---|
@@ -377,8 +340,7 @@ If you own the village's bound town, you can grant lands as a favor
 1. Walk into one of your villages → **Banner Kings** submenu →
    **Grant lands to vassal knight**.
 2. Pick a candidate (under Allodial: any same-kingdom hero;
-   Quia Emptores: any same-kingdom hero with a clan; Fee Tail:
-   blood kin only).
+   Quia Emptores: any same-kingdom hero with a clan).
 3. **Grant +1** or **Revoke -1**.
 
 Daily income flows to the grantee just like a purchased land, with the
@@ -405,9 +367,8 @@ Recipients:
 
 Eligibility for the recipient is checked against the village's Estate
 Tenure law via the same `CanHoldLand` rule as player-driven grants:
-Allodial accepts anyone, Quia Emptores requires same kingdom, Fee Tail
-requires blood kin (so AI lords can grant to family but not to
-unrelated companions under Fee Tail).
+Allodial accepts anyone, Quia Emptores requires the candidate to be in
+the same kingdom.
 
 A kingdom-wide notification fires when a grant occurs in the player's
 kingdom or involves the player directly.
@@ -456,9 +417,6 @@ to enact the Estate Tenure / Tenancy laws (BK already exposes these).
 
 ### Deferred to a follow-up release
 
-- AI lords initiating knighthood grants (and granting to the player).
-- AI heroes purchasing lands in their kingdom's fiefs to spawn
-  vassal-knight clans.
 - Knight party AI bias toward their granted village's region.
 - Periodic cleanup of stale grants (dead heroes, cross-kingdom transfers).
 
@@ -584,14 +542,6 @@ Same data is mirrored in the per-estate row of the clan finance
 income panel; an extra "Income Blocked" entry appears at the top of
 that row when the blocker is active.
 
-**Q: I clicked Retinue and ended up fighting it.**
-*Was* a bug. The retinue's faction was being inherited from the
-village's owner clan, so a player-owned estate in foreign territory
-had its retinue flagged hostile. The retinue is now owned by
-`Estate.Owner.Clan` directly (and `ActualClan` is set explicitly at
-spawn). Player retinues are friendly to the player; player-vassal
-retinues are friendly to the kingdom.
-
 **Q: The Slaves button on the estate panel does nothing.**
 *Was* broken in the 1.3.x port — `PartyScreenHelper.OpenScreenAsLoot`
 was removed from vanilla and the original BK transfer screen depended
@@ -664,8 +614,8 @@ the first thing in the string so it survives the truncation.
    ~250K for vanilla — a single battle could push a skill from 1 to 100.
    The toggle defaulted **on** in 2023, was flipped to off later, but
    MCM settings persist across versions so saves carrying the old default
-   kept hitting the bug. As of v1.6.9.26 the toggle is **removed
-   entirely** — every save uses vanilla's XP curve.
+   kept hitting the bug. The toggle is now **removed entirely** —
+   every save uses vanilla's XP curve.
 
 The per-day Scholarship XP from language/book reading was also rescaled
 (50/day → 10/day, 2000 on completion → 500). Existing high skills won't
@@ -756,12 +706,16 @@ poorly.
 
 **Q: How do I find a preacher?**
 Preachers spawn as notables in towns and castles of cultures that
-match the faith. Towns get up to rank-3 preachers (pontifex, primarch,
-arch-druid); castles get rank-2; villages get rank-1. The preacher's
-name carries the rank title — *Pontifex Aurelius*, *Primarch Roland*,
-*Arch-Druid Caelin*, *Imam Yusef*, *Khan-Shaman Bagatur*, *Eldgothi
-Sigmar*, *Hrafnskáld Hrolf*. Open the settlement's notable list and
-look for the religious title in front of the name.
+match the faith. Each faith caps at its own clergy depth: the
+**Darusosian Path** and **Canticles of Caïon** run a 3-tier hierarchy
+(towns get the top rank — *Pontifex* / *Primarch*; castles get the
+mid rank — *Lictor* / *Canon*; villages get the entry rank — *Acolyte*
+/ *Brother*). **Amra Druidh** runs 2 tiers (*Arch-Druid* in towns,
+*Bard* below). The other four faiths — **Path of Akhmar**, **Six
+Winds**, **Old Gods of the North**, **Osfeydian Tradition** — are
+single-tier: one rank title (*Imam*, *Khan-Shaman*, *Eldgothi*,
+*Hrafnskáld*) regardless of settlement type. Open the settlement's
+notable list and look for the religious title in front of the name.
 
 **Q: How do I earn piety?**
 Daily piety ticks based on faith doctrines and your behaviour:

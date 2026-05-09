@@ -43,6 +43,12 @@ tenants, food/gold output, and an inheritance line. You can hold multiple
 estates across multiple villages. Estates pass on owner death via the estate
 contract's inheritance rule — independently of fief succession.
 
+> The estate **gameplay loop** (daily income, AI estate decisions,
+> management UI) is paused when **Economy Overhaul Framework** is
+> installed — EOF owns the village/town economy in that case. Ownership
+> records still persist in saves and the title/inheritance / vassal-grant
+> path still works. See [Player Guide → Economy: Hearth and Population](Player-Guide#economy-hearth-and-population).
+
 ### Council and court
 
 Each clan can appoint officers — Marshal (military), Steward (economy),
@@ -98,8 +104,10 @@ condensed onboarding:
    one book in a language you understand. Books grant slow skill XP that
    accumulates while you carry them.
 4. **Skip estates until you have a clan tier 2.** They're expensive and take
-   time to pay off. Start with a workshop in an active town; the income is
-   immediate and reliable.
+   time to pay off. Start with a workshop in an active town for steady early
+   income. *(With **Economy Overhaul Framework** installed, workshops have
+   their own Lv1–5 upgrade chain and auto-buy/sell — that's EOF's domain;
+   the BK upgrade button is hidden.)*
 5. **Vassalize before founding a kingdom.** A barony under an existing king
    is a stable platform to grow the clan and learn the contract system. Going
    independent too early is a brutal multifront war.

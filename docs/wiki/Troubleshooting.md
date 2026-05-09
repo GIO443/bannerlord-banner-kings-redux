@@ -22,10 +22,10 @@
 - **"Crash on entering a Nord settlement"** — only on pre-fix or
   non-Redux builds. Update to the latest Banner Kings — Redux release;
   the Nord null-guards are bundled.
-- **"Crash hovering parties in the Army Management screen"** — fixed
-  in v1.6.9.33. Caused by BK's mercenary eligibility tweak leaving the
-  hover tooltip's reason text null. Update Banner Kings — Redux.
-- **"My army disbands far too soon"** — fixed in v1.6.9.34. BK's
+- **"Crash hovering parties in the Army Management screen"** — fixed.
+  Caused by BK's mercenary eligibility tweak leaving the hover tooltip's
+  reason text null. Update to a current Banner Kings — Redux build.
+- **"My army disbands far too soon"** — fixed. BK's
   cohesion postfix was clamping the daily change at a forced loss,
   blocking every vanilla recovery condition (camped at home, food,
   leader perks). The MCM "Army Cohesion Boost" slider now actually
@@ -40,18 +40,17 @@
 - **"Estate showing zero income"** — check the visit panel for an
   **Income Blocked** reason (war with the village's faction, BK title
   manager not loaded, owner→estate registry desync). See the full
-  recipe under [Player guide → Estates](Player-Guide#estates). If
-  you're running an older 1.6.x build, upgrade — recent builds added
-  a backstop payout that fixes the silent
-  ImprovedGarrisons-replaces-finance-model case.
+  recipe under [Player guide → Estates](Player-Guide#estates). On older
+  builds, upgrade — current builds added a backstop payout that fixes
+  the silent ImprovedGarrisons-replaces-finance-model case.
 - **"Can't change demesne law"** — locked behind a contract-change cooldown
   (≈ 1 in-game year) and minimum loyalty / authority gates.
 - **"Skills level too fast in Banner Kings"** — older builds shipped
   with the *Alternative Leveling* MCM toggle on by default, and its XP
   curve only added ~20 XP per level past level 1, so any small XP gain
-  rocketed you through 10+ levels. As of v1.6.9.26 the toggle is
-  **removed entirely** — every save uses vanilla's XP curve regardless
-  of what value the MCM file remembers from a previous version. No
+  rocketed you through 10+ levels. The toggle is now **removed
+  entirely** — every save uses vanilla's XP curve regardless of what
+  value the MCM file remembers from a previous version. No
   action needed; load your save and skills will progress at vanilla
   rates.
 - **"Language learning finishes instantly"** — symptom of the same
@@ -59,19 +58,20 @@
   language-rate skill effect off the rails) plus an unsafe rate path.
   Per-tick fluency gain is now hard-capped at 5%, so even with the worst
   rate inputs a language can't finish in fewer than ~20 in-game days.
-- **"How do I use the Religion / Theology system?"** You don't.
-  Religions, faiths, piety, doctrines, preachers, and the Theology
-  skill effects are **not functional** in Banner Kings — Redux. The
-  upstream system was deeply broken when the 1.3.x port landed and
-  has been left dormant pending a future rewrite; the encyclopedia
-  pages, council Philosopher tasks, and any tooltips referencing
-  faiths or piety should be treated as inert. Your character can
-  level Theology as a skill, but its bonuses won't fire reliably and
-  there is no working in-game way to convert a settlement, install a
-  preacher, or perform a rite. If you see a religion popup, ignore
-  it. If a quest references piety, the quest is stuck — abandon it.
+- **"How do I use the Religion / Theology system?"** As of v1.8.9.0
+  the seven culture faiths (Darusosian, Canticles, Amra, Asera, Six
+  Winds, Treelore, Osfeyd) are seeded and functional — heroes get a
+  faith automatically, preacher notables generate at settlements,
+  and dialogue with a preacher of your faith gives blessings, rites
+  and induction options. See [Player-Guide → Religion](Player-Guide#religion)
+  for the procedural how-to and [Systems-Reference → Faiths](Systems-Reference#faiths)
+  for the per-culture table. Theology XP ticks from piety gain
+  (battles, rites, doctrines). If you see anything that looks
+  broken — empty preacher dialogue, induction with no effect, a
+  doctrine that doesn't fire — file an issue with a Better Exception
+  Window report.
 - **"A caravan is walking visibly across open water"** — fixed in two
-  layers on the 1.6.x line: a daily rescue sweep steers stranded
+  layers: a daily rescue sweep steers stranded
   parties to the nearest sea-reachable port, and the routing graph
   now reads the engine's `HasPort` flag directly so previously-missed
   coastal towns (Omor, Varcheg, Sibir, Argoron, Sargot) no longer
@@ -82,31 +82,30 @@
 - **"Crash every time I open castle/town management to set a governor"** —
   was an NRE inside vanilla `DefaultDelayedTeleportationModel.GetTeleportationDelayAsHours`
   when the candidate hero hovered in the picker had no clan reference (which
-  some BK-tracked heroes can briefly end up with). Fixed in v1.6.8.1: a
-  defensive prefix on that vanilla method returns a zero teleport delay
-  instead of crashing. If you still see this on an older build, update to
-  the latest Banner Kings — Redux release.
+  some BK-tracked heroes can briefly end up with). Fixed: a defensive
+  prefix on that vanilla method returns a zero teleport delay instead
+  of crashing. Update to a current Banner Kings — Redux build if you
+  still see this.
 - **"My new game crashes during loading"** — almost always a non-BK mod's
   Harmony patch failing (e.g., GovernorsHandleIssues against newer
   Bannerlord builds). Install **Better Exception Window** if you haven't
   already (see [Reporting bugs](#reporting-bugs) below) and read the
   inner exception in the crash report — it usually names the offending
   mod by its patch method, and you can disable that mod and continue.
-- **"Save load crashes with a BannerKings GetPopData NRE"** — fixed in
-  v1.6.9.25. Cause: vanilla `Clan.AfterLoad` recomputes party strength
-  early in the load sequence, which reaches `Town.FoodChange` →
-  BK's food model → `PopulationManager.GetPopData` before BK's
-  population caches are wired up, so the lookup NRE'd. The fix is a
-  null-guard: BK's food calc cleanly falls back to vanilla until
-  `PostInitialize` runs, then takes over. Update to v1.6.9.25 or newer.
+- **"Save load crashes with a BannerKings GetPopData NRE"** — fixed.
+  Cause: vanilla `Clan.AfterLoad` recomputes party strength early in
+  the load sequence, which reaches `Town.FoodChange` → BK's food model
+  → `PopulationManager.GetPopData` before BK's population caches are
+  wired up, so the lookup NRE'd. The fix is a null-guard: BK's food
+  calc cleanly falls back to vanilla until `PostInitialize` runs, then
+  takes over.
 - **"Crash entering any town with a `MountCreationKey.GetRandomMountKey`
-  NRE in `MissionHelper.SpawnCows`"** — fixed in v1.6.9.25. Cause:
-  BK's price-adjust pass on game create/load was calling
-  `ItemObject.InitializeTradeGood` on the vanilla cow item, which is
-  the wrong helper for items with a `HorseComponent` and stripped the
-  cow's mount data. Vanilla town-center scenes then NRE'd trying to
-  spawn cows. The fix is to leave the vanilla cow item alone; cow
-  pricing falls back to vanilla. Update to v1.6.9.25 or newer.
+  NRE in `MissionHelper.SpawnCows`"** — fixed. Cause: BK's price-adjust
+  pass on game create/load was calling `ItemObject.InitializeTradeGood`
+  on the vanilla cow item, which is the wrong helper for items with a
+  `HorseComponent` and stripped the cow's mount data. Vanilla town-
+  center scenes then NRE'd trying to spawn cows. The fix is to leave
+  the vanilla cow item alone; cow pricing falls back to vanilla.
 
 ---
 
@@ -185,7 +184,7 @@ For the recommended load order, see [Installing → Recommended load order](Inst
 
 Before you submit a crash report — and ideally before you even play a
 save you care about — install **Better Exception Window** from Nexus
-([Bannerlord.BetterExceptionWindow](https://www.nexusmods.com/mountandblade2bannerlord/mods/2032)).
+([Bannerlord.BetterExceptionWindow](https://www.nexusmods.com/mountandblade2bannerlord/mods/404)).
 It replaces vanilla Bannerlord's terse crash dialog with a detailed HTML
 crash report that lists the full stack trace, the inner exception, all
 loaded modules with versions and load order, and the harmony patches

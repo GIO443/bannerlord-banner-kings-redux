@@ -20,7 +20,7 @@ page is hidden.
   Nord title hierarchy, seafaring lifestyles, and Nordic Thrall Law activate.
   The mod runs fine without it.
 - *Strongly recommended:* **Better Exception Window**
-  ([Nexus link](https://www.nexusmods.com/mountandblade2bannerlord/mods/2032)).
+  ([Nexus link](https://www.nexusmods.com/mountandblade2bannerlord/mods/404)).
   Replaces vanilla Bannerlord's terse crash dialog with a detailed HTML
   crash report (full stack, inner exception, loaded modules, harmony
   patches). Without it, any crash you hit gives us nothing to debug

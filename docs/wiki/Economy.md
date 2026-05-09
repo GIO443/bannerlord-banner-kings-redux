@@ -6,6 +6,16 @@ The Banner Kings layered economy adds three classification layers on top of vani
 
 This page is the player handbook for the system. For "what does cheat X do" see [Systems Reference](Systems-Reference). For caravan / shipping mechanics see [Shipping & trade](Shipping-and-Trade).
 
+> **If you're running Economy Overhaul Framework (EOF):** EOF owns the
+> village/town economy when installed — its prosperity, loyalty, food, and
+> workshop systems replace the equivalent BK layers, and the BK estate
+> gameplay loop is paused (data persists; UI and daily income are
+> dormant). The class/industry/cluster machinery described below still
+> drives BK's price-factor and tax decorators that EOF wraps, but the
+> estate-spec headline numbers and the AI estate-policy ladder don't run.
+> See [Player Guide → Economy: Hearth and Population](Player-Guide#economy-hearth-and-population)
+> for what the EOF layer actually does.
+
 ---
 
 ## Quick mental model
@@ -107,12 +117,13 @@ When the estate is at cap (population and acreage both ≥85% of their ceilings)
 
 Each in-game day:
 1. The settlement tick fires for each village; Banner Kings calculates your estate's net daily production based on effective acres × workforce saturation × keep rate × the layered multiplier.
-2. The result is paid **directly** to the estate owner's gold via vanilla `GiveGoldAction`.
-3. Throughout the day, villager trade events also pay you a per-trip share directly.
+2. The result accumulates in the estate's `TaxAccumulated` field rather than being paid out instantly.
+3. The clan-finance daily tick withdraws **80%** of `TaxAccumulated` and credits it to the owner via vanilla `GiveGoldAction`. The remaining 20% rolls forward to the next day.
+4. Throughout the day, villager trade events also feed `TaxAccumulated`.
 
-There is no "pending balance" or accumulated buffer. Each day's daily income is computed and credited that day, deterministic. The Estate panel's "Last Income" line shows what was actually paid that day. The Daily Income (est.) line is the steady-state prediction — they should match closely once your population stabilizes.
+The Estate panel's "Last Income" line shows what was actually paid that day. The Daily Income (est.) line is the steady-state prediction — they should match closely once your population stabilizes.
 
-**War custody**: when your faction is at war with the village's faction, the estate enters custody and pays nothing that day. There is no back-pay accrual when the war ends — under-custody days are simply lost income. Hover the Daily Income line in the panel to see the exact blocker reason ("at war with X", or any other condition that drove income to zero).
+**Income blocked**: certain conditions zero today's payout — at war with the village's faction, BK title manager not loaded, owner→estate registry desync, etc. While blocked, the **Pending Balance** row keeps climbing instead; when the block resolves, the next clan-finance daily tick drains 80% of the accumulated total in one go. Hover the Daily Income line in the panel to see the exact blocker reason. See [Player Guide → Estates](Player-Guide#estates) for the full list of blockers and recipes.
 
 ---
 
