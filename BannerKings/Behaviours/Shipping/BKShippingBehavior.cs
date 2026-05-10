@@ -2778,12 +2778,32 @@ namespace BannerKings.Behaviours.Shipping
                     {
                         var defaultBeh = party.DefaultBehavior;
                         var shortBeh = party.ShortTermBehavior;
+                        // Vanilla-owned movement / sit-around behaviors. BK
+                        // must not preempt these — for sieges/raids/escorts
+                        // the party intentionally hangs at a position and
+                        // "not moving" IS the desired state, not stranding.
+                        // BesiegeSettlement / RaidSettlement were originally
+                        // missing here; without them, a Sturgian army that
+                        // sat at the gates of an enemy castle (e.g. sieging
+                        // Hakarshus) was treated as stuck and force-ENTER'd
+                        // INTO the enemy castle (line below), the engine
+                        // ejected them, the siege restarted, and the loop
+                        // repeated forever. EngageParty / EscortParty added
+                        // for armies tracking another mobile party.
                         bool stayAround = defaultBeh == TaleWorlds.CampaignSystem.Party.AiBehavior.PatrolAroundPoint
                                        || defaultBeh == TaleWorlds.CampaignSystem.Party.AiBehavior.DefendSettlement
                                        || defaultBeh == TaleWorlds.CampaignSystem.Party.AiBehavior.Hold
+                                       || defaultBeh == TaleWorlds.CampaignSystem.Party.AiBehavior.BesiegeSettlement
+                                       || defaultBeh == TaleWorlds.CampaignSystem.Party.AiBehavior.RaidSettlement
+                                       || defaultBeh == TaleWorlds.CampaignSystem.Party.AiBehavior.EngageParty
+                                       || defaultBeh == TaleWorlds.CampaignSystem.Party.AiBehavior.EscortParty
                                        || shortBeh == TaleWorlds.CampaignSystem.Party.AiBehavior.PatrolAroundPoint
                                        || shortBeh == TaleWorlds.CampaignSystem.Party.AiBehavior.DefendSettlement
-                                       || shortBeh == TaleWorlds.CampaignSystem.Party.AiBehavior.Hold;
+                                       || shortBeh == TaleWorlds.CampaignSystem.Party.AiBehavior.Hold
+                                       || shortBeh == TaleWorlds.CampaignSystem.Party.AiBehavior.BesiegeSettlement
+                                       || shortBeh == TaleWorlds.CampaignSystem.Party.AiBehavior.RaidSettlement
+                                       || shortBeh == TaleWorlds.CampaignSystem.Party.AiBehavior.EngageParty
+                                       || shortBeh == TaleWorlds.CampaignSystem.Party.AiBehavior.EscortParty;
                         if (stayAround)
                         {
                             string sts = "(null)";
@@ -2797,6 +2817,23 @@ namespace BannerKings.Behaviours.Shipping
                         }
                     }
                     catch { }
+
+                    // Faction filter on the force-ENTER below. Without it,
+                    // any party whose target is enemy-controlled (siege,
+                    // raid, hostile-fief march) would get teleported INSIDE
+                    // the enemy settlement. The behavior gate above already
+                    // covers siege/raid, but a hostile-target party with
+                    // some other behavior (e.g. GoToSettlement against a
+                    // freshly-flipped fief) could still slip through. Never
+                    // force-ENTER a hostile settlement under any
+                    // circumstance — let vanilla AI re-target.
+                    if (graphTarget.MapFaction != null && party.MapFaction != null
+                        && graphTarget.MapFaction.IsAtWarWith(party.MapFaction))
+                    {
+                        LogRedirect(party, $"target {graphTarget.Name} is hostile — refusing force-ENTER (would teleport into enemy fief)", target);
+                        progressTracker[party] = (party.GetPosition2D, 0);
+                        return;
+                    }
 
                     // Force-enter the target for movement-required behaviors
                     // (GoToSettlement, etc.). The party is at the target's
@@ -3089,12 +3126,25 @@ namespace BannerKings.Behaviours.Shipping
                     {
                         var defaultBehSea = party.DefaultBehavior;
                         var shortBehSea = party.ShortTermBehavior;
+                        // Same vanilla-owned behavior set as the land-edge
+                        // stayAround above. BesiegeSettlement / RaidSettlement /
+                        // EngageParty / EscortParty added so the sea-edge
+                        // rescue doesn't hijack a sieging or raiding party
+                        // either.
                         bool stayAroundSea = defaultBehSea == TaleWorlds.CampaignSystem.Party.AiBehavior.PatrolAroundPoint
                                           || defaultBehSea == TaleWorlds.CampaignSystem.Party.AiBehavior.DefendSettlement
                                           || defaultBehSea == TaleWorlds.CampaignSystem.Party.AiBehavior.Hold
+                                          || defaultBehSea == TaleWorlds.CampaignSystem.Party.AiBehavior.BesiegeSettlement
+                                          || defaultBehSea == TaleWorlds.CampaignSystem.Party.AiBehavior.RaidSettlement
+                                          || defaultBehSea == TaleWorlds.CampaignSystem.Party.AiBehavior.EngageParty
+                                          || defaultBehSea == TaleWorlds.CampaignSystem.Party.AiBehavior.EscortParty
                                           || shortBehSea == TaleWorlds.CampaignSystem.Party.AiBehavior.PatrolAroundPoint
                                           || shortBehSea == TaleWorlds.CampaignSystem.Party.AiBehavior.DefendSettlement
-                                          || shortBehSea == TaleWorlds.CampaignSystem.Party.AiBehavior.Hold;
+                                          || shortBehSea == TaleWorlds.CampaignSystem.Party.AiBehavior.Hold
+                                          || shortBehSea == TaleWorlds.CampaignSystem.Party.AiBehavior.BesiegeSettlement
+                                          || shortBehSea == TaleWorlds.CampaignSystem.Party.AiBehavior.RaidSettlement
+                                          || shortBehSea == TaleWorlds.CampaignSystem.Party.AiBehavior.EngageParty
+                                          || shortBehSea == TaleWorlds.CampaignSystem.Party.AiBehavior.EscortParty;
                         if (stayAroundSea)
                         {
                             string sts = "(null)";
