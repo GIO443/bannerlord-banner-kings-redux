@@ -44,9 +44,15 @@ namespace BannerKings.Managers.Institutions.Religions.Faiths.Groups
             Hero hero = null;
             if (IsPreacher)
             {
-                Settlement faithSeat = religion.Faith.FaithSeat;
-                PopulationData data = faithSeat.PopulationData();
-                if (data.ReligionData != null && data.ReligionData.DominantReligion != null &&
+                // FaithSeat is null for every faith currently shipped (none of
+                // the 7 default faiths sets FaithSeatId). The original
+                // unguarded `faithSeat.PopulationData()` NRE'd on every daily
+                // tick for any IsPreacher faith group. Early-return when the
+                // seat isn't bound — the political-leader path below still
+                // runs for IsTemporal groups.
+                Settlement faithSeat = religion.Faith?.FaithSeat;
+                PopulationData data = faithSeat != null ? faithSeat.PopulationData() : null;
+                if (data != null && data.ReligionData != null && data.ReligionData.DominantReligion != null &&
                     data.ReligionData.DominantReligion.Equals(religion))
                 {
                     foreach (var clergy in religion.Clergy)
@@ -106,7 +112,11 @@ namespace BannerKings.Managers.Institutions.Religions.Faiths.Groups
                         if (councilPosition != null && councilPosition.Member != null)
                         {
                             Religion heroReligion = BannerKingsConfig.Instance.ReligionsManager.GetHeroReligion(councilPosition.Member);
-                            if (heroReligion.Faith.FaithGroup.Equals(religion.Faith.FaithGroup))
+                            // heroReligion can legitimately be null for a hero
+                            // we haven't faith-assigned yet; don't NRE the
+                            // whole leader-evaluation pass.
+                            if (heroReligion?.Faith?.FaithGroup != null
+                                && heroReligion.Faith.FaithGroup.Equals(religion.Faith.FaithGroup))
                             {
                                 results.Add(councilPosition.Member);
                             }
@@ -119,17 +129,25 @@ namespace BannerKings.Managers.Institutions.Religions.Faiths.Groups
             if (IsPreacher)
             {
                 Hero result = null;
-                Settlement faithSeat = religion.Faith.FaithSeat;
-                foreach (var clergy in religion.Clergy)
+                Settlement faithSeat = religion.Faith?.FaithSeat;
+                if (faithSeat != null)
                 {
-                    if (clergy.Key == faithSeat)
+                    foreach (var clergy in religion.Clergy)
                     {
-                        result = clergy.Value.Hero;
-                        break;
+                        if (clergy.Key == faithSeat)
+                        {
+                            result = clergy.Value.Hero;
+                            break;
+                        }
                     }
                 }
 
-                results.Add(result);
+                // Don't add null to results — downstream
+                // BKReligionsBehavior.OnCharacterCreationIsOver does
+                // EvaluatePossibleLeaders(...).GetRandomElement() and then
+                // MakeHeroLeader(religion, leader, ...), and a null leader
+                // NREs SetClergyName.
+                if (result != null) results.Add(result);
             }
 
             return results;

@@ -88,16 +88,15 @@ namespace BannerKings.Managers.Institutions.Religions
 
         public void RemoveClergyman(Settlement settlement)
         {
-            if (settlement != null)
+            if (settlement == null) return;
+            if (!clergy.TryGetValue(settlement, out var clergyman) || clergyman == null) return;
+            clergy.Remove(settlement);
+            if (clergyman.Hero == null) return;
+            List<Hero> notables = (List<Hero>)AccessTools.Field(settlement.GetType(), "_notablesCache").GetValue(settlement);
+            if (notables != null && notables.Contains(clergyman.Hero))
             {
-                Clergyman clergyman = clergy[settlement];
-                clergy.Remove(settlement);
-                List<Hero> notables = (List<Hero>)AccessTools.Field(settlement.GetType(), "_notablesCache").GetValue(settlement);
-                if (notables.Contains(clergyman.Hero))
-                {
-                    notables.Remove(clergyman.Hero);
-                    KillCharacterAction.ApplyByRemove(clergyman.Hero);
-                }
+                notables.Remove(clergyman.Hero);
+                KillCharacterAction.ApplyByRemove(clergyman.Hero);
             }
         }
 
@@ -109,22 +108,21 @@ namespace BannerKings.Managers.Institutions.Religions
 
         public Clergyman GetClergyman(Settlement settlement)
         {
-            if (clergy.ContainsKey(settlement))
+            if (settlement == null) return null;
+            if (clergy.TryGetValue(settlement, out var existing))
             {
-                var hero = clergy[settlement];
-                if (hero == null || hero.Hero.IsDead)
+                // The variable is a Clergyman (not a Hero) — naming was
+                // misleading in the original. Treat null Clergyman OR null
+                // inner Hero OR dead Hero as "regenerate".
+                if (existing == null || existing.Hero == null || existing.Hero.IsDead)
                 {
-                    hero = GenerateClergyman(settlement);
-                    clergy[settlement] = hero;
-                    return hero;
+                    var fresh = GenerateClergyman(settlement);
+                    clergy[settlement] = fresh;
+                    return fresh;
                 }
-
-                return hero;
-            } else
-            {
-                var hero = GenerateClergyman(settlement);
-                return hero;
+                return existing;
             }
+            return GenerateClergyman(settlement);
         }
         
         public Clergyman GenerateClergyman(Settlement settlement)

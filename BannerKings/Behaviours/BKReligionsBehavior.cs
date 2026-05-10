@@ -220,20 +220,32 @@ namespace BannerKings.Behaviours
             RunWeekly(() =>
             {
                 Settlement settlement = data.Settlement;
-                Hero owner = settlement.IsVillage ? settlement.Village.GetActualOwner() : settlement.OwnerClan.Leader;
-                if (owner == Hero.MainHero) return;
+                if (settlement == null) return;
+                Hero owner = settlement.IsVillage
+                    ? settlement.Village?.GetActualOwner()
+                    : settlement.OwnerClan?.Leader;
+                if (owner == null || owner == Hero.MainHero) return;
 
-                bool shouldAdd = false;
                 var ownerRel = BannerKingsConfig.Instance.ReligionsManager.GetHeroReligion(owner);
+                if (ownerRel == null) return;
+
+                // Default to install; flip false if the settlement already has
+                // an owner-faith preacher. The original code initialised
+                // shouldAdd=false and never set it true anywhere, so the
+                // install branch was unreachable — preachers were never
+                // auto-installed.
+                bool shouldAdd = true;
                 foreach (Hero notable in settlement.Notables)
                 {
-                    if (notable.IsPreacher)
+                    if (!notable.IsPreacher) continue;
+                    var notableRel = BannerKingsConfig.Instance.ReligionsManager.GetHeroReligion(notable);
+                    // Compare by Equals (StringId-keyed override), not by
+                    // reference — pre-v1.8.9.3 saves can carry two Religion
+                    // instances per StringId until DedupeReligions runs.
+                    if (notableRel != null && notableRel.Equals(ownerRel))
                     {
-                        var notableRel = BannerKingsConfig.Instance.ReligionsManager.GetHeroReligion(notable);
-                        if (notableRel == ownerRel)
-                        {
-                            shouldAdd = false;
-                        }
+                        shouldAdd = false;
+                        break;
                     }
                 }
 
@@ -243,7 +255,7 @@ namespace BannerKings.Behaviours
                 }
             },
             GetType().Name,
-            false);      
+            false);
         }
 
         private void CleanClergymen(Settlement settlement, Religion religion)
@@ -373,7 +385,7 @@ namespace BannerKings.Behaviours
             var rel = BannerKingsConfig.Instance.ReligionsManager.GetHeroReligion(hero);
             if (rel == null)
             {
-                if (hero.Clan != null && hero != hero.Clan.Leader)
+                if (hero.Clan != null && hero.Clan.Leader != null && hero != hero.Clan.Leader)
                 {
                     var leaderRel = BannerKingsConfig.Instance.ReligionsManager.GetHeroReligion(hero.Clan.Leader);
                     if (leaderRel != null)

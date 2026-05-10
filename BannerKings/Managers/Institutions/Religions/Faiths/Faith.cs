@@ -81,9 +81,15 @@ namespace BannerKings.Managers.Institutions.Religions.Faiths
         public FaithStance GetStance(Faith otherFaith)
         {
             if (otherFaith == null) return FaithStance.Untolerated;
-            if (FaithGroup.Equals(otherFaith.FaithGroup) || otherFaith == this) return FaithStance.Tolerated;
-            if (stances.ContainsKey(otherFaith)) return stances[otherFaith];
-            if (Doctrines.Contains(DefaultDoctrines.Instance.Tolerant)) return FaithStance.Tolerated;
+            if (otherFaith == this) return FaithStance.Tolerated;
+            // FaithGroup may be null on legacy saves predating the
+            // [SaveableField(5)] decoration. Treat missing-group as a
+            // mismatch rather than NRE'ing every diplomacy / marriage /
+            // relations tick that consults stance.
+            if (FaithGroup != null && otherFaith.FaithGroup != null
+                && FaithGroup.Equals(otherFaith.FaithGroup)) return FaithStance.Tolerated;
+            if (stances != null && stances.ContainsKey(otherFaith)) return stances[otherFaith];
+            if (Doctrines != null && Doctrines.Contains(DefaultDoctrines.Instance.Tolerant)) return FaithStance.Tolerated;
 
             return FaithStance.Untolerated;
         }

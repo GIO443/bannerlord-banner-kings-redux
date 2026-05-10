@@ -144,20 +144,42 @@ namespace BannerKings.Managers
                 }
             }
 
-            if (Religions[rel].ContainsKey(hero))
+            // TryGetValue rather than indexer — Religions[rel] throws
+            // KeyNotFoundException if rel was Removed by PostInitialize
+            // (e.g. Osfeyd loaded then dropped because War Sails got
+            // uninstalled mid-save) and InitializeHeroFaith later called
+            // for that ideal religion.
+            if (!Religions.TryGetValue(rel, out var inner) || inner == null)
+            {
+                inner = new Dictionary<Hero, FaithfulData>();
+                Religions[rel] = inner;
+            }
+            if (inner.ContainsKey(hero))
             {
                 RefreshCaches();
                 return;
             }
 
-            Religions[rel].Add(hero, new FaithfulData(100f));
+            inner.Add(hero, new FaithfulData(100f));
         }
+
+        // Guard against repeat re-init. PostInitialize is called twice on
+        // game-load (BKManagerBehavior.OnGameEarlyLoaded + OnGameLoaded);
+        // the original re-ran every Default*.Initialize on each call,
+        // recreating the static singletons and orphaning any references
+        // captured by saved Religion instances that we just spent
+        // PostInitialize swapping in.
+        private bool _postInitialized;
 
         public void PostInitialize()
         {
-            DefaultDivinities.Instance.Initialize();
-            DefaultFaithGroups.Instance.Initialize();   
-            DefaultFaiths.Instance.Initialize();
+            if (!_postInitialized)
+            {
+                DefaultDivinities.Instance.Initialize();
+                DefaultFaithGroups.Instance.Initialize();
+                DefaultFaiths.Instance.Initialize();
+                _postInitialized = true;
+            }
             List<Religion> delete = new List<Religion>();
             foreach (var pair in Religions.ToList())
             {
@@ -203,19 +225,17 @@ namespace BannerKings.Managers
 
                 foreach (var pair in Religions)
                 {
+                    if (pair.Value == null) continue;
                     var heroes = pair.Value.Keys.ToList();
                     foreach (var hero in heroes)
                     {
-                        if (!HeroesCache.ContainsKey(hero))
-                        {
-                            HeroesCache.Add(hero, pair.Key);
-                            continue;
-                        }
-
-                        if (!HeroesCache.ContainsValue(pair.Key))
-                        {
-                            HeroesCache[hero] = pair.Key;
-                        }
+                        // Idempotent overwrite. The original guarded the
+                        // overwrite branch with !ContainsValue(pair.Key),
+                        // which inverted the intent — heroes whose religion
+                        // changed never got their cache updated because
+                        // pair.Key was already a value somewhere. Just write
+                        // the latest religion in.
+                        HeroesCache[hero] = pair.Key;
                     }
                 }
             }
@@ -484,12 +504,8 @@ namespace BannerKings.Managers
 
         public bool IsReligionMember(Hero hero, Religion religion)
         {
-            if (!Religions.ContainsKey(religion))
-            {
-                return false;
-            }
-
-            return Religions[religion].ContainsKey(hero);
+            if (religion == null) return false;
+            return Religions.TryGetValue(religion, out var inner) && inner != null && inner.ContainsKey(hero);
         }
 
         public void AddPiety(Religion rel, Hero hero, float piety, bool notifyPlayer = false)
@@ -499,9 +515,9 @@ namespace BannerKings.Managers
                 return;
             }
 
-            if (Religions[rel].ContainsKey(hero))
+            if (Religions.TryGetValue(rel, out var inner) && inner != null && inner.TryGetValue(hero, out var data) && data != null)
             {
-                Religions[rel][hero].AddPiety(piety);
+                data.AddPiety(piety);
             }
 
             if (notifyPlayer && hero == Hero.MainHero)
@@ -540,34 +556,18 @@ namespace BannerKings.Managers
         public float GetPiety(Hero hero)
         {
             var rel = GetHeroReligion(hero);
-            if (rel == null || hero == null)
-            {
-                return 0f;
-            }
-
-            var piety = 0f;
-            if (Religions[rel].ContainsKey(hero))
-            {
-                piety = Religions[rel][hero].Piety;
-            }
-
-            return piety;
+            if (rel == null || hero == null) return 0f;
+            if (Religions.TryGetValue(rel, out var inner) && inner != null && inner.TryGetValue(hero, out var data) && data != null)
+                return data.Piety;
+            return 0f;
         }
 
         public float GetPiety(Religion rel, Hero hero)
         {
-            if (rel == null || hero == null)
-            {
-                return 0f;
-            }
-
-            var piety = 0f;
-            if (Religions[rel].ContainsKey(hero))
-            {
-                piety = Religions[rel][hero].Piety;
-            }
-
-            return piety;
+            if (rel == null || hero == null) return 0f;
+            if (Religions.TryGetValue(rel, out var inner) && inner != null && inner.TryGetValue(hero, out var data) && data != null)
+                return data.Piety;
+            return 0f;
         }
 
         public bool IsPreacher(Hero hero)

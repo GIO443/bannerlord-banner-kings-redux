@@ -664,9 +664,14 @@ namespace BannerKings.Models.BKModels
         public override ExplainedNumber GetJoinSocietyCost(Hero hero, Society society, bool descriptions = false)
         {
             ExplainedNumber result = new ExplainedNumber(400f, descriptions);
+            // Faithless heroes (brand-new save before daily-tick assigns the
+            // ideal faith, or any hero with no religion mapping) skip the
+            // faith-flavor factor entirely; the base cost stands alone.
             Religion religion = BannerKingsConfig.Instance.ReligionsManager.GetHeroReligion(hero);
-
-            result.AddFactor(religion.Faith.JoinSocietyCost - 1f, religion.Faith.GetFaithTypeName());
+            if (religion?.Faith != null)
+            {
+                result.AddFactor(religion.Faith.JoinSocietyCost - 1f, religion.Faith.GetFaithTypeName());
+            }
             return result;
         }
     }

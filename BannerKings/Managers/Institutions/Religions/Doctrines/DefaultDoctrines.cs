@@ -49,6 +49,10 @@ namespace BannerKings.Managers.Institutions.Religions.Doctrines
                 yield return RenovatioImperi;
                 yield return AncestorWorship;
                 yield return Warlike;
+                // Defensive property is declared at the top of this file
+                // but never initialised in Initialize() — yielding it
+                // would surface a null entry to consumers. Left out of
+                // the iteration intentionally until someone wires it up.
                 foreach (Doctrine item in ModAdditions)
                 {
                     yield return item;
