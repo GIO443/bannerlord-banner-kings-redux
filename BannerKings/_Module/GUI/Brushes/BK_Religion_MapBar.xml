@@ -1,16 +1,33 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Adds a `piety` icon layer to vanilla's MapBar.Right.Icons brush so the
-     Banner Kings piety MapInfoItemVM (added via MapInfoPietyPatches) can
-     pick it up via IconID="piety". Bannerlord merges same-named brushes
-     across modules, so this only contributes the new layer; the vanilla
-     gold/influence/morale/etc layers stay intact.
+<!-- Adds a `piety` icon to MapBar.Right.Icons for the BK religion HUD
+     (see BannerKings/Patches/MapInfoPietyPatches.cs). v1.8.9.2 originally
+     shipped with just the new layer assuming Bannerlord's brush loader
+     would merge by Brush Name across files — that's wrong. The loader
+     replaces by Brush Name, so a partial brush wipes every other layer.
+     v1.8.9.4 renamed the file to avoid filename collisions with vanilla
+     MapBar.xml; v1.8.9.5 redeclares ALL the vanilla layers here so the
+     replacement preserves gold / influence / food / morale / etc. plus
+     our piety icon.
 
-     The sprite is reused from General\Icons\Influence@2x — semantically
-     "religious influence" and visually distinct from the coin (gold) and
-     morale icons. -->
+     Vanilla layer set mirrored from SandBox/GUI/Brushes/MapBar.xml
+     MapBar.Right.Icons. Keep in sync if vanilla adds new icons in a
+     future game patch. -->
 <Brushes>
   <Brush Name="MapBar.Right.Icons">
     <Layers>
+      <BrushLayer Name="gold" Sprite="General\Icons\Coin@2x" />
+      <BrushLayer Name="influence" Sprite="General\Icons\Influence@2x" />
+      <BrushLayer Name="hit_points" Sprite="General\Icons\Health@2x" />
+      <BrushLayer Name="hit_points_sick" Sprite="General\Icons\Health_Sick@2x" />
+      <BrushLayer Name="troops" Sprite="General\Icons\Party@2x" />
+      <BrushLayer Name="food" Sprite="General\Icons\Food@2x" />
+      <BrushLayer Name="morale" Sprite="General\Icons\Morale@2x" />
+      <BrushLayer Name="speed" Sprite="General\Icons\Speed@2x" />
+      <BrushLayer Name="speed_at_sea" Sprite="Map\ship_speed" ExtendTop="-3" ExtendBottom="-3" />
+      <BrushLayer Name="view_distance" Sprite="MapBar\monocular_icon" ExtendLeft="-3" ExtendRight="-3" ExtendTop="-3" ExtendBottom="-3" />
+      <BrushLayer Name="troop_wage" Sprite="General\Icons\PartyCost@2x" />
+      <BrushLayer Name="ship_health" Sprite="Map\ship_hp" ExtendTop="-3" ExtendBottom="-3" />
+      <!-- BK addition: piety icon for the religion HUD entry. -->
       <BrushLayer Name="piety" Sprite="General\Icons\Influence@2x" />
     </Layers>
   </Brush>

@@ -37,14 +37,29 @@ namespace BannerKings.Managers
                         }
                     }
 
-                    newDic.Add(pair.Key, newValueDic);
+                    // Indexer instead of .Add — pre-v1.8.9.3 saves can carry
+                    // duplicate Religion entries (different runtime instances
+                    // with the same StringId from the GetHashCode contract bug).
+                    // Now that hashes match, .Add would throw on the second
+                    // occurrence; indexer keeps the latest value cleanly.
+                    if (newDic.ContainsKey(pair.Key))
+                    {
+                        // Merge inner dicts — keep all heroes from both copies.
+                        var existing = newDic[pair.Key];
+                        foreach (var p2 in newValueDic)
+                            if (!existing.ContainsKey(p2.Key)) existing.Add(p2.Key, p2.Value);
+                    }
+                    else
+                    {
+                        newDic[pair.Key] = newValueDic;
+                    }
                 }
             }
 
             Religions.Clear();
             foreach (var pair in newDic)
             {
-                Religions.Add(pair.Key, pair.Value);
+                Religions[pair.Key] = pair.Value;
             }
         }
 

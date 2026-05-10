@@ -5,6 +5,7 @@ using TaleWorlds.CampaignSystem;
 using TaleWorlds.CampaignSystem.Actions;
 using TaleWorlds.CampaignSystem.Settlements;
 using TaleWorlds.Core;
+using TaleWorlds.Library;
 using TaleWorlds.SaveSystem;
 
 namespace BannerKings.Managers.Institutions.Religions
@@ -102,7 +103,13 @@ namespace BannerKings.Managers.Institutions.Religions
             foreach (var pair in Religions)
             {
                 var weight = BannerKingsConfig.Instance.ReligionModel.CalculateReligionWeight(pair.Key, Settlement).ResultNumber;
-                weightDictionary.Add(pair.Key, weight);
+                // Indexer instead of .Add — pre-v1.8.9.3 saves can have
+                // duplicate Religion keys in the saved Religions dict (the
+                // GetHashCode contract bug double-populated them). Dedupe
+                // pass below in Update() collapses these on next tick, but
+                // until then the same StringId may surface twice in this
+                // iteration. .Add would throw; indexer just overwrites.
+                weightDictionary[pair.Key] = weight;
                 totalWeight += weight;
             }
 
@@ -114,20 +121,67 @@ namespace BannerKings.Managers.Institutions.Religions
             }
         }
 
+        // One-time dedup pass to clean up pre-v1.8.9.3 saves where the
+        // GetHashCode contract bug let two Religion instances per StringId
+        // co-exist in the saved Religions dict. Now that the hash is
+        // consistent, ANY downstream code that iterates Religions and
+        // re-adds keys to a fresh dict (BalanceReligions, ReligionWeightModel)
+        // throws. Collapse duplicates by StringId on first Update tick after
+        // load; subsequent ticks are a no-op since the dict is already clean.
+        private void DedupeReligions()
+        {
+            if (Religions == null || Religions.Count <= 1) return;
+            var seenIds = new HashSet<string>();
+            List<Religion> dups = null;
+            float dupWeight = 0f;
+            Religion canonical = null;
+            foreach (var pair in Religions)
+            {
+                if (pair.Key == null) continue;
+                string id = pair.Key.StringId ?? (pair.Key.Faith != null ? pair.Key.Faith.GetId() : null);
+                if (id == null) continue;
+                if (seenIds.Add(id)) continue;
+                // Duplicate StringId — schedule for removal, fold weight into canonical.
+                dups = dups ?? new List<Religion>();
+                dups.Add(pair.Key);
+                dupWeight += pair.Value;
+                if (canonical == null)
+                {
+                    foreach (var p2 in Religions)
+                    {
+                        if (p2.Key != pair.Key && p2.Key != null
+                            && (p2.Key.StringId == id || (p2.Key.Faith != null && p2.Key.Faith.GetId() == id)))
+                        {
+                            canonical = p2.Key;
+                            break;
+                        }
+                    }
+                }
+            }
+            if (dups == null) return;
+            foreach (var d in dups) Religions.Remove(d);
+            if (canonical != null && Religions.ContainsKey(canonical))
+            {
+                Religions[canonical] = MathF.Min(1f, Religions[canonical] + dupWeight);
+            }
+        }
+
         internal override void Update(PopulationData data)
         {
+            DedupeReligions();
+
             var dominant = DominantReligion;
             if (dominant == null)
             {
                 InitializeReligions();
-            } 
+            }
             else
             {
                 AddHeroesReligion();
             }
 
             if (DominantReligion == null) return;
-            
+
             if (Religions.Count > 1) BalanceReligions(dominant);
 
             foreach (Religion rel in Religions.Keys)
