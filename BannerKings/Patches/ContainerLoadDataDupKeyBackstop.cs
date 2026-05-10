@@ -4,46 +4,61 @@ using HarmonyLib;
 
 namespace BannerKings.Patches
 {
-    // Backstop for v1.8.9.0 / v1.8.9.1 saves that ended up with duplicate
-    // keys in a serialized Dictionary container. Root cause was the
-    // Religion / Faith / FaithGroup / Doctrine / BannerKingsObject
-    // Equals/GetHashCode contract violation: Equals was overridden to
-    // compare by StringId but GetHashCode was left as default identity,
-    // so Dictionary<,>.ContainsKey missed logically-equal entries and
-    // ReligionsManager.InitializeReligions ended up adding a second
-    // Religion instance per StringId on every game-load. Saving wrote
-    // both. Reloading collapsed them to one MBObjectBase instance, then
-    // ContainerLoadData.FillObject called Dictionary.Add twice with
-    // that single instance → ArgumentException "An item with the same
-    // key has already been added".
+    // Backstop for v1.8.9.0 / v1.8.9.1 / v1.8.9.2 saves that ended up with
+    // duplicate keys in a serialized Dictionary container (most commonly
+    // Dictionary<Religion, Dictionary<Hero, FaithfulData>> with two
+    // Religion entries per StringId — see project_equals_without_gethashcode
+    // memory).
     //
-    // The forward fix is to override GetHashCode so the dict actually
-    // detects duplicates at insertion time and InitializeReligions
-    // becomes a no-op when the religion is already present. New saves
-    // will not contain duplicates.
-    //
-    // This finalizer rescues OLD saves that already shipped with the
-    // duplicate baked in. Without it those saves are dead — the
-    // exception fires during the parallel container-fill pass before
-    // any BK code can intervene. The cost: a bad container fill drops
-    // the duplicate entry (which is what we want) and bails out of
-    // that container's loop — partial fill, but the data the engine
-    // serialised first is what survives, and BK's PostInitialize
-    // chain repairs the rest.
-    // Type is internal in TaleWorlds.SaveSystem so we resolve it
-    // reflectively via TargetMethod() rather than typeof(...).
-    [HarmonyPatch]
-    internal static class ContainerLoadDataDupKeyBackstop
+    // First attempt used [HarmonyPatch] with a TargetMethod() returning
+    // the internal type via AccessTools.TypeByName. That registered as a
+    // no-op (no log line, no _Patch suffix in the eventual crash stack
+    // — see crashes/6.htm on v1.8.9.3). Switched to a manual
+    // harmony.Patch() call wired from Main.OnSubModuleLoad with explicit
+    // logging so we can see install success / failure.
+    public static class ContainerLoadDataDupKeyBackstop
     {
         private static int _swallowed;
 
-        public static MethodBase TargetMethod()
+        public static void Install(Harmony harmony)
         {
-            var t = AccessTools.TypeByName("TaleWorlds.SaveSystem.Load.ContainerLoadData");
-            return t != null ? AccessTools.Method(t, "FillObject") : null;
+            try
+            {
+                var t = AccessTools.TypeByName("TaleWorlds.SaveSystem.Load.ContainerLoadData");
+                if (t == null)
+                {
+                    TaleWorlds.Library.Debug.Print(
+                        "[BK] ContainerLoadDataDupKeyBackstop: type not found at install time — skipping",
+                        color: TaleWorlds.Library.Debug.DebugColor.Yellow);
+                    return;
+                }
+
+                var target = AccessTools.Method(t, "FillObject");
+                if (target == null)
+                {
+                    TaleWorlds.Library.Debug.Print(
+                        "[BK] ContainerLoadDataDupKeyBackstop: FillObject method not found — skipping",
+                        color: TaleWorlds.Library.Debug.DebugColor.Yellow);
+                    return;
+                }
+
+                var finalizer = AccessTools.Method(typeof(ContainerLoadDataDupKeyBackstop),
+                    nameof(FillObjectFinalizer));
+
+                harmony.Patch(target, finalizer: new HarmonyMethod(finalizer));
+                TaleWorlds.Library.Debug.Print(
+                    "[BK] ContainerLoadDataDupKeyBackstop: installed Finalizer on ContainerLoadData.FillObject",
+                    color: TaleWorlds.Library.Debug.DebugColor.Green);
+            }
+            catch (Exception ex)
+            {
+                TaleWorlds.Library.Debug.Print(
+                    $"[BK] ContainerLoadDataDupKeyBackstop install threw: {ex.GetType().Name}: {ex.Message}",
+                    color: TaleWorlds.Library.Debug.DebugColor.Red);
+            }
         }
 
-        public static Exception Finalizer(Exception __exception)
+        public static Exception FillObjectFinalizer(Exception __exception)
         {
             if (__exception is ArgumentException ae &&
                 ae.Message != null &&
@@ -53,7 +68,7 @@ namespace BannerKings.Patches
                 if (_swallowed <= 8) // avoid log spam for pathologically dup-heavy saves
                 {
                     TaleWorlds.Library.Debug.Print(
-                        $"[BK] Swallowed duplicate-key in ContainerLoadData.FillObject (#{_swallowed}). Likely a stale Religion dup from a v1.8.9.0/1 save predating the GetHashCode fix. The bad entry was dropped; load continues.",
+                        $"[BK] Swallowed duplicate-key in ContainerLoadData.FillObject (#{_swallowed}). Likely a stale Religion dup from a v1.8.9.0/1/2 save predating the GetHashCode fix. The bad entry was dropped; load continues.",
                         color: TaleWorlds.Library.Debug.DebugColor.Yellow);
                 }
                 return null;

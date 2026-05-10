@@ -282,6 +282,19 @@ namespace BannerKings
             base.OnSubModuleLoad();
             BKDiagnostics.Install();
 
+            // ContainerLoadData.FillObject Finalizer for the religion dup-key
+            // backstop. Installs first so it's covering the very first save
+            // load. The internal target type is resolved reflectively via
+            // AccessTools.TypeByName.
+            try
+            {
+                BannerKings.Patches.ContainerLoadDataDupKeyBackstop.Install(
+                    new Harmony("BannerKings.ContainerLoadDataDupKey"));
+            }
+            catch
+            {
+            }
+
             // GameTexts null-guard installs here so it's the first thing in place.
             // Cheap and self-contained; doesn't trigger vanilla cctors.
             try
