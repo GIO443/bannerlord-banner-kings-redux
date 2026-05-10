@@ -51,6 +51,12 @@ namespace BannerKings.Behaviours.Shipping
             if (party.LeaderHero == null) return;
             if (party.LeaderHero.Clan == null || party.LeaderHero.Clan == Clan.PlayerClan) return;
             if (party.Army != null && party.Army.LeaderParty != party) return;
+            // Hands-off for siege / map-event / player-in-army parties.
+            // A sieging lord transiently entering a friendly port for
+            // resupply (vanilla siege food refit) used to trigger
+            // SetSailAtPosition + Naval move, boarding them away from
+            // the siege camp.
+            if (BKShippingBehavior.ShouldSkipForArmyOrSiege(party)) return;
 
             // From here on we'll log gate failures so we can see WHY a
             // naval-capable lord arriving at a port didn't auto-board.
@@ -349,6 +355,12 @@ namespace BannerKings.Behaviours.Shipping
             if (!party.IsLordParty) return;
             // ROOT-FIX GATE: skip mid-transition (see AfterSettlementEntered).
             if (party.IsTransitionInProgress) return;
+            // Hands-off for parties in active siege / map event, or when
+            // MainParty shares this army. The Hakarshus oscillation in
+            // v1.8.10.0 was this redirect firing on an AI siege leader
+            // whose land-reachability probe transiently flipped after
+            // the player joined the army. See ShouldSkipForArmyOrSiege.
+            if (BKShippingBehavior.ShouldSkipForArmyOrSiege(party)) return;
             // ROOT-FIX: lord without naval capability cannot board at a port
             // (AfterSettlementEntered's auto-board path also returns early
             // on this condition). Redirecting them to a boarding port

@@ -724,6 +724,8 @@ namespace BannerKings.Behaviours.Shipping
             // will finish its disembark on its own; BK touching the flag
             // mid-flight produces the cancellation desync.
             if (party.IsTransitionInProgress) return;
+            // Hands-off for siege / map-event / player-in-army parties.
+            if (ShouldSkipForArmyOrSiege(party)) return;
             if (settlement == null || !settlement.HasPort) return;
             if (!party.IsCurrentlyAtSea) return;
             bool isAIParty = (party.IsLordParty && party.LeaderHero != null
@@ -1001,6 +1003,42 @@ namespace BannerKings.Behaviours.Shipping
         // Public on-demand handle so cheat can fire the sweep manually
         // without waiting for the next daily tick.
         public void RunUnifiedRescueSweepNow() => UnifiedRescueSweep();
+
+        // Hands-off gate. Three cases where BK shipping must NOT touch a
+        // party's movement state:
+        //
+        //   1. The party is actively in a siege (SiegeEvent != null). It's
+        //      not traveling — it's at the gate, in the camp, or sallying.
+        //      Issuing SetMoveGoToSettlement / SetSailAtPosition here breaks
+        //      the siege state machine and reproduces the v1.8.10.0
+        //      Hakarshus oscillation.
+        //   2. The party is in a map event (battle, raid in progress). Same
+        //      reason — vanilla owns the encounter resolution.
+        //   3. MainParty is in the same army as this party. The player
+        //      drives intent through UI move orders; BK has no business
+        //      pre-empting those, and the player-included army case is the
+        //      one that regressed in v1.8.10.0 even with the v1.8.9.9
+        //      behavior gate (the gate covered AI-only sieges, not the
+        //      shared-army case).
+        //
+        // Applied at the top of every redirect / auto-board / disembark
+        // entry point in BKShippingBehavior and BKLordShippingBehavior.
+        public static bool ShouldSkipForArmyOrSiege(MobileParty p)
+        {
+            if (p == null) return true;
+            try
+            {
+                if (p.SiegeEvent != null) return true;
+                if (p.MapEvent != null) return true;
+                if (p.Army != null && p.Army.Parties != null)
+                {
+                    var main = MobileParty.MainParty;
+                    if (main != null && p.Army.Parties.Contains(main)) return true;
+                }
+            }
+            catch { }
+            return false;
+        }
 
         // Save-load cleanup pass. Runs once on OnGameLoadFinished, AFTER
         // the graph is rebuilt and BEFORE the first hourly tick. Goal: put
@@ -2500,6 +2538,9 @@ namespace BannerKings.Behaviours.Shipping
                 if (party == null || party == MobileParty.MainParty) return;
                 // ROOT-FIX GATE: see TickParty comment.
                 if (party.IsTransitionInProgress) return;
+                // Hands-off when player is in this army, or party is in a
+                // siege / map event. See ShouldSkipForArmyOrSiege.
+                if (ShouldSkipForArmyOrSiege(party)) return;
 
                 // Two redirect cohorts: AI lord parties (not the player's own
                 // clan — they pilot themselves) and caravans (any clan, since
