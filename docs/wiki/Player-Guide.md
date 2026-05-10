@@ -211,9 +211,9 @@ ineligible for the bonus.
 
 ## Economy: Hearth and Population
 
-If you're running [**Economy Overhaul Framework**](Troubleshooting#mod-compatibility)
-(Nexus #9558) alongside Banner Kings, the two systems hand off cleanly because
-they answer different questions about a village.
+If you're running **Economy Overhaul Framework** (Nexus #9558) alongside
+Banner Kings, the two systems hand off cleanly because they answer
+different questions about a village.
 
 **Hearth is village development / capital.** The vanilla `Hearths` number
 on a village info card (typically 30–1200) represents settled households,

@@ -1,11 +1,10 @@
-# Troubleshooting & compatibility
+# Troubleshooting
 
 ← [Home](Home)
 
 ## On this page
 
 - [Edge cases & frequent confusions](#edge-cases--frequent-confusions)
-- [Mod compatibility](#mod-compatibility)
 - [Save-game safety](#save-game-safety)
 - [Reporting bugs](#reporting-bugs)
 - [Credits & license](#credits--license)
@@ -120,59 +119,6 @@
   `HorseComponent` and stripped the cow's mount data. Vanilla town-
   center scenes then NRE'd trying to spawn cows. The fix is to leave
   the vanilla cow item alone; cow pricing falls back to vanilla.
-
----
-
-## Mod compatibility
-
-Banner Kings detects other mods at startup and yields its overlapping
-features to them where appropriate. The detection is automatic; no
-configuration needed.
-
-| Mod | Behaviour |
-|---|---|
-| **War Sails (NavalDLC)** | Natively supported. Nord titles, succession, language, null guards, naval perk hooks, seafaring lifestyles, Nordic Thrall Law all built in. |
-| **Diplomacy** | BK yields its diplomacy model (war support, war proposal, alliance handling) so Diplomacy's UI runs cleanly. BK still tracks pacts and casus belli internally for title/claim logic. |
-| **Improved Garrisons** | BK skips its garrison auto-recruitment override so IG can manage garrison composition. BK's patrol-party feature (separate from garrison composition) still draws troops from the garrison; toggle it off in MCM if it conflicts. |
-| **Recruit Everywhere** | BK skips its volunteer-recruitment overrides so RE owns the volunteer pool. |
-| **MarryAnyone** | BK skips its marriage model so MA's relaxed rules apply. |
-| **Buy Land at Villages** | Both can coexist; the player can hold both BK estates and BLAV land in the same village, which can be confusing. Pick one or the other in practice. |
-| **Realistic Battle Mod (RBM)** | Full compat. BK's campaign-side combat XP / battle reward / battle simulation logic stays; RBM owns mission-time damage. |
-| **AI Influence (AI Diplomacy)** | BK yields its `InfluenceModel` to AI Influence on the vanilla GameModel slot, so the LLM-driven diplomacy / influence calculations can run cleanly. BK's internal influence queries (caps, costs for council appointments, claims, demands, knighthoods) still resolve through BK's own model so titles and claim logic continue to work. No configuration needed; detection is automatic. |
-| **Economy Overhaul Framework** | BK yields settlement-economy ownership: prosperity, loyalty, settlement food, and the workshop model defer to EOF. EOF's decorator pattern wraps BK's `ClanFinanceModel`, `PriceFactor`, `Construction`, `Tax`, `Economy`, and `VillageProduction` models — those layer cleanly with EOF on top. **BK estates are paused** under EOF (data persists, gameplay loop and UI are dormant pending the estate-as-village-workshop redesign — see [Player Guide → Economy: Hearth and Population](Player-Guide#economy-hearth-and-population)). All other BK feudal mechanics — titles, claims, knighthood, retainer, tax-by-class, religion, education, lifestyles, caravans, shipping — keep running unchanged. |
-
-**Compatible without configuration** — these touch different layers and have
-no overlap with BK:
-
-- RTS Camera / Family Tree / Settlement Icons / Better Time / Realistic Weather
-- Open Source Armory / Saddles / Banner Color Persistence
-- Custom Spawns / Calradia at War (BK's bandit behaviour doesn't override
-  spawn templates)
-- Serve as Soldier (different code path)
-- BetterExceptionWindow / Adjustable Troop Selection
-
-**Compatible but watch for stacking**:
-
-- **Distinguished Service** — both touch combat XP. May stack; disable BK's
-  combat XP model in MCM if you don't want the bonus stacked.
-- **Bannerlord Tweaks** — patches widely. Usually fine if loaded after BK.
-  If a tweak silently reverts a BK behaviour, it loaded later — adjust
-  launcher order.
-- **Heroes Must Die** — both listen to hero death. If title succession looks
-  wrong with HMD, set HMD to load *after* BK.
-- **Calradia Expanded / CE Kingdoms** — adds new factions that don't have BK
-  title data. Currently only Nord null-guards exist; new factions may crash
-  or load with empty BK data.
-- **Detailed Character Creation** — overlaps with the BK campaign-start hooks.
-  Test the prologue thoroughly when both are installed.
-
-**Not compatible**:
-
-- **Sub-mods built against the original Banner Kings** (Cultures Expanded,
-  etc.). They target the upstream BK release and are not compatible with
-  Redux.
-
-For the recommended load order, see [Installing → Recommended load order](Installing#recommended-load-order).
 
 ---
 

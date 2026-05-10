@@ -50,7 +50,7 @@ This **Redux fork** brings the mod current with Bannerlord v1.3.x and adds a lay
 - **[Economy](Economy)** — village classes, town industries, estate specializations (incl. Growth investment mode), cluster fit, stagnation, food caravans, AI estate-policy ladder. EOF caveat banner at the top.
 - **[Shipping & trade](Shipping-and-Trade)** — caravan auto-board, AI shipping, adaptive risk weighting, freight pricing, console cheats for testing routes.
 - **[Slavery & raiding](Slavery-and-Raiding)** — the Nord raid economy, slave caravans, the raid capture system (toggles, captives, dispositions, foreign-merc skim), cheats and logging.
-- **[Troubleshooting & compatibility](Troubleshooting)** — edge cases, mod compatibility table, save-game safety, MCM kill switches, how to file a useful bug report, credits & license.
+- **[Troubleshooting](Troubleshooting)** — edge cases, save-game safety, MCM kill switches, how to file a useful bug report, credits & license.
 
 If you're new to BK, read **Installing → Getting started → Player guide** in that order. The other pages are reference material you visit when you need a specific answer.
 

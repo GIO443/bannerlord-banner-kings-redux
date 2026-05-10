@@ -45,9 +45,13 @@ page is hidden.
 specifically includes Cultures Expanded and any mod that derives from the
 original BK release. They will likely crash or behave incorrectly on Redux.
 
-For mods that *do* coexist with BK Redux (Diplomacy, Improved Garrisons,
-Recruit Everywhere, MarryAnyone, BLAV, RBM, AI Influence) and the
-recommended load order, see [Troubleshooting & compatibility](Troubleshooting#mod-compatibility).
+For other mods, BK detects common companions at startup and yields its
+overlapping features automatically — no configuration needed. The
+authoritative source on what compat shims are wired in is
+[`BannerKings/Utils/ModCompat.cs`](https://github.com/GIO443/bannerlord-banner-kings-redux/blob/main/BannerKings/Utils/ModCompat.cs).
+If a specific mod isn't behaving as expected with BK loaded, file an
+issue and we'll add or adjust a shim — but assume it works until you
+have a concrete report.
 
 ## Recommended load order
 

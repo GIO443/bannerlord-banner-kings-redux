@@ -45,22 +45,6 @@ Full install instructions, sub-mod compat warnings, and a player-facing wiki are
 
 6. **Crash-hardening sweeps.** A long list of null-guards, race-condition fixes, save-deserialization backstops, and harmless-fallback patches across the BK surface. The 1.8.x line specifically focused on save/load contract bugs around the new religion system; ship state is now stable.
 
-## Mod compatibility
-
-Detection is automatic via `BannerKings/Utils/ModCompat.cs`. When BK overlaps with another mod's domain, BK yields the user-facing surface and keeps internal state for downstream features.
-
-| Mod | What BK does |
-|---|---|
-| **War Sails (NavalDLC)** | Native support — Nord titles, succession, lifestyles, naval perks all built in. |
-| **Diplomacy** | BK skips its diplomacy model so Diplomacy's UI runs cleanly. |
-| **Improved Garrisons** | BK skips garrison auto-recruitment so IG owns garrison composition. |
-| **Recruit Everywhere** | BK skips volunteer-recruitment overrides. |
-| **MarryAnyone** | BK skips its marriage model. |
-| **Buy Land at Villages** | Both can coexist; BK estates and BLAV land in the same village is potentially confusing — pick one in practice. |
-| **Realistic Battle Mod (RBM)** | Full compat. |
-| **AI Influence (AI Diplomacy)** | BK yields its `InfluenceModel` to AI Influence on the GameModel slot. |
-| **Economy Overhaul Framework** | BK yields settlement-economy ownership; estate loop paused. |
-
 **Sub-mods built against the original Banner Kings are not supported.** Cultures Expanded and any mod that derives from upstream BK will likely crash or behave incorrectly on Redux.
 
 ## Build
