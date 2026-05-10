@@ -197,22 +197,28 @@ namespace BannerKings.Managers.Institutions.Religions
         {
             if (obj is Religion rel)
             {
-                return Faith.GetId() == rel.Faith.GetId();
+                // Use StringId — set once at construction and never mutated.
+                // Was Faith.GetId(): Faith is reassigned during PostInitialize
+                // (`Faith = faith;` after DefaultFaiths.GetById lookup), so
+                // any hash derived from Faith.GetId() is volatile. A
+                // Religion held as a Dictionary key would land in one
+                // bucket on Add and a different bucket on lookup once Faith
+                // got swapped → KeyNotFoundException at Religions[key].
+                return StringId == rel.StringId;
             }
 
             return base.Equals(obj);
         }
 
-        // Must match the Faith.GetId()-based Equals above.
-        // Without this, two Religion instances with the same Faith.GetId()
-        // compare equal but hash differently → Dictionary buckets them
-        // separately → InitializeReligions adds defaults alongside saved
-        // → save serialises both → reload's MBObjectBase resolver
-        // collapses to one instance → Dictionary.Add throws.
+        // GetHashCode MUST be derived from a stable field. StringId is set
+        // by MBObjectBase's ctor and never mutates; Religion.id == Faith.GetId()
+        // by construction in DefaultReligions.Build, so this matches the
+        // historical Faith.GetId()-based comparison without the
+        // mutable-hashcode trap that crashed BalanceReligions on saves
+        // where PostInitialize had swapped Faith between Add and lookup.
         public override int GetHashCode()
         {
-            string id = Faith != null ? Faith.GetId() : StringId;
-            return id != null ? id.GetHashCode() : 0;
+            return StringId != null ? StringId.GetHashCode() : 0;
         }
     }
 }

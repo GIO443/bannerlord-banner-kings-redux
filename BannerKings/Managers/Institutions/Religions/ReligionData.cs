@@ -113,11 +113,20 @@ namespace BannerKings.Managers.Institutions.Religions
                 totalWeight += weight;
             }
 
+            if (totalWeight <= 0f) return; // avoid NaN propagating into Religions
             foreach (var pair in weightDictionary)
             {
+                // TryGetValue not indexer. v1.8.9.6 shipped with a mutable
+                // Religion.GetHashCode (Faith.GetId()-based) that desynced
+                // bucket positions when PostInitialize swapped Faith between
+                // Add and lookup, throwing KeyNotFoundException here even
+                // though the entry was logically in the dict. v1.8.9.7
+                // makes hash stable, but defensive lookup is cheap and
+                // covers any future mutation footgun.
+                if (!Religions.TryGetValue(pair.Key, out float current)) continue;
                 float targetProportion = pair.Value / totalWeight;
-                float diff = targetProportion - Religions[pair.Key];
-                Religions[pair.Key] += diff * 0.01f;
+                float diff = targetProportion - current;
+                Religions[pair.Key] = current + diff * 0.01f;
             }
         }
 
