@@ -124,7 +124,15 @@ namespace BannerKings
             campaignStarter.AddBehavior(new BKRansomBehavior());
             campaignStarter.AddBehavior(new BKTitleBehavior());
             campaignStarter.AddBehavior(new BKNotableBehavior());
-            campaignStarter.AddBehavior(new BKReligionsBehavior());
+            // Religion campaign behavior gated behind the MCM Religion
+            // master toggle. When off, no preacher dialogue, no daily piety
+            // tick, no faith inheritance / induction events fire. The
+            // behavior holds all the religion event subscriptions; not
+            // adding it is the cleanest way to make the system silent.
+            if (BannerKings.Settings.BannerKingsSettings.Instance.EnableReligion)
+            {
+                campaignStarter.AddBehavior(new BKReligionsBehavior());
+            }
             campaignStarter.AddBehavior(new BKSkillBehavior());
             campaignStarter.AddBehavior(new BKLordPropertyBehavior());
             campaignStarter.AddBehavior(new BKInnovationsBehavior());

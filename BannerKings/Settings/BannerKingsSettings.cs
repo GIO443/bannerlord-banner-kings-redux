@@ -19,6 +19,10 @@ namespace BannerKings.Settings
         [SettingPropertyGroup("{=FnRzVf4Q}Performance")]
         public bool Feasts { get; set; } = true;
 
+        [SettingProperty("Enable Religion System", RequireRestart = true, HintText = "Master kill switch for the v1.8.9.0+ religion content (faiths, divinities, doctrines, preachers, piety, holy wars, the religion HUD widget). When OFF, BK skips seeding the seven default religions, doesn't register the religion campaign behavior, and doesn't surface piety in the map bar — the entire system goes dormant. Save data already containing religion entries (loaded from a religion-enabled save) is silently dropped on the first PostInitialize tick. Saves made on this branch can later be re-loaded with religion ON and the seven faiths re-seed automatically. Requires restart because seeding happens at game-data-load time. Default: ON (existing saves keep their religion state).")]
+        [SettingPropertyGroup("{=FnRzVf4Q}Performance")]
+        public bool EnableReligion { get; set; } = true;
+
         [SettingProperty("AI Army Formation", RequireRestart = false, HintText = "When enabled, BK lets AI clan leaders form armies on their own (CallBannersGoal). Disable this if AI lords are stuck in a recruit-then-march loop, or if you want vanilla AI to drive army formation entirely. The override on Kingdom.CreateArmy that uses BK's CanCreateArmy gating is also bypassed when this is off. Default: True.")]
         [SettingPropertyGroup("{=FnRzVf4Q}Performance")]
         public bool AIArmyFormation { get; set; } = true;

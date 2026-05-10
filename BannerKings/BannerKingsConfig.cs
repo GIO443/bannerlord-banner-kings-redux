@@ -190,7 +190,17 @@ namespace BannerKings
             DefaultTitleNames.Instance.Initialize();
             BKTraits.Instance.Initialize();
             DefaultVillageBuildings.Instance.Initialize();
-            DefaultDivinities.Instance.Initialize();
+            // Religion content seeding gated behind the MCM Religion master
+            // toggle. When off, the four Default* religion sources (Divinities,
+            // FaithGroups, Faiths, Religions) stay empty stubs — same state
+            // BK shipped pre-v1.8.9.0. SaveDefiner registrations remain so
+            // saves with religion data deserialize cleanly; ReligionsManager.
+            // PostInitialize then garbage-collects orphan religions via its
+            // existing delete sweep (DefaultFaiths.GetById returns null).
+            if (BannerKings.Settings.BannerKingsSettings.Instance.EnableReligion)
+            {
+                DefaultDivinities.Instance.Initialize();
+            }
             DefaultDoctrines.Instance.Initialize();
             DefaultLanguages.Instance.Initialize();
             DefaultBookTypes.Instance.Initialize();
@@ -205,9 +215,12 @@ namespace BannerKings
             DefaultCasusBelli.Instance.Initialize();
             DefaultMarriageDoctrines.Instance.Initialize();
             DefaultWarDoctrines.Instance.Initialize();
-            DefaultFaithGroups.Instance.Initialize();
-            DefaultFaiths.Instance.Initialize();
-            DefaultReligions.Instance.Initialize();
+            if (BannerKings.Settings.BannerKingsSettings.Instance.EnableReligion)
+            {
+                DefaultFaithGroups.Instance.Initialize();
+                DefaultFaiths.Instance.Initialize();
+                DefaultReligions.Instance.Initialize();
+            }
             DefaultCouncilTasks.Instance.Initialize();
             DefaultCouncilPositions.Instance.Initialize();
             DefaultDemands.Instance.Initialize();

@@ -70,6 +70,20 @@
   broken — empty preacher dialogue, induction with no effect, a
   doctrine that doesn't fire — file an issue with a Better Exception
   Window report.
+- **"How do I disable the religion system entirely?"** As of v1.8.10.0
+  there is a master kill switch in **MCM → Banner Kings → Performance →
+  Enable Religion System**. When OFF, BK skips seeding the seven
+  default religions, doesn't register the religion campaign behavior,
+  and doesn't surface piety in the map bar — the entire system goes
+  dormant. **Requires a restart** because seeding happens at
+  game-data-load time. Save data already containing religion entries
+  (loaded from a religion-enabled save) is silently dropped on the
+  first PostInitialize tick — heroes lose their faith assignments,
+  no further piety accrues. Saves made on the religion-disabled
+  branch can later be re-loaded with religion ON and the seven
+  faiths re-seed automatically; existing heroes get their ideal
+  faith assigned via the normal daily-tick fallback. Default ON so
+  existing saves keep their religion state on upgrade.
 - **"A caravan is walking visibly across open water"** — fixed in two
   layers: a daily rescue sweep steers stranded
   parties to the nearest sea-reachable port, and the routing graph
