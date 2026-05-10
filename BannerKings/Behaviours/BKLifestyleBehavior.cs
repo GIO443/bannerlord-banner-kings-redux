@@ -76,8 +76,36 @@ namespace BannerKings.Behaviours
             var lf = education.Lifestyle;
             if (skill == lf.FirstSkill || skill == lf.SecondSkill)
             {
+                // Seafaring lifestyles use vanilla skills (TwoHanded/Athletics
+                // for Jomsviking, Leadership/Tactics for Drakkar Captain,
+                // Bow/Scouting for Sjofarandi). Without an at-sea gate the
+                // lifestyle progresses on any land combat that ticks those
+                // skills, which players have flagged as "boat skills going
+                // up on land". Restrict seafaring progress to ticks where
+                // the hero's party is actually on the wave.
+                if (IsSeafaringLifestyle(lf))
+                {
+                    var party = hero.PartyBelongedTo
+                        ?? (hero == Hero.MainHero ? MobileParty.MainParty : null);
+                    if (party == null || !party.IsCurrentlyAtSea) return;
+                }
+
                 education.AddProgress(education.CurrentLifestyleRate.ResultNumber / 10f);
             }
+        }
+
+        private static bool IsSeafaringLifestyle(Lifestyle lf)
+        {
+            if (lf == null) return false;
+            // Match by StringId rather than by reference — the seafaring
+            // lifestyles are conditionally registered (only when War Sails
+            // is loaded and the Nord culture exists), so looking them up
+            // through DefaultLifestyles.Instance properties would NRE in
+            // a no-NavalDLC build. StringId comparison is stable.
+            string id = lf.StringId;
+            return id == "lifestyle_jomsviking"
+                || id == "lifestyle_drakkar_captain"
+                || id == "lifestyle_sjofarandi";
         }
 
         private void OnWeeklyTick()
