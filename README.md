@@ -2,78 +2,66 @@
 
 > **Module Id:** `BannerKings.Redux` &nbsp;·&nbsp; **Folder:** `Modules/BannerKings.Redux/` &nbsp;·&nbsp; **Version:** see `_Module/SubModule.xml`
 
-## 📥 Download
-
-Get the latest release from the [Releases page](https://github.com/GIO443/bannerlord-banner-kings-redux/releases/latest).
-
-The 1.6.x line ships graph-driven caravan shipping with adaptive risk
-weighting — war, siege, and banditry adjust routes and freight prices
-in real time. The earlier 1.5.x maintenance line (lane-overlap shipping,
-no risk weighting) has been retired now that 1.6.x is stable; older
-1.5.x tags remain available on the Releases page for reference.
-
-The release zip is the same packaged build the Nexus page used to host —
-extract it into your Bannerlord install (see *Installing* below). The
-Nexus page is currently hidden while attribution/licensing is sorted
-with the original author; GitHub Releases is the authoritative download
-in the meantime.
-
-> **This is an unofficial fork** of [Banner Kings by R-Vaccari](https://github.com/R-Vaccari/bannerlord-banner-kings),
-> updated for Bannerlord v1.3.x with native War Sails (NavalDLC) Nord support. The original author has been
-> inactive for a while; this fork is maintained as a separate mod and will be taken down immediately upon
-> request by the original author. All credit for the original Banner Kings goes to R-Vaccari and contributors.
-
-## Installing
-
-1. Make sure the listed dependencies (Harmony, ButterLib, UIExtenderEx, MCM) are installed.
-2. **Uninstall any existing `Modules/BannerKings/` folder** — Redux is a separate module under
-   `Modules/BannerKings.Redux/` and saves do not transfer between the two. Pick one.
-3. Drop the contents of the release zip into your Bannerlord install. You should end up with
-   `…/Mount & Blade II Bannerlord/Modules/BannerKings.Redux/_Module/SubModule.xml`.
-4. Enable **Banner Kings — Redux** in the launcher and start a fresh save.
+A maintenance fork of [R-Vaccari's Banner Kings](https://github.com/R-Vaccari/bannerlord-banner-kings), updated for **Bannerlord v1.3.x** with native **War Sails (NavalDLC)** Nord faction support and ongoing crash-hardening work.
 
 [![CodeFactor](https://www.codefactor.io/repository/github/gio443/bannerlord-banner-kings-redux/badge/main)](https://www.codefactor.io/repository/github/gio443/bannerlord-banner-kings-redux/overview/main)
 
-## What this fork adds
+## 📥 Download
 
-This fork has two goals on top of the original mod:
+Get the latest release from the **[Releases page](https://github.com/GIO443/bannerlord-banner-kings-redux/releases/latest)**.
 
-1. **Bannerlord v1.3.x compatibility** — The original project was last updated before the 1.3.x
-   API changes. All compile errors from the TaleWorlds API changes have been fixed.
+Releases tag on the `1.8.x` line; the latest tag is the recommended build. Older `1.5.x` / `1.6.x` tags remain on the page if you specifically need to roll back, but no fixes are backported to them.
 
-2. **War Sails (NavalDLC) Nord faction support** — The original BK has no data for the Nord
-   settlements, clans, titles, or culture added by the War Sails DLC, causing null-reference
-   crashes whenever the player interacts with Nord content. This fork adds native support:
-   - Nord title hierarchy (kingdom, 2 duchies, 4 counties, 9 baronies) in `titles.xml`
-   - WilundingElective succession for the Nord kingdom
-   - Nordic language with partial Sturgian intelligibility
-   - Null-guard patches to prevent crashes when BK code encounters unrecognised settlements
+The Nexus page is currently hidden while attribution and licensing details are sorted with the original author. GitHub Releases is the authoritative download in the meantime.
 
-   **The mod works without War Sails installed** — Nord-specific code is skipped gracefully
-   when the Nord culture and settlements are absent.
+> **This is an unofficial fork.** All credit for the original Banner Kings design, content, and core systems belongs to R-Vaccari and the original contributors. The fork is maintained while upstream is dormant and will be taken down immediately upon request by the original author.
 
----
+## Quick install
 
-## Original description
+1. Install the four required dependencies: **Harmony**, **ButterLib**, **UIExtenderEx**, **MCM**. Strongly recommended: **[Better Exception Window](https://www.nexusmods.com/mountandblade2bannerlord/mods/404)** so any crash you hit produces a useful HTML report.
+2. **Remove any existing `Modules/BannerKings/` folder.** Redux is a separate module under `Modules/BannerKings.Redux/` and saves do not transfer between the two — pick one.
+3. Drop the release zip into your Bannerlord install. You should end up with `…/Mount & Blade II Bannerlord/Modules/BannerKings.Redux/_Module/SubModule.xml`.
+4. Enable **Banner Kings — Redux** in the launcher (after the four dependencies). Start a fresh save.
 
-Banner Kings is a suite of features developed for Mount & Blade: Bannerlord. The modification
-focuses on adding depth to gameplay by expanding and adding layers of complexity to non-combat
-related features. Inspiration is mostly drawn from games such as Crusader Kings.
+Full install instructions, sub-mod compat warnings, and a player-facing wiki are at the [GitHub wiki](https://github.com/GIO443/bannerlord-banner-kings-redux/wiki) — start with **[Installing](https://github.com/GIO443/bannerlord-banner-kings-redux/wiki/Installing)** then **[Getting started](https://github.com/GIO443/bannerlord-banner-kings-redux/wiki/Getting-Started)**.
 
-Banner Kings is both a mod and a modding framework — it can be sub-modded by other mods,
-making use of its base systems such as Languages, BK Troop Spawn system, Titles, Books,
-and Religions. Note that sub-mods target the original release and are not supported by this fork.
+## What Redux adds on top of the original
 
-## Compatibility
+1. **Bannerlord v1.3.x compatibility.** Upstream BK was last updated before the 1.3.x API changes. Every compile error from the TaleWorlds API churn has been fixed; the Redux DLL builds and runs against current `bin/Win64_Shipping_Client/`.
 
-**No sub-mods are supported.** This fork is not tested or compatible with any Banner Kings
-sub-mods, including the official
-[Banner Kings: Cultures Expanded](https://github.com/R-Vaccari/BannerKings.CulturesExpanded).
-Those sub-mods target the original BK release and will likely break or crash on this fork.
+2. **Native War Sails (NavalDLC) Nord faction support.** Upstream had no data for the Nord faction added by War Sails — touching any Nord settlement crashed BK with NREs. Redux adds:
+   - A full Nord title hierarchy (kingdom → 2 duchies → 4 counties → 9 baronies) in `titles.xml`.
+   - `WilundingElective` succession law for the Nord kingdom.
+   - Nordic language with partial Sturgian intelligibility.
+   - Three Nord-only seafaring lifestyles — **Jomsviking**, **Drakkar Captain**, **Sjofarandi** — with real perks affecting naval combat, party speed at sea, and spotting.
+   - The **Nordic Thrall Law**, a culture-specific demesne law that biases the Nord economy toward raid-based slave trade.
+   - Null-guard patches throughout BK so the mod runs cleanly with War Sails *or* with War Sails uninstalled.
 
-## Installation
+3. **Religion system seeded.** Upstream's religion machinery was scaffolded but unpopulated — the seven culture faiths, divinities, doctrines, rites, and clergy templates exist as code but no faith was ever instantiated. Redux v1.8.9.0 seeds the seven natural faiths (Empire's Darusosian Path, Vlandia's Canticles of Caïon, Battania's Amra Druidh, Aserai's Path of Akhmar, Khuzait's Six Winds, Sturgia's Old Gods of the North, and a War Sails Nord *Osfeydian Tradition*) so heroes are assigned faiths automatically, preachers spawn at settlements, and dialogue / blessings / rites / induction work end to end. Master kill switch in `MCM → Performance → Enable Religion System` if you'd rather skip the system entirely.
 
-See the [original wiki](https://github.com/R-Vaccari/bannerlord-banner-kings/wiki/Installation).
+4. **Economy Overhaul Framework (EOF) compatibility.** When EOF is loaded, BK yields its village/town economy systems (prosperity, loyalty, food, workshops) to EOF and pauses the BK estate gameplay loop. EOF's decorator pattern wraps BK's `ClanFinanceModel`, `PriceFactor`, `Construction`, `Tax`, `Economy`, and `VillageProduction` models cleanly. All other BK feudal mechanics (titles, claims, knighthood, retainer, tax-by-class, religion, education, lifestyles, caravans, shipping) keep running unchanged.
+
+5. **Naval shipping & raid capture.** Graph-driven cross-continent caravan and lord shipping with adaptive risk weighting (war, siege, banditry adjust routes and freight prices in real time). Raid capture system that turns village raids into actual captives instead of nothing — toggleable in MCM.
+
+6. **Crash-hardening sweeps.** A long list of null-guards, race-condition fixes, save-deserialization backstops, and harmless-fallback patches across the BK surface. The 1.8.x line specifically focused on save/load contract bugs around the new religion system; ship state is now stable.
+
+## Mod compatibility
+
+Detection is automatic via `BannerKings/Utils/ModCompat.cs`. When BK overlaps with another mod's domain, BK yields the user-facing surface and keeps internal state for downstream features.
+
+| Mod | What BK does |
+|---|---|
+| **War Sails (NavalDLC)** | Native support — Nord titles, succession, lifestyles, naval perks all built in. |
+| **Diplomacy** | BK skips its diplomacy model so Diplomacy's UI runs cleanly. |
+| **Improved Garrisons** | BK skips garrison auto-recruitment so IG owns garrison composition. |
+| **Recruit Everywhere** | BK skips volunteer-recruitment overrides. |
+| **MarryAnyone** | BK skips its marriage model. |
+| **Buy Land at Villages** | Both can coexist; BK estates and BLAV land in the same village is potentially confusing — pick one in practice. |
+| **Realistic Battle Mod (RBM)** | Full compat. |
+| **AI Influence (AI Diplomacy)** | BK yields its `InfluenceModel` to AI Influence on the GameModel slot. |
+| **Economy Overhaul Framework** | BK yields settlement-economy ownership; estate loop paused. |
+
+**Sub-mods built against the original Banner Kings are not supported.** Cultures Expanded and any mod that derives from upstream BK will likely crash or behave incorrectly on Redux.
 
 ## Build
 
@@ -82,11 +70,18 @@ BANNERLORD_GAME_DIR="C:/Program Files (x86)/Steam/steamapps/common/Mount & Blade
   dotnet build BannerKings/BannerKings.csproj -c Release
 ```
 
-## Bug Reporting
+The csproj resolves all game DLL references via `$(BANNERLORD_GAME_DIR)`. Build output is copied directly to the game's `Modules/BannerKings.Redux/` folder.
 
-For issues specific to this fork (1.3.x compatibility, Nord/War Sails integration), open an
-issue on this repository.
+## Bug reporting
 
-For issues with the original Banner Kings mod, use the
-[original repository](https://github.com/R-Vaccari/bannerlord-banner-kings) or the
-[Discord](https://discord.gg/z7DS5R46wC).
+Open an [issue on this repository](https://github.com/GIO443/bannerlord-banner-kings-redux/issues) for bugs in this fork.
+
+A useful bug report includes the **Better Exception Window** crash HTML (full stack, inner exception, loaded modules, harmony patches), a description of what you were doing when it crashed, and your full mod load order. Without the HTML, most reports come down to "the game crashed" — installable from [Nexus](https://www.nexusmods.com/mountandblade2bannerlord/mods/404) before you start a save you care about.
+
+For issues with the **original** Banner Kings mod, use the [upstream repository](https://github.com/R-Vaccari/bannerlord-banner-kings).
+
+## License & credits
+
+Original Banner Kings: R-Vaccari and contributors — all design, content, and core systems credit.
+
+Redux fork: a community maintenance effort under the same license as upstream. The fork exists to keep the mod current with Bannerlord patches while upstream is dormant; it will be retired immediately if upstream resumes development or upon request by the original author.
