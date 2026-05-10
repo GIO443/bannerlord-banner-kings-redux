@@ -64,6 +64,10 @@ namespace BannerKings.Settings
         [SettingPropertyGroup("{=2oJQ4Snn}Economy")]
         public bool AdaptiveShippingRisk { get; set; } = true;
 
+        [SettingProperty("Enable Shipping Rescues", RequireRestart = false, HintText = "When on, BK runs three rescue passes that teleport stranded parties (boats walking on land, lords stuck on coastal tiles, caravans beached at navmesh dead-ends) into a friendly haven via EnterSettlementAction. Useful for unsticking bad savestates. When off, BK never teleports a party — vanilla AI handles all unsticking, and any party that ends up in a state vanilla can't recover from stays there. Default: OFF (the rescue paths have caused enemy-fief teleports and siege oscillation; the toggle is a safety valve while the underlying logic is being audited).")]
+        [SettingPropertyGroup("{=2oJQ4Snn}Economy")]
+        public bool EnableShippingRescues { get; set; } = false;
+
         [SettingProperty("{=4pJUkbew}AI Dismiss Parties", RequireRestart = false, HintText = "{=FhNxraXd}AI clan leaders will dismiss parties from their family members during peace in order to save more money. Default: true.")]
         [SettingPropertyGroup("{=2oJQ4Snn}Economy")]
         public bool DismissParties { get; set; } = true;

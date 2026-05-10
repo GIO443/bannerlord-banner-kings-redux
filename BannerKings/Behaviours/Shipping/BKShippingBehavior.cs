@@ -1029,6 +1029,13 @@ namespace BannerKings.Behaviours.Shipping
         // happily continue ticking.
         private void LoadCleanup()
         {
+            // MCM gate. When off, BK never teleports parties as a rescue —
+            // vanilla AI is left to handle stuck/stranded states. Default
+            // off because the rescue paths repeatedly produced enemy-fief
+            // teleports and siege oscillation while the underlying
+            // detection logic is being audited.
+            if (!BannerKings.Settings.BannerKingsSettings.Instance.EnableShippingRescues) return;
+
             try
             {
                 var wrapper = TaleWorlds.CampaignSystem.Campaign.Current?.MapSceneWrapper;
@@ -1299,6 +1306,9 @@ namespace BannerKings.Behaviours.Shipping
 
         private void UnifiedRescueSweep()
         {
+            // MCM gate (see LoadCleanup for rationale).
+            if (!BannerKings.Settings.BannerKingsSettings.Instance.EnableShippingRescues) return;
+
             try
             {
                 var wrapper = TaleWorlds.CampaignSystem.Campaign.Current?.MapSceneWrapper;
@@ -2184,6 +2194,9 @@ namespace BannerKings.Behaviours.Shipping
         // caravans, where the naming convention is the canonical mode.
         private void DailyConvoyBeachingCheck()
         {
+            // MCM gate (see LoadCleanup for rationale).
+            if (!BannerKings.Settings.BannerKingsSettings.Instance.EnableShippingRescues) return;
+
             int rescued = 0;
             try
             {
@@ -2835,6 +2848,16 @@ namespace BannerKings.Behaviours.Shipping
                         return;
                     }
 
+                    // MCM gate. The force-ENTER is a rescue-style teleport;
+                    // the master toggle disables it along with the other
+                    // rescue passes when set off.
+                    if (!BannerKings.Settings.BannerKingsSettings.Instance.EnableShippingRescues)
+                    {
+                        LogRedirect(party, $"force-ENTER skipped at {graphTarget.Name} — rescues disabled in MCM", target);
+                        progressTracker[party] = (party.GetPosition2D, 0);
+                        return;
+                    }
+
                     // Force-enter the target for movement-required behaviors
                     // (GoToSettlement, etc.). The party is at the target's
                     // gate but vanilla can't finish the walk-and-enter.
@@ -3166,6 +3189,13 @@ namespace BannerKings.Behaviours.Shipping
                         return;
                     }
 
+                    // MCM gate (master rescue toggle).
+                    if (!BannerKings.Settings.BannerKingsSettings.Instance.EnableShippingRescues)
+                    {
+                        LogRedirect(party, $"coast-stuck rescue to {rescueTown.Name} skipped — rescues disabled in MCM", target);
+                        return;
+                    }
+
                     LogRedirect(party, $"STUCK at coast — ENTER {rescueTown.Name} (vanilla pathfind to {entryNode.Name} returned Infinity)", target);
                     try { TaleWorlds.CampaignSystem.Actions.EnterSettlementAction.ApplyForParty(party, rescueTown); } catch { }
                     progressTracker[party] = (party.GetPosition2D, 0);
@@ -3217,6 +3247,12 @@ namespace BannerKings.Behaviours.Shipping
                     if (rescueTown == null)
                     {
                         LogRedirect(party, $"sea-edge redirect: entry {entryNode.Name} unreachable AND no rescue town available", target);
+                        return;
+                    }
+                    // MCM gate (master rescue toggle).
+                    if (!BannerKings.Settings.BannerKingsSettings.Instance.EnableShippingRescues)
+                    {
+                        LogRedirect(party, $"sea-edge unreachable rescue to {rescueTown.Name} skipped — rescues disabled in MCM", target);
                         return;
                     }
                     LogRedirect(party, $"sea-edge redirect: entry {entryNode.Name} unreachable — ENTER {rescueTown.Name}", target);
