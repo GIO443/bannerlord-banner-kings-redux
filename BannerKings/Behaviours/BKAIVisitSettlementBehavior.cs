@@ -78,6 +78,22 @@ namespace BannerKings.Behaviours
                 return;
             }
 
+            // Hands-off for parties sharing the player's army. Vanilla's
+            // AiVisitSettlementBehavior is still wired (see RegisterEvents
+            // comment) and contributes its own scoring tuples for these
+            // parties — BK running in parallel doubles the "go to settlement"
+            // score path without doubling "join / stay in army", biasing
+            // army-member AI toward defection. Multiple users have reported
+            // armies bleeding members the moment the player joins; this
+            // hands-off matches the same pattern v1.8.10.2 applied to the
+            // shipping behavior. Let vanilla score the player's army alone.
+            if (mobileParty.Army != null && MobileParty.MainParty != null
+                && mobileParty.Army == MobileParty.MainParty.Army
+                && mobileParty != MobileParty.MainParty)
+            {
+                return;
+            }
+
             bool thinkParty = mobileParty.Army == null || mobileParty.Army.LeaderParty == mobileParty || mobileParty.Army.Cohesion < (float)mobileParty.Army.CohesionThresholdForDispersion;
             if (!thinkParty) return;
 
