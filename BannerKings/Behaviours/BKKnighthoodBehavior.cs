@@ -12,6 +12,7 @@ using TaleWorlds.CampaignSystem.Actions;
 using TaleWorlds.CampaignSystem.CampaignBehaviors;
 using TaleWorlds.CampaignSystem.Encounters;
 using TaleWorlds.CampaignSystem.Party;
+using TaleWorlds.CampaignSystem.Settlements;
 using TaleWorlds.CampaignSystem.ViewModelCollection;
 using TaleWorlds.CampaignSystem.ViewModelCollection.ClanManagement.Categories;
 using TaleWorlds.Core;
@@ -376,9 +377,15 @@ namespace BannerKings.Behaviours
         private List<InquiryElement> GetAvailableEstates()
         {
             var result = new List<InquiryElement>();
+            var seenEstates = new HashSet<Estate>();
+
+            // Source 1: estates the player directly owns (e.g. purchased,
+            // inherited). PopulationManager.GetEstates returns Estate objects
+            // keyed to the player as owner.
             var estates = BannerKingsConfig.Instance.PopulationManager.GetEstates(Hero.MainHero);
             foreach (var estate in estates)
             {
+                if (!seenEstates.Add(estate)) continue;
                 var settlement = estate.EstatesData.Settlement;
                 var action = BannerKingsConfig.Instance.EstatesModel.GetGrant(estate, Hero.MainHero, Hero.OneToOneConversationHero);
                 result.Add(new InquiryElement(estate,
@@ -391,6 +398,35 @@ namespace BannerKings.Behaviours
                     action.Reason.ToString()));
             }
 
+            // Source 2: every village the player effectively controls. Was
+            // restricted to "villages where the player holds the BK Lordship
+            // title" — which misses every village the player conquered or
+            // married into without acquiring the matching BK title, and at
+            // the same time *includes* the Indebted Lord starting village
+            // whose parent castle/town has since flipped to another kingdom
+            // (player has the title but no real authority there). Replace
+            // with two sources: vanilla-owned villages + BK Lordship-held
+            // villages — deduped — then filter to ones in the player's
+            // current MapFaction so we don't list villages that have left
+            // the player's political reach.
+            var candidateVillages = new HashSet<Settlement>();
+
+            // 2a. Villages the player's clan owns via vanilla (the parent
+            // castle/town's OwnerClan resolves transitively for villages).
+            // This is the user's "I own several villages but the dialog
+            // doesn't see them" case.
+            try
+            {
+                foreach (var v in Clan.PlayerClan.Villages)
+                {
+                    if (v?.Settlement != null) candidateVillages.Add(v.Settlement);
+                }
+            }
+            catch { }
+
+            // 2b. Villages where the player holds a BK Lordship deJure title.
+            // Same source as before — kept for the case where the player has
+            // a Lordship title but doesn't own the bound parent via vanilla.
             var titles = BannerKingsConfig.Instance.TitleManager.GetAllDeJure(Hero.MainHero);
             foreach (var title in titles)
             {
@@ -398,26 +434,36 @@ namespace BannerKings.Behaviours
                 {
                     continue;
                 }
-                
-                var settlement = title.Fief;
+                if (title.Fief != null) candidateVillages.Add(title.Fief);
+            }
+
+            // Filter: drop villages outside the player's current MapFaction.
+            // Indebted Lord scenario: player still holds the BK Lordship,
+            // but the bound castle flipped to another kingdom — the
+            // village isn't effectively controllable anymore.
+            var playerFaction = Hero.MainHero.MapFaction;
+            foreach (var settlement in candidateVillages)
+            {
+                if (settlement == null) continue;
+                if (playerFaction != null && settlement.MapFaction != playerFaction) continue;
+
                 var data = BannerKingsConfig.Instance.PopulationManager.GetPopData(settlement);
-                if (data.EstateData != null)
+                if (data?.EstateData == null) continue;
+                foreach (var estate in data.EstateData.Estates)
                 {
-                    foreach (var estate in data.EstateData.Estates)
-                    {
-                        if (estate.IsDisabled)
-                        {
-                            var action = BannerKingsConfig.Instance.EstatesModel.GetGrant(estate, Hero.MainHero, Hero.OneToOneConversationHero);
-                            result.Add(new InquiryElement(estate,
-                                new TextObject("{=68m3U2ey}{VILLAGE} - {ACREAGE} acres")
-                                .SetTextVariable("VILLAGE", settlement.Name)
-                                .SetTextVariable("ACREAGE", estate.Acreage.ToString("0.00"))
-                                .ToString(),
-                                null,
-                                action.Possible,
-                                action.Reason.ToString()));
-                        }
-                    }
+                    if (estate == null) continue;
+                    if (!estate.IsDisabled) continue; // only vacant estates are grantable
+                    if (!seenEstates.Add(estate)) continue;
+
+                    var action = BannerKingsConfig.Instance.EstatesModel.GetGrant(estate, Hero.MainHero, Hero.OneToOneConversationHero);
+                    result.Add(new InquiryElement(estate,
+                        new TextObject("{=68m3U2ey}{VILLAGE} - {ACREAGE} acres")
+                        .SetTextVariable("VILLAGE", settlement.Name)
+                        .SetTextVariable("ACREAGE", estate.Acreage.ToString("0.00"))
+                        .ToString(),
+                        null,
+                        action.Possible,
+                        action.Reason.ToString()));
                 }
             }
 
