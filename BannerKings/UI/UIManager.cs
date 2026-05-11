@@ -358,6 +358,19 @@ namespace BannerKings.UI
         {
             private static KingdomPoliciesVM instance;
 
+            // Cache reflection MethodInfo once. The original code called
+            // __instance.GetType().GetMethod(name, BindingFlags.Instance |
+            // NonPublic) on every RefreshPolicyList tick, plus a fresh
+            // GetMethod call inside IsPolicyActive(policy) for EVERY policy
+            // object iterated. With ~20 vanilla policies, that's ~40 reflective
+            // lookups per kingdom-screen refresh, doubled or tripled by the
+            // mixin's cascade. Static-readonly caches these to one lookup at
+            // type init.
+            private static readonly MethodInfo IsPolicyActiveMethod =
+                AccessTools.Method(typeof(KingdomPoliciesVM), "IsPolicyActive");
+            private static readonly MethodInfo OnPolicySelectMethod =
+                AccessTools.Method(typeof(KingdomPoliciesVM), "OnPolicySelect");
+
             private static void Postfix(KingdomPoliciesVM __instance)
             {
                 if (BannerKingsConfig.Instance.TitleManager == null)
@@ -374,34 +387,24 @@ namespace BannerKings.UI
                     return;
                 }
 
-                var active = __instance.GetType()
-                    .GetMethod("IsPolicyActive", BindingFlags.Instance | BindingFlags.NonPublic);
-                var select = __instance.GetType()
-                    .GetMethod("OnPolicySelect", BindingFlags.Instance | BindingFlags.NonPublic);
-
-
-                if (title.Contract == null)
-                {
-                    return;
-                }
+                if (IsPolicyActiveMethod == null || OnPolicySelectMethod == null) return;
 
                 var list = title.Contract.Government.ProhibitedPolicies;
                 __instance.OtherPolicies.Clear();
                 foreach (var policy2 in from p in PolicyObject.All
-                         where !(bool) active.Invoke(__instance, new object[] {p}) && !list.Contains(p)
+                         where !(bool) IsPolicyActiveMethod.Invoke(__instance, new object[] {p}) && !list.Contains(p)
                          select p)
                 {
                     __instance.OtherPolicies.Add(new KingdomPolicyItemVM(policy2,
-                        delegate(KingdomPolicyItemVM x) { select.Invoke(__instance, new object[] {x}); },
+                        delegate(KingdomPolicyItemVM x) { OnPolicySelectMethod.Invoke(__instance, new object[] {x}); },
                         IsPolicyActive));
                 }
             }
 
             private static bool IsPolicyActive(PolicyObject policy)
             {
-                var active = instance.GetType()
-                    .GetMethod("IsPolicyActive", BindingFlags.Instance | BindingFlags.NonPublic);
-                return (bool) active.Invoke(instance, new object[] {policy});
+                if (instance == null || IsPolicyActiveMethod == null) return false;
+                return (bool) IsPolicyActiveMethod.Invoke(instance, new object[] {policy});
             }
         }
 

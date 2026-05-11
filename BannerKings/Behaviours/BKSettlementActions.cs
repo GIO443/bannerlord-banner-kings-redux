@@ -1420,6 +1420,21 @@ namespace BannerKings.Behaviours
             int alreadyGranted = beh.GetTotalGrantedInVillage(v);
             int available = System.Math.Max(0, totalLordLands - alreadyGranted);
 
+            // Lock-prevention: when neither button would render, the
+            // resulting InquiryData has no dismissable controls — the dialog
+            // appears but nothing can close it. This happens when the player
+            // picks a knight with no current grants in a village where all
+            // lord-lands are already granted out to other knights. Show a
+            // quick info and bail instead of rendering an unclosable dialog.
+            if (available <= 0 && currentGrants <= 0)
+            {
+                MBInformationManager.AddQuickInformation(new TextObject(
+                    "{=BK_NothingToGrantOrRevoke}{KNIGHT} holds no lands in {VILLAGE} and no lord-lands are free to grant here.")
+                    .SetTextVariable("KNIGHT", grantee.Name)
+                    .SetTextVariable("VILLAGE", v.Name));
+                return;
+            }
+
             string title = new TextObject("{=BK_GrantOrRevoke}Land action").ToString();
             string desc = new TextObject(
                 "{=BK_GrantOrRevokeText}{KNIGHT} currently holds {N} lands in {VILLAGE}.\n\nGrant +1 (available: {AVAIL}) or revoke -1?")

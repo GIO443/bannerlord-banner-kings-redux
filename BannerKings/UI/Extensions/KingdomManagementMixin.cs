@@ -53,8 +53,13 @@ namespace BannerKings.UI.Extensions
                 DemesneEnabled = false;
             }
 
-            try { kingdomManagement.RefreshValues(); }
-            catch { }
+            // Don't call kingdomManagement.RefreshValues() here. UIExtenderEx
+            // already invokes RefreshValues on the host VM after mixin
+            // construction (that's the wiring of [ViewModelMixin("RefreshValues")]).
+            // A redundant call mid-ctor doubled the kingdom-screen open time
+            // because each RefreshValues cascades through OnRefresh →
+            // Court/Demesne/Groups/Career sub-VM refreshes. The first auto-
+            // refresh (after this ctor completes) now does the work alone.
 
             try
             {

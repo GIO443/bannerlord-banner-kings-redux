@@ -59,7 +59,11 @@ namespace BannerKings.UI.Court
             privilegesInfo = new MBBindingList<InformationElement>();
             guests = new MBBindingList<ClanLordItemVM>();
             isRoyal = royal;
-            currentCharacter = new CharacterDeveloperVM(null);
+            // CharacterDeveloperVM is heavy to construct (sets up attribute /
+            // skill / perk panels). The court-member detail panel only needs
+            // it when the user clicks a courtier. Lazy-init via the
+            // SetCurrentCharacter path; null until first click.
+            currentCharacter = null;
         }
 
         [DataSourceProperty] public string FamilyText => new TextObject("{=QCw05MZN}Household").ToString();
