@@ -217,9 +217,29 @@ namespace BannerKings.Behaviours.Feasts
 
             var clan = party.LeaderHero.Clan;
             if (clan == null) return;
-            
+
             var kingdom = clan.Kingdom;
             if (kingdom == null) return;
+
+            // Don't yank lords with active military commitments — sieges, map
+            // events, armies (especially the player's army). Without this gate
+            // a feast-invited clan's parties would peel off mid-siege every
+            // hour, the army would bleed cohesion and disperse, and the
+            // symptom (visible after the player joined and started watching
+            // closely) is "army retreats from siege and disbands". See
+            // ShouldSkipForArmyOrSiege for the full predicate.
+            if (BannerKings.Behaviours.Shipping.BKShippingBehavior.ShouldSkipForArmyOrSiege(party)) return;
+
+            // Belt-and-suspenders: also bail if the party's current AI
+            // intent is a settlement-objective behavior. An army-member
+            // following a Besieger/Defender army leader inherits these via
+            // their escort target, but a solo party that's independently
+            // chosen to besiege/raid/defend shouldn't be ripped off it for
+            // a feast either.
+            var beh = party.DefaultBehavior;
+            if (beh == AiBehavior.BesiegeSettlement
+                || beh == AiBehavior.RaidSettlement
+                || beh == AiBehavior.DefendSettlement) return;
 
             foreach (var town in kingdom.Fiefs)
             {
