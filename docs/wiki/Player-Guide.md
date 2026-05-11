@@ -221,7 +221,13 @@ workshops, ploughs, market stalls — the *means of production*. Raids
 destroy infrastructure, dropping Hearth fast (vanilla raid penalty plus
 EOF's −50 on looted state). Peace and villager activity rebuild it slowly.
 Under EOF, Hearth is the primary driver of how much trade goods a village
-produces per day.
+produces per day. **As of v1.8.10.5, BK overlays a population-workforce
+factor on EOF's per-item output** so a well-populated village isn't stuck
+at EOF's hearth-only baseline — labour saturation between 0.85× and 1.60×
+is added on top of EOF's number (1.0× when population matches expected
+labour need, ≤0.85× when severely understaffed, ≥1.60× clipped when
+significantly overstaffed). Hover the production tooltip for a "BK
+population workforce" line when the factor is non-trivial.
 
 **BK Population is labor / demographics.** The serfs / slaves / freemen /
 nobles class breakdown shown in the BK settlement panel is the actual

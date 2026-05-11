@@ -41,11 +41,20 @@ namespace BannerKings.Patches
         private const string BLM_PopulationFunctionType =
             "Bannerlord.Economy_Overhaul.BLM_PopulationFunction";
 
-        // Adds an estate-workforce utilization factor to EOF's per-item village
-        // production. Saturation 1.0 ≈ baseline, clamped to [0.85, 1.20] so
-        // even underpopulated or overpopulated estates only swing output by
-        // ±20% — preserves EOF's intended balance while keeping BK estate
-        // workforce relevant to the village's primary product.
+        // Adds a population-workforce utilization factor to EOF's per-item
+        // village production. EOF derives per-item output from vanilla Hearth
+        // alone; without this overlay, a player village with a large BK
+        // labour pool produces the same as a barely-populated one of the
+        // same hearth size, which players experience as EOF "undertuning"
+        // every fief. Saturation 1.0 ≈ baseline, clamped to [0.85, 1.60]:
+        // population scarcity drags output -15% at the floor, an abundant
+        // workforce can lift output up to +60% above EOF's hearth baseline.
+        //
+        // Saturation source: per-estate average WorkforceSaturation when
+        // estates exist, otherwise falls back to LandData.WorkforceSaturation
+        // (settlement-wide labour pool vs farmland+pasture required-labour).
+        // This means the boost still applies under EOF even though the BK
+        // estate gameplay loop is currently paused there.
         [HarmonyPatch]
         internal static class BLM_VillageProductionEstateWorkforcePatch
         {
@@ -54,12 +63,6 @@ namespace BannerKings.Patches
             private static bool Prepare()
             {
                 if (!ModCompat.EconomyOverhaul) return false;
-                // The estate-workforce factor only matters when BK estates are
-                // an active gameplay system. Under EOF the estate loop is
-                // currently paused (see BKFeatureGates.EstatesEnabled) pending
-                // the estate-as-village-workshop redesign, so don't bother
-                // patching village production for a system that isn't running.
-                if (!BKFeatureGates.EstatesEnabled) return false;
                 _modelType = AccessTools.TypeByName(BLM_VillageProductionModelType);
                 return _modelType != null
                     && AccessTools.Method(_modelType, "CalculateDailyProductionAmount",
@@ -78,28 +81,55 @@ namespace BannerKings.Patches
                 try
                 {
                     var data = BannerKingsConfig.Instance?.PopulationManager?.GetPopData(village.Settlement);
-                    var estates = data?.EstateData?.Estates;
-                    if (estates == null || estates.Count == 0) return;
+                    if (data == null) return;
 
-                    float saturationSum = 0f;
-                    int saturationCount = 0;
-                    foreach (var estate in estates)
+                    float saturation = float.NaN;
+
+                    // Prefer estate-level saturation when the estate loop is
+                    // active. When estates are paused under EOF the list will
+                    // typically be empty, so fall through to LandData.
+                    var estates = data.EstateData?.Estates;
+                    if (estates != null && estates.Count > 0)
                     {
-                        float sat;
-                        try { sat = estate.WorkforceSaturation; }
-                        catch { continue; }
-                        if (float.IsNaN(sat) || float.IsInfinity(sat) || sat <= 0f) continue;
-                        saturationSum += sat;
-                        saturationCount++;
+                        float sum = 0f;
+                        int count = 0;
+                        foreach (var estate in estates)
+                        {
+                            float sat;
+                            try { sat = estate.WorkforceSaturation; }
+                            catch { continue; }
+                            if (float.IsNaN(sat) || float.IsInfinity(sat) || sat <= 0f) continue;
+                            sum += sat;
+                            count++;
+                        }
+                        if (count > 0) saturation = sum / count;
                     }
-                    if (saturationCount == 0) return;
 
-                    float averageSaturation = saturationSum / saturationCount;
-                    float clamped = MathF.Clamp(averageSaturation, 0.85f, 1.20f);
+                    if (float.IsNaN(saturation))
+                    {
+                        // Settlement-wide fallback. LandData.WorkforceSaturation
+                        // can divide by zero on freshly-spawned settlements
+                        // before farmland/pasture is computed; guard that.
+                        try
+                        {
+                            var land = data.LandData;
+                            if (land != null)
+                            {
+                                float s = land.WorkforceSaturation;
+                                if (!float.IsNaN(s) && !float.IsInfinity(s) && s > 0f)
+                                    saturation = s;
+                            }
+                        }
+                        catch { /* fall through to no-op */ }
+                    }
+
+                    if (float.IsNaN(saturation) || saturation <= 0f) return;
+
+                    float clamped = MathF.Clamp(saturation, 0.85f, 1.60f);
                     float factor = clamped - 1f;
                     if (MathF.Abs(factor) < 0.001f) return;
 
-                    __result.AddFactor(factor, new TextObject("{=BK_EstateWorkforce}Estate workforce"));
+                    __result.AddFactor(factor, new TextObject("{=BK_PopulationWorkforce}BK population workforce"));
                 }
                 catch
                 {
