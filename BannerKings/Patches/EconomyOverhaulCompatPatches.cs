@@ -29,6 +29,142 @@ namespace BannerKings.Patches
     /// </summary>
     internal static class EconomyOverhaulCompatPatches
     {
+        // EOF's BLM_Function has a fragile static initializer that reads
+        // DefaultItemCategories.Grain (and 10 others) at type-load time.
+        // DefaultItemCategories.X resolves to Game.Current.DefaultItemCategories.
+        // _itemCategoryX; if that singleton or any backing field is null when
+        // BLM_Function's cctor runs, the cctor throws NRE and the type is
+        // permanently poisoned for the AppDomain — every later EOF call paths
+        // (Town.FoodChange, village production, etc.) throws
+        // TypeInitializationException. Observed in v1.8.10.6 cctor probe.
+        //
+        // These finalizers wrap EOF's two highest-traffic external entry
+        // points and swallow TypeInitializationException, returning a
+        // zero ExplainedNumber so the calling code (kingdom screen,
+        // village production tooltip, etc.) gets a benign value instead of
+        // propagating the exception. Other EOF code paths can still throw,
+        // but the kingdom-screen-on-FoodChange crash/freeze loop is broken.
+        //
+        // Finalizer pattern: Harmony invokes finalizers AFTER prefix/postfix
+        // with the thrown exception in __exception. Returning null clears the
+        // exception and the result is whatever __result currently holds (or
+        // the prefix-set default). For these two methods we set __result to
+        // a zero ExplainedNumber and return null.
+        [HarmonyPatch]
+        internal static class BLM_TownFoodStocksChangeSafetyFinalizer
+        {
+            private static Type _modelType;
+
+            private static bool Prepare()
+            {
+                if (!ModCompat.EconomyOverhaul) return false;
+                _modelType = AccessTools.TypeByName(
+                    "Bannerlord.Economy_Overhaul.Models.BLM_TownProductionModel");
+                return _modelType != null
+                    && AccessTools.Method(_modelType, "CalculateTownFoodStocksChange",
+                        new[] { typeof(Town), typeof(bool), typeof(bool) }) != null;
+            }
+
+            private static MethodBase TargetMethod()
+                => AccessTools.Method(_modelType, "CalculateTownFoodStocksChange",
+                    new[] { typeof(Town), typeof(bool), typeof(bool) });
+
+            private static System.Exception Finalizer(System.Exception __exception,
+                ref ExplainedNumber __result)
+            {
+                if (__exception == null) return null;
+                if (__exception is System.TypeInitializationException
+                    || (__exception.InnerException is System.TypeInitializationException))
+                {
+                    __result = new ExplainedNumber(0f);
+                    return null; // swallow
+                }
+                return __exception; // re-throw unknown failures
+            }
+        }
+
+        [HarmonyPatch]
+        internal static class BLM_VillageDailyProductionSafetyFinalizer
+        {
+            private static Type _modelType;
+
+            private static bool Prepare()
+            {
+                if (!ModCompat.EconomyOverhaul) return false;
+                _modelType = AccessTools.TypeByName(BLM_VillageProductionModelType);
+                return _modelType != null
+                    && AccessTools.Method(_modelType, "CalculateDailyProductionAmount",
+                        new[] { typeof(Village), typeof(ItemObject) }) != null;
+            }
+
+            private static MethodBase TargetMethod()
+                => AccessTools.Method(_modelType, "CalculateDailyProductionAmount",
+                    new[] { typeof(Village), typeof(ItemObject) });
+
+            private static System.Exception Finalizer(System.Exception __exception,
+                ref ExplainedNumber __result)
+            {
+                if (__exception == null) return null;
+                if (__exception is System.TypeInitializationException
+                    || (__exception.InnerException is System.TypeInitializationException))
+                {
+                    __result = new ExplainedNumber(0f);
+                    return null;
+                }
+                return __exception;
+            }
+        }
+
+        // Crash-13 (2026-05-11): hard NRE in
+        // BuildingsCampaignBehavior.DailyTickSettlement_Patch1 — i.e. the
+        // vanilla building-progress daily tick *after* a Harmony patch was
+        // applied by a cooperator mod (EOF on this user's load list). No
+        // inner exception, source MonoMod.Utils — same family as the
+        // BLM_Function cctor poisoning the sibling finalizers already cover,
+        // but on a different patch site (this one isn't an ExplainedNumber
+        // method, so the existing finalizers can't catch it).
+        //
+        // Add a defensive finalizer on vanilla's DailyTickSettlement that
+        // swallows TypeInitializationException + NRE only when EOF is loaded.
+        // Cost of swallowing: the affected settlement skips ONE day of
+        // vanilla building progress. Cost of not swallowing: campaign-ending
+        // crash every day-tick. Easy trade.
+        [HarmonyPatch]
+        internal static class VanillaBuildingsDailyTickSafetyFinalizer
+        {
+            private static Type _behType;
+
+            private static bool Prepare()
+            {
+                // Gate on EOF: this is here purely because an EOF patch on
+                // this method is throwing. Without EOF the surface doesn't
+                // exist and the finalizer is wasted overhead.
+                if (!ModCompat.EconomyOverhaul) return false;
+                _behType = AccessTools.TypeByName(
+                    "TaleWorlds.CampaignSystem.CampaignBehaviors.BuildingsCampaignBehavior");
+                return _behType != null
+                    && AccessTools.Method(_behType, "DailyTickSettlement",
+                        new[] { typeof(Settlement) }) != null;
+            }
+
+            private static MethodBase TargetMethod()
+                => AccessTools.Method(_behType, "DailyTickSettlement",
+                    new[] { typeof(Settlement) });
+
+            private static System.Exception Finalizer(System.Exception __exception)
+            {
+                if (__exception == null) return null;
+                if (__exception is System.TypeInitializationException
+                    || (__exception.InnerException is System.TypeInitializationException)
+                    || __exception is System.NullReferenceException
+                    || __exception.InnerException is System.NullReferenceException)
+                {
+                    return null; // swallow — daily building tick skipped for this settlement
+                }
+                return __exception;
+            }
+        }
+
         private const string BLM_VillageProductionModelType =
             "Bannerlord.Economy_Overhaul.Models.BLM_VillageProductionModel";
 
@@ -46,9 +182,12 @@ namespace BannerKings.Patches
         // alone; without this overlay, a player village with a large BK
         // labour pool produces the same as a barely-populated one of the
         // same hearth size, which players experience as EOF "undertuning"
-        // every fief. Saturation 1.0 ≈ baseline, clamped to [0.85, 1.60]:
-        // population scarcity drags output -15% at the floor, an abundant
-        // workforce can lift output up to +60% above EOF's hearth baseline.
+        // every fief. Saturation 1.0 ≈ baseline, clamped to [0.75, 2.25]:
+        // population scarcity drags output -25% at the floor, an abundant
+        // workforce can lift output up to +125% above EOF's hearth baseline.
+        // The widened ceiling lets labor-rich villages meaningfully recover
+        // EOF's compounded animal/civilian category penalties (mountable
+        // ×0.2 × animal ×0.3 × sheep ×0.3 stacks down to ~0.09× otherwise).
         //
         // Saturation source: per-estate average WorkforceSaturation when
         // estates exist, otherwise falls back to LandData.WorkforceSaturation
@@ -125,16 +264,90 @@ namespace BannerKings.Patches
 
                     if (float.IsNaN(saturation) || saturation <= 0f) return;
 
-                    float clamped = MathF.Clamp(saturation, 0.85f, 1.60f);
-                    float factor = clamped - 1f;
-                    if (MathF.Abs(factor) < 0.001f) return;
+                    float clamped = MathF.Clamp(saturation, 0.75f, 2.25f);
+                    if (MathF.Abs(clamped - 1f) < 0.001f) return;
 
+                    // ExplainedNumber math: ResultNumber = BaseNumber * (1 + SumOfFactors).
+                    // To multiply ResultNumber by `clamped`, the new sum-of-factors must
+                    // become clamped * (1 + S0) - 1, so the delta we AddFactor is
+                    // (clamped - 1) * (1 + S0) = (clamped - 1) * (ResultNumber / BaseNumber).
+                    // EOF already pushes a large factor (~num2 - 1) into SumOfFactors before
+                    // we run, so a naive AddFactor(clamped - 1) would deliver only a few
+                    // percent instead of the intended (clamped - 1) × 100% lift.
+                    float baseNum = __result.BaseNumber;
+                    if (baseNum <= 0f) return;
+                    float currentScale = __result.ResultNumber / baseNum;
+                    float factor = (clamped - 1f) * currentScale;
                     __result.AddFactor(factor, new TextObject("{=BK_PopulationWorkforce}BK population workforce"));
                 }
                 catch
                 {
                     // Defensive: a BK lookup hiccup must never break village production.
                 }
+            }
+        }
+
+        // Softens EOF's sheep/fur double-penalty. EOF applies a generic
+        // animal ×0.3 factor to all animal-category items inside
+        // BLM_Function.CalculateVillageInternalProduction, then an additional
+        // ×0.3 specifically for Sheep and Fur — compounding to 0.09× of the
+        // raw factor. The intent is clearly "animals produce less than grain"
+        // (the ×0.3 already does that); the second tap is excessive and
+        // leaves pastoral primary-sheep villages producing <1 unit per day.
+        // This postfix multiplies the result by 0.50/0.30 = 1.667× for sheep
+        // and fur only, lifting the effective stack to 0.15× rather than 0.09×.
+        // Generic animal balance (cow, hog, horses) is untouched.
+        //
+        // Target: BLM_VillageProductionModel.CalculateDailyProductionAmount —
+        // NOT BLM_Function.CalculateVillageInternalProduction directly, even
+        // though that's where the double-penalty originates. Patching
+        // BLM_Function pulled its type loading into Harmony's PatchAll sweep
+        // at OnGameStart, which fired the static cctor before
+        // Game.Current.DefaultItemCategories was wired; cctor permanently
+        // poisoned, every later EOF code path threw TypeInitializationException.
+        // (See BK_eof_cctor_probe.txt diagnostic from v1.8.10.7 — get_Grain
+        // NRE inside the ItemClamps HashSet builder at BLM_Function.cs:46.)
+        // The wrapper model's CalculateDailyProductionAmount just returns
+        // BLM_Function.CalculateVillageInternalProduction's result, so the
+        // postfix runs at the same logical layer with the same __result and
+        // item args — no behavior change vs the original patch — without
+        // forcing BLM_Function to load.
+        [HarmonyPatch]
+        internal static class BLM_SheepFurDoublePenaltySoftener
+        {
+            private static Type _modelType;
+
+            private static bool Prepare()
+            {
+                if (!ModCompat.EconomyOverhaul) return false;
+                _modelType = AccessTools.TypeByName(BLM_VillageProductionModelType);
+                return _modelType != null
+                    && AccessTools.Method(_modelType, "CalculateDailyProductionAmount",
+                        new[] { typeof(Village), typeof(ItemObject) }) != null;
+            }
+
+            private static MethodBase TargetMethod()
+                => AccessTools.Method(_modelType, "CalculateDailyProductionAmount",
+                    new[] { typeof(Village), typeof(ItemObject) });
+
+            private static void Postfix(Village village, ItemObject item, ref ExplainedNumber __result)
+            {
+                if (item?.ItemCategory == null) return;
+                if (__result.ResultNumber <= 0f) return;
+                if (item.ItemCategory != DefaultItemCategories.Sheep
+                    && item.ItemCategory != DefaultItemCategories.Fur) return;
+
+                // Multiply ResultNumber by 0.50 / 0.30 = 1.6667 — restores EOF's
+                // sheep/fur secondary factor from 0.30 to an effective 0.50.
+                // Naive AddFactor(0.6667) would be additively-merged with EOF's
+                // existing big factor in SumOfFactors and deliver only a few
+                // percent; the correct delta is (mult - 1) × (ResultNumber / BaseNumber).
+                const float mult = 1.6667f;
+                float baseNum = __result.BaseNumber;
+                if (baseNum <= 0f) return;
+                float currentScale = __result.ResultNumber / baseNum;
+                __result.AddFactor((mult - 1f) * currentScale,
+                    new TextObject("{=BK_AnimalRecovery}BK animal recovery"));
             }
         }
 
@@ -475,6 +688,70 @@ namespace BannerKings.Patches
                 {
                     // Defensive: panel display falling back to EOF's static
                     // values is preferable to crashing the panel render.
+                }
+            }
+        }
+
+        // Appends BK's village population breakdown to EOF's village panel.
+        //
+        // EOF's VillageAddonsVM displays Hearth, Militia, lord-lands prison
+        // count, lord-lands totals, etc. — but no demographic data. BK has
+        // the actual class breakdown (Serfs / Slaves / Craftsmen / Tenants /
+        // Nobles) on `PopulationData`, and players otherwise have no way to
+        // see it without opening BK's separate settlement panel.
+        //
+        // This postfix runs after EOF's RefreshValues writes its fields and
+        // appends "(S:N Sf:N C:N T:N N:N)" to `HearthText` — the field
+        // adjacent to hearth/development is the natural home for population
+        // since the two are conceptually paired. The cheap parenthetical
+        // format avoids needing a UIExtender XML overlay for a separate row.
+        [HarmonyPatch]
+        internal static class BLM_VillageAddonsVMPopulationPatch
+        {
+            private const string VillageAddonsVMType =
+                "Bannerlord.Economy_Overhaul.View_Model.VillageAddonsVM";
+            private static Type _vmType;
+            private static MethodInfo _hearthSetter;
+
+            private static bool Prepare()
+            {
+                if (!ModCompat.EconomyOverhaul) return false;
+                _vmType = AccessTools.TypeByName(VillageAddonsVMType);
+                if (_vmType == null) return false;
+                _hearthSetter = AccessTools.PropertySetter(_vmType, "HearthText");
+                return _hearthSetter != null
+                    && AccessTools.Method(_vmType, "RefreshValues", Type.EmptyTypes) != null;
+            }
+
+            private static MethodBase TargetMethod()
+                => AccessTools.Method(_vmType, "RefreshValues", Type.EmptyTypes);
+
+            private static void Postfix(object __instance)
+            {
+                if (__instance == null) return;
+                try
+                {
+                    var settlement = Settlement.CurrentSettlement;
+                    if (settlement?.Village == null) return;
+                    var data = BannerKingsConfig.Instance?.PopulationManager?.GetPopData(settlement);
+                    if (data == null) return;
+                    int serfs = data.GetTypeCount(BannerKings.Managers.PopulationManager.PopType.Serfs);
+                    int slaves = data.GetTypeCount(BannerKings.Managers.PopulationManager.PopType.Slaves);
+                    int craftsmen = data.GetTypeCount(BannerKings.Managers.PopulationManager.PopType.Craftsmen);
+                    int tenants = data.GetTypeCount(BannerKings.Managers.PopulationManager.PopType.Tenants);
+                    int nobles = data.GetTypeCount(BannerKings.Managers.PopulationManager.PopType.Nobles);
+                    int total = serfs + slaves + craftsmen + tenants + nobles;
+                    if (total <= 0) return;
+
+                    int hearth = (int)settlement.Village.Hearth;
+                    string composed = string.Format(
+                        "{0:N0}  (Pop {1:N0} — S:{2} Sf:{3} C:{4} T:{5} N:{6})",
+                        hearth, total, slaves, serfs, craftsmen, tenants, nobles);
+                    _hearthSetter.Invoke(__instance, new object[] { composed });
+                }
+                catch
+                {
+                    // Defensive: a BK lookup hiccup must not break panel render.
                 }
             }
         }

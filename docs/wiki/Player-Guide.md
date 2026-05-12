@@ -223,11 +223,20 @@ EOF's −50 on looted state). Peace and villager activity rebuild it slowly.
 Under EOF, Hearth is the primary driver of how much trade goods a village
 produces per day. **As of v1.8.10.5, BK overlays a population-workforce
 factor on EOF's per-item output** so a well-populated village isn't stuck
-at EOF's hearth-only baseline — labour saturation between 0.85× and 1.60×
-is added on top of EOF's number (1.0× when population matches expected
-labour need, ≤0.85× when severely understaffed, ≥1.60× clipped when
-significantly overstaffed). Hover the production tooltip for a "BK
-population workforce" line when the factor is non-trivial.
+at EOF's hearth-only baseline — labour saturation between 0.75× and 2.25×
+multiplies EOF's number (1.0× when population matches expected labour need,
+0.75× when severely understaffed, 2.25× clipped when significantly
+overstaffed). The wider ceiling lets labor-rich villages meaningfully
+recover EOF's compounded animal/civilian penalties. Hover the production
+tooltip for a "BK population workforce" line when the factor is non-trivial.
+
+**Sheep and fur villages also get a small recovery factor.** EOF cuts
+animal production by ×0.3 across the board, then applies an *additional*
+×0.3 to sheep and fur specifically (stacking to 0.09× of raw). BK
+multiplies the sheep/fur result by ~1.67× to lift the effective penalty
+to ×0.50 instead of ×0.30 — primary-sheep pastoral villages no longer
+produce less than one unit per day. Look for "BK animal recovery" in
+the production tooltip.
 
 **BK Population is labor / demographics.** The serfs / slaves / freemen /
 nobles class breakdown shown in the BK settlement panel is the actual
