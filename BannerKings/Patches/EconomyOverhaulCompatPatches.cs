@@ -219,6 +219,26 @@ namespace BannerKings.Patches
 
                 try
                 {
+                    float baseNum = __result.BaseNumber;
+                    if (baseNum <= 0f) return;
+
+                    // Flat BK-side baseline multiplier on EOF village output.
+                    // Layered HERE (not by mutating EOF's MCM slider) so the
+                    // user's manual EOF setting is left untouched and the two
+                    // values stack predictably. Disabled when the multiplier
+                    // is at 1.0 (no-op).
+                    float bkMult = BannerKings.Settings.BannerKingsSettings.Instance.EofVillageProductionBoost;
+                    if (bkMult > 1.0001f)
+                    {
+                        // ExplainedNumber math: to multiply ResultNumber by
+                        // `bkMult`, AddFactor((bkMult-1) * ResultNumber/BaseNumber).
+                        // See workforce-factor block below for derivation.
+                        float scale0 = __result.ResultNumber / baseNum;
+                        float baseFactor = (bkMult - 1f) * scale0;
+                        __result.AddFactor(baseFactor,
+                            new TextObject("{=BK_EofBaselineBoost}BK village production boost"));
+                    }
+
                     var data = BannerKingsConfig.Instance?.PopulationManager?.GetPopData(village.Settlement);
                     if (data == null) return;
 
@@ -274,8 +294,8 @@ namespace BannerKings.Patches
                     // EOF already pushes a large factor (~num2 - 1) into SumOfFactors before
                     // we run, so a naive AddFactor(clamped - 1) would deliver only a few
                     // percent instead of the intended (clamped - 1) × 100% lift.
-                    float baseNum = __result.BaseNumber;
-                    if (baseNum <= 0f) return;
+                    // Read ResultNumber AFTER the baseline boost so the workforce
+                    // factor stacks multiplicatively on top of it.
                     float currentScale = __result.ResultNumber / baseNum;
                     float factor = (clamped - 1f) * currentScale;
                     __result.AddFactor(factor, new TextObject("{=BK_PopulationWorkforce}BK population workforce"));

@@ -159,6 +159,12 @@ namespace BannerKings.Settings
         [SettingPropertyGroup("{=P8UecnYf}Balancing")]
         public bool BKSmithingEnabled { get; set; } = false;
 
+        [SettingPropertyFloatingInteger("EOF Village Production Boost", minValue: 1.0f, maxValue: 2.0f, "0.00",
+            RequireRestart = false,
+            HintText = "Flat multiplier BK applies on top of EOF's per-village daily production. Effectively the same as setting EOF's own 'Village Production Multiplier' slider to this value, but layered on by BK so EOF's own MCM slider remains untouched (you can stack both if you want). 1.00 = no boost, 1.30 = default (+30%), up to 2.00. Only active when Economy Overhaul is installed. Default: 1.30.")]
+        [SettingPropertyGroup("{=P8UecnYf}Balancing")]
+        public float EofVillageProductionBoost { get; set; } = 1.30f;
+
         [SettingProperty("{=DZyyJXRn}Crafting Waiting Time", RequireRestart = false, HintText = "{=pSX0rWGt}When doing any type of work in the smithy, you'll be forced to wait an amount of time correspondent to how much energy was used, as well as pay for that time. Represents a more realistic approach to crafting. Default: true.")]
         [SettingPropertyGroup("{=P8UecnYf}Balancing")]
         public bool CraftingWaitingTime { get; set; } = true;
