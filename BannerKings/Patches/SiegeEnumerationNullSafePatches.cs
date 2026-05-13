@@ -53,6 +53,51 @@ namespace BannerKings.Patches
         }
     }
 
+    // crash.htm (2026-05-13): save-load NRE in vanilla
+    // Hero.ClearChangedPerks → Hero.AfterLoad → CampaignObjectManager.AfterLoad.
+    //
+    // Vanilla body:
+    //   foreach (PerkObject item in _heroPerks.GetProperties().ToMBList()) {
+    //     if (item == null || item.IsTrash
+    //         || (float)GetSkillValue(item.Skill) < item.RequiredSkillValue)
+    //       _heroPerks.SetPropertyValue(item, 0);
+    //   }
+    //
+    // GetSkillValue(item.Skill) dereferences item.Skill without a null
+    // check. BK registers lifestyle perks via
+    //   PerkObject.Initialize(name, alternateName, requiredSkillValue,
+    //                         parentSkill: null, ...);
+    // — parent skill is intentionally null because lifestyle perks aren't
+    // tied to a vanilla skill. The perk lives on a hero (earned through
+    // the lifestyle system), the save round-trips it, and on load this
+    // vanilla method blows up with NRE → campaign fails to load.
+    //
+    // Finalizer that swallows the NRE. The for-loop aborts at the bad
+    // perk so any later perks aren't cleared this load — they're just
+    // dormant entries with no gameplay effect, harmless. Hero.AfterLoad
+    // continues past the catch and the rest of the save loads normally.
+    [HarmonyPatch(typeof(Hero), "ClearChangedPerks")]
+    internal static class HeroClearChangedPerksNullSafePatch
+    {
+        private static int _swallowed;
+
+        public static Exception Finalizer(Exception __exception)
+        {
+            if (__exception is NullReferenceException)
+            {
+                _swallowed++;
+                if (_swallowed <= 8)
+                {
+                    TaleWorlds.Library.Debug.Print(
+                        "[BK] Swallowed NRE in Hero.ClearChangedPerks (#" + _swallowed + "). Likely a lifestyle perk with null Skill on a saved hero — vanilla dereferences PerkObject.Skill without a null check. Perks past the offending entry are not auto-cleared this load.",
+                        color: TaleWorlds.Library.Debug.DebugColor.Yellow);
+                }
+                return null; // swallow — AfterLoad proceeds
+            }
+            return __exception;
+        }
+    }
+
     // Crash3 (2026-05-13): NRE in DefaultSkillLevelingManager.OnSurgeryApplied
     // during MapEvent.SimulateBattleSessionForMapEvent. Vanilla
     // MapEventSide.ApplySimulationDamageToSelectedTroop calls
