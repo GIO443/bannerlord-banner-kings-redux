@@ -196,7 +196,44 @@ namespace BannerKings.UI.Extensions
         {
             if (!IsInArmorMode)
             {
-                crafting.ExecuteMainAction();
+                // Explicit dispatch to vanilla's refinement / smelting / crafting
+                // paths. Previously we delegated through crafting.ExecuteMainAction()
+                // and relied on it to branch — players running BK Smithing reported
+                // wood→charcoal refinement (and presumably smelt-X) not consuming
+                // the input. Whether the cause was a binding hiccup on the
+                // [DataSourceMethod] call, a missed post-action UpdateAll() cascade,
+                // or something else, dispatching explicitly mirrors what vanilla
+                // ExecuteMainAction does internally and guarantees the consume path
+                // fires. CurrentCraftingHero is always non-null while the smithy
+                // is open (UI gates on it), but we null-guard defensively anyway.
+                var hero = crafting.CurrentCraftingHero?.Hero;
+                if (hero != null)
+                {
+                    if (crafting.IsInRefinementMode)
+                    {
+                        crafting.Refinement?.ExecuteSelectedRefinement(hero);
+                    }
+                    else if (crafting.IsInSmeltingMode)
+                    {
+                        crafting.Smelting?.TrySmeltingSelectedItems(hero);
+                    }
+                    else
+                    {
+                        crafting.ExecuteMainAction();
+                    }
+                }
+                else
+                {
+                    crafting.ExecuteMainAction();
+                }
+
+                // Force a mixin-side refresh so the BK material display catches up
+                // immediately. Vanilla's internal RefinementVM / SmeltingVM callbacks
+                // (wired via UpdateAll in CraftingVM's cctor) refresh vanilla's
+                // material side panel on their own; this is just so BK's
+                // CurrentExtraMaterials list and HoursSpentText reflect the change
+                // in the same frame.
+                OnRefresh();
             }
             else
             {
