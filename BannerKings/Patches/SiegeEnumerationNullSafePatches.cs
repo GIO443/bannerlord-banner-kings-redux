@@ -1,7 +1,9 @@
 using System;
 using HarmonyLib;
 using TaleWorlds.CampaignSystem;
+using TaleWorlds.CampaignSystem.CharacterDevelopment;
 using TaleWorlds.CampaignSystem.GameComponents;
+using TaleWorlds.CampaignSystem.Party;
 using TaleWorlds.Core;
 
 namespace BannerKings.Patches
@@ -48,6 +50,40 @@ namespace BannerKings.Patches
                 return null;
             }
             return __exception;
+        }
+    }
+
+    // Crash3 (2026-05-13): NRE in DefaultSkillLevelingManager.OnSurgeryApplied
+    // during MapEvent.SimulateBattleSessionForMapEvent. Vanilla
+    // MapEventSide.ApplySimulationDamageToSelectedTroop calls
+    // OnSurgeryApplied(party.MobileParty, ...) where `party` is a PartyBase
+    // with MobileParty == null. Hits in siege auto-resolves (defender's
+    // town PartyBase has no MobileParty) and any BK custom-component
+    // battle where the component is wired as a Party but lacks a
+    // MobileParty wrapper. Inside OnSurgeryApplied, party.GetEffectiveRoleHolder
+    // dereferences the null first argument and throws.
+    //
+    // Vanilla bug — but the cost of not fixing it is a campaign-tick
+    // crash mid-battle-simulation, so we early-return when the party is
+    // null. Effect: a single null call doesn't grant Medicine XP this
+    // iteration. Real surgeons attached to actual MobileParty parties
+    // still receive XP on subsequent iterations.
+    [HarmonyPatch(typeof(DefaultSkillLevelingManager), nameof(DefaultSkillLevelingManager.OnSurgeryApplied))]
+    internal static class OnSurgeryAppliedNullSafePatch
+    {
+        private static int _skipped;
+
+        private static bool Prefix(MobileParty party)
+        {
+            if (party != null) return true; // proceed
+            _skipped++;
+            if (_skipped <= 4)
+            {
+                TaleWorlds.Library.Debug.Print(
+                    "[BK] Skipped DefaultSkillLevelingManager.OnSurgeryApplied with null party (#" + _skipped + "). Caller (MapEventSide.ApplySimulationDamageToSelectedTroop) passed party.MobileParty == null — likely a town-defender PartyBase in a siege auto-resolve or a BK PartyBase without MobileParty wiring. No Medicine XP credit this iteration.",
+                    color: TaleWorlds.Library.Debug.DebugColor.Yellow);
+            }
+            return false; // skip vanilla, no NRE
         }
     }
 
