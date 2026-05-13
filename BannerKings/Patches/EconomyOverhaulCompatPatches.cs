@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Reflection;
 using BannerKings.Behaviours.Estates;
 using BannerKings.Managers.Titles.Laws;
@@ -112,6 +113,138 @@ namespace BannerKings.Patches
                     return null;
                 }
                 return __exception;
+            }
+        }
+
+        // EOF's ApplyWeeklySupplyConsumption drains base 5 horses + draft
+        // and manufacturing maluses from the warehouse every week, across
+        // all four horse categories (Horse → WarHorse → NobleHorse →
+        // PackAnimal). Players running BK report this is too aggressive
+        // for managed villages — particularly because it eats expensive
+        // WarHorse / NobleHorse stock once the basic Horse pool runs dry.
+        // Snapshot the warehouse's total horse count in a prefix, take
+        // the diff in a postfix, and rebate 30% of consumed horses back
+        // as basic Horse items — effective consumption × 0.7.
+        //
+        // Rebated as basic Horse regardless of which category was drained:
+        // EOF's daily-bonus math counts total horses across all 4 categories
+        // (CalculateDailyBonusItemsFromSupplies), so fungibility is preserved
+        // and the player's WarHorse / NobleHorse stables aren't permanently
+        // converted into cheap drafts — just topped up with a draft baseline.
+        [HarmonyPatch]
+        internal static class VillageHorseConsumption70Patch
+        {
+            private static Type _behType;
+            private static MethodInfo _hasWarehouseMI;
+            private static MethodInfo _getOrCreateRosterMI;
+            private static readonly Dictionary<Settlement, int> _preCount = new Dictionary<Settlement, int>();
+            private static ItemObject _basicHorseItem;
+
+            private static bool Prepare()
+            {
+                if (!ModCompat.EconomyOverhaul) return false;
+                _behType = AccessTools.TypeByName(VillageAddonsBehaviorType);
+                if (_behType == null) return false;
+                _hasWarehouseMI = AccessTools.Method(_behType, "HasWarehouse", new[] { typeof(Settlement) });
+                _getOrCreateRosterMI = AccessTools.Method(_behType, "GetOrCreateWarehouseRoster", new[] { typeof(Settlement) });
+                return AccessTools.Method(_behType, "ApplyWeeklySupplyConsumption",
+                    new[] { typeof(Village) }) != null;
+            }
+
+            private static MethodBase TargetMethod()
+                => AccessTools.Method(_behType, "ApplyWeeklySupplyConsumption", new[] { typeof(Village) });
+
+            private static void Prefix(object __instance, Village v)
+            {
+                try
+                {
+                    if (v?.Settlement == null) return;
+                    var roster = GetRoster(__instance, v.Settlement);
+                    if (roster == null) return;
+                    _preCount[v.Settlement] = CountHorses(roster);
+                }
+                catch { /* defensive */ }
+            }
+
+            private static void Postfix(object __instance, Village v)
+            {
+                try
+                {
+                    if (v?.Settlement == null) return;
+                    if (!_preCount.TryGetValue(v.Settlement, out int before)) return;
+                    _preCount.Remove(v.Settlement);
+
+                    var roster = GetRoster(__instance, v.Settlement);
+                    if (roster == null) return;
+                    int after = CountHorses(roster);
+                    int consumed = before - after;
+                    if (consumed <= 0) return;
+
+                    int giveBack = (int)TaleWorlds.Library.MathF.Round(consumed * 0.3f);
+                    if (giveBack <= 0) return;
+
+                    var horseItem = ResolveBasicHorseItem();
+                    if (horseItem == null) return;
+
+                    roster.AddToCounts(horseItem, giveBack);
+                }
+                catch { /* defensive */ }
+            }
+
+            private static TaleWorlds.CampaignSystem.Roster.ItemRoster GetRoster(object behavior, Settlement s)
+            {
+                if (behavior == null || s == null || _getOrCreateRosterMI == null) return null;
+                if (_hasWarehouseMI != null)
+                {
+                    try
+                    {
+                        if (!(bool)_hasWarehouseMI.Invoke(behavior, new object[] { s })) return null;
+                    }
+                    catch { return null; }
+                }
+                try
+                {
+                    return _getOrCreateRosterMI.Invoke(behavior, new object[] { s })
+                        as TaleWorlds.CampaignSystem.Roster.ItemRoster;
+                }
+                catch { return null; }
+            }
+
+            private static int CountHorses(TaleWorlds.CampaignSystem.Roster.ItemRoster roster)
+            {
+                if (roster == null) return 0;
+                int n = 0;
+                for (int i = 0; i < roster.Count; i++)
+                {
+                    var cat = roster.GetItemAtIndex(i)?.ItemCategory;
+                    if (cat == null) continue;
+                    if (cat == DefaultItemCategories.Horse
+                        || cat == DefaultItemCategories.WarHorse
+                        || cat == DefaultItemCategories.NobleHorse
+                        || cat == DefaultItemCategories.PackAnimal)
+                        n += roster.GetElementNumber(i);
+                }
+                return n;
+            }
+
+            private static ItemObject ResolveBasicHorseItem()
+            {
+                if (_basicHorseItem != null) return _basicHorseItem;
+                try
+                {
+                    foreach (var it in TaleWorlds.ObjectSystem.MBObjectManager.Instance
+                        .GetObjectTypeList<ItemObject>())
+                    {
+                        if (it == null) continue;
+                        if (it.ItemCategory == DefaultItemCategories.Horse && it.IsTradeGood)
+                        {
+                            _basicHorseItem = it;
+                            break;
+                        }
+                    }
+                }
+                catch { }
+                return _basicHorseItem;
             }
         }
 

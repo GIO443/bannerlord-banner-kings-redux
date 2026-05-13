@@ -114,12 +114,17 @@ namespace BannerKings.Behaviours.Estates
             }
             if (currentHorses < targetHorses)
             {
+                // Auto-buy intentionally limited to basic Horse + PackAnimal.
+                // WarHorse / NobleHorse stock at towns is for cavalry recruiting
+                // and is much more expensive — the player's warhorse pipeline
+                // shouldn't be drained to refill village draft animals. EOF's
+                // own ApplyWeeklySupplyConsumption still drains all 4 horse
+                // categories from the warehouse, but the rebate postfix in
+                // EconomyOverhaulCompatPatches scales total consumption to 0.7×.
                 var horseCategories = new[]
                 {
-                    DefaultItemCategories.PackAnimal,
                     DefaultItemCategories.Horse,
-                    DefaultItemCategories.WarHorse,
-                    DefaultItemCategories.NobleHorse,
+                    DefaultItemCategories.PackAnimal,
                 };
                 RefillFromTownMarket(sourceTown, roster, horseCategories, targetHorses - currentHorses);
             }
@@ -160,6 +165,14 @@ namespace BannerKings.Behaviours.Estates
         // in the village warehouse. Stops early if the town runs out of stock
         // OR the hero runs out of gold — partial refills are fine, EOF's
         // maluses just kick in proportionally.
+        //
+        // Candidate items are collected first then sorted by per-unit cost
+        // ascending so cheapest stock is drained first — important for the
+        // horse pool where Horse (~250) and PackAnimal (~80) are far cheaper
+        // than WarHorse / NobleHorse and the player would rather we spend
+        // their gold on draft animals than on cavalry mounts. Tools are a
+        // single category so sorting is a no-op there but the same code path
+        // keeps the two refill calls aligned.
         private static void RefillFromTownMarket(Town town, ItemRoster warehouse,
                                                  ItemCategory[] acceptableCategories,
                                                  int amountWanted)
@@ -168,10 +181,10 @@ namespace BannerKings.Behaviours.Estates
             if (Hero.MainHero == null) return;
 
             var townRoster = town.Settlement.ItemRoster;
-            int boughtSoFar = 0;
-            // Iterate from the back so AddToCounts(-n) shrinking the roster
-            // doesn't shift indices we still need to visit.
-            for (int i = townRoster.Count - 1; i >= 0 && boughtSoFar < amountWanted; i--)
+
+            // Collect acceptable line items with their per-unit cost.
+            var candidates = new List<(ItemObject item, int costPerUnit, int stock)>();
+            for (int i = 0; i < townRoster.Count; i++)
             {
                 var item = townRoster.GetItemAtIndex(i);
                 if (item?.ItemCategory == null) continue;
@@ -188,6 +201,16 @@ namespace BannerKings.Behaviours.Estates
                 int costPerUnit = MathF.Round(price * TRANSPORT_SURCHARGE);
                 if (costPerUnit <= 0) continue;
 
+                candidates.Add((item, costPerUnit, stock));
+            }
+
+            // Cheapest first.
+            candidates.Sort((a, b) => a.costPerUnit.CompareTo(b.costPerUnit));
+
+            int boughtSoFar = 0;
+            foreach (var (item, costPerUnit, stock) in candidates)
+            {
+                if (boughtSoFar >= amountWanted) break;
                 int affordable = Hero.MainHero.Gold / costPerUnit;
                 if (affordable <= 0) break;
 
