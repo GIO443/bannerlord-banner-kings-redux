@@ -110,6 +110,7 @@ namespace BannerKings.Managers.Goals.Decisions
         public override void ApplyGoal()
         {
             var fulfiller = GetFulfiller();
+            var oldCulture = fulfiller.Culture;
             foreach (var hero in fulfiller.Clan.Heroes)
             {
                 var leader = hero.Clan.Leader;
@@ -117,6 +118,53 @@ namespace BannerKings.Managers.Goals.Decisions
                     leader.Siblings.Contains(hero) || leader.Father == hero || leader.Mother == hero)
                 {
                     hero.Culture = culture;
+                }
+            }
+
+            // Re-stamp the Clan's own Culture too. Hero.Culture and
+            // Clan.Culture are independent in vanilla — Clan.Culture is
+            // what AI behaviors, troop-tree resolution, party-template
+            // lookups, naming generators, and many cultural-bias checks
+            // actually read. Without this set, the clan kept identifying
+            // as the old culture for every system that gates on
+            // Clan.Culture even though the leader and family lineage had
+            // adopted the new one ("change culture only changes character
+            // culture not clan culture").
+            fulfiller.Clan.Culture = culture;
+
+            // Inject the new culture into every owned settlement's CultureData
+            // with the *old* owner-culture's current assimilation/acceptance.
+            // Without this, BKLoyaltyModel.GetSettlementLoyaltyChangeDueToOwnerCulture
+            // reads GetAssimilation(newCulture) → 0 (not present) → factor = -1
+            // → maximum-magnitude negative loyalty hit. Same population, just
+            // a different cultural ID for the ruling household — the old
+            // entry's acceptance is zeroed so it decays naturally as the new
+            // culture's weight grows.
+            if (culture != null && oldCulture != null && culture != oldCulture
+                && BannerKings.BannerKingsConfig.Instance.PopulationManager != null)
+            {
+                foreach (var settlement in fulfiller.Clan.Settlements)
+                {
+                    var data = BannerKings.BannerKingsConfig.Instance.PopulationManager.GetPopData(settlement);
+                    if (data?.CultureData == null) continue;
+                    float oldAssim = data.CultureData.GetAssimilation(oldCulture);
+                    float oldAccept = data.CultureData.GetAcceptance(oldCulture);
+                    // Seed new culture with old owner-culture's values; if none
+                    // (e.g. settlement was never the old culture), fall back
+                    // to a modest baseline so loyalty doesn't crater on day 1.
+                    float seedAssim = oldAssim > 0f ? oldAssim : 0.30f;
+                    float seedAccept = oldAccept > 0f ? oldAccept : 0.30f;
+                    data.CultureData.AddCulture(culture, seedAccept, seedAssim);
+                    // Zero the old entry's acceptance so it stops accumulating
+                    // weight; its assim then decays via the daily tick.
+                    foreach (var cd in data.CultureData.Cultures)
+                    {
+                        if (cd.Culture == oldCulture)
+                        {
+                            cd.Acceptance = 0f;
+                            break;
+                        }
+                    }
                 }
             }
 
