@@ -149,22 +149,40 @@ namespace BannerKings.Behaviours
                 catch { /* defensive */ }
             }
 
-            var charSkills = (PropertyOwner<SkillObject>)Hero_HeroSkills.GetValue(hero);
-            var skillsDic = (Dictionary<SkillObject, int>)PropertyOwnerSkill_Attributes.GetValue(charSkills);
+            // Wrapped in try/catch + null-guarded mirror of the attribute
+            // block above. crash2.htm (2026-05-13): on OnGameLoaded, some
+            // heroes in Hero.AllAliveHeroes had heroSkills==null, so
+            // Hero_HeroSkills.GetValue(hero) returned null and the next
+            // PropertyOwnerSkill_Attributes.GetValue(null) threw
+            // "Non-static field requires a target" — aborting AfterLoad and
+            // failing the campaign load entirely. Skip the seed for any
+            // hero whose internal skills holder isn't ready; if they're
+            // legitimately alive and need BK skills, OnHeroCreated will
+            // catch them later, or the next OnGameLoaded will once the
+            // field is populated. A 0 default on a missing BK skill is
+            // harmless — vanilla GetSkillValue returns 0 for absent keys.
+            try
+            {
+                var charSkills = (PropertyOwner<SkillObject>)Hero_HeroSkills.GetValue(hero);
+                if (charSkills == null) return;
+                var skillsDic = (Dictionary<SkillObject, int>)PropertyOwnerSkill_Attributes.GetValue(charSkills);
+                if (skillsDic == null) return;
 
-            // Each BK skill is seeded independently. A previous version
-            // bailed out on the first present skill, so heroes that had
-            // Scholarship but were missing Theology/Lordship (rare but
-            // possible after partial mod removals) never got the missing
-            // ones backfilled.
-            if (!skillsDic.ContainsKey(BKSkills.Instance.Scholarship))
-                skillsDic.Add(BKSkills.Instance.Scholarship, 0);
+                // Each BK skill is seeded independently. A previous version
+                // bailed out on the first present skill, so heroes that had
+                // Scholarship but were missing Theology/Lordship (rare but
+                // possible after partial mod removals) never got the missing
+                // ones backfilled.
+                if (!skillsDic.ContainsKey(BKSkills.Instance.Scholarship))
+                    skillsDic.Add(BKSkills.Instance.Scholarship, 0);
 
-            if (!skillsDic.ContainsKey(BKSkills.Instance.Theology))
-                skillsDic.Add(BKSkills.Instance.Theology, 0);
+                if (!skillsDic.ContainsKey(BKSkills.Instance.Theology))
+                    skillsDic.Add(BKSkills.Instance.Theology, 0);
 
-            if (!skillsDic.ContainsKey(BKSkills.Instance.Lordship))
-                skillsDic.Add(BKSkills.Instance.Lordship, 0);
+                if (!skillsDic.ContainsKey(BKSkills.Instance.Lordship))
+                    skillsDic.Add(BKSkills.Instance.Lordship, 0);
+            }
+            catch { /* defensive — see attribute block above */ }
         }
     }
 }
