@@ -82,11 +82,7 @@ namespace BannerKings.UI.Extensions
                 JustificationText = war.CasusBelli.Name.ToString();
                 JustificationHint = new HintViewModel(war.CasusBelli.Description);
 
-                BKExplainedNumber warScore = war.CalculateWarScore(Hero.MainHero.MapFaction, true);
-                WarScoreText = (warScore.ResultNumber * 100f).ToString("0.00") + '%';
-                WarScoreHint = new HintViewModel(new TextObject("{=!}" + warScore.GetFormattedPercentage()));
-
-                WarObjectiveText = war.CasusBelli.ObjectiveText != null ? war.CasusBelli.ObjectiveText.ToString() : 
+                WarObjectiveText = war.CasusBelli.ObjectiveText != null ? war.CasusBelli.ObjectiveText.ToString() :
                     war.CasusBelli.Fief.Name.ToString();
                 WarObjectiveHint = new HintViewModel(war.CasusBelli.Description);
 
@@ -103,13 +99,50 @@ namespace BannerKings.UI.Extensions
                 Town enemyFront = war.GetFront(enemyFaction);
                 EnemyFrontText = enemyFront != null ? enemyFront.Name.ToString() : new TextObject("{=5Gphhg0D}No Front").ToString();
 
-                BKExplainedNumber fatigue = BannerKingsConfig.Instance.WarModel.CalculateFatigue(war, Hero.MainHero.MapFaction, true);
-                PlayerFatigueText = (fatigue.ResultNumber * 100f).ToString("0.00") + '%';
-                PlayerFatigueHint = new HintViewModel(new TextObject("{=!}" + fatigue.GetFormattedPercentage()));
+                // Heavy: war-score + both fatigue calcs iterate all
+                // defender settlements, all faction casualties, all
+                // captives + succession lines, all over again per UI
+                // refresh. The mixin's OnRefresh fires on every diplomacy-
+                // item selection change AND on internal vanilla refresh
+                // cascades — re-running these on the UI thread for big
+                // kingdoms (many settlements / many captives) was the
+                // "kingdom screen lag during war" symptom. Cache by war
+                // reference; only recompute when the actually-selected
+                // war changes.
+                if (war != _lastWarRef)
+                {
+                    _lastWarRef = war;
+                    try
+                    {
+                        BKExplainedNumber warScore = war.CalculateWarScore(Hero.MainHero.MapFaction, true);
+                        _lastWarScoreText = (warScore.ResultNumber * 100f).ToString("0.00") + '%';
+                        _lastWarScoreHintText = warScore.GetFormattedPercentage();
+                    }
+                    catch { _lastWarScoreText = "—"; _lastWarScoreHintText = string.Empty; }
 
-                BKExplainedNumber enemyFatigue = BannerKingsConfig.Instance.WarModel.CalculateFatigue(war, enemyFaction, true);
-                EnemyFatigueText = (enemyFatigue.ResultNumber * 100f).ToString("0.00") + '%';
-                EnemyFatigueHint = new HintViewModel(new TextObject("{=!}" + enemyFatigue.GetFormattedPercentage()));
+                    try
+                    {
+                        BKExplainedNumber fatigue = BannerKingsConfig.Instance.WarModel.CalculateFatigue(war, Hero.MainHero.MapFaction, true);
+                        _lastPlayerFatigueText = (fatigue.ResultNumber * 100f).ToString("0.00") + '%';
+                        _lastPlayerFatigueHintText = fatigue.GetFormattedPercentage();
+                    }
+                    catch { _lastPlayerFatigueText = "—"; _lastPlayerFatigueHintText = string.Empty; }
+
+                    try
+                    {
+                        BKExplainedNumber enemyFatigue = BannerKingsConfig.Instance.WarModel.CalculateFatigue(war, enemyFaction, true);
+                        _lastEnemyFatigueText = (enemyFatigue.ResultNumber * 100f).ToString("0.00") + '%';
+                        _lastEnemyFatigueHintText = enemyFatigue.GetFormattedPercentage();
+                    }
+                    catch { _lastEnemyFatigueText = "—"; _lastEnemyFatigueHintText = string.Empty; }
+                }
+
+                WarScoreText = _lastWarScoreText;
+                WarScoreHint = new HintViewModel(new TextObject("{=!}" + _lastWarScoreHintText));
+                PlayerFatigueText = _lastPlayerFatigueText;
+                PlayerFatigueHint = new HintViewModel(new TextObject("{=!}" + _lastPlayerFatigueHintText));
+                EnemyFatigueText = _lastEnemyFatigueText;
+                EnemyFatigueHint = new HintViewModel(new TextObject("{=!}" + _lastEnemyFatigueHintText));
             }
             else if (kingdomDiplomacy.CurrentSelectedDiplomacyItem is KingdomTruceItemVM)
             {
@@ -198,6 +231,18 @@ namespace BannerKings.UI.Extensions
         private Kingdom _lastWarSupportFor;
         private Kingdom _lastWarSupportTarget;
         private string _lastWarSupportText = string.Empty;
+
+        // Cached war-block strings — see comment in OnRefresh for why this
+        // exists (CalculateWarScore + 2× CalculateFatigue are expensive per
+        // selection change). Cleared whenever the user selects a non-war
+        // diplomacy item or a different war.
+        private War _lastWarRef;
+        private string _lastWarScoreText = "—";
+        private string _lastWarScoreHintText = string.Empty;
+        private string _lastPlayerFatigueText = "—";
+        private string _lastPlayerFatigueHintText = string.Empty;
+        private string _lastEnemyFatigueText = "—";
+        private string _lastEnemyFatigueHintText = string.Empty;
 
         [DataSourceProperty]
         public string TradePactText

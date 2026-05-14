@@ -190,18 +190,26 @@ namespace BannerKings.Behaviours.Diplomacy.Wars
             if (StartDate == default(CampaignTime)) StartDate = CampaignTime.Now;
 
           
+            // Per-day fatigue contribution rate. Previous 0.02 multiplier
+            // meant a war hit max Fatigue (1.0) in ~125 days even at a
+            // sustained CalculateFatigue == 0.4. Bumped to 0.10 — ~25 days
+            // to max at that rate — so wars realistically reach the
+            // exhaustion threshold that gates BK's force-propose-peace path
+            // (see BKDiplomacyBehavior daily tick).
+            const float FatigueGainRate = 0.10f;
+
             if (Attacker is Kingdom)
             {
                 float fatigue = BannerKingsConfig.Instance.WarModel.CalculateFatigue(this, Attacker).ResultNumber;
                 KingdomDiplomacy diplo = TaleWorlds.CampaignSystem.Campaign.Current.GetCampaignBehavior<BKDiplomacyBehavior>().GetKingdomDiplomacy(Attacker as Kingdom);
-                diplo.AddFatigue(fatigue * 0.02f);
+                diplo.AddFatigue(fatigue * FatigueGainRate);
             }
 
             if (Defender is Kingdom)
             {
                 float fatigue = BannerKingsConfig.Instance.WarModel.CalculateFatigue(this, Defender).ResultNumber;
                 KingdomDiplomacy diplo = TaleWorlds.CampaignSystem.Campaign.Current.GetCampaignBehavior<BKDiplomacyBehavior>().GetKingdomDiplomacy(Defender as Kingdom);
-                diplo.AddFatigue(fatigue * 0.02f);
+                diplo.AddFatigue(fatigue * FatigueGainRate);
             }
         }
 

@@ -4,6 +4,7 @@ using BannerKings.Behaviours.Diplomacy.Groups.Demands;
 using BannerKings.Behaviours.Diplomacy.Wars;
 using BannerKings.Extensions;
 using BannerKings.Utils;
+using BannerKings.Utils.Models;
 using System.Collections.Generic;
 using System.Linq;
 using TaleWorlds.CampaignSystem;
@@ -423,6 +424,8 @@ namespace BannerKings.Behaviours.Diplomacy
             foreach (War war in toRemove)
                 wars.Remove(war);
 
+            ForceProposePeaceFromLosingSide();
+
             // Was: `new Dictionary<Kingdom, KingdomDiplomacy>(kingdomDiplomacies)` —
             // a fresh defensive-copy dict allocated every daily tick (~7,300
             // dict allocations per game year). Copy to a reused list field
@@ -448,6 +451,65 @@ namespace BannerKings.Behaviours.Diplomacy
                 },
                 GetType().Name);
             }
+        }
+
+        // For each tracked war, if a kingdom is clearly losing
+        // (Fatigue >= 0.6 AND war-score-from-their-side <= -0.3) AND has no
+        // pending MakePeaceKingdomDecision in their queue already, push one.
+        // Vanilla election still decides whether it passes — we only
+        // guarantee the proposal actually reaches the kingdom council so
+        // wars stop dragging out indefinitely when one side has been
+        // ground down.
+        //
+        // Player kingdoms are exempt — the player owns the decision to sue
+        // for peace; auto-queuing it on their behalf would be intrusive.
+        private void ForceProposePeaceFromLosingSide()
+        {
+            if (wars == null) return;
+            foreach (var war in wars)
+            {
+                try
+                {
+                    if (war?.Attacker == null || war.Defender == null) continue;
+                    TryQueuePeaceFor(war, war.Attacker, war.Defender);
+                    TryQueuePeaceFor(war, war.Defender, war.Attacker);
+                }
+                catch { /* defensive — never break daily tick */ }
+            }
+        }
+
+        private static void TryQueuePeaceFor(War war, IFaction loserCandidate, IFaction otherSide)
+        {
+            if (!(loserCandidate is Kingdom k)) return;
+            if (k.IsEliminated || k.RulingClan == null) return;
+            if (k == Hero.MainHero.MapFaction) return; // player decides their own peace
+
+            var bk = TaleWorlds.CampaignSystem.Campaign.Current.GetCampaignBehavior<BKDiplomacyBehavior>();
+            var diplo = bk?.GetKingdomDiplomacy(k);
+            if (diplo == null) return;
+            if (diplo.Fatigue < 0.6f) return;
+
+            BKExplainedNumber score = war.CalculateWarScore(k, false);
+            if (score.ResultNumber > -0.3f) return; // not losing enough
+
+            // Skip if a peace decision is already queued for this pair.
+            foreach (var pending in k.UnresolvedDecisions)
+            {
+                if (pending is TaleWorlds.CampaignSystem.Election.MakePeaceKingdomDecision mp
+                    && mp.FactionToMakePeaceWith == otherSide)
+                {
+                    return;
+                }
+            }
+
+            try
+            {
+                k.AddDecision(new TaleWorlds.CampaignSystem.Election.MakePeaceKingdomDecision(
+                    k.RulingClan, otherSide), false);
+                BannerKings.Utils.Logs.Kingdom(() =>
+                    $"force-propose peace: {k.Name} → {otherSide.Name} (fatigue={diplo.Fatigue:0.00}, score={score.ResultNumber:0.00})");
+            }
+            catch { /* defensive */ }
         }
 
         private void TickKingdoms()
