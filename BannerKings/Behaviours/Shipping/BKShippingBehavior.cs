@@ -2117,7 +2117,22 @@ namespace BannerKings.Behaviours.Shipping
             // back. Result: party left AtSea-on-land or land-mode-on-water.
             // Letting the engine finish the transition cleanly avoids the
             // entire desync class.
-            if (party != null && party.IsTransitionInProgress) return;
+            if (party == null || party.IsTransitionInProgress) return;
+
+            // STUTTER FIX (BK_hourly_perf.txt 2026-05-15 showed this method
+            // at 204 ms / 320 ms total per game-hour): vanilla fires
+            // HourlyTickPartyEvent for every party, but the only cohorts
+            // any shipping sub-method actually services are caravans and
+            // lord parties — RedirectAIToShippingPort early-returns at
+            // `if (!isAILord && !isCaravan) return;`, ProbeCaravanWalking
+            // Water is caravan-only, AdvanceHopByHopWaypoints reads
+            // hopByHopState which is only written for caravans. For the
+            // hundreds of villager / militia / bandit / garrison / retinue /
+            // BK-component parties active in the world, every tick was
+            // paying stopwatch + sub-call overhead just to no-op. Hoist
+            // the cohort filter up front so we don't even start the perf
+            // timer on parties we won't touch.
+            if (!party.IsCaravan && !party.IsLordParty) return;
 
             var sw = Settings.BannerKingsSettings.Instance.LogHourlyTickPerf
                 ? System.Diagnostics.Stopwatch.StartNew()
