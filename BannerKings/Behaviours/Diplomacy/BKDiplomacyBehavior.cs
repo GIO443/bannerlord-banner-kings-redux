@@ -463,10 +463,23 @@ namespace BannerKings.Behaviours.Diplomacy
         //
         // Player kingdoms are exempt — the player owns the decision to sue
         // for peace; auto-queuing it on their behalf would be intrusive.
+        // Snapshot list reused across daily ticks. Avoids per-tick allocation
+        // while keeping enumeration safe against mid-loop mutation of `wars`.
+        private readonly List<War> _peaceProposalSnapshot = new List<War>();
+
         private void ForceProposePeaceFromLosingSide()
         {
             if (wars == null) return;
-            foreach (var war in wars)
+            // crash 14.htm: enumerating `wars` directly NREs with
+            // "Collection was modified; enumeration operation may not execute"
+            // because TryQueuePeaceFor → kingdom.AddDecision can cascade into
+            // vanilla MakePeaceAction → BK.OnMakePeace → wars.Remove(war) on
+            // the same tick (e.g. a 0-cohesion army that was the only thing
+            // keeping the war alive triggers immediate dispersion + auto
+            // peace). Iterate over a snapshot instead.
+            _peaceProposalSnapshot.Clear();
+            _peaceProposalSnapshot.AddRange(wars);
+            foreach (var war in _peaceProposalSnapshot)
             {
                 try
                 {
