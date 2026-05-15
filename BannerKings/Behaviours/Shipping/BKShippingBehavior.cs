@@ -2571,6 +2571,20 @@ namespace BannerKings.Behaviours.Shipping
                     && party.LeaderHero.Clan != Clan.PlayerClan;
                 if (!isAILord && !isCaravan) return;
 
+                // STUTTER FIX (knight-clan lord-party scaling): the port
+                // redirect is only useful for parties that can actually
+                // embark on a ship at the port. Non-naval parties would
+                // walk to the port, fail to board, and walk back —
+                // wasted cycles. AI knight clans (which the user
+                // identified as a stutter contributor) typically have
+                // many lord parties with no naval capability; gating
+                // them off here matches the same check BKLordShipping
+                // Behavior.TickParty applies and short-circuits the
+                // expensive graph+pathfind work below before it starts.
+                bool navalCapEarly = false;
+                try { navalCapEarly = party.HasNavalNavigationCapability; } catch { navalCapEarly = false; }
+                if (!navalCapEarly) return;
+
                 // For armies, redirect only the leader; sub-parties follow via
                 // Army linkage. Skipping armies entirely would strand cross-water
                 // sieges at the coast.

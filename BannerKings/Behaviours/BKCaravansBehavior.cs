@@ -691,6 +691,13 @@ namespace BannerKings.Behaviours
         public void HourlyTickParty(MobileParty caravanParty)
         {
             if (!Campaign.Current.GameStarted) return;
+            // Hoist the caravan-type gate ahead of the perf timer + impl
+            // call. Vanilla fires HourlyTickPartyEvent for every party,
+            // and the impl body wraps almost everything in
+            // `if (caravanParty.IsCaravan)` anyway — so for ~1000 non-
+            // caravan parties per game-hour we were paying stopwatch +
+            // method-call overhead just to no-op inside.
+            if (caravanParty == null || !caravanParty.IsCaravan) return;
             var __sw = Settings.BannerKingsSettings.Instance.LogHourlyTickPerf
                 ? System.Diagnostics.Stopwatch.StartNew()
                 : null;
