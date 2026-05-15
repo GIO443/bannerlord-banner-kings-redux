@@ -55,37 +55,52 @@ namespace BannerKings.Behaviours.Relations
 
             CampaignEvents.KingdomDecisionConcluded.AddNonSerializedListener(this, (KingdomDecision decision, DecisionOutcome outcome, bool playerChooser) =>
             {
-                if (outcome != null && outcome.SupporterList != null)
+                // Crashes 15/16: NRE in this lambda when an outcome's
+                // SponsorClan is null. Vanilla DecisionOutcome.SponsorClan is
+                // a backing-field getter — AI-resolved outcomes and several
+                // outcome subclasses (notably MakePeaceDecisionOutcome on
+                // auto-resolved peace decisions, like the ones force-queued
+                // by ForceProposePeaceFromLosingSide) can land here with no
+                // sponsor clan set. The old null-guard only checked
+                // `outcome` and `outcome.SupporterList`, then dereferenced
+                // outcome.SponsorClan.Leader unchecked.
+                try
                 {
-                    HeroRelations relations = GetRelations(outcome.SponsorClan.Leader);
-                    if (relations != null)
-                    {
-                        foreach (Supporter supporter in outcome.SupporterList)
-                        {
-                            if (supporter.Clan != outcome.SponsorClan)
-                            {
-                                int modifier = 0;
-                                switch (supporter.SupportWeight)
-                                {
-                                    case Supporter.SupportWeights.FullyPush:
-                                        modifier = 25; break;
-                                    case Supporter.SupportWeights.StronglyFavor:
-                                        modifier = 15; break;
-                                    case Supporter.SupportWeights.SlightlyFavor:
-                                        modifier = 8; break;
-                                    default:
-                                        modifier = 0; break;
-                                }
+                    if (outcome == null || outcome.SupporterList == null) return;
+                    if (outcome.SponsorClan == null) return;
+                    var sponsorLeader = outcome.SponsorClan.Leader;
+                    if (sponsorLeader == null) return;
+                    if (Hero.MainHero == null) return;
 
-                                relations.AddModifier(Hero.MainHero, new RelationsModifier(modifier,
-                                new TaleWorlds.Localization.TextObject("{=!}Support on decision '{DECISION}' ({DATE})")
-                                    .SetTextVariable("QUEST", decision.GetGeneralTitle())
-                                    .SetTextVariable("DATE", CampaignTime.Now.ToString()),
-                                    CampaignTime.YearsFromNow(5f)));
-                            }
+                    HeroRelations relations = GetRelations(sponsorLeader);
+                    if (relations == null) return;
+
+                    foreach (Supporter supporter in outcome.SupporterList)
+                    {
+                        if (supporter?.Clan == null) continue;
+                        if (supporter.Clan == outcome.SponsorClan) continue;
+
+                        int modifier;
+                        switch (supporter.SupportWeight)
+                        {
+                            case Supporter.SupportWeights.FullyPush:
+                                modifier = 25; break;
+                            case Supporter.SupportWeights.StronglyFavor:
+                                modifier = 15; break;
+                            case Supporter.SupportWeights.SlightlyFavor:
+                                modifier = 8; break;
+                            default:
+                                modifier = 0; break;
                         }
+
+                        relations.AddModifier(Hero.MainHero, new RelationsModifier(modifier,
+                            new TaleWorlds.Localization.TextObject("{=!}Support on decision '{DECISION}' ({DATE})")
+                                .SetTextVariable("QUEST", decision?.GetGeneralTitle() ?? new TaleWorlds.Localization.TextObject("?"))
+                                .SetTextVariable("DATE", CampaignTime.Now.ToString()),
+                            CampaignTime.YearsFromNow(5f)));
                     }
                 }
+                catch { /* defensive — must not break vanilla decision-conclude pipeline */ }
             });
 
             CampaignEvents.OnQuestCompletedEvent.AddNonSerializedListener(this, (QuestBase quest, QuestBase.QuestCompleteDetails details) =>
@@ -131,14 +146,25 @@ namespace BannerKings.Behaviours.Relations
                 if (hero == Hero.MainHero) return;
                 if (lastUpdated == null) lastUpdated = new Dictionary<Hero, CampaignTime>(Hero.AllAliveHeroes.Count);
                 if (lastUpdated.ContainsKey(hero) && lastUpdated[hero].ElapsedWeeksUntilNow < 1f) return;
-                RunWeekly(() =>
+                // Lower per-call probability than the shared RunWeekly's
+                // 14% — at ~200 alive heroes that helper produced ~28
+                // UpdateRelations calls per game-day in steady state, each
+                // iterating 30-50 hero pairs through heavy CalculateModifiers
+                // (title-claim walk + religion stance + trait loops) plus
+                // ChangeRelationAction firings. Stutter when ruling own
+                // kingdom: every clan-leader's update set contains MainHero,
+                // and every drift on every kingdom hero dispatches to the
+                // MainHero-side relation listeners (UI VMs, charm XP). Drop
+                // to 5% and the 1-week throttle below still ensures every
+                // hero gets touched within the week's roll window.
+                if (MBRandom.RandomFloat >= 0.05f) return;
+                try
                 {
-                    HeroRelations relations = GetRelations(hero);
-                    relations.UpdateRelations();
+                    HeroRelations rels = GetRelations(hero);
+                    rels.UpdateRelations();
                     lastUpdated[hero] = CampaignTime.Now;
-                },
-                 GetType().Name,
-                false);
+                }
+                catch { /* defensive — don't kill the daily tick */ }
             });
 
             CampaignEvents.MapEventEnded.AddNonSerializedListener(this, (mapEvent) =>

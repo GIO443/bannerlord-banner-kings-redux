@@ -61,6 +61,18 @@ namespace BannerKings.Behaviours.Relations
             foreach (Hero hero2 in GetHeroesToUpdate())
             {
                 if (hero2 == null || hero2 == Hero) continue;
+                // Stutter reduction: skip MainHero and notables from the
+                // ambient drift target set. The player's relation with NPC
+                // clan leaders should be driven by visible interactions
+                // (quests, decisions, dialog) rather than a once-a-week
+                // ±1 sim — and every drift event on a MainHero receiver
+                // dispatches OnHeroRelationChanged to many UI VMs. Notables
+                // have their own update paths (OnSettlementOwnerChangedEvent,
+                // conversation triggers); the ambient sim adds ~1400
+                // CalculateModifiers calls per day (notable side) without
+                // moving the gameplay needle.
+                if (hero2 == Hero.MainHero) continue;
+                if (hero2.IsNotable) continue;
 
                 int target = GetRelationsTarget(hero2);
                 int relation = Hero.GetRelation(hero2);
