@@ -158,7 +158,16 @@ namespace BannerKings.Models.Vanilla
         public ExplainedNumber GetMilitiaLimit(PopulationData data, Settlement settlement)
         {
             var result = new ExplainedNumber(0f, true);
-            result.Add(data.TotalPop * 0.1f, new TextObject("{=bLbvfBnb}Total population"));
+            // Previously hardcoded 0.1f (10% of population). At ~40k-pop
+            // towns that landed at ~4000 militia — well into "absurd"
+            // territory. Now an MCM slider so the user can dial; default
+            // 0.01 (1%) lands ~200-850 across town sizes, ~250-350 for
+            // castles, ~40-100 for villages. The per-type baseline below
+            // is unchanged so even tiny villages keep a meaningful floor.
+            float popFactor = 0.01f;
+            try { popFactor = BannerKings.Settings.BannerKingsSettings.Instance.MilitiaPopulationFactor; }
+            catch { /* fallback to default */ }
+            result.Add(data.TotalPop * popFactor, new TextObject("{=bLbvfBnb}Total population"));
 
             if (settlement.IsCastle)
             {

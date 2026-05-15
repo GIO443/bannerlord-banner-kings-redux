@@ -165,6 +165,12 @@ namespace BannerKings.Settings
         [SettingPropertyGroup("{=P8UecnYf}Balancing")]
         public float EofVillageProductionBoost { get; set; } = 1.30f;
 
+        [SettingPropertyFloatingInteger("Militia Cap (% of population)", minValue: 0.005f, maxValue: 0.10f, "0.000",
+            RequireRestart = false,
+            HintText = "Fraction of a settlement's BK population that contributes to the militia cap, on top of a small per-type baseline (Village=20, Town=100, Castle=200). Lower values → smaller militia equilibrium. Previous BK default was 0.10 (10%), which landed at ~4000 militia in 40k-population towns. New default 0.01 (1%) lands roughly in the 200-850 range for towns. Default: 0.01.")]
+        [SettingPropertyGroup("{=P8UecnYf}Balancing")]
+        public float MilitiaPopulationFactor { get; set; } = 0.01f;
+
         [SettingProperty("{=DZyyJXRn}Crafting Waiting Time", RequireRestart = false, HintText = "{=pSX0rWGt}When doing any type of work in the smithy, you'll be forced to wait an amount of time correspondent to how much energy was used, as well as pay for that time. Represents a more realistic approach to crafting. Default: true.")]
         [SettingPropertyGroup("{=P8UecnYf}Balancing")]
         public bool CraftingWaitingTime { get; set; } = true;
