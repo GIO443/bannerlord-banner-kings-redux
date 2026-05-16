@@ -107,20 +107,25 @@
 			</duchy>
 			<duchy name="{=zx85YhOq}Nevys" deJure="lord_1_1">
 				<county settlement="town_EN3" deJure="lord_1_5">
+					<!-- Saneopa: Syratos Castle (moved from Myzead/Amprela per
+					     DemesneRewortPart2Empire hierarchy revision), Varagos -->
+					<barony settlement="castle_EN8" deJure="lord_NE8_l" />
 					<barony settlement="castle_EN1" deJure="lord_1_5" />
 				</county>
 				<county settlement="town_EN4" deJure="lord_1_1">
+					<!-- Argoron: Atrion -->
 					<barony settlement="castle_EN5" deJure="lord_1_1" />
 				</county>
 			</duchy>
 			<duchy name="{=bo4PqHJv}Myzead" deJure="lord_1_64">
 				<county settlement="town_EN5" deJure="lord_1_50">
+					<!-- Myzea: Gaos -->
 					<barony settlement="castle_EN4" deJure="lord_1_5" />
 				</county>
-				<county settlement="town_EN6" deJure="lord_1_64"> 
+				<county settlement="town_EN6" deJure="lord_1_64">
+					<!-- Amprela: Lochana, Epinosa (Syratos moved to Nevys/Saneopa) -->
 					<barony settlement="castle_EN2" deJure="lord_1_51" />
 					<barony settlement="castle_EN7" deJure="lord_1_58" />
-					<barony settlement="castle_EN8" deJure="lord_NE8_l" />
 				</county>
 			</duchy>
 		</kingdom>
@@ -128,11 +133,16 @@
 		<kingdom faction="empire_w" government="Imperial" succession="Dictatorship" inheritance="Seniority" genderLaw="Agnatic" deJure="lord_1_7">
 			<duchy name="{=Cdf6hJNf}Gavys" deJure="lord_1_9">
 				<county settlement="town_EW4" deJure="lord_1_9">
+					<!-- Ortysia: Garontor, Thractorae -->
 					<barony settlement="castle_EW1" deJure="lord_1_9" />
 					<barony settlement="castle_EW4" deJure="lord_1_11" />
 				</county>
 				<county settlement="town_EW1" deJure="lord_1_11">
+					<!-- Lageta: Hertogea, Veron (was a "missed link" — entirely
+					     absent from titles before the DemesneRewortPart2Empire
+					     revision). Veron deJure inherits the county owner. -->
 					<barony settlement="castle_EW6" deJure="lord_1_71" />
+					<barony settlement="castle_EW5" deJure="lord_1_11" />
 				</county>
 			</duchy>
 			<duchy name="{=fIsbmmJs}Perassica" deJure="lord_1_7">
