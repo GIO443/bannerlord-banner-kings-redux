@@ -359,13 +359,20 @@ namespace BannerKings.Behaviours
                 MenuTitlesCondition,
                 MenuTitlesConsequence);
 
-            campaignGameStarter.AddGameMenuOption("bannerkings", 
-                "manage_titles", 
+            // Was "manage_titles" — duplicate ID with "Demesne hierarchy"
+            // above. Vanilla AddGameMenuOption keys by ID, so the second
+            // registration overwrote the first and one of the two options
+            // disappeared from the BK submenu ("broken" report). Renamed.
+            campaignGameStarter.AddGameMenuOption("bannerkings",
+                "cultural_information",
                 "{=ZODUL0v2}Cultural information",
-                MenuTitlesCondition, 
+                MenuTitlesCondition,
                 (MenuCallbackArgs args) => UIManager.Instance.ShowWindow("cultures"));
 
-            campaignGameStarter.AddGameMenuOption("bannerkings", "manage_demesne", "{=mVPtsCXS}Estates",
+            // Was "manage_demesne" — duplicate ID with "Demesne management"
+            // above. Same overwrite bug as the cultural_information rename
+            // immediately above. Renamed.
+            campaignGameStarter.AddGameMenuOption("bannerkings", "manage_estates", "{=mVPtsCXS}Estates",
                 MenuEstatesManageCondition,
                 MenuEstatesManageConsequence);
 
@@ -489,6 +496,17 @@ namespace BannerKings.Behaviours
                 "{=BK_QuotasMenu}Configure lands quotas (slaves: {SLAVE_Q} / guards: {GUARD_Q})",
                 MenuConfigureQuotasCondition,
                 MenuConfigureQuotasConsequence, false, 8);
+
+            // Buy slaves / serfs directly from the village's BK population
+            // into the lord-lands prison roster. Distinct from Conscript
+            // Slaves (free, slaves-only, requires BK slaves already in the
+            // pop): this is a paid transfer that also recruits serfs into
+            // indentured labor service, available whenever the player holds
+            // lord-lands at the village. Pays the bound-town owner.
+            campaignGameStarter.AddGameMenuOption("bannerkings", "buy_village_labor",
+                "{=BK_BuyLaborMenu}Buy labor from village (S:{S_AVAIL} Sf:{SF_AVAIL} available)",
+                MenuBuyVillageLaborCondition,
+                MenuBuyVillageLaborConsequence, false, 9);
 
             campaignGameStarter.AddGameMenuOption("bannerkings", "bannerkings_leave", "{=1kJ3hNWg}Leave",
                 delegate (MenuCallbackArgs x)
@@ -934,10 +952,17 @@ namespace BannerKings.Behaviours
         private static bool MenuCastleRecruitsCondition(MenuCallbackArgs args)
         {
             args.optionLeaveType = GameMenuOption.LeaveType.Recruit;
-            var kingdom = Clan.PlayerClan.Kingdom;
-            return Settlement.CurrentSettlement.IsCastle && Settlement.CurrentSettlement.Notables.Count > 0 &&
-                   (Settlement.CurrentSettlement.OwnerClan == Clan.PlayerClan ||
-                    kingdom == Settlement.CurrentSettlement.OwnerClan.Kingdom);
+            var s = Settlement.CurrentSettlement;
+            if (s == null || !s.IsCastle) return false;
+            if (s.Notables == null || s.Notables.Count == 0) return false;
+            // s.OwnerClan can be null on rebel / unowned castles; the
+            // `kingdom == s.OwnerClan.Kingdom` deref NRE'd in those cases.
+            // Same kingdom OR own-clan ownership unlocks recruitment.
+            var ownerClan = s.OwnerClan;
+            if (ownerClan == null) return false;
+            var kingdom = Clan.PlayerClan?.Kingdom;
+            return ownerClan == Clan.PlayerClan
+                || (kingdom != null && kingdom == ownerClan.Kingdom);
         }
 
         private static bool MenuGuildCondition(MenuCallbackArgs args)
@@ -983,8 +1008,16 @@ namespace BannerKings.Behaviours
         private static bool MenuTitlesCondition(MenuCallbackArgs args)
         {
             args.optionLeaveType = GameMenuOption.LeaveType.Surrender;
-            var currentSettlement = Settlement.CurrentSettlement;
-            return !currentSettlement.MapFaction.IsAtWarWith(Hero.MainHero.MapFaction);
+            var s = Settlement.CurrentSettlement;
+            if (s == null) return false;
+            // Both factions could be null on weird state (s.MapFaction null
+            // on a rebel/unfactioned settlement; MainHero.MapFaction null
+            // when the player has no kingdom). Don't NRE — surface the
+            // option permissively.
+            var sf = s.MapFaction;
+            var pf = Hero.MainHero?.MapFaction;
+            if (sf == null || pf == null) return true;
+            return !sf.IsAtWarWith(pf);
         }
 
         private static bool MenuEstatesManageCondition(MenuCallbackArgs args)
@@ -1331,6 +1364,171 @@ namespace BannerKings.Behaviours
                 .SetTextVariable("N", actualCount).SetTextVariable("VILLAGE", settlement.Name));
         }
 
+        // ---- Buy village labor (paid transfer of BK Slaves & Serfs -> lord-lands prison) ----
+
+        private const int LABOR_SLAVE_PRICE = 200;
+        private const int LABOR_SERF_PRICE = 350;
+
+        private static int GetLordLandsHeadroom(Settlement settlement)
+        {
+            if (settlement?.Village == null) return 0;
+            int lordLands = BannerKings.Patches.EconomyOverhaulCompatPatches
+                .EofLandsBridge.GetLordLandsOwned(settlement.Village);
+            if (lordLands <= 0) return 0;
+            int totalCap = lordLands * 10;
+            int currentPrison = settlement.Party?.PrisonRoster?.TotalManCount ?? 0;
+            return MathF.Max(0, totalCap - currentPrison);
+        }
+
+        private static int GetBuyableSlaves(Settlement settlement)
+        {
+            var data = BannerKingsConfig.Instance?.PopulationManager?.GetPopData(settlement);
+            if (data == null) return 0;
+            return MathF.Max(0, data.GetTypeCount(BannerKings.Managers.PopulationManager.PopType.Slaves));
+        }
+
+        private static int GetBuyableSerfs(Settlement settlement)
+        {
+            var data = BannerKingsConfig.Instance?.PopulationManager?.GetPopData(settlement);
+            if (data == null) return 0;
+            return MathF.Max(0, data.GetTypeCount(BannerKings.Managers.PopulationManager.PopType.Serfs));
+        }
+
+        private static bool MenuBuyVillageLaborCondition(MenuCallbackArgs args)
+        {
+            if (!BannerKings.Utils.ModCompat.EconomyOverhaul) return false;
+            var settlement = Settlement.CurrentSettlement;
+            if (settlement?.Village == null) return false;
+            int headroom = GetLordLandsHeadroom(settlement);
+            int sAvail = MathF.Min(GetBuyableSlaves(settlement), headroom);
+            int sfAvail = MathF.Min(GetBuyableSerfs(settlement), headroom);
+            MBTextManager.SetTextVariable("S_AVAIL", sAvail);
+            MBTextManager.SetTextVariable("SF_AVAIL", sfAvail);
+            if (headroom <= 0 || (sAvail <= 0 && sfAvail <= 0))
+            {
+                args.IsEnabled = false;
+                args.Tooltip = new TextObject(
+                    "{=BK_BuyLaborUnavailable}No lord-lands here, no village population, or prison at capacity.");
+            }
+            args.optionLeaveType = GameMenuOption.LeaveType.Trade;
+            return true;
+        }
+
+        private static void MenuBuyVillageLaborConsequence(MenuCallbackArgs args)
+        {
+            var settlement = Settlement.CurrentSettlement;
+            if (settlement?.Village == null) return;
+            ShowBuyLaborSlavesInquiry(settlement);
+        }
+
+        private static void ShowBuyLaborSlavesInquiry(Settlement settlement)
+        {
+            int headroom = GetLordLandsHeadroom(settlement);
+            int pop = GetBuyableSlaves(settlement);
+            int affordable = (Hero.MainHero?.Gold ?? 0) / LABOR_SLAVE_PRICE;
+            int max = MathF.Min(headroom, MathF.Min(pop, affordable));
+            if (max <= 0)
+            {
+                ShowBuyLaborSerfsInquiry(settlement);
+                return;
+            }
+            string title = new TextObject("{=BK_BuyLaborSlavesTitle}Buy slaves from {VILLAGE}")
+                .SetTextVariable("VILLAGE", settlement.Name).ToString();
+            string desc = new TextObject(
+                "{=BK_BuyLaborSlavesText}Purchase slaves from {VILLAGE}'s population at {PRICE}g each. Gold goes to the bound-town owner. Max purchasable: {MAX} (limited by population, headroom, and your gold). Enter 0 to skip.")
+                .SetTextVariable("VILLAGE", settlement.Name)
+                .SetTextVariable("PRICE", LABOR_SLAVE_PRICE)
+                .SetTextVariable("MAX", max).ToString();
+            InformationManager.ShowTextInquiry(new TextInquiryData(
+                title, desc, true, true,
+                GameTexts.FindText("str_done").ToString(),
+                GameTexts.FindText("str_cancel").ToString(),
+                delegate (string input)
+                {
+                    if (int.TryParse(input?.Trim() ?? "0", out int n))
+                    {
+                        n = MathF.Max(0, MathF.Min(n, max));
+                        if (n > 0) ExecuteBuyVillageLabor(settlement,
+                            BannerKings.Managers.PopulationManager.PopType.Slaves, n);
+                    }
+                    ShowBuyLaborSerfsInquiry(settlement);
+                },
+                delegate { /* cancel = stop here, don't chain to serfs */ },
+                false, null));
+            // Asymmetry: auto-skip (slaves unavailable) above falls through to
+            // the serf inquiry, but explicit Cancel does not — Cancel means
+            // "I'm done", auto-skip means "this branch had nothing to offer,
+            // keep going". Intentional.
+        }
+
+        private static void ShowBuyLaborSerfsInquiry(Settlement settlement)
+        {
+            int headroom = GetLordLandsHeadroom(settlement);
+            int pop = GetBuyableSerfs(settlement);
+            int affordable = (Hero.MainHero?.Gold ?? 0) / LABOR_SERF_PRICE;
+            int max = MathF.Min(headroom, MathF.Min(pop, affordable));
+            if (max <= 0) return;
+            string title = new TextObject("{=BK_BuyLaborSerfsTitle}Recruit indentured laborers from {VILLAGE}")
+                .SetTextVariable("VILLAGE", settlement.Name).ToString();
+            string desc = new TextObject(
+                "{=BK_BuyLaborSerfsText}Take serfs from {VILLAGE} into indentured labor on your lands at {PRICE}g each (the higher price reflects the larger compensation owed for taking freemen). Gold goes to the bound-town owner. Max: {MAX}. Enter 0 to skip.")
+                .SetTextVariable("VILLAGE", settlement.Name)
+                .SetTextVariable("PRICE", LABOR_SERF_PRICE)
+                .SetTextVariable("MAX", max).ToString();
+            InformationManager.ShowTextInquiry(new TextInquiryData(
+                title, desc, true, true,
+                GameTexts.FindText("str_done").ToString(),
+                GameTexts.FindText("str_cancel").ToString(),
+                delegate (string input)
+                {
+                    if (int.TryParse(input?.Trim() ?? "0", out int n))
+                    {
+                        n = MathF.Max(0, MathF.Min(n, max));
+                        if (n > 0) ExecuteBuyVillageLabor(settlement,
+                            BannerKings.Managers.PopulationManager.PopType.Serfs, n);
+                    }
+                },
+                delegate { },
+                false, null));
+        }
+
+        private static void ExecuteBuyVillageLabor(Settlement settlement,
+            BannerKings.Managers.PopulationManager.PopType type, int count)
+        {
+            if (settlement?.Village == null || count <= 0) return;
+            var data = BannerKingsConfig.Instance?.PopulationManager?.GetPopData(settlement);
+            if (data == null) return;
+            int headroom = GetLordLandsHeadroom(settlement);
+            int popAvail = data.GetTypeCount(type);
+            int pricePerHead = type == BannerKings.Managers.PopulationManager.PopType.Slaves
+                ? LABOR_SLAVE_PRICE : LABOR_SERF_PRICE;
+            int affordable = (Hero.MainHero?.Gold ?? 0) / MathF.Max(1, pricePerHead);
+            int actual = MathF.Min(count, MathF.Min(headroom, MathF.Min(popAvail, affordable)));
+            if (actual <= 0) return;
+
+            var character = settlement.Culture?.BasicTroop;
+            if (character == null) return;
+            var prison = settlement.Party?.PrisonRoster;
+            if (prison == null) return;
+
+            int totalCost = actual * pricePerHead;
+            Hero.MainHero.ChangeHeroGold(-totalCost);
+            var owner = settlement.Village?.Bound?.OwnerClan?.Leader;
+            if (owner != null && owner != Hero.MainHero) owner.ChangeHeroGold(totalCost);
+
+            data.UpdatePopType(type, -actual);
+            prison.AddToCounts(character, actual);
+
+            string typeName = type == BannerKings.Managers.PopulationManager.PopType.Slaves
+                ? "slaves" : "indentured laborers";
+            MBInformationManager.AddQuickInformation(new TextObject(
+                "{=BK_BuyLaborDone}Bought {N} {TYPE} from {VILLAGE} for {GOLD}g.")
+                .SetTextVariable("N", actual)
+                .SetTextVariable("TYPE", typeName)
+                .SetTextVariable("VILLAGE", settlement.Name)
+                .SetTextVariable("GOLD", totalCost));
+        }
+
         private static void MenuGrantLandsConsequence(MenuCallbackArgs args)
         {
             var village = Settlement.CurrentSettlement?.Village;
@@ -1486,7 +1684,14 @@ namespace BannerKings.Behaviours
         {
             args.optionLeaveType = GameMenuOption.LeaveType.Manage;
             var settlement = Settlement.CurrentSettlement;
-            var owner = settlement.IsVillage ? settlement.Village.GetActualOwner() : settlement.OwnerClan.Leader;
+            if (settlement == null) return false;
+            // Village owner via the Village helper; town/castle owner via
+            // OwnerClan.Leader. OwnerClan can be null on rebel/unfactioned
+            // settlements — null-coalesce so the access doesn't NRE the
+            // whole menu open.
+            Hero owner = settlement.IsVillage
+                ? settlement.Village?.GetActualOwner()
+                : settlement.OwnerClan?.Leader;
             return owner == Hero.MainHero;
         }
 
@@ -1494,8 +1699,9 @@ namespace BannerKings.Behaviours
         {
             args.optionLeaveType = GameMenuOption.LeaveType.Manage;
             var settlement = Settlement.CurrentSettlement;
-            var owner = settlement.IsVillage ? settlement.Village.GetActualOwner() : settlement.OwnerClan.Leader;
-            return owner == Hero.MainHero && settlement.IsVillage;
+            if (settlement == null || !settlement.IsVillage) return false;
+            Hero owner = settlement.Village?.GetActualOwner();
+            return owner == Hero.MainHero;
         }
 
         private static bool MenuGuildManageCondition(MenuCallbackArgs args)
