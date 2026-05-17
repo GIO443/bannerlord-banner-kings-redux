@@ -305,26 +305,6 @@ namespace BannerKings.Behaviours
         private void AiHourlyTickImpl(MobileParty mobileParty, PartyThinkParams p)
         {
             TickDuty(mobileParty);
-
-            if (BannerKingsSettings.Instance.ArmyConsistency)
-            {
-                if (mobileParty.IsLordParty && mobileParty != MobileParty.MainParty && ((mobileParty.Army != null && mobileParty.Army.LeaderParty == mobileParty)
-                    || mobileParty.Army == null))
-                {
-                    if (mobileParty.Ai.HourCounter == 1 && !mobileParty.Ai.IsDisabled && IsConsistencyBehavior(mobileParty.DefaultBehavior))
-                    {
-                        mobileParty.Ai.DisableForHours(6);
-                        mobileParty.Ai.HourCounter = 0;
-                    }
-                }
-            }
-        }
-
-        private static bool IsConsistencyBehavior(AiBehavior b)
-        {
-            return b == AiBehavior.BesiegeSettlement
-                || b == AiBehavior.RaidSettlement
-                || b == AiBehavior.DefendSettlement;
         }
 
         private void TickDuty(MobileParty mobileParty)

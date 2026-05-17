@@ -226,10 +226,6 @@ namespace BannerKings.Settings
         [SettingPropertyGroup("{=!}Warfare AI")]
         public float PatrolIncentive { get; set; } = 0.5f;
 
-        [SettingProperty("{=!}Army Consistent Objectives", RequireRestart = false, HintText = "{=!}Improve consistency of army objectives by forcing them to not change objective every hour. Stops army from going back and forth in the same place due to changing priorities. Default: true.")]
-        [SettingPropertyGroup("{=!}Warfare AI")]
-        public bool ArmyConsistency { get; set; } = true;
-
         [SettingPropertyFloatingInteger("{=!}Front Focus", minValue: 0f, maxValue: 1f, "#0%", RequireRestart = false,
             HintText = "{=!}Determine the % bonus for parties to target fiefs that serve as Fronts in wars. Too high setting may make them too deterministic. Default: 10%.")]
         [SettingPropertyGroup("{=!}Warfare AI")]
