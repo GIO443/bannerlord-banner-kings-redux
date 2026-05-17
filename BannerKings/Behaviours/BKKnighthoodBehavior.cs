@@ -58,6 +58,17 @@ namespace BannerKings.Behaviours
                     return;
                 }
 
+                // One knight clan per village. The seat is title.Fief (the
+                // village). If another knight clan already sits here, this
+                // hero must wait for that clan to die out or move before
+                // they can found their own. Prevents villages from being
+                // crowded with multiple parallel knight clans, which was
+                // the user-reported "too many knight clans" symptom.
+                if (VillageAlreadyHasKnightClan(title.Fief))
+                {
+                    return;
+                }
+
                 //if (hero.Clan.GetName().ToString() == "Prienicos")
                 //   if (!hero.Clan.Heroes.Contains(hero))
                 //       ClanActions.JoinClan(hero, hero.Clan);
@@ -187,6 +198,25 @@ namespace BannerKings.Behaviours
             return hero.Gold >= 50000 && BannerKingsConfig.Instance.TitleManager.GetKnightInfluence(hero) >= 350f &&
                    hero.Occupation == Occupation.Lord &&
                    !Utils.Helpers.IsCloseFamily(hero, hero.Clan.Leader);
+        }
+
+        // Cap: at most one knight clan per village. Knight-clan marker
+        // is the StringId suffix BKKnighthoodBehavior.CreateClan stamps
+        // ("{leader}_knight_clan"); HomeSettlement is the village set via
+        // ClanActions.CreateNewClan's SetInitialHomeSettlement call. Skip
+        // eliminated clans and PlayerClan (the player never carries the
+        // suffix, but the explicit skip makes the intent obvious).
+        private static bool VillageAlreadyHasKnightClan(Settlement village)
+        {
+            if (village == null) return false;
+            foreach (var c in Clan.All)
+            {
+                if (c == null || c.IsEliminated) continue;
+                if (c == Clan.PlayerClan) continue;
+                if (c.StringId == null || !c.StringId.EndsWith("_knight_clan")) continue;
+                if (c.HomeSettlement == village) return true;
+            }
+            return false;
         }
 
         private void OnSessionLaunched(CampaignGameStarter campaignGameStarter)

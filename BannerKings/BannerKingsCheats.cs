@@ -1247,6 +1247,66 @@ namespace BannerKings
             return $"end_all_sieges: ended {ended} sieges, {failed} failures.";
         }
 
+        // Cull tier-0 knight clans. BK creates knight clans at renown 250
+        // (Tier 2) in v1.8.10.27+, but saves from before that, or knight
+        // clans whose leader died and the heir lost renown, can sit at
+        // Tier 0 and clutter the clan roster. Skips Clan.PlayerClan
+        // regardless of tier so the player can never be culled by a
+        // mis-classified knight check.
+        [CommandLineFunctionality.CommandLineArgumentFunction("destroy_tier0_knight_clans", "bannerkings")]
+        public static string DestroyTier0KnightClans(List<string> strings)
+        {
+            if (!CampaignCheats.CheckCheatUsage(ref CampaignCheats.ErrorType)) return CampaignCheats.ErrorType;
+            int killed = 0;
+            int clans = 0;
+            try
+            {
+                var targets = new List<Clan>();
+                foreach (var c in Clan.All)
+                {
+                    if (c == null) continue;
+                    if (c.IsEliminated) continue;
+                    if (c == Clan.PlayerClan) continue;
+                    if (c.Tier != 0) continue;
+                    // Knight-clan marker: BKKnighthoodBehavior.CreateClan
+                    // uses "{leaderStringId}_knight_clan" as the new clan's
+                    // StringId. Match on the suffix so any knight clan
+                    // (regardless of which hero originally founded it) is
+                    // covered.
+                    if (c.StringId == null || !c.StringId.EndsWith("_knight_clan")) continue;
+                    targets.Add(c);
+                }
+                foreach (var c in targets)
+                {
+                    clans++;
+                    try
+                    {
+                        var heroes = c.Heroes?.ToList() ?? new List<Hero>();
+                        foreach (var h in heroes)
+                        {
+                            if (h == null || h.IsDead) continue;
+                            try { TaleWorlds.CampaignSystem.Actions.KillCharacterAction.ApplyByRemove(h); killed++; }
+                            catch { try { TaleWorlds.CampaignSystem.Actions.KillCharacterAction.ApplyByMurder(h); killed++; } catch { } }
+                        }
+                        try { TaleWorlds.CampaignSystem.Actions.DestroyClanAction.Apply(c); } catch { }
+                        try
+                        {
+                            var prop = typeof(Clan).GetProperty("IsEliminated",
+                                System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.NonPublic);
+                            if (prop != null && prop.CanWrite) prop.SetValue(c, true);
+                        }
+                        catch { }
+                    }
+                    catch { }
+                }
+            }
+            catch (System.Exception ex)
+            {
+                return $"destroy_tier0_knight_clans failed: {ex.GetType().Name}: {ex.Message}";
+            }
+            return $"destroy_tier0_knight_clans: nuked {clans} tier-0 knight clans, killed {killed} heroes total.";
+        }
+
         // Nuclear option — destroy every BK-created gentry clan in the
         // map. Gentry clans don't own settlements (they're just an extra
         // clan around an estate); BK recreates them naturally over time.
