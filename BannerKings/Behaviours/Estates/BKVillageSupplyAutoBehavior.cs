@@ -88,11 +88,19 @@ namespace BannerKings.Behaviours.Estates
             var roster = EconomyOverhaulCompatPatches.EofLandsBridge.GetWarehouseRoster(s);
             if (roster == null) return;
 
-            // Source market: the village's bound town. If the bound town has
-            // no stock or doesn't exist, refill silently skips this tick —
-            // EOF's maluses kick in until the local trade network restocks.
+            // Source market: village's bound settlement. Castles have no
+            // Town/market in vanilla 1.3.x, so a village bound to a castle
+            // could never auto-buy — auto-supply silently no-op'd, and the
+            // user observed "castle-bound villages cannot import horses
+            // and tools" while EOF maluses stacked. Walk up: bound town
+            // first; if none (castle-bound village), find the nearest
+            // friendly town with an ItemRoster.
             var sourceTown = s.Village?.Bound?.Town;
-            if (sourceTown?.Settlement?.ItemRoster == null) return;
+            if (sourceTown?.Settlement?.ItemRoster == null)
+            {
+                sourceTown = FindNearestFriendlyTownMarket(s);
+                if (sourceTown?.Settlement?.ItemRoster == null) return;
+            }
 
             int weeklyTools = EconomyOverhaulCompatPatches.EofLandsBridge.GetWeeklyToolsConsumption(s);
             int weeklyHorses = EconomyOverhaulCompatPatches.EofLandsBridge.GetWeeklyHorseConsumption(s);
@@ -128,6 +136,35 @@ namespace BannerKings.Behaviours.Estates
                 };
                 RefillFromTownMarket(sourceTown, roster, horseCategories, targetHorses - currentHorses);
             }
+        }
+
+        // Castle-bound villages have no immediate town market (vanilla
+        // Castle.Town is null). Walk the map for the nearest friendly town
+        // with a stocked ItemRoster. Hostile / besieged / under-rebellion
+        // towns are skipped — buying from an enemy market mid-war isn't
+        // viable. Returns null if nothing usable is in range.
+        private static Town FindNearestFriendlyTownMarket(Settlement village)
+        {
+            if (village?.Village == null) return null;
+            var faction = village.MapFaction;
+            var pos = village.GetPosition2D;
+            Town best = null;
+            float bestDistSq = float.MaxValue;
+            foreach (var town in Town.AllTowns)
+            {
+                if (town?.Settlement == null) continue;
+                if (town.Settlement.ItemRoster == null) continue;
+                if (town.Settlement.IsUnderSiege) continue;
+                // Faction-friendly: same faction, OR not at war. Same-faction
+                // first preferred; cross-faction trade-allowed second.
+                if (town.MapFaction != null && faction != null
+                    && town.MapFaction != faction
+                    && town.MapFaction.IsAtWarWith(faction))
+                    continue;
+                float d = town.Settlement.GetPosition2D.DistanceSquared(pos);
+                if (d < bestDistSq) { bestDistSq = d; best = town; }
+            }
+            return best;
         }
 
         private static int CountInCategory(ItemRoster roster, ItemCategory cat)

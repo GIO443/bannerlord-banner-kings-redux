@@ -57,7 +57,14 @@
 			</duchy>
 			<duchy name="{=dV3xJxVu}Ardus Lendh" deJure="lord_5_14">
 				<county settlement="town_B4" deJure="lord_5_14">
-					<barony settlement="castle_B7" deJure="lord_5_14" />
+					<!-- Orphan-fief audit: castle_B7 (Aster Castle) was a duplicate
+					     reference here — it's already a barony under Cadd Lenthu/
+					     town_B2 (line 51). Replaced with castle_B6 (Flintolg) and
+					     castle_B8 (Uthelaim), which were both entirely absent
+					     from titles.xml before. Now Ardus Lendh/Seonon owns both
+					     missing Battania castles. -->
+					<barony settlement="castle_B6" deJure="lord_5_14" />
+					<barony settlement="castle_B8" deJure="lord_5_14" />
 				</county>
 			</duchy>
 		</kingdom>
@@ -65,6 +72,11 @@
 		<kingdom faction="sturgia" government="Tribal" succession="TribalElective" inheritance="Seniority" genderLaw="Agnatic" deJure="lord_2_1">
 			<duchy name="{=LsKyFaRs}Nordden" deJure="lord_2_1">
 				<county settlement="town_S2"  deJure="lord_2_1">
+					<!-- Orphan-fief audit: castle_S2 (Mazhadan Castle) added.
+					     Was entirely absent from titles.xml before. Bound under
+					     town_S2 Balgard (matching ID convention; both in
+					     northern Sturgia). -->
+					<barony settlement="castle_S2" deJure="lord_2_1"/>
 					<barony settlement="castle_S6" deJure="lord_2_1"/>
 				</county>
 				<county settlement="town_S3" deJure="lord_2_17">
@@ -168,7 +180,11 @@
 				<county settlement="town_ES4" deJure="lord_1_14">
 					<barony settlement="castle_ES6" deJure="lord_1_14" />
 				</county>
-				<county settlement="Poros" deJure="lord_1_15" />
+				<!-- Orphan-fief audit: was `settlement="Poros"` (display name)
+				     instead of the proper ID. town_ES3 = Poros. The phantom
+				     reference would have failed to bind on session load and
+				     left the town outside the title hierarchy entirely. -->
+				<county settlement="town_ES3" deJure="lord_1_15" />
 			</duchy>
 			<duchy name="{=9OkLIPRC}Sethys" deJure="lord_1_54">
 				<county settlement="town_ES6" deJure="lord_1_54">

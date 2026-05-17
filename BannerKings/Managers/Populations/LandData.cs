@@ -309,9 +309,18 @@ namespace BannerKings.Managers.Populations
 
         public float GetAcreOutput(string type)
         {
+            // Farmland output was 0.0155 per worker. AddFarmProcution
+            // (BKVillageProductionModel) applies no extra multiplier
+            // (compare: hardwood gets ×10, fur gets ×5 in AddWoodland
+            // Procution), so a grain-primary village with ~4000 farmers
+            // and 0.25 grain-weight produced ~16 grain/day — the user's
+            // "grain villages seem to not be producing a lot of grain"
+            // report. Bumped to 0.025 (~60% higher) so a similarly-sized
+            // grain village lands at ~25 grain/day. Pasture / mineral
+            // defaults unchanged.
             var result = type switch
             {
-                "farmland" => 0.0155f,
+                "farmland" => 0.025f,
                 "pasture" => 0.0062f,
                 _ => 0.0012f
             };
