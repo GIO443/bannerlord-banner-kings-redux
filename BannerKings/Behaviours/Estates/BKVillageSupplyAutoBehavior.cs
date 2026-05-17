@@ -50,6 +50,44 @@ namespace BannerKings.Behaviours.Estates
         public override void RegisterEvents()
         {
             CampaignEvents.DailyTickSettlementEvent.AddNonSerializedListener(this, OnDailySettlementTick);
+            CampaignEvents.OnGameLoadedEvent.AddNonSerializedListener(this, OnGameLoaded);
+        }
+
+        // Retrofit auto-supply onto AI-owned villages where the AI has EOF
+        // lord-lands. Without this, knight clans spawned before v1.8.10.28
+        // (which started auto-enabling on creation) never get the auto-buy
+        // and bleed out under EOF's tool/horse maluses. Player villages are
+        // skipped — the player manages their own auto-supply via the BK
+        // village submenu toggle. EOF-only; without EOF the entire system
+        // is a no-op.
+        private void OnGameLoaded(CampaignGameStarter starter)
+        {
+            if (!BannerKings.Utils.ModCompat.EconomyOverhaul) return;
+            var playerFaction = Hero.MainHero?.MapFaction;
+            int touched = 0;
+            foreach (var v in Village.All)
+            {
+                try
+                {
+                    if (v?.Settlement == null) continue;
+                    var ownerClan = v.Settlement.OwnerClan;
+                    if (ownerClan == null) continue;
+                    if (ownerClan == Clan.PlayerClan) continue;
+                    // Need at least one EOF lord-land here, else auto-supply
+                    // has nothing to top up.
+                    int lordLands = EconomyOverhaulCompatPatches.EofLandsBridge.GetLordLandsOwned(v);
+                    if (lordLands <= 0) continue;
+                    if (IsEnabled(v.Settlement)) continue;
+                    SetEnabled(v.Settlement, true);
+                    touched++;
+                }
+                catch { /* defensive — never break load on one bad village */ }
+            }
+            if (touched > 0)
+            {
+                BannerKings.Utils.Logs.Kingdom(() =>
+                    $"auto-supply: enabled on {touched} non-player villages with EOF lord-lands");
+            }
         }
 
         public override void SyncData(IDataStore dataStore)
@@ -102,6 +140,18 @@ namespace BannerKings.Behaviours.Estates
                 if (sourceTown?.Settlement?.ItemRoster == null) return;
             }
 
+            // Payer = the village's actual lord, not always MainHero. Auto-
+            // supply was originally written assuming the player owned the
+            // village; once we retrofit auto-supply onto AI villages too
+            // (OnGameLoaded sweep, knight-clan spawn endowment), debiting
+            // MainHero for every AI village's restocking would silently
+            // drain the player's purse to fund every knight clan in the
+            // world. Use OwnerClan.Leader, fall back to MainHero only when
+            // there's no clan leader to bill (defensive — shouldn't happen
+            // on real villages).
+            var payer = s.OwnerClan?.Leader ?? Hero.MainHero;
+            if (payer == null) return;
+
             int weeklyTools = EconomyOverhaulCompatPatches.EofLandsBridge.GetWeeklyToolsConsumption(s);
             int weeklyHorses = EconomyOverhaulCompatPatches.EofLandsBridge.GetWeeklyHorseConsumption(s);
 
@@ -118,7 +168,7 @@ namespace BannerKings.Behaviours.Estates
             if (currentTools < targetTools)
             {
                 var toolCategories = new[] { DefaultItemCategories.Tools };
-                RefillFromTownMarket(sourceTown, roster, toolCategories, targetTools - currentTools);
+                RefillFromTownMarket(payer, sourceTown, roster, toolCategories, targetTools - currentTools);
             }
             if (currentHorses < targetHorses)
             {
@@ -134,7 +184,7 @@ namespace BannerKings.Behaviours.Estates
                     DefaultItemCategories.Horse,
                     DefaultItemCategories.PackAnimal,
                 };
-                RefillFromTownMarket(sourceTown, roster, horseCategories, targetHorses - currentHorses);
+                RefillFromTownMarket(payer, sourceTown, roster, horseCategories, targetHorses - currentHorses);
             }
         }
 
@@ -224,24 +274,29 @@ namespace BannerKings.Behaviours.Estates
 
         // Buys up to amountWanted units of items in the given categories from
         // the town's market. Real transaction: drains the town's roster,
-        // credits the town's gold, debits MainHero's gold, deposits the items
-        // in the village warehouse. Stops early if the town runs out of stock
-        // OR the hero runs out of gold — partial refills are fine, EOF's
-        // maluses just kick in proportionally.
+        // credits the town's gold, debits the payer hero's gold, deposits
+        // the items in the village warehouse. Stops early if the town runs
+        // out of stock OR the payer runs out of gold — partial refills are
+        // fine, EOF's maluses just kick in proportionally.
+        //
+        // `payer` is the village's actual lord (s.OwnerClan?.Leader). When
+        // the village is player-owned, that's MainHero; for AI knight clans
+        // and other AI-owned villages, that's the AI lord — they pay their
+        // own restocking out of their own purse, not the player's.
         //
         // Candidate items are collected first then sorted by per-unit cost
         // ascending so cheapest stock is drained first — important for the
         // horse pool where Horse (~250) and PackAnimal (~80) are far cheaper
-        // than WarHorse / NobleHorse and the player would rather we spend
-        // their gold on draft animals than on cavalry mounts. Tools are a
-        // single category so sorting is a no-op there but the same code path
+        // than WarHorse / NobleHorse and the payer would rather spend gold
+        // on draft animals than on cavalry mounts. Tools are a single
+        // category so sorting is a no-op there but the same code path
         // keeps the two refill calls aligned.
-        private static void RefillFromTownMarket(Town town, ItemRoster warehouse,
+        private static void RefillFromTownMarket(Hero payer, Town town, ItemRoster warehouse,
                                                  ItemCategory[] acceptableCategories,
                                                  int amountWanted)
         {
             if (amountWanted <= 0 || warehouse == null || town?.Settlement?.ItemRoster == null) return;
-            if (Hero.MainHero == null) return;
+            if (payer == null) return;
 
             var townRoster = town.Settlement.ItemRoster;
 
@@ -274,7 +329,7 @@ namespace BannerKings.Behaviours.Estates
             foreach (var (item, costPerUnit, stock) in candidates)
             {
                 if (boughtSoFar >= amountWanted) break;
-                int affordable = Hero.MainHero.Gold / costPerUnit;
+                int affordable = payer.Gold / costPerUnit;
                 if (affordable <= 0) break;
 
                 int wanted = amountWanted - boughtSoFar;
@@ -282,7 +337,7 @@ namespace BannerKings.Behaviours.Estates
                 if (toBuy <= 0) break;
 
                 int totalCost = costPerUnit * toBuy;
-                Hero.MainHero.ChangeHeroGold(-totalCost);
+                payer.ChangeHeroGold(-totalCost);
                 town.ChangeGold(totalCost);
                 townRoster.AddToCounts(item, -toBuy);
                 warehouse.AddToCounts(item, toBuy);
