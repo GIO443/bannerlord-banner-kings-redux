@@ -177,6 +177,16 @@ namespace BannerKings.Behaviours
                 }
             }
 
+            // Repair saves whose title hierarchy was broken by the
+            // XML-comment early-return bug fixed in v1.8.10.31. Idempotent.
+            try
+            {
+                int retrofitted = BannerKings.Managers.Helpers.TitleGenerator.RetrofitOrphanedTitles();
+                if (retrofitted > 0)
+                    BannerKings.Utils.Logs.Kingdom(() => $"orphan-title retrofit: bound {retrofitted} title links");
+            }
+            catch { /* never block load on retrofit */ }
+
             BKItems.Instance.AdjustPrices();
         }
 
