@@ -224,7 +224,11 @@ namespace BannerKings.Managers.Helpers
                 {
                     if (county.Name != "county")
                     {
-                        return;
+                        // Skip non-element nodes (comments, whitespace).
+                        // Using `return` here aborted the entire duchy on
+                        // the first <!-- comment -->, orphaning every fief
+                        // under it.
+                        continue;
                     }
 
                     var settlementNameCounty = county.Attributes["settlement"].Value;
@@ -251,7 +255,10 @@ namespace BannerKings.Managers.Helpers
                         {
                             if (barony.Name != "barony")
                             {
-                                return;
+                                // Skip non-element nodes — see the county
+                                // loop above. `return` here would also
+                                // abort the parent duchy.
+                                continue;
                             }
 
                             TextObject baronyName = null;
@@ -348,7 +355,11 @@ namespace BannerKings.Managers.Helpers
             {
                 foreach (XmlNode duchy in kingdom.ChildNodes)
                 {
-                    if (duchy.Name != "duchy") return;
+                    // Skip non-element nodes (comments, whitespace).
+                    // `return` here aborted the entire kingdom on the
+                    // first stray comment — no sovereign was created and
+                    // already-processed duchies were left without a parent.
+                    if (duchy.Name != "duchy") continue;
                     GenerateDuchy(duchy, vassalsKingdom, contract);
                 }
             }
