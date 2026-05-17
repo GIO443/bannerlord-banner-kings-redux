@@ -430,7 +430,10 @@ namespace BannerKings.Behaviours
 
         private void DailyTick()
         {
-            var __sw = BannerKings.Behaviours.Shipping.BKShippingBehavior.TraceEnter("BKReligions.DailyTick");
+            var __trace = BannerKings.Behaviours.Shipping.BKShippingBehavior.TraceEnter("BKReligions.DailyTick");
+            var __perf = BannerKings.Settings.BannerKingsSettings.Instance.LogHourlyTickPerf
+                ? System.Diagnostics.Stopwatch.StartNew()
+                : null;
             try
             {
                 foreach (var religion in ReligionsManager.GetReligions())
@@ -442,7 +445,15 @@ namespace BannerKings.Behaviours
                     }
                 }
             }
-            finally { BannerKings.Behaviours.Shipping.BKShippingBehavior.TraceExit("BKReligions.DailyTick", __sw); }
+            finally
+            {
+                BannerKings.Behaviours.Shipping.BKShippingBehavior.TraceExit("BKReligions.DailyTick", __trace);
+                if (__perf != null)
+                {
+                    __perf.Stop();
+                    BannerKings.Behaviours.Shipping.BKShippingBehavior.PerfRecordPublic("BKReligions.DailyTick", __perf);
+                }
+            }
         }
 
         private void OnSettlementEntered(MobileParty party, Settlement target, Hero hero)

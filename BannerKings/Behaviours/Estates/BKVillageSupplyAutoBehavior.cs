@@ -139,32 +139,58 @@ namespace BannerKings.Behaviours.Estates
         }
 
         // Castle-bound villages have no immediate town market (vanilla
-        // Castle.Town is null). Walk the map for the nearest friendly town
-        // with a stocked ItemRoster. Hostile / besieged / under-rebellion
-        // towns are skipped — buying from an enemy market mid-war isn't
-        // viable. Returns null if nothing usable is in range.
+        // Castle.Town is null). Pick the nearest friendly town with a
+        // stocked ItemRoster, skipping hostile / besieged / no-stock
+        // candidates. Returns null if nothing usable is in range.
+        //
+        // Towns and villages don't move during a campaign, so the
+        // distance-sorted list of towns per village is computed exactly
+        // once on first use and cached for the rest of the session.
+        // Per call we just walk the cached list and pick the first
+        // candidate that's still friendly + not besieged + has a roster.
+        // Faction/war state changes pick up automatically — we re-check
+        // those each call against live state.
+        //
+        // Allocations: one List<Town> + one float-array sorted index
+        // per village, both built lazily on first lookup. Released only
+        // when the dict is cleared on session reset.
+        private static readonly System.Collections.Generic.Dictionary<Settlement, Town[]>
+            _townsByDistance = new System.Collections.Generic.Dictionary<Settlement, Town[]>();
+
         private static Town FindNearestFriendlyTownMarket(Settlement village)
         {
             if (village?.Village == null) return null;
-            var faction = village.MapFaction;
-            var pos = village.GetPosition2D;
-            Town best = null;
-            float bestDistSq = float.MaxValue;
-            foreach (var town in Town.AllTowns)
+
+            if (!_townsByDistance.TryGetValue(village, out var sortedTowns))
             {
+                var pos = village.GetPosition2D;
+                var list = new System.Collections.Generic.List<(Town town, float d)>(Town.AllTowns.Count);
+                foreach (var town in Town.AllTowns)
+                {
+                    if (town?.Settlement == null) continue;
+                    float d = town.Settlement.GetPosition2D.DistanceSquared(pos);
+                    list.Add((town, d));
+                }
+                list.Sort((a, b) => a.d.CompareTo(b.d));
+                sortedTowns = new Town[list.Count];
+                for (int i = 0; i < list.Count; i++) sortedTowns[i] = list[i].town;
+                _townsByDistance[village] = sortedTowns;
+            }
+
+            var faction = village.MapFaction;
+            for (int i = 0; i < sortedTowns.Length; i++)
+            {
+                var town = sortedTowns[i];
                 if (town?.Settlement == null) continue;
                 if (town.Settlement.ItemRoster == null) continue;
                 if (town.Settlement.IsUnderSiege) continue;
-                // Faction-friendly: same faction, OR not at war. Same-faction
-                // first preferred; cross-faction trade-allowed second.
                 if (town.MapFaction != null && faction != null
                     && town.MapFaction != faction
                     && town.MapFaction.IsAtWarWith(faction))
                     continue;
-                float d = town.Settlement.GetPosition2D.DistanceSquared(pos);
-                if (d < bestDistSq) { bestDistSq = d; best = town; }
+                return town;
             }
-            return best;
+            return null;
         }
 
         private static int CountInCategory(ItemRoster roster, ItemCategory cat)

@@ -392,9 +392,20 @@ namespace BannerKings.Behaviours.Diplomacy
 
         private void OnDailyTick()
         {
-            var __sw = BannerKings.Behaviours.Shipping.BKShippingBehavior.TraceEnter("BKDiplomacy.OnDailyTick");
+            var __trace = BannerKings.Behaviours.Shipping.BKShippingBehavior.TraceEnter("BKDiplomacy.OnDailyTick");
+            var __perf = BannerKings.Settings.BannerKingsSettings.Instance.LogHourlyTickPerf
+                ? System.Diagnostics.Stopwatch.StartNew()
+                : null;
             try { OnDailyTickImpl(); }
-            finally { BannerKings.Behaviours.Shipping.BKShippingBehavior.TraceExit("BKDiplomacy.OnDailyTick", __sw); }
+            finally
+            {
+                BannerKings.Behaviours.Shipping.BKShippingBehavior.TraceExit("BKDiplomacy.OnDailyTick", __trace);
+                if (__perf != null)
+                {
+                    __perf.Stop();
+                    BannerKings.Behaviours.Shipping.BKShippingBehavior.PerfRecordPublic("BKDiplomacy.OnDailyTick", __perf);
+                }
+            }
         }
 
         private void OnDailyTickImpl()
