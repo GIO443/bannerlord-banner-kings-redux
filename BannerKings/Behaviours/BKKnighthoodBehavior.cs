@@ -145,6 +145,35 @@ namespace BannerKings.Behaviours
             var newClan = ClanActions.CreateNewClan(hero, title.Fief, hero.StringId + "_knight_clan", name, 250f, true);
             if (newClan != null)
             {
+                // Income endowment for new knight clans. Without this, a
+                // freshly-spun knight clan has only the BK Lordship-tier
+                // title for one village — typically ~20-80 gold/day in BK
+                // title income, well under wage costs for even a small
+                // Tier 2 party. They'd bleed out within weeks.
+                //
+                // Grant 3 EOF lord-lands at the clan's seat village. EOF's
+                // per-land daily payout is ~150-250 gold depending on
+                // village type / production, so 3 lands lands roughly in
+                // the 450-750 gold/day range — enough to sustain a Tier-2
+                // party without making the new clan an instant powerhouse.
+                // Also enable BK's auto-supply so the lands actually
+                // produce (tools + draft animals auto-topped-up daily
+                // from the bound town's market).
+                //
+                // Both ops gated on EOF being loaded — without EOF the
+                // entire lord-lands system doesn't exist anyway.
+                if (BannerKings.Utils.ModCompat.EconomyOverhaul && title.Fief != null)
+                {
+                    try
+                    {
+                        BannerKings.Patches.EconomyOverhaulCompatPatches.EofLandsBridge
+                            .EnsureLordLands(title.Fief, 3);
+                        var supply = BannerKings.Behaviours.Estates.BKVillageSupplyAutoBehavior.Instance;
+                        supply?.SetEnabled(title.Fief, true);
+                    }
+                    catch { /* defensive — never break clan creation on EOF hiccup */ }
+                }
+
                 MBInformationManager.AddQuickInformation(
                     new TextObject("{=YjtnRj9r}The {NEW} has been formed by {HERO}, previously a knight of {ORIGINAL}.")
                         .SetTextVariable("NEW", hero.Clan.Name)

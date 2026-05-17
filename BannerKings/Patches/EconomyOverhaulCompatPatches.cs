@@ -636,6 +636,65 @@ namespace BannerKings.Patches
                 catch { return 0; }
             }
 
+            // Grant lord-lands at a settlement. EOF's SetLordLands is
+            // private — reflected here for one-shot grants (currently used
+            // by BKKnighthoodBehavior.CreateClan to seed new knight clans
+            // with a usable income from day one). Also unlocks the
+            // warehouse so EOF's land-production cycle can actually start
+            // producing — without that, EOF treats the village as "no
+            // lord here" and skips the daily-payout path entirely.
+            //
+            // Behavior: idempotent + monotone. If the village already has
+            // >= count lord-lands assigned to someone, this is a no-op.
+            // Never overwrites a higher existing value.
+            private static MethodInfo _setLordLandsMethod;
+            private static MethodInfo _unlockWarehouseMethod;
+            public static void EnsureLordLands(Settlement s, int count)
+            {
+                if (s == null || count <= 0) return;
+                EnsureResolved();
+                if (_addonsBehaviorType == null) return;
+                var beh = GetVillageAddonsBehavior();
+                if (beh == null) return;
+
+                // Resolve SetLordLands(Settlement, int) — private.
+                if (_setLordLandsMethod == null)
+                    _setLordLandsMethod = AccessTools.Method(_addonsBehaviorType,
+                        "SetLordLands", new[] { typeof(Settlement), typeof(int) });
+                if (_setLordLandsMethod == null) return;
+
+                // Resolve GetLordLands(Settlement) — same internal table the
+                // SetLordLands writes to. The bridge already exposes
+                // GetLordLandsOwned(Village) which calls this internally;
+                // use the Settlement overload here to avoid an extra hop.
+                int current = 0;
+                try
+                {
+                    var getMI = AccessTools.Method(_addonsBehaviorType,
+                        "GetLordLands", new[] { typeof(Settlement) });
+                    if (getMI != null)
+                        current = (int)getMI.Invoke(beh, new object[] { s });
+                }
+                catch { current = 0; }
+
+                if (current >= count) return;
+
+                try { _setLordLandsMethod.Invoke(beh, new object[] { s, count }); }
+                catch { return; }
+
+                // Unlock the warehouse so the land-production daily path
+                // actually fires (EOF's CreateLordLandsProductAndPayLord
+                // is gated on HasWarehouse in some code paths).
+                if (_unlockWarehouseMethod == null)
+                    _unlockWarehouseMethod = AccessTools.Method(_addonsBehaviorType,
+                        "UnlockWarehouse", new[] { typeof(Settlement) });
+                if (_unlockWarehouseMethod != null)
+                {
+                    try { _unlockWarehouseMethod.Invoke(beh, new object[] { s }); }
+                    catch { /* defensive */ }
+                }
+            }
+
             private static object _cachedBehavior;
             private static Campaign _cachedCampaign;
             private static MethodInfo _getCampaignBehaviorGeneric;
