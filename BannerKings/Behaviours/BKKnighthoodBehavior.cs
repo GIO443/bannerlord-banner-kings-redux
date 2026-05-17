@@ -135,7 +135,14 @@ namespace BannerKings.Behaviours
 
         private void CreateClan(Hero hero, Clan originalClan, FeudalTitle title, TextObject name = null)
         {
-            var newClan = ClanActions.CreateNewClan(hero, title.Fief, hero.StringId + "_knight_clan", name, 150f, true);
+            // Seed renown at 250 (mid-Tier-2 band: vanilla DefaultClanTierModel
+            // bands are 0/50/150/350/900/2350/6150). Previously 150 — the
+            // exact Tier-2 floor — which some players reported showing as
+            // Tier 1 in-game (suspected vanilla off-by-one or AddRenown
+            // applying the value across a tick that re-evaluated tier mid-
+            // transition). 250 puts them solidly inside the Tier 2 band
+            // with no risk of demotion on the first daily tick.
+            var newClan = ClanActions.CreateNewClan(hero, title.Fief, hero.StringId + "_knight_clan", name, 250f, true);
             if (newClan != null)
             {
                 MBInformationManager.AddQuickInformation(
