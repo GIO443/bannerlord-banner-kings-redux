@@ -150,14 +150,24 @@ namespace BannerKings.Behaviours
             var limit = BannerKingsSettings.Instance.VolunteersLimit;
             foreach (Hero hero in Hero.AllAliveHeroes)
             {
-                if (hero.VolunteerTypes.Length != limit)
+                if (hero == null) continue;
+                // Vanilla normally seeds Hero.VolunteerTypes to a 6-slot
+                // CharacterObject[]. Some hero-creation paths (BK custom
+                // components, older save migrations, mod heroes) leave the
+                // field null. Treat null as "no slots yet" and replace with
+                // a fresh limit-sized array so the .Length comparison below
+                // doesn't NRE during OnGameLoaded.
+                var existing = hero.VolunteerTypes;
+                int existingLen = existing != null ? existing.Length : 0;
+                if (existingLen != limit)
                 {
                     var array = new CharacterObject[limit];
-                    for (int i = 0; i < hero.VolunteerTypes.Length; i++)
+                    if (existing != null)
                     {
-                        if (i < limit)
+                        int copyLen = existingLen < limit ? existingLen : limit;
+                        for (int i = 0; i < copyLen; i++)
                         {
-                            array[i] = hero.VolunteerTypes[i];
+                            array[i] = existing[i];
                         }
                     }
 
