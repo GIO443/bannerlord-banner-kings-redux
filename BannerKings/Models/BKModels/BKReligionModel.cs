@@ -408,31 +408,48 @@ namespace BannerKings.Models.BKModels
             result.LimitMin(0f);
             result.LimitMax(1f);
 
+            // Defensive null-guards. Daily settlement tick can hit this
+            // method via BalanceReligions for any religion in the manager,
+            // including partial/corrupt entries from old saves (FaithGroup
+            // / Faith / GetHashCode-based dict drift, etc). Returning the
+            // baseline 0.4 fervor for a missing-faith entry is a graceful
+            // degraded state — the rest of the religion update for the
+            // settlement continues, and the broken religion gets a flat
+            // value instead of crashing the whole daily tick.
+            if (religion == null || religion.Faith == null) return result;
+
             List<Settlement> holySites = new List<Settlement>(3);
             var mainDivinity = religion.Faith.GetMainDivinity();
-            if (mainDivinity.Shrine != null)
+            if (mainDivinity != null && mainDivinity.Shrine != null)
             {
                 holySites.Add(mainDivinity.Shrine);
             }
 
-            foreach (Divinity divinity in religion.Faith.GetSecondaryDivinities())
+            var secondaryDivinities = religion.Faith.GetSecondaryDivinities();
+            if (secondaryDivinities != null)
             {
-                if (divinity.Shrine != null)
+                foreach (Divinity divinity in secondaryDivinities)
                 {
-                    holySites.Add(divinity.Shrine);
+                    if (divinity != null && divinity.Shrine != null)
+                    {
+                        holySites.Add(divinity.Shrine);
+                    }
                 }
             }
 
             if (religion.Faith.FaithSeat != null)
             {
                 Settlement settlement = religion.Faith.FaithSeat;
-                var rel = settlement.PopulationData().ReligionData.DominantReligion;
-                if (rel != null) 
+                var popData = settlement.PopulationData();
+                var rel = popData?.ReligionData?.DominantReligion;
+                if (rel != null)
                 {
-                    if (rel.Equals(religion)) 
+                    if (rel.Equals(religion))
                         result.Add(0.15f, new TextObject("{=z0ifBnEL}Faith seat ({FIEF})")
                            .SetTextVariable("FIEF", settlement.Name));
-                    else if (rel.Faith.FaithGroup.Equals(religion.Faith.FaithGroup))
+                    else if (rel.Faith != null && religion.Faith.FaithGroup != null
+                          && rel.Faith.FaithGroup != null
+                          && rel.Faith.FaithGroup.Equals(religion.Faith.FaithGroup))
                         result.Add(0.075f, new TextObject("{=!}Faith seat ({FIEF}) held by {RELIGION} ({GROUP} group")
                             .SetTextVariable("RELIGION", rel.Faith.GetFaithName())
                             .SetTextVariable("GROUP", rel.Faith.FaithGroup.Name)
@@ -444,7 +461,8 @@ namespace BannerKings.Models.BKModels
 
             foreach (Settlement settlement in holySites)
             {
-                var rel = settlement.PopulationData().ReligionData.DominantReligion;
+                var popData = settlement.PopulationData();
+                var rel = popData?.ReligionData?.DominantReligion;
                 if (rel != null && rel.Equals(religion))
                 {
                     result.Add(0.05f, new TextObject("{=BPgMgury}Holy site ({FIEF})")
@@ -606,8 +624,19 @@ namespace BannerKings.Models.BKModels
                 }
             }
 
-            result.AddFactor(religion.Fervor.ResultNumber, new TextObject("{=AfsRi9wL}Fervor"));
-            result.AddFactor(religion.Faith.FaithStrengthFactor - 1f, religion.Faith.GetFaithTypeName());
+            // Same defensive guard as CalculateFervor — daily tick fires
+            // this for every religion in the manager including any
+            // partially-initialised entry. Fervor is a struct so no null
+            // check, but Faith is a reference type and CAN be null on a
+            // corrupt save entry.
+            if (religion != null)
+            {
+                result.AddFactor(religion.Fervor.ResultNumber, new TextObject("{=AfsRi9wL}Fervor"));
+                if (religion.Faith != null)
+                {
+                    result.AddFactor(religion.Faith.FaithStrengthFactor - 1f, religion.Faith.GetFaithTypeName());
+                }
+            }
             return result;
         }
 
