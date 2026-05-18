@@ -640,6 +640,18 @@ namespace BannerKings.Behaviours
             private static readonly System.Reflection.MethodInfo OnAddPointMethod =
                 AccessTools.Method(typeof(TaleWorlds.CampaignSystem.ViewModelCollection.CharacterDeveloper.CharacterDeveloperHeroItemVM), "OnAddAttributePoint");
 
+            // Hero.SetAttributeValueInternal is the same canonical setter
+            // the BK seeder uses (BKSkillBehavior.SeedBKAttributesAndSkills)
+            // — goes through PropertyOwner.SetPropertyValue with the
+            // CharacterDevelopmentModel.MaxAttribute clamp built in. Need
+            // it here because vanilla's OnAddAttributePoint -> HeroDeveloper
+            // .AddAttribute path doesn't persist for BK's PresumedObject-
+            // registered Wisdom attribute: the visible value increments but
+            // Hero.GetAttributeValue reads 0 on next refresh, producing the
+            // "puts points in, clicks away, shows 0 again" symptom.
+            private static readonly System.Reflection.MethodInfo Hero_SetAttributeValueInternal =
+                AccessTools.Method(typeof(Hero), "SetAttributeValueInternal");
+
             [HarmonyPostfix]
             [HarmonyPatch("InitializeCharacter")]
             private static void InitializeCharacterPostfix(
@@ -666,10 +678,48 @@ namespace BannerKings.Behaviours
                         Delegate.CreateDelegate(
                             typeof(Action<TaleWorlds.CampaignSystem.ViewModelCollection.CharacterDeveloper.CharacterAttributeItemVM>),
                             __instance, OnInspectMethod);
-                    var addPoint = (Action<TaleWorlds.CampaignSystem.ViewModelCollection.CharacterDeveloper.CharacterAttributeItemVM>)
-                        Delegate.CreateDelegate(
-                            typeof(Action<TaleWorlds.CampaignSystem.ViewModelCollection.CharacterDeveloper.CharacterAttributeItemVM>),
-                            __instance, OnAddPointMethod);
+
+                    // BK-managed addPoint that writes through the canonical
+                    // setter and refreshes the tile. Vanilla's path silently
+                    // drops the write for BK's Wisdom; this routes around
+                    // that. Closure captures hero + parent VM so the
+                    // callback stays valid for the tile's lifetime.
+                    var heroForClosure = hero;
+                    var parentForClosure = __instance;
+                    var wisdomForClosure = wisdom;
+                    Action<TaleWorlds.CampaignSystem.ViewModelCollection.CharacterDeveloper.CharacterAttributeItemVM> addPoint =
+                        (item) =>
+                        {
+                            try
+                            {
+                                if (heroForClosure == null || heroForClosure.HeroDeveloper == null) return;
+                                if (heroForClosure.HeroDeveloper.UnspentAttributePoints <= 0) return;
+
+                                int current = heroForClosure.GetAttributeValue(wisdomForClosure);
+                                int max = TaleWorlds.CampaignSystem.Campaign.Current?.Models
+                                    ?.CharacterDevelopmentModel?.MaxAttribute ?? 10;
+                                if (current >= max) return;
+
+                                if (Hero_SetAttributeValueInternal != null)
+                                {
+                                    Hero_SetAttributeValueInternal.Invoke(heroForClosure,
+                                        new object[] { wisdomForClosure, current + 1 });
+                                }
+                                heroForClosure.HeroDeveloper.UnspentAttributePoints -= 1;
+
+                                // Refresh the tile so AttributeLevel reflects
+                                // the new value immediately. Calling
+                                // RefreshValues on the item VM is enough;
+                                // the parent VM's own counters update next
+                                // tick via vanilla bindings.
+                                item?.RefreshValues();
+                            }
+                            catch
+                            {
+                                // Defensive — never break the character
+                                // developer UI on a Wisdom-allocation hiccup.
+                            }
+                        };
 
                     var wisdomVm = new TaleWorlds.CampaignSystem.ViewModelCollection.CharacterDeveloper.CharacterAttributeItemVM(
                         hero, wisdom, __instance, inspect, addPoint);
