@@ -18,8 +18,13 @@
 				</county>
 			</duchy>
 			<duchy name="{=VkkdAZ6s}Paravenon" deJure="lord_4_3">
+				<!-- Demesne rework Part 1 (Schnuk): castle_V6 (Caleus Castle)
+				     moved here from Eborend/town_V9 (Rovalt). Pravend is the
+				     intended future Vlandian capital and benefits from a
+				     second castle in the county. -->
 				<county settlement="town_V3" deJure="lord_4_3">
 					<barony settlement="castle_V3" deJure="lord_4_3" />
+					<barony settlement="castle_V6" deJure="lord_4_22" />
 				</county>
 				<county settlement="town_V2" deJure="lord_4_23">
 					<barony settlement="castle_V8" deJure="lord_4_23" />
@@ -28,7 +33,6 @@
 			<duchy name="{=l8d0pJII}Eborend" deJure="lord_4_22">
 				<county settlement="town_V9" deJure="lord_4_22">
 					<barony settlement="castle_V4" deJure="lord_4_28" />
-					<barony settlement="castle_V6" deJure="lord_4_22" />
 				</county>
 				<county settlement="town_V8" deJure="lord_4_24">
 					<barony settlement="castle_V5" deJure="lord_4_21" />
@@ -48,55 +52,54 @@
 			</duchy>
 			<duchy name="{=5X65560i}Cadd Lenthu" deJure="lord_5_3">
 				<county settlement="town_B2" deJure="lord_5_3">
-					<barony settlement="castle_B7" deJure="lord_5_3" />
+					<barony settlement="castle_B6" deJure="lord_5_14" />
+					<barony settlement="castle_B3" deJure="lord_5_17" />
 				</county>
 				<county settlement="town_B3" deJure="lord_5_5">
-					<barony settlement="castle_B3" deJure="lord_5_17" />
 					<barony settlement="castle_B4" deJure="lord_5_5" />
+					<barony settlement="castle_B7" deJure="lord_5_3" />
 				</county>
 			</duchy>
 			<duchy name="{=dV3xJxVu}Ardus Lendh" deJure="lord_5_14">
 				<county settlement="town_B4" deJure="lord_5_14">
-					<!-- Orphan-fief audit: castle_B7 (Aster Castle) was a duplicate
-					     reference here — it's already a barony under Cadd Lenthu/
-					     town_B2 (line 51). Replaced with castle_B6 (Flintolg) and
-					     castle_B8 (Uthelaim), which were both entirely absent
-					     from titles.xml before. Now Ardus Lendh/Seonon owns both
-					     missing Battania castles. -->
-					<barony settlement="castle_B6" deJure="lord_5_14" />
 					<barony settlement="castle_B8" deJure="lord_5_14" />
 				</county>
 			</duchy>
 		</kingdom>
 
 		<kingdom faction="sturgia" government="Tribal" succession="TribalElective" inheritance="Seniority" genderLaw="Agnatic" deJure="lord_2_1">
+			<!-- Demesne rework Part 1 (Schnuk): full Sturgian conversion.
+			     Mazhadan moves out of Nordden into the new Ircara duchy;
+			     Nordden picks up Vladiv from old Chertyg; the new Ircara
+			     duchy collects Varcheg (Kranirog + Nevyansk) and Omor
+			     (Mazhadan); Chertyg keeps Varnovapol (now with Takor) and
+			     Sibir gets Ov added; Kachyar narrows down to Revyl with
+			     Ustokol; Iltan stays as it was. -->
 			<duchy name="{=LsKyFaRs}Nordden" deJure="lord_2_1">
-				<county settlement="town_S2"  deJure="lord_2_1">
-					<!-- Orphan-fief audit: castle_S2 (Mazhadan Castle) added.
-					     Was entirely absent from titles.xml before. Bound under
-					     town_S2 Balgard (matching ID convention; both in
-					     northern Sturgia). -->
-					<barony settlement="castle_S2" deJure="lord_2_1"/>
-					<barony settlement="castle_S6" deJure="lord_2_1"/>
+				<county settlement="town_S2" deJure="lord_2_1">
+					<barony settlement="castle_S8" deJure="lord_2_1" />
+				</county>
+			</duchy>
+			<duchy name="{=!}Ircara" deJure="lord_2_1">
+				<county settlement="town_S1" deJure="lord_2_1">
+					<barony settlement="castle_S4" deJure="lord_S9_l" />
+					<barony settlement="castle_S3" deJure="lord_2_1" />
 				</county>
 				<county settlement="town_S3" deJure="lord_2_17">
-					<barony settlement="castle_S5" deJure="lord_2_17"/>
+					<barony settlement="castle_S2" deJure="lord_2_1" />
+				</county>
+			</duchy>
+			<duchy name="{=cHWtzygp}Chertyg" deJure="lord_2_16">
+				<county settlement="town_S4" deJure="lord_2_16">
+					<barony settlement="castle_S6" deJure="lord_2_16" />
+				</county>
+				<county settlement="town_S6" deJure="lord_2_18">
+					<barony settlement="castle_S5" deJure="lord_2_18" />
 				</county>
 			</duchy>
 			<duchy name="{=x4IrrVOc}Kachyar" deJure="lord_2_17">
 				<county settlement="town_S7" deJure="lord_2_17">
 					<barony settlement="castle_S1" deJure="lord_2_17" />
-					<barony settlement="castle_S3" deJure="lord_2_1" />
-				</county>
-				<county settlement="town_S1" deJure="lord_2_1">
-					<barony settlement="castle_S4" deJure="lord_S9_l" />
-				</county>
-			</duchy>
-			<duchy name="{=cHWtzygp}Chertyg" deJure="lord_2_16">
-				<county settlement="town_S4" deJure="lord_2_16">
-					<barony settlement="castle_S8" deJure="lord_2_16" />
-				</county>
-				<county settlement="town_S6" deJure="lord_2_18">
 				</county>
 			</duchy>
 			<duchy name="{=dcfhVA8L}Iltan" deJure="lord_2_5">
@@ -249,18 +252,25 @@
 		</kingdom>
 
 		<kingdom faction="khuzait" government="Tribal" succession="TribalElective" inheritance="Seniority" genderLaw="Cognatic" deJure="lord_6_1">
+			<!-- Demesne rework Part 1 (Schnuk): Khuzait barony shuffle.
+			     Akiser (castle_K2) moves to Tanaz Baikal/Chaikand;
+			     Usek (castle_K1) moves to Devseg/Ortongard;
+			     Hakkun (castle_K3) moves to Kohi Rohini/Akkalat;
+			     Simira (castle_K7) moves to Kohi Rohini/Akkalat;
+			     Erzenur (castle_K8) moves to Kohi Rohini/Odokh.
+			     Bars Dagan untouched. -->
 			<duchy name="{=kRXucvyJ}Kohi Rohini" deJure="lord_6_17">
-				<county settlement="town_K6" deJure="lord_6_17">
-					<barony settlement="castle_K7" deJure="lord_6_19" />
-				</county>
 				<county settlement="town_K2" deJure="lord_6_16">
-					<barony settlement="castle_K2" deJure="lord_6_16" />
+					<barony settlement="castle_K7" deJure="lord_6_19" />
+					<barony settlement="castle_K3" deJure="lord_6_20" />
+				</county>
+				<county settlement="town_K6" deJure="lord_6_17">
 					<barony settlement="castle_K8" deJure="lord_K9_l" />
 				</county>
 			</duchy>
 			<duchy name="{=iuKWscHa}Tanaz Baikal" deJure="lord_6_1">
 				<county settlement="town_K5" deJure="lord_6_1">
-					<barony settlement="castle_K1" deJure="lord_6_5" />
+					<barony settlement="castle_K2" deJure="lord_6_16" />
 				</county>
 				<county settlement="town_K3" deJure="lord_6_1">
 					<barony settlement="castle_K4" deJure="lord_6_1" />
@@ -268,8 +278,8 @@
 			</duchy>
 			<duchy name="{=b8Ie5P26}Devseg" deJure="lord_6_5">
 				<county settlement="town_K4" deJure="lord_6_5">
-					<barony settlement="castle_K3" deJure="lord_6_20" />
 					<barony settlement="castle_K5" deJure="lord_6_19" />
+					<barony settlement="castle_K1" deJure="lord_6_5" />
 				</county>
 			</duchy>
 			<duchy name="{=krEv7xsL}Bars Dagan" deJure="lord_6_4">
@@ -282,12 +292,18 @@
 
 
 		<kingdom faction="nord" name="{=hvcyO1P4}Kingdom of the Nordvyg" government="Tribal" succession="WilundingElective" inheritance="Seniority" genderLaw="Agnatic" deJure="lord_7_1">
-			<duchy name="{=!}Frostveld" deJure="lord_7_3">
+			<!-- Demesne rework Part 1 (Schnuk): Hvalvik gets its own duchy
+			     (Beinland) carrying only Hakarshus; Tharklif moves out of
+			     Hvalvik into Gretysfjord under Frostveld, joining
+			     Ykerslund and Fimbulgard. Throndarmark untouched. -->
+			<duchy name="{=!}Beinland" deJure="lord_7_5">
 				<county settlement="town_N1" deJure="lord_7_5">
 					<barony settlement="castle_N7" deJure="lord_7_5" />
-					<barony settlement="castle_N2" deJure="lord_7_3" />
 				</county>
+			</duchy>
+			<duchy name="{=!}Frostveld" deJure="lord_7_3">
 				<county settlement="town_N2" deJure="lord_7_3">
+					<barony settlement="castle_N2" deJure="lord_7_3" />
 					<barony settlement="castle_N3" deJure="lord_7_18" />
 					<barony settlement="castle_N5" deJure="lord_7_25" />
 				</county>
