@@ -121,7 +121,14 @@ namespace BannerKings.UI.VanillaTabs.Kingdoms.Mercenary
                     EditLevyText = new TextObject("{=we2yiKUb}Edit").ToString();
                     LevyCharacterName = levy.Name != null ? levy.Name.ToString() : "";
                     LevyCharacter.FillFrom(levy.Character);
-                    LevyCharacter.SetEquipment(levy.Character.BattleEquipments.First());
+                    // BattleEquipments can be empty on a freshly-created
+                    // custom troop (the Edit dialog's text-confirm fires
+                    // RefreshValues before any equipment has been assigned).
+                    // First() throws InvalidOperationException on empty —
+                    // use FirstOrDefault + null-guard so the preview just
+                    // renders without equipment until the player sets it.
+                    var levyEq = levy.Character.BattleEquipments?.FirstOrDefault();
+                    if (levyEq != null) LevyCharacter.SetEquipment(levyEq);
                 }
 
                 var professional = Career.GetTroop(Career.Kingdom, false);
@@ -131,7 +138,8 @@ namespace BannerKings.UI.VanillaTabs.Kingdoms.Mercenary
                     EditProfessionalText = new TextObject("{=we2yiKUb}Edit").ToString();
                     ProfessionalCharacterName = professional.Name != null ? professional.Name.ToString() : "";
                     ProfessionalCharacter.FillFrom(professional.Character);
-                    ProfessionalCharacter.SetEquipment(professional.Character.BattleEquipments.First());
+                    var proEq = professional.Character.BattleEquipments?.FirstOrDefault();
+                    if (proEq != null) ProfessionalCharacter.SetEquipment(proEq);
                 }
             }
         }
