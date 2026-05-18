@@ -187,6 +187,38 @@ namespace BannerKings.Behaviours
             }
             catch { /* never block load on retrofit */ }
 
+            // Tier-0 BK clan retrofit. Gentry / knight clans seeded before
+            // v1.8.10.34 used renown values calibrated for vanilla tier
+            // thresholds (50 / 150 / ...) but BK's ClanRenown multiplier
+            // (default 300%) bumped those thresholds out from under them,
+            // leaving the clans stuck at Tier 0 with no party capacity.
+            // Bump renown to clear the current Tier-1 threshold so vanilla
+            // ClanVariablesCampaignBehavior actually spawns parties for
+            // them on the next daily tick.
+            try
+            {
+                float renownScale = BannerKings.Settings.BannerKingsSettings.Instance?.ClanRenown ?? 1f;
+                if (renownScale < 1f) renownScale = 1f;
+                float tier1Floor = 50f * renownScale + 5f; // sit just above the threshold
+                int bumped = 0;
+                foreach (var c in Clan.All)
+                {
+                    if (c == null || c.IsEliminated) continue;
+                    if (c == Clan.PlayerClan) continue;
+                    if (c.Tier != 0) continue;
+                    var sid = c.StringId;
+                    if (sid == null) continue;
+                    bool isBKClan = sid.StartsWith("gentryClan_") || sid.EndsWith("_knight_clan");
+                    if (!isBKClan) continue;
+                    float delta = tier1Floor - c.Renown;
+                    if (delta <= 0f) continue;
+                    try { c.AddRenown(delta, false); bumped++; } catch { }
+                }
+                if (bumped > 0)
+                    BannerKings.Utils.Logs.Kingdom(() => $"tier-0 BK-clan retrofit: bumped {bumped} clans above Tier-1 threshold ({tier1Floor:F0})");
+            }
+            catch { /* never block load on retrofit */ }
+
             BKItems.Instance.AdjustPrices();
         }
 

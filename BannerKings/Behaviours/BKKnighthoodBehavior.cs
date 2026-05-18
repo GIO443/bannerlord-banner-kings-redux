@@ -153,7 +153,14 @@ namespace BannerKings.Behaviours
             // applying the value across a tick that re-evaluated tier mid-
             // transition). 250 puts them solidly inside the Tier 2 band
             // with no risk of demotion on the first daily tick.
-            var newClan = ClanActions.CreateNewClan(hero, title.Fief, hero.StringId + "_knight_clan", name, 250f, true);
+            // Seed renown to land mid-Tier-2 band in vanilla terms (limits:
+            // 50 / 150 / 350 / ...). Scale by BK's ClanRenown multiplier so
+            // a non-default scale (e.g. 300%) doesn't put us back inside
+            // the bumped Tier-0 / Tier-1 bands. ClanRenown < 1 is clamped
+            // since we never want LESS renown than vanilla intent.
+            float renownScale = BannerKings.Settings.BannerKingsSettings.Instance?.ClanRenown ?? 1f;
+            if (renownScale < 1f) renownScale = 1f;
+            var newClan = ClanActions.CreateNewClan(hero, title.Fief, hero.StringId + "_knight_clan", name, 250f * renownScale, true);
             if (newClan != null)
             {
                 // Income endowment for new knight clans. Without this, a

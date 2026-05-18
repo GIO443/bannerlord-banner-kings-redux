@@ -536,11 +536,19 @@ namespace BannerKings.Behaviours
 
             EquipmentHelper.AssignHeroEquipmentFromEquipment(hero, equipment);
             List<Hero> family = CreateFamily(hero, settlement);
+            // Renown range is mid-Tier-1 to mid-Tier-2 in vanilla terms
+            // (vanilla limits: 50 / 150 / 350 / ...). Scale by the BK
+            // ClanRenown multiplier so a non-default scale (e.g. 300%)
+            // doesn't drop seeded gentry below the bumped Tier-1
+            // threshold and leave them stuck at Tier 0 with no party
+            // capacity.
+            float renownScale = BannerKings.Settings.BannerKingsSettings.Instance?.ClanRenown ?? 1f;
+            if (renownScale < 1f) renownScale = 1f;
             Clan clan = ClanActions.CreateNewClan(hero,
                 settlement,
                 $"gentryClan_{settlement.Name}_{settlement.Culture}",
                 clanName,
-                MBRandom.RandomFloatRanged(50f, 200f));
+                MBRandom.RandomFloatRanged(50f, 200f) * renownScale);
             if (clan != null)
             {
                 foreach (var member in family)

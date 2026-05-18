@@ -151,9 +151,9 @@ namespace BannerKings.Settings
         [SettingPropertyGroup("{=P8UecnYf}Balancing")]
         public float LongerSieges { get; set; } = 0.5f;
 
-        [SettingPropertyFloatingInteger("{=gxcgWiwh}Knight Clan Creation Speed", minValue: 0f, maxValue: 5f, "#0%", RequireRestart = false, HintText = "Knight AI heroes can eventually form their own clans, even those in the player clan. Increasing this setting increases their speed of doing so. Setting it to 0% will stop knights from creating clans altogether. Default: 50% (was 100% pre-v1.8.10.26 — players reported too many knight clans spawning at the old rate).")]
+        [SettingPropertyFloatingInteger("{=gxcgWiwh}Knight Clan Creation Speed", minValue: 0f, maxValue: 5f, "#0%", RequireRestart = false, HintText = "Knight AI heroes can eventually form their own clans, even those in the player clan. Increasing this setting increases their speed of doing so. Setting it to 0% will stop knights from creating clans altogether. Default: 100%. The per-village cap (one knight clan per village seat) handles the prior overpopulation problem on its own.")]
         [SettingPropertyGroup("{=P8UecnYf}Balancing")]
-        public float KnightClanCreationSpeed { get; set; } = 0.5f;
+        public float KnightClanCreationSpeed { get; set; } = 1f;
 
         [SettingProperty("BK Smithing System", RequireRestart = true, HintText = "Enables BK's smithing overhaul: custom smelting yield caps (a dagger gives at most 1 metal, two-handers up to 3), higher stamina costs on one/two-handed weapons (+20%/+50%), the BK armor crafting tab (craft armor / shields / ammo from materials), botching chance, and the per-hour smithing fee in towns. When OFF (default), vanilla DefaultSmithingModel runs unmodified — no smelting cap, no armor tab, no botch, no smithing fee. The wait-time gate (next setting) still applies on top of vanilla mode if you want it. Default: false.")]
         [SettingPropertyGroup("{=P8UecnYf}Balancing")]
