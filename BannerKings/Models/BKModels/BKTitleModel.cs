@@ -585,10 +585,20 @@ namespace BannerKings.Models.BKModels
             }
 
             var type = title.GetHeroClaim(usurper);
-            if (type != ClaimType.None && type != ClaimType.Ongoing)
+            bool hasClaim = type != ClaimType.None && type != ClaimType.Ongoing;
+            // De facto land control as an alternative justification.
+            // If the usurper's clan or kingdom holds at least 80% of the
+            // title's leaf fiefs (the title itself if landed, plus every
+            // landed title under it recursively), they're effectively
+            // already in control and can press a usurpation without an
+            // inherited / marriage / claim path.
+            bool hasLandMajority = ControlsTitleByLand(title, usurper, 0.80f);
+            if (hasClaim || hasLandMajority)
             {
                 usurpData.Possible = true;
-                usurpData.Reason = new TextObject("{=zMnXdAxp}You may claim this title.");
+                usurpData.Reason = hasClaim
+                    ? new TextObject("{=zMnXdAxp}You may claim this title.")
+                    : new TextObject("{=!}You control the majority of this title's fiefs by land.");
 
                 var titleLevel = (int) title.TitleType;
                 var clanTier = usurper.Clan.Tier;
@@ -666,7 +676,7 @@ namespace BannerKings.Models.BKModels
             }
 
             usurpData.Possible = false;
-            usurpData.Reason = new TextObject("{=5ysthcWa}No rightful claim.");
+            usurpData.Reason = new TextObject("{=!}No rightful claim, and you do not control at least 80% of this title's fiefs.");
             return usurpData;
         }
 
@@ -703,6 +713,58 @@ namespace BannerKings.Models.BKModels
                     {
                         action.Gold *= 1.05f;
                     }
+                }
+            }
+        }
+
+        // "I rule these lands; the title is mine in fact" path to
+        // usurpation. Walks the title tree to find every landed
+        // descendant (the title itself if landed, plus every Lordship /
+        // Barony / County under it) and checks what fraction is owned
+        // by either the usurper's clan or their kingdom. Threshold 0.80
+        // is the user-requested feel-good level — gameplay-wise this
+        // means once you (or your faction) hold 4/5 of a dukedom's
+        // counties, you can claim the duchy outright.
+        //
+        // Sovereign-level (Kingdom/Empire) titles fall through the same
+        // walk; with dozens of leaf fiefs underneath, 80% is a much
+        // higher bar there, which preserves the existing "lead the
+        // faction" gate as the primary path for kingdoms.
+        private bool ControlsTitleByLand(FeudalTitle title, Hero usurper, float threshold)
+        {
+            if (title == null || usurper == null) return false;
+            var fiefs = new List<FeudalTitle>();
+            CollectLeafFiefs(title, fiefs);
+            if (fiefs.Count == 0) return false;
+
+            int owned = 0;
+            var usurperClan = usurper.Clan;
+            var usurperFaction = usurper.MapFaction;
+            foreach (var f in fiefs)
+            {
+                if (f?.Fief == null) continue;
+                var ownerClan = f.Fief.OwnerClan;
+                if (ownerClan == null) continue;
+                if (usurperClan != null && ownerClan == usurperClan) { owned++; continue; }
+                if (usurperFaction != null && ownerClan.MapFaction == usurperFaction) owned++;
+            }
+            return ((float)owned / fiefs.Count) >= threshold;
+        }
+
+        // Recursive walk: any title with a non-null Fief is a leaf
+        // (Lordships always; Baronies/Counties also count since they
+        // carry the town/castle as Fief). Vassals on top of that
+        // (BoundVillage lordships) get picked up by the recursion.
+        // Skips null entries defensively.
+        private static void CollectLeafFiefs(FeudalTitle title, List<FeudalTitle> result)
+        {
+            if (title == null) return;
+            if (title.Fief != null) result.Add(title);
+            if (title.Vassals != null)
+            {
+                foreach (var v in title.Vassals)
+                {
+                    CollectLeafFiefs(v, result);
                 }
             }
         }
