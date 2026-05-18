@@ -497,6 +497,16 @@ namespace BannerKings.Managers.Helpers
                 var countyTitle = tm.GetTitle(countySettlement);
                 if (countyTitle == null) continue; // autoGenerate should have made it; skip if not
 
+                // Detach the county from any OTHER duchy's Vassals before
+                // attaching here. Without this, a county that moved between
+                // duchies in titles.xml (e.g. Hvalvik: Frostveld -> Beinland
+                // in v1.8.10.36) ends up in BOTH parents on existing saves:
+                // save data keeps the old binding, and the retrofit only
+                // appended a new one. The XML is the canonical hierarchy,
+                // so any sibling duchy that still references this county is
+                // stale — strip it.
+                fixedCount += DetachFromOtherDuchies(tm, countyTitle, duchyTitle);
+
                 if (!duchyTitle.Vassals.Contains(countyTitle))
                 {
                     duchyTitle.Vassals.Add(countyTitle);
@@ -514,6 +524,11 @@ namespace BannerKings.Managers.Helpers
 
                     var baronyTitle = tm.GetTitle(baronySettlement);
                     if (baronyTitle == null) continue;
+
+                    // Same detach pass for baronies — Schnuk's rework also
+                    // moved baronies between counties (e.g. Tharklif moved
+                    // Hvalvik -> Gretysfjord, Caleus moved Rovalt -> Pravend).
+                    fixedCount += DetachFromOtherCounties(tm, baronyTitle, countyTitle);
 
                     if (!countyTitle.Vassals.Contains(baronyTitle))
                     {
@@ -535,6 +550,48 @@ namespace BannerKings.Managers.Helpers
             }
 
             return fixedCount;
+        }
+
+        // Strip `countyTitle` from any duchy other than `expectedDuchy`.
+        // Returns the number of stale parent links removed.
+        private static int DetachFromOtherDuchies(TitleManager tm, FeudalTitle countyTitle, FeudalTitle expectedDuchy)
+        {
+            int removed = 0;
+            foreach (var other in tm.AllTitles)
+            {
+                if (other == null) continue;
+                if (other.TitleType != TitleType.Dukedom) continue;
+                if (other == expectedDuchy) continue;
+                if (other.Vassals == null) continue;
+                if (other.Vassals.Contains(countyTitle))
+                {
+                    other.Vassals.Remove(countyTitle);
+                    removed++;
+                }
+            }
+            return removed;
+        }
+
+        // Strip `baronyTitle` from any county other than `expectedCounty`.
+        // Both Counties (TitleType.County) and Lordships (TitleType.Lordship)
+        // can contain baronies in principle; restrict to County since the
+        // XML hierarchy only nests barony under county.
+        private static int DetachFromOtherCounties(TitleManager tm, FeudalTitle baronyTitle, FeudalTitle expectedCounty)
+        {
+            int removed = 0;
+            foreach (var other in tm.AllTitles)
+            {
+                if (other == null) continue;
+                if (other.TitleType != TitleType.County) continue;
+                if (other == expectedCounty) continue;
+                if (other.Vassals == null) continue;
+                if (other.Vassals.Contains(baronyTitle))
+                {
+                    other.Vassals.Remove(baronyTitle);
+                    removed++;
+                }
+            }
+            return removed;
         }
     }
 }
