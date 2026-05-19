@@ -123,7 +123,8 @@ namespace BannerKings.Managers.Institutions.Religions.Faiths
         public abstract TextObject GetFaithName();
         public abstract TextObject GetFaithDescription();
         public Divinity GetMainDivinity() => MainGod;
-        public MBReadOnlyList<Divinity> GetSecondaryDivinities() => new MBReadOnlyList<Divinity>(pantheon);
+        public MBReadOnlyList<Divinity> GetSecondaryDivinities()
+            => new MBReadOnlyList<Divinity>(pantheon ?? new List<Divinity>());
         public abstract TextObject GetCultsDescription();
         public abstract int GetMaxClergyRank();
         public abstract TextObject GetClergyGreeting(int rank);
