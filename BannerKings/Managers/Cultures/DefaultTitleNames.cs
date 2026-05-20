@@ -20,6 +20,14 @@ namespace BannerKings.Managers.Cultures
     {
         private readonly List<CulturalTitleName> _loaded = new List<CulturalTitleName>();
 
+        // Lazy-init guard. BannerKingsConfig.Initialize() runs in
+        // OnGameEarlyLoaded, but vanilla model patches (e.g. the party-size
+        // postfix) can query title names earlier — during
+        // CampaignObjectManager.AfterLoad on a save load. Without this guard
+        // those early queries hit an empty set and GetTitleName's First()
+        // throws. EnsureInitialized makes the first access self-populate.
+        private bool _initialized;
+
         public CulturalTitleName DefaultEmpire => GetById("DefaultEmpire");
         public CulturalTitleName DefaultKing => GetById("DefaultKing");
         public CulturalTitleName DefaultDuke => GetById("DefaultDuke");
@@ -33,6 +41,7 @@ namespace BannerKings.Managers.Cultures
         {
             get
             {
+                if (!_initialized) Initialize();
                 foreach (var t in _loaded) yield return t;
                 foreach (var item in ModAdditions) yield return item;
             }
@@ -74,7 +83,10 @@ namespace BannerKings.Managers.Cultures
         public override void Initialize()
         {
             _loaded.Clear();
-            var cultures = Game.Current.ObjectManager.GetObjectTypeList<CultureObject>();
+            // Null-safe: a lazy first-access can run before Game.Current is
+            // fully up. BK's own rows carry no culture attribute, so a null
+            // culture list still loads every default title name.
+            var cultures = Game.Current?.ObjectManager?.GetObjectTypeList<CultureObject>();
 
             foreach (var row in BKDataStore.Instance.GetRows("title_names"))
             {
@@ -92,7 +104,7 @@ namespace BannerKings.Managers.Cultures
                 var cultureRef = BKXml.Attr(row, "culture");
                 if (!string.IsNullOrEmpty(cultureRef))
                 {
-                    culture = cultures.FirstOrDefault(c => c.StringId == cultureRef);
+                    culture = cultures?.FirstOrDefault(c => c.StringId == cultureRef);
                     if (culture == null) continue;
                 }
 
@@ -118,6 +130,8 @@ namespace BannerKings.Managers.Cultures
                 }
                 _loaded.Add(title);
             }
+
+            _initialized = true;
         }
     }
 }

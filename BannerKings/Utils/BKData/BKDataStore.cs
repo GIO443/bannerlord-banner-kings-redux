@@ -144,27 +144,72 @@ namespace BannerKings.Utils.BKData
             }
         }
 
-        /// <summary>Loaded modules in load order. Reflection-based so a missing
-        /// TaleWorlds API on some 1.3.x patch level can't kill BK boot. Falls back
-        /// to BK's own module dir if the API isn't reachable.</summary>
+        /// <summary>Module directories to scan, in load order.
+        ///
+        /// BK's own module directory is derived from this assembly's on-disk
+        /// location and yielded first — that needs neither the module-manager
+        /// API nor BasePath, so BK's own data ALWAYS loads even if every
+        /// reflective probe fails. Other loaded modules follow (for cross-mod
+        /// overrides); being later, they win on id collision.</summary>
         private IEnumerable<string> EnumerateModuleDirectories()
         {
-            var baseDir = TryGetBasePath();
-            var ids = TryGetLoadedModuleIds().ToList();
+            var dirs = new List<string>();
+            var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
-            if (ids.Count == 0)
+            void Add(string d)
             {
-                // Fallback: at least scan BK's own ModuleData so vanilla
-                // BannerKings boots even if module enumeration breaks on
-                // a future patch.
-                yield return Path.Combine(baseDir, "Modules", "BannerKings");
-                yield break;
+                if (string.IsNullOrEmpty(d)) return;
+                string full;
+                try { full = Path.GetFullPath(d); }
+                catch { return; }
+                if (seen.Add(full)) dirs.Add(full);
             }
 
-            foreach (var id in ids)
+            // BK's own module root. <base>/Modules/<BK>/bin/Win64_Shipping_Client/
+            // BannerKings.dll → up three directories. Bulletproof: no API, no
+            // hardcoded folder name (this fork's folder is "BannerKings.Redux",
+            // not "BannerKings").
+            string ownModule = TryGetOwnModuleDir();
+            Add(ownModule);
+
+            // Base = the Modules parent. Prefer deriving it from the known-good
+            // own-module path; fall back to the BasePath probe.
+            string baseDir = null;
+            if (!string.IsNullOrEmpty(ownModule))
             {
-                yield return Path.Combine(baseDir, "Modules", id);
+                var modulesDir = Path.GetDirectoryName(ownModule);
+                baseDir = modulesDir != null ? Path.GetDirectoryName(modulesDir) : null;
             }
+            if (string.IsNullOrEmpty(baseDir)) baseDir = TryGetBasePath();
+
+            // Other loaded modules, in load order — for cross-mod overrides.
+            if (!string.IsNullOrEmpty(baseDir))
+            {
+                foreach (var id in TryGetLoadedModuleIds())
+                {
+                    if (!string.IsNullOrEmpty(id))
+                        Add(Path.Combine(baseDir, "Modules", id));
+                }
+            }
+
+            return dirs;
+        }
+
+        /// <summary>BK's own module directory, from the executing assembly's
+        /// file path. Null only if the assembly has no on-disk location.</summary>
+        private static string TryGetOwnModuleDir()
+        {
+            try
+            {
+                var loc = Assembly.GetExecutingAssembly().Location;
+                if (string.IsNullOrEmpty(loc)) return null;
+                // BannerKings.dll → /bin/Win64_Shipping_Client → /bin → module root
+                var d = Path.GetDirectoryName(loc);
+                d = d != null ? Path.GetDirectoryName(d) : null;
+                d = d != null ? Path.GetDirectoryName(d) : null;
+                return (!string.IsNullOrEmpty(d) && Directory.Exists(d)) ? d : null;
+            }
+            catch { return null; }
         }
 
         private static string TryGetBasePath()
