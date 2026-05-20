@@ -1573,6 +1573,11 @@ namespace BannerKings.Patches
                 if (war == null) return;
 
                 var justification = war.CasusBelli;
+                // War.CasusBelli is a nullable saveable property — a war with
+                // no recorded casus belli (vanilla-initiated, older save)
+                // leaves it null. The sibling GetTargetScoreForPartyPostfix
+                // guards this; this postfix must too.
+                if (justification == null) return;
                 if (justification.Fief == targetSettlement)
                 {
                     if (missionType == Army.ArmyTypes.Besieger || missionType == Army.ArmyTypes.Defender)
