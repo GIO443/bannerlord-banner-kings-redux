@@ -43,7 +43,14 @@ namespace BannerKings.Managers.Institutions.Religions.Faiths
         private FaithPreset preset;
         private string id;
 
-        public PresetFaith() : base() { }
+        // Save deserialization uses this ctor (the FaithPreset ctor below is
+        // for DefaultFaiths construction). Give it an empty preset so every
+        // preset-backed getter — FaithSeat, the flavor multipliers, the text
+        // accessors — is null-safe. A deserialized stub that escapes
+        // Religion.PostInitialize's canonical-faith swap (e.g. a per-settlement
+        // ReligionData.Religions key) then degrades gracefully instead of
+        // NRE-ing on the religion daily tick.
+        public PresetFaith() : base() { preset = new FaithPreset(); }
 
         public PresetFaith(FaithPreset preset) : base()
         {
