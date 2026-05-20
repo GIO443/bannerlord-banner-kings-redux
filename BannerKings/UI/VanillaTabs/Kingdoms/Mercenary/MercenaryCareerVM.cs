@@ -80,7 +80,11 @@ namespace BannerKings.UI.VanillaTabs.Kingdoms.Mercenary
                 PointsText = Career.GetPoints(Career.Kingdom).ToString();
                 ReputationText = FormatValue(Career.Reputation);
 
-                TimeText = new TextObject("{=Dya8D2NY}{DAYS} days served")
+                var contractDaysLeft = (int)Career.ContractDueDate.RemainingDaysFromNow;
+                TimeText = (contractDaysLeft > 0
+                    ? new TextObject("{=BKmercSvcDue}{DAYS} days served - contract due in {LEFT} days")
+                        .SetTextVariable("LEFT", contractDaysLeft)
+                    : new TextObject("{=BKmercSvcOver}{DAYS} days served - contract term complete, renew or leave freely"))
                     .SetTextVariable("DAYS", Career.ServiceDays)
                     .ToString();
 

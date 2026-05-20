@@ -106,7 +106,7 @@ namespace BannerKings.Behaviours.Mercenary
                         BannerKingsConfig.Instance.DiplomacyModel.GetScoreOfKingdomToSackMercenary(Kingdom, Clan))
                     {
                         InformationManager.ShowInquiry(new InquiryData(new TextObject("{=!}Mercenary Contract").ToString(),
-                            new TextObject("{=!}The due date for your service to the {KINGDOM} has come. They are willing to extend your service as their hireling for another year, until {DATE}. Accepting this proposal will make you contract-bound to serve another year, and make it unlikely for them to preemptively release you from your service. By rejecting this proposal you may leave or be released at any time without any consequences.")
+                            new TextObject("{=!}The due date for your service to the {KINGDOM} has come. They are willing to extend your service as their hireling for another year, until {DATE}. Accepting binds your clan to serve another full year. Rejecting concludes the contract here and now - your clan leaves their service immediately, with no penalty, as the agreed term has been served in full.")
                             .SetTextVariable("KINGDOM", Kingdom.Name)
                             .SetTextVariable("DATE", CampaignTime.YearsFromNow(1f).ToString())
                             .ToString(),
@@ -115,7 +115,7 @@ namespace BannerKings.Behaviours.Mercenary
                             GameTexts.FindText("str_accept").ToString(),
                             GameTexts.FindText("str_reject").ToString(),
                             () => ExtendTime(),
-                            null,
+                            () => EndContract(),
                             Utils.Helpers.GetKingdomDecisionSound()),
                             true,
                             true);
@@ -448,6 +448,26 @@ namespace BannerKings.Behaviours.Mercenary
         }
 
         public void ExtendTime() => ContractDueDate = CampaignTime.YearsFromNow(1f);
+
+        // Decline to renew an expired contract: leave the kingdom now. Only
+        // reached from the due-date renewal inquiry, so the term has fully
+        // elapsed - ApplyByLeaveKingdomAsMercenary fires OnClanChangedKingdom
+        // -> RemoveKingdom, whose daysLeft <= 0 branch waives the relation /
+        // reputation penalty. No lord visit, no penalty.
+        public void EndContract()
+        {
+            var kingdom = Kingdom;
+            if (kingdom == null || !Clan.IsUnderMercenaryService) return;
+            ChangeKingdomAction.ApplyByLeaveKingdomAsMercenary(Clan);
+            if (Clan == Clan.PlayerClan)
+            {
+                InformationManager.DisplayMessage(new InformationMessage(
+                    new TextObject("{=BKmercContractEnd}Your mercenary contract with the {KINGDOM} has concluded. The agreed term was served in full, so there is no penalty.")
+                    .SetTextVariable("KINGDOM", kingdom.Name)
+                    .ToString(),
+                    Color.FromUint(Utils.TextHelper.COLOR_LIGHT_BLUE)));
+            }
+        }
 
         public float GetPoints(Kingdom kingdom)
         {

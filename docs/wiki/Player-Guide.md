@@ -22,6 +22,7 @@ page. For the slavery and raid economy, see [Slavery & raiding](Slavery-and-Raid
 - [How do I appoint council members (my own clan)?](#how-do-i-appoint-council-members-my-own-clan)
 - [What does a Marshal actually do?](#what-does-a-marshal-actually-do)
 - [How do I hire a custom mercenary unit?](#how-do-i-hire-a-custom-mercenary-unit)
+- [How does a mercenary contract work?](#how-does-a-mercenary-contract-work)
 - [How do I make money?](#how-do-i-make-money-by-yield-per-hour-of-attention)
 
 **Per-system FAQ**
@@ -182,6 +183,28 @@ ineligible for the bonus.
 6. Going forward, the unit appears in towns where your clan has
    notable connections, with daily wage roughly 3× a vanilla
    equivalent. They're meant as elite fillers, not core composition.
+
+## How does a mercenary contract work?
+
+Serving a kingdom as a mercenary (your whole clan, not custom troops)
+runs on a fixed term:
+
+1. Talk to a kingdom's ruler about service and accept. You receive an
+   up-front earnest-money payment, then a daily wage.
+2. The contract runs for **one year**. To see how much is left, open
+   the BK character panel → *Mercenary* tab → *Service Time* — it reads
+   `"… contract due in N days"`, or `"contract term complete"` once the
+   year is up.
+3. When the year elapses a popup appears:
+   - **Accept** — renews for another year.
+   - **Reject** — ends the contract on the spot. Your clan leaves their
+     service immediately with **no penalty**, because the term was
+     served in full. You do *not* need to find the ruler again to
+     leave.
+4. **Leaving early** — before the year is up — still costs relation
+   with the ruler, scaled from -15 (a day early) up to -50 (just
+   signed), plus a small mercenary-reputation hit. Wait for the term to
+   end if you want a clean break.
 
 ## How do I make money? *(by yield per hour of attention)*
 
