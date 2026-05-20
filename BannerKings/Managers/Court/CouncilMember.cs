@@ -48,6 +48,10 @@ namespace BannerKings.Managers.Court
         public void PostInitialize()
         {
             CouncilMember c = DefaultCouncilPositions.Instance.GetById(this);
+            // A save can carry a council-position id that no longer exists
+            // (removed by an update or a flavor mod). GetById returns null;
+            // bail rather than NRE on c.PrimarySkill.
+            if (c == null) return;
             Initialize(c.PrimarySkill, c.SecondarySkill, c.Tasks, c.Privileges,
                 c.isAdequate, c.isValidCandidateInternal, c.getCulturalName);
             SetStrings();
@@ -93,7 +97,7 @@ namespace BannerKings.Managers.Court
                     return;
                 }
 
-                CurrentTask.Tick();
+                CurrentTask?.Tick();
                 if (SecondarySkill != null)
                 {
                     Member.AddSkillXp(PrimarySkill, 10);

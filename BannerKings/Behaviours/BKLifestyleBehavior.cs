@@ -113,6 +113,7 @@ namespace BannerKings.Behaviours
             foreach (var hero in Hero.AllAliveHeroes)
             {
                 var education = BannerKingsConfig.Instance.EducationManager.GetHeroEducation(hero);
+                if (education == null) continue;
                 if (CampaignTime.Now.GetDayOfYear == 1 && hero.Clan != null && hero.Clan.IsUnderMercenaryService)
                 {
                     if (education.HasPerk(BKPerks.Instance.VaryagRecognizedMercenary))

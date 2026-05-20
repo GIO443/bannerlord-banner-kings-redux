@@ -59,11 +59,12 @@ namespace BannerKings.Behaviours
 
                 foreach (Religion religion in BannerKingsConfig.Instance.ReligionsManager.GetReligions())
                 {
-                    if (religion.Faith.FaithGroup.ShouldHaveLeader)
+                    var faithGroup = religion.Faith?.FaithGroup;
+                    if (faithGroup != null && faithGroup.ShouldHaveLeader)
                     {
-                        Hero leader = religion.Faith.FaithGroup.EvaluatePossibleLeaders(religion).GetRandomElement();
+                        Hero leader = faithGroup.EvaluatePossibleLeaders(religion).GetRandomElement();
                         if (leader != null)
-                            religion.Faith.FaithGroup.MakeHeroLeader(religion, leader, null, false);
+                            faithGroup.MakeHeroLeader(religion, leader, null, false);
                     }
                 }
             });
@@ -438,7 +439,7 @@ namespace BannerKings.Behaviours
             {
                 foreach (var religion in ReligionsManager.GetReligions())
                 {
-                    religion.Faith.FaithGroup.TickLeadership(religion);
+                    religion.Faith?.FaithGroup?.TickLeadership(religion);
                     foreach (var hero in ReligionsManager.GetFaithfulHeroes(religion))
                     {
                         ReligionsManager.AddPiety(religion, hero, BannerKingsConfig.Instance.ReligionModel.CalculatePietyChange(hero).ResultNumber);

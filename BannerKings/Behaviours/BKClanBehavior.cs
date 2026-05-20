@@ -946,7 +946,7 @@ namespace BannerKings.Behaviours
 
                     foreach (var h in Hideout.All)
                     {
-                        if (hideout.IsInfested && fief.Settlement.GetPosition2D.DistanceSquared(hideout.Settlement.GetPosition2D) < 40f * 40f)
+                        if (h.IsInfested && fief.Settlement.GetPosition2D.DistanceSquared(h.Settlement.GetPosition2D) < 40f * 40f)
                         {
                             hideout = h;
                             town = fief;

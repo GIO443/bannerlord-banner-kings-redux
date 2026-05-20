@@ -216,7 +216,18 @@ namespace BannerKings.Managers.Populations
 
                 BalanceCultures(data);
                 var dominant = DominantCulture;
-                if (dominant.BasicTroop != null)
+                // Only flip the engine-side settlement.Culture when there's a
+                // genuine majority (>55% assimilation). Without this gate, a
+                // newly-conquered fief with three near-equal cultures (e.g.
+                // 0.34 / 0.33 / 0.33) flips Culture to whoever leads by a
+                // hair, which downstream cascades vanilla notable/troop
+                // culture to the conqueror within weeks. The 0.55 threshold
+                // requires sustained dominance, not a coin-flip plurality,
+                // so conversion takes the months/years a player expects.
+                const float DOMINANT_CULTURE_FLIP_THRESHOLD = 0.55f;
+                if (dominant != null && dominant.BasicTroop != null
+                    && dominant != data.Settlement.Culture
+                    && GetAssimilation(dominant) >= DOMINANT_CULTURE_FLIP_THRESHOLD)
                 {
                     data.Settlement.Culture = dominant;
                 }
@@ -227,12 +238,26 @@ namespace BannerKings.Managers.Populations
         private void BalanceCultures(PopulationData data)
         {
             var toRemove = new List<CultureDataClass>();
+            var settlementCulture = data.Settlement?.Culture;
 
             foreach (var cultureData in cultures)
             {
                 cultureData.Tick(data.Settlement, this);
                 if (cultureData.Assimilation <= 0f)
                 {
+                    // Never drop the entry that matches engine-side
+                    // settlement.Culture. The dominant-flip in Update() now
+                    // gates on assim ≥ 0.55, so dropping settlement.Culture
+                    // here would leave it pointing at a removed entry: the
+                    // CultureWeight model's +30 "Natural resistance" anchor
+                    // (which keys on data.Culture == settlement.Culture)
+                    // would silently vanish, and the orphan would stay
+                    // indefinitely. Clamp instead.
+                    if (cultureData.Culture == settlementCulture)
+                    {
+                        cultureData.Assimilation = 0.01f;
+                        continue;
+                    }
                     toRemove.Add(cultureData);
                 }
             }

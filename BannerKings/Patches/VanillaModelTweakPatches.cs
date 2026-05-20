@@ -1564,7 +1564,14 @@ namespace BannerKings.Patches
             private static void GetTargetScoreForFactionPostfix(Settlement targetSettlement, Army.ArmyTypes missionType, MobileParty mobileParty, float ourStrength, ref float __result)
             {
                 if (__result == 0f) return;
+                if (targetSettlement == null || mobileParty == null) return;
                 var targetFaction = targetSettlement.MapFaction;
+                // targetFaction (Settlement.MapFaction) can be null during
+                // new-game world init — a settlement not yet assigned an
+                // owning clan/kingdom. mobileParty.MapFaction can likewise be
+                // null for an ownerless party. Either null → bail before the
+                // IsAtWarWith deref below.
+                if (targetFaction == null || mobileParty.MapFaction == null) return;
                 if (mobileParty.Army == null || targetFaction == mobileParty.MapFaction ||
                     !targetFaction.IsAtWarWith(mobileParty.MapFaction)) return;
 

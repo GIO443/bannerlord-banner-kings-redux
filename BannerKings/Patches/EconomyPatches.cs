@@ -442,6 +442,9 @@ namespace BannerKings.Patches
 
             private static bool Prefix2Impl(Clan clan)
             {
+                // Leaderless clan (leader just died, heir not yet assigned) —
+                // let vanilla handle it rather than NRE on clan.Leader.Gold.
+                if (clan.Leader == null) return true;
                 int num = MBRandom.RoundRandomized((clan.IsMinorFaction ? 10000 : 30000) * BannerKingsSettings.Instance.BaseWage);
                 int num2 = MBRandom.RoundRandomized((clan.IsMinorFaction ? 30000 : 90000) * BannerKingsSettings.Instance.BaseWage);
                 if (clan.Leader.Gold > num2)
@@ -734,7 +737,8 @@ namespace BannerKings.Patches
                             }
                             else
                             {
-                                party.ActualClan.Leader.Gold -= expense;
+                                var clanLeader = party.ActualClan?.Leader;
+                                if (clanLeader != null) clanLeader.Gold -= expense;
                             }
                         }
                         else

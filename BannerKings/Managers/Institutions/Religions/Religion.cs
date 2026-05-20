@@ -35,7 +35,7 @@ namespace BannerKings.Managers.Institutions.Religions
 
         internal void PostInitialize()
         {
-            Faith faith = DefaultFaiths.Instance.GetById(Faith.StringId);
+            Faith faith = DefaultFaiths.Instance.GetById(Faith?.StringId);
             if (clergy == null) clergy = new Dictionary<Settlement, Clergyman>();
             // DefaultReligions.GetById may legitimately return null when the
             // saved religion was dropped this run (e.g. Osfeyd loaded from a

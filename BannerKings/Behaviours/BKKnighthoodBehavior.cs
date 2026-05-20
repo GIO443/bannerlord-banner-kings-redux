@@ -53,7 +53,7 @@ namespace BannerKings.Behaviours
                 }
 
                 var title = BannerKingsConfig.Instance.TitleManager.GetHighestTitle(hero);
-                if (title == null || title.TitleType != TitleType.Lordship || title.Fief.Village == null)
+                if (title == null || title.TitleType != TitleType.Lordship || title.Fief == null || title.Fief.Village == null)
                 {
                     return;
                 }

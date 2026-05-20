@@ -308,7 +308,7 @@ namespace BannerKings.Behaviours
             foreach (Kingdom kingdom in Kingdom.All)
             {
                 FeudalTitle title = BannerKingsConfig.Instance.TitleManager.GetSovereignTitle(kingdom);
-                if (title != null)
+                if (title?.Contract?.Government?.ProhibitedPolicies != null)
                 {
                     var prohibited = kingdom.ActivePolicies.ToList()
                         .FindAll(x => title.Contract.Government.ProhibitedPolicies.Contains(x));
@@ -326,7 +326,7 @@ namespace BannerKings.Behaviours
 
                 if (duchy.deJure == null) continue;
 
-                var faction = duchy.deJure.Clan.Kingdom;
+                var faction = duchy.deJure.Clan?.Kingdom;
                 if (faction == null || faction != duchy.DeFacto?.Clan?.Kingdom)
                 {
                     continue;
@@ -350,7 +350,7 @@ namespace BannerKings.Behaviours
 
                 if (kingdom.deJure == null) continue;
 
-                var faction = kingdom.deJure.Clan.Kingdom;
+                var faction = kingdom.deJure.Clan?.Kingdom;
                 if (faction == null || faction != kingdom.DeFacto?.Clan?.Kingdom) continue;
 
                 var currentFactionSovereign = BannerKingsConfig.Instance.TitleManager.GetSovereignTitle(faction);

@@ -31,7 +31,25 @@ namespace BannerKings.Patches
                 IEnumerable<CharacterObject> enumerable;
                 if (data != null && data.CultureData != null)
                 {
-                    enumerable = from x in data.CultureData.GetRandomCulture().NotableTemplates
+                    // Pick a random culture from the assimilation pool, but
+                    // reject low-assim cultures (≤ 15%): minority cultures
+                    // shouldn't seed notables that then offer their full
+                    // troop tree. Otherwise a 5% Vlandian minority in a Nord
+                    // settlement spawns a Vlandian Merchant whose volunteer
+                    // pool feeds Vlandian troops into Nord recruitment — and
+                    // because CultureData.Update re-adds notable cultures
+                    // and CultureWeight gives +15 per matching notable, a
+                    // single leaked notable creates a feedback loop that
+                    // entrenches the foreign culture. Threshold gates the
+                    // initial leak; the loop dies if no notable seeds it.
+                    var pickedCulture = data.CultureData.GetRandomCulture();
+                    const float MIN_ASSIM_FOR_NOTABLE_SPAWN = 0.15f;
+                    if (pickedCulture != homeSettlement.Culture
+                        && data.CultureData.GetAssimilation(pickedCulture) < MIN_ASSIM_FOR_NOTABLE_SPAWN)
+                    {
+                        pickedCulture = homeSettlement.Culture;
+                    }
+                    enumerable = from x in pickedCulture.NotableTemplates
                                    where x.Occupation == occupation
                                    select x;
                 }
@@ -207,13 +225,19 @@ namespace BannerKings.Patches
                     var governor = settlement.Town.Governor;
                     if (governor.IsNotable || governor.Clan == null)
                     {
-                        if (governor.GetPerkValue(DefaultPerks.Charm.MeaningfulFavors) && MBRandom.RandomFloat < 0.02f)
+                        // OwnerClan is null for unowned settlements (rebel
+                        // towns, mid-conquest transfer); Leader is null for a
+                        // clan with no living head. Either null → skip the
+                        // relation change rather than NRE on the deref.
+                        var ownerLeader = settlement.OwnerClan?.Leader;
+                        if (ownerLeader != null
+                            && governor.GetPerkValue(DefaultPerks.Charm.MeaningfulFavors) && MBRandom.RandomFloat < 0.02f)
                         {
                             foreach (var hero in settlement.Notables)
                             {
                                 if (hero.Power >= 200f)
                                 {
-                                    ChangeRelationAction.ApplyRelationChangeBetweenHeroes(settlement.OwnerClan.Leader,
+                                    ChangeRelationAction.ApplyRelationChangeBetweenHeroes(ownerLeader,
                                         hero, (int)DefaultPerks.Charm.MeaningfulFavors.SecondaryBonus);
                                 }
                             }
