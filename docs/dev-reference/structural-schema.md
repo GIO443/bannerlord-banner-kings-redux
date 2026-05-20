@@ -789,21 +789,35 @@ is category-agnostic — a future category follows the same template.
 
 ## Validation
 
-Today:
+**Runtime.** The loader logs parse failures and missing-id warnings to
+`BKDataStore.Instance.Diagnostics`, and silently drops rows that can't
+construct (missing required refs, unresolvable cultures, …). The drop is
+intentional — flavor mods rely on it to selectively remove BK content —
+but it also means a typo'd id or ref vanishes silently rather than
+failing loudly.
 
-- The loader logs parse failures and missing-id warnings to
-  `BKDataStore.Instance.Diagnostics` — read it after `Scan()` returns
-  if you want to surface them.
-- The loader silently drops rows that can't construct (missing required
-  refs, unresolvable cultures, etc.). The drop is intentional — flavor
-  mods rely on it to selectively remove BK content.
+**Build-time (CI).** `tools/validate_bkdata.py` closes that gap for
+BK's own shipped data. It runs in the `Validate BKData XML` GitHub
+workflow on every push and pull request that touches `BKData/`, and
+fails the build on:
 
-Planned:
+- malformed XML;
+- a duplicate `id` within a category;
+- a missing required attribute;
+- an unknown discriminator key (`type` / `behavior` / `flavor` not one
+  BK ships);
+- a BKData-internal cross-reference that doesn't resolve — `<doctrine
+  ref>`, `main_god`, `group`, `marriage_doctrine`, `war_doctrine`,
+  `<divinity ref>`, `faith`, `era`, `requirement`, `previous`,
+  `<succession ref>`, and the war-doctrine `casus_belli` justifications.
 
-- A CI check that every `<doctrine ref="…"/>` in `bk_faiths.xml`
-  resolves against `bk_doctrines.xml`; same for `<divinity ref="…"/>`
-  against `bk_divinities.xml`. Cross-file ref integrity within BK's own
-  shipped data.
-- A schema-shape check (every `<faith>` has the required attributes).
+**What CI cannot check.** References that resolve at runtime against the
+game or the C# registries — `culture`, `main_trait` / `<trait ref>`,
+`*_skill`, `<policy ref>`, `<perk ref>`, `<law ref>` (demesne laws),
+`<task ref>` (council tasks), `<demand ref>`, and `<rite key>` — are out
+of scope; the validator has no game data to resolve them against. A
+typo there still drops silently at load, so test in-game after editing
+those.
 
-These are nice-to-haves; runtime drops handle the live case fine.
+To run the validator locally: `python tools/validate_bkdata.py` from the
+repo root.

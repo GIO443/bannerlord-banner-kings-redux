@@ -1,0 +1,46 @@
+name: Validate BKData XML
+
+# Build-time gate for the structural-data XML under
+# BannerKings/_Module/ModuleData/BKData/. The XML data layer resolves ids
+# and cross-references at runtime, so a typo'd id or ref drops a row
+# silently at load instead of failing to compile — exactly the class of
+# bug a 0-error build cannot catch.
+#
+# tools/validate_bkdata.py checks: well-formed XML, no duplicate ids,
+# resolved BKData-internal cross-references, required attributes, and known
+# discriminator keys. A broken row fails this check (and the build).
+#
+# Scope limit: refs into game / C# objects (cultures, traits, skills,
+# policies, perks, demesne laws, council tasks, demands, rite keys) cannot
+# be checked from XML alone — see docs/dev-reference/structural-schema.md.
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'BannerKings/_Module/ModuleData/BKData/**'
+      - 'tools/validate_bkdata.py'
+      - '.github/workflows/validate-bkdata.yml'
+  pull_request:
+    paths:
+      - 'BannerKings/_Module/ModuleData/BKData/**'
+      - 'tools/validate_bkdata.py'
+      - '.github/workflows/validate-bkdata.yml'
+  workflow_dispatch:
+
+jobs:
+  validate:
+    name: Validate BKData XML
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.x'
+
+      - name: Validate BKData
+        run: python tools/validate_bkdata.py
