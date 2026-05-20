@@ -77,7 +77,11 @@ namespace BannerKings.Behaviours.Diplomacy.Wars
 
         public void PostInitialize()
         {
-            CasusBelli.PostInitialize();
+            // CasusBelli is a nullable saveable property — a war with no
+            // recorded casus belli (vanilla-initiated, or an older save)
+            // leaves it null. The ctor already guards (CasusBelli?.OnStart);
+            // every other consumer must too.
+            CasusBelli?.PostInitialize();
         }
 
         [SaveableProperty(1)] public IFaction Attacker { get; private set; }
@@ -178,7 +182,9 @@ namespace BannerKings.Behaviours.Diplomacy.Wars
 
         public void Update()
         {
-            if (CasusBelli.IsFulfilled(this))
+            // A war with no casus belli has no attacker objective to fulfil;
+            // treat it as the defender holding rather than NRE on IsFulfilled.
+            if (CasusBelli != null && CasusBelli.IsFulfilled(this))
             {
                 DaysAttackerHeldObjective++;
             }
@@ -239,7 +245,7 @@ namespace BannerKings.Behaviours.Diplomacy.Wars
                 Demand.EndRebellion(Attacker as Kingdom, Defender as Kingdom, success);
             }
 
-            CasusBelli.OnFinish(this);
+            CasusBelli?.OnFinish(this);
         }
     }
 }
