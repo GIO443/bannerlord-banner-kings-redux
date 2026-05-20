@@ -38,6 +38,9 @@ namespace BannerKings.Models.BKModels
         {
             var result = new ExplainedNumber(0f, explanations);
             CasusBelli justification = war.CasusBelli;
+            // A CB-less war has no objective to weight the lord score by — no
+            // BK contribution; let vanilla diplomacy decide.
+            if (justification == null) return result;
 
             if (war.Defender.IsKingdomFaction)
             {
@@ -57,22 +60,28 @@ namespace BannerKings.Models.BKModels
         {
             var result = new ExplainedNumber(0f, explanations);
             CasusBelli justification = war.CasusBelli;
-            
-            float count = war.Defender.Settlements.Count;
-            foreach (Settlement settlement in war.Defender.Settlements)
+
+            // Fief-objective scoring only applies when the war has a casus
+            // belli; a CB-less war keeps just the manpower term below so the
+            // result stays a valid (non-zero) score denominator.
+            if (justification != null)
             {
-                float score = CalculateFiefScore(settlement).ResultNumber;
-                if (settlement == justification.Fief)
+                float count = war.Defender.Settlements.Count;
+                foreach (Settlement settlement in war.Defender.Settlements)
                 {
-                    result.Add(score * TARGET_FIEF_MULTIPLIER);
-                }
+                    float score = CalculateFiefScore(settlement).ResultNumber;
+                    if (settlement == justification.Fief)
+                    {
+                        result.Add(score * TARGET_FIEF_MULTIPLIER);
+                    }
 
-                if (justification.Fief == null)
-                {
-                    result.Add(score * justification.ConquestWeight / count);
-                }
+                    if (justification.Fief == null)
+                    {
+                        result.Add(score * justification.ConquestWeight / count);
+                    }
 
-                //result.Add(score * justification.ConquestWeight);
+                    //result.Add(score * justification.ConquestWeight);
+                }
             }
 
             if (war.Defender.IsKingdomFaction)
@@ -92,8 +101,14 @@ namespace BannerKings.Models.BKModels
 
             if (attacker.IsEliminated || defender.IsEliminated) return result;
 
-            StanceLink attackerLink = attacker.GetStanceWith(defender);
             CasusBelli justification = war.CasusBelli;
+            // A war with no casus belli — never declared through BK's
+            // justified-war path, or one whose CB failed to rehydrate — has no
+            // BK objective to score. Return the neutral result and let vanilla
+            // diplomacy drive the decision (BK decides policy, vanilla executes).
+            if (justification == null) return result;
+
+            StanceLink attackerLink = attacker.GetStanceWith(defender);
             float totalWarScore = CalculateTotalWarScore(war).ResultNumber;
             float totalLordScore = CalculateLordsWarScore(war).ResultNumber;
 
@@ -352,7 +367,10 @@ namespace BannerKings.Models.BKModels
             float yearsPassed = stance.WarStartDate.ElapsedYearsUntilNow;
             result.Add(yearsPassed * 0.04f, new TextObject("{=62cGPfZQ}War duration"));
 
-            if (war.CasusBelli.Fief != null)
+            // war.CasusBelli can be null — a war never declared through BK's
+            // justified-war path, or one whose CB failed to rehydrate — so
+            // guard the deref defensively.
+            if (war.CasusBelli?.Fief != null)
             {
                 float daysPassed = MathF.Max(1f, yearsPassed * CampaignTime.DaysInYear);
                 result.AddFactor(-war.GetDaysHeldObjective(faction) / daysPassed, new TextObject("{=vt2qZ8YH}Time controlling objective"));

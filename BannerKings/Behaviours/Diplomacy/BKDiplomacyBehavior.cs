@@ -249,6 +249,7 @@ namespace BannerKings.Behaviours.Diplomacy
             CampaignEvents.WarDeclared.AddNonSerializedListener(this, OnWarDeclared);
             CampaignEvents.OnNewGameCreatedEvent.AddNonSerializedListener(this, OnNewGameCreated);
             CampaignEvents.OnGameLoadedEvent.AddNonSerializedListener(this, OnNewGameCreated);
+            CampaignEvents.OnSessionLaunchedEvent.AddNonSerializedListener(this, OnSessionLaunched);
             CampaignEvents.KingdomCreatedEvent.AddNonSerializedListener(this, OnKingdomCreated);
             CampaignEvents.OnSettlementOwnerChangedEvent.AddNonSerializedListener(this,
                 BannerKings.Utils.TickTrace.WrapOwnerChanged("BKDiplomacy.OwnerChanged", OnOwnerChanged));
@@ -656,6 +657,18 @@ namespace BannerKings.Behaviours.Diplomacy
         {
             TickKingdoms();
             InitializeDiplomacies();
+        }
+
+        // SyncVanillaWarsToTracker is deliberately NOT called from
+        // OnNewGameCreated: OnNewGameCreatedEvent fires before
+        // BannerKingsConfig.Initialize (wired to OnGameEarlyLoadedEvent), so
+        // DefaultCasusBelli isn't loaded yet and DefaultCasusBelli.Instance.
+        // Invasion would be null — every synced war would be tagged with a
+        // null CasusBelli and NRE on the first daily-tick CalculateFatigue.
+        // OnSessionLaunchedEvent fires after config init for both new games
+        // and loaded saves.
+        private void OnSessionLaunched(CampaignGameStarter starter)
+        {
             SyncVanillaWarsToTracker();
         }
 
@@ -673,15 +686,16 @@ namespace BannerKings.Behaviours.Diplomacy
         // war still ends through vanilla MakePeaceAction → BK's
         // OnMakePeace handler (line ~690) cleans the entry from `wars`.
         //
-        // Idempotent: OnNewGameCreated is wired to BOTH the new-game
-        // event AND OnGameLoadedEvent (RegisterEvents lines ~249-250),
-        // so this also patches up old saves where vanilla wars were
-        // never tracked. The GetWar() gate ensures already-tracked
-        // pairs are skipped.
+        // Runs from OnSessionLaunched (after BannerKingsConfig.Initialize, so
+        // DefaultCasusBelli is loaded and Invasion resolves). OnSessionLaunched
+        // fires for both new games and loaded saves, so this also patches up
+        // old saves where vanilla wars were never tracked. Idempotent: the
+        // GetWar() gate skips already-tracked pairs.
         private void SyncVanillaWarsToTracker()
         {
             if (wars == null) wars = new List<War>();
             var allKingdoms = Kingdom.All;
+            var invasionCB = DefaultCasusBelli.Instance.Invasion;
             int added = 0;
             for (int i = 0; i < allKingdoms.Count; i++)
             {
@@ -693,7 +707,7 @@ namespace BannerKings.Behaviours.Diplomacy
                     if (k2 == null || k2.IsEliminated) continue;
                     if (!k1.IsAtWarWith(k2)) continue;
                     if (GetWar(k1, k2) != null) continue;
-                    wars.Add(new War(k1, k2, DefaultCasusBelli.Instance.Invasion));
+                    wars.Add(new War(k1, k2, invasionCB));
                     added++;
                     var a = k1; var d = k2;
                     BannerKings.Utils.Logs.Kingdom(() =>

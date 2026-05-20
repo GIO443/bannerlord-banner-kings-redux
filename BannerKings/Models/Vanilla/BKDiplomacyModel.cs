@@ -866,11 +866,6 @@ namespace BannerKings.Models.Vanilla
                 KingdomDiplomacy diplomacy = TaleWorlds.CampaignSystem.Campaign.Current.GetCampaignBehavior<BKDiplomacyBehavior>().GetKingdomDiplomacy(attackerKingdom);
                 if (diplomacy != null)
                 {
-                    if (diplomacy.HasTradePact(defenderKingdom))
-                    {
-                        result.Add(MathF.Abs(baseNumber) * - 0.25f, new TextObject("{=DPK2KdUk}Trade pact between both realms"));
-                    }
-
                     if (casusBelli == null)
                     {
                         List<CasusBelli> justifications = diplomacy.GetAvailableCasusBelli(defenderKingdom);
@@ -895,7 +890,27 @@ namespace BannerKings.Models.Vanilla
                         GetPersonalityCasusBelliEffect(ref result, num, evaluatingClan, casusBelli);
                     }
 
-                    baseNumber = result.BaseNumber;
+                    // ResultNumber, not BaseNumber. result was built as
+                    // new ExplainedNumber(0f); ExplainedNumber.BaseNumber
+                    // returns the ctor arg (0) and Add() never mutates it —
+                    // so BaseNumber here is permanently 0. Every strategic
+                    // term below scales by Abs(baseNumber); with baseNumber=0
+                    // the whole strategic model (threat, strength, fiefs,
+                    // relations, fatigue) zeroed out, leaving only the raw
+                    // casus-belli score. A no-CB target then sat at a flat
+                    // -2000 nothing could lift, so the AI only ever declared
+                    // war on the rare roll of a CB-eligible neighbour.
+                    baseNumber = result.ResultNumber;
+
+                    // Trade pact discourages war by 25% of the score so far.
+                    // Must run after baseNumber is set — when this Add() sat
+                    // above the casus-belli block, baseNumber was still 0 and
+                    // the penalty never applied.
+                    if (diplomacy.HasTradePact(defenderKingdom))
+                    {
+                        result.Add(MathF.Abs(baseNumber) * -0.25f, new TextObject("{=DPK2KdUk}Trade pact between both realms"));
+                    }
+
                     result.Add(MathF.Abs(baseNumber) * -diplomacy.Fatigue, new TextObject("{=Rdmm1Kmh}General war fatigue of {FACTION}")
                         .SetTextVariable("FACTION", diplomacy.Kingdom.Name));
                 }
@@ -975,7 +990,10 @@ namespace BannerKings.Models.Vanilla
             {
                 if (defenderFiefs > attackerFiefs)
                 {
-                    result.Add(-baseNumber, new TextObject("{=7ix3cKGX}{FACTION} should defend its few fiefs rather than attacking")
+                    // -Abs(baseNumber): a flat penalty, consistent with every
+                    // sibling term. Was -baseNumber, which inverts to a bonus
+                    // when baseNumber is negative (the no-casus-belli case).
+                    result.Add(-MathF.Abs(baseNumber), new TextObject("{=7ix3cKGX}{FACTION} should defend its few fiefs rather than attacking")
                         .SetTextVariable("FACTION", factionDeclaresWar.Name));
                 }
             }
@@ -1059,13 +1077,17 @@ namespace BannerKings.Models.Vanilla
                 if (evaluating.Kingdom != null) enemies += FactionHelper.GetEnemyKingdoms(evaluating.Kingdom).Count();
 
                 int gold = (int)(leader.Gold / enemies);
+                // baseNumber, not result.BaseNumber — same always-0 trap as
+                // line 903. With result.BaseNumber this gold penalty was dead.
                 if (gold < 50000)
                 {
-                    result.Add(MathF.Abs(result.BaseNumber) * -0.8f);
+                    result.Add(MathF.Abs(baseNumber) * -0.8f, new TextObject("{=BKwarGoldLow}{HERO} cannot afford a war")
+                        .SetTextVariable("HERO", leader.Name));
                 }
                 else if (gold < 100000)
                 {
-                    result.Add(MathF.Abs(result.BaseNumber) * -0.4f);
+                    result.Add(MathF.Abs(baseNumber) * -0.4f, new TextObject("{=BKwarGoldLow}{HERO} cannot afford a war")
+                        .SetTextVariable("HERO", leader.Name));
                 }
             }
 
