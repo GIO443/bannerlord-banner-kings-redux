@@ -467,6 +467,17 @@ A flagged condition (food shortage, slave overrun, mood collapse, etc.).
 Resolve it via the relevant policy lever or by addressing the underlying
 cause.
 
+**Q: When does a conquered fief change culture?**
+A settlement only flips its culture once one culture holds a sustained
+**majority — over 55% of the population's assimilation**. A freshly-taken
+fief with three near-even cultures (e.g. 34 / 33 / 33%) will *not* flip to
+whoever leads by a hair; conversion takes the months or years of demographic
+shift you'd expect. While a culture is still a minority (under 15%
+assimilation) it also won't seed new notables, so a small foreign pocket
+can't bootstrap its own troop tree inside your fief. Watch the settlement's
+culture breakdown in the population panel — the engine-side culture follows
+the majority, not the current plurality.
+
 ## Estates
 
 **Q: How does estate income work?**
