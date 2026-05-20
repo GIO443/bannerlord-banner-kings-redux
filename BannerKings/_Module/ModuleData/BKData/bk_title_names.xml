@@ -1,0 +1,68 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  BK structural data — Title Names. The culture-specific (or generic) noun
+  set for each feudal title rank: the male holder noun, the female holder
+  noun, and the realm/plural noun.
+
+  Schema:
+    <title_name id="..." type="Empire|Kingdom|Duchy|County|Barony|Lordship|Prince|Knight"
+                culture="<culture_id>">    culture optional — omit for the generic fallback
+      <name>...</name>      male holder noun (Emperor / King / Duke ...)
+      <female>...</female>  female holder noun (Empress / Queen / Duchess ...)
+      <realm>...</realm>    realm noun for ranks (Empire / Kingdom ...);
+                            plural noun for Prince / Knight (Princes / Knights)
+    </title_name>
+
+  A row with no culture is the generic fallback used when no culture-specific
+  row matches. BK ships only generic rows; a setting overhaul adds
+  culture-specific ones (e.g. type="Kingdom" culture="vlandia" name="High King").
+-->
+<title_names>
+  <title_name id="DefaultEmpire" type="Empire">
+    <name>Emperor</name>
+    <female>Empress</female>
+    <realm>Empire</realm>
+  </title_name>
+
+  <title_name id="DefaultKing" type="Kingdom">
+    <name>King</name>
+    <female>Queen</female>
+    <realm>Kingdom</realm>
+  </title_name>
+
+  <title_name id="DefaultDuke" type="Duchy">
+    <name>Duke</name>
+    <female>Duchess</female>
+    <realm>Dukedom</realm>
+  </title_name>
+
+  <title_name id="DefaultCount" type="County">
+    <name>Count</name>
+    <female>Countess</female>
+    <realm>County</realm>
+  </title_name>
+
+  <title_name id="DefaultBaron" type="Barony">
+    <name>Baron</name>
+    <female>Baroness</female>
+    <realm>Barony</realm>
+  </title_name>
+
+  <title_name id="DefaultLord" type="Lordship">
+    <name>Lord</name>
+    <female>Lady</female>
+    <realm>Lordship</realm>
+  </title_name>
+
+  <title_name id="DefaultPrince" type="Prince">
+    <name>Prince</name>
+    <female>Princess</female>
+    <realm>Princes</realm>
+  </title_name>
+
+  <title_name id="DefaultKnight" type="Knight">
+    <name>Knight</name>
+    <female>Knightess</female>
+    <realm>Knights</realm>
+  </title_name>
+</title_names>

@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  BK structural data — Religions. A Religion ties a Faith to a list of
+  CultureObjects that consider it native. Religions whose culture refs don't
+  resolve at init time (e.g. "nord" without War Sails loaded) are silently
+  dropped, mirroring the pre-XML behaviour.
+
+  Schema:
+    <religion id="..." faith="<faith_id>">
+      <cultures>                 variable size
+        <culture id="empire"/>
+      </cultures>
+    </religion>
+
+  Religion has no player-visible text of its own — name/description are read
+  off the bound Faith.
+-->
+<religions>
+  <religion id="darusosian" faith="darusosian">
+    <cultures>
+      <culture id="empire"/>
+    </cultures>
+  </religion>
+
+  <religion id="canticles" faith="canticles">
+    <cultures>
+      <culture id="vlandia"/>
+    </cultures>
+  </religion>
+
+  <religion id="amra" faith="amra">
+    <cultures>
+      <culture id="battania"/>
+    </cultures>
+  </religion>
+
+  <religion id="asera" faith="asera">
+    <cultures>
+      <culture id="aserai"/>
+    </cultures>
+  </religion>
+
+  <religion id="sixWinds" faith="sixWinds">
+    <cultures>
+      <culture id="khuzait"/>
+    </cultures>
+  </religion>
+
+  <religion id="treelore" faith="treelore">
+    <cultures>
+      <culture id="sturgia"/>
+    </cultures>
+  </religion>
+
+  <!--
+    Osfeyd is the Nord faith — only viable when the "nord" culture is
+    registered (i.e. War Sails / NavalDLC loaded). The loader silently drops
+    this row when "nord" can't be resolved.
+  -->
+  <religion id="osfeyd" faith="osfeyd">
+    <cultures>
+      <culture id="nord"/>
+    </cultures>
+  </religion>
+</religions>

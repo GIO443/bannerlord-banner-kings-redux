@@ -1,21 +1,27 @@
 using System.Collections.Generic;
+using BannerKings.Utils.BKData;
 using TaleWorlds.Localization;
 
 namespace BannerKings.Managers.Titles.Governments
 {
+    /// <summary>
+    /// Gender laws are loaded from <c>ModuleData/BKData/bk_gender_laws.xml</c>
+    /// across every installed module (last writer wins per id). Named
+    /// properties resolve by id.
+    /// </summary>
     public class DefaultGenderLaws : DefaultTypeInitializer<DefaultGenderLaws, GenderLaw>
     {
-        public GenderLaw Agnatic { get; } = new GenderLaw("Agnatic");
-        public GenderLaw Cognatic { get; } = new GenderLaw("Cognatic");
-        public GenderLaw Enatic { get; } = new GenderLaw("Enatic");
+        private readonly List<GenderLaw> _loaded = new List<GenderLaw>();
+
+        public GenderLaw Agnatic => GetById("Agnatic");
+        public GenderLaw Cognatic => GetById("Cognatic");
+        public GenderLaw Enatic => GetById("Enatic");
 
         public override IEnumerable<GenderLaw> All
         {
             get
             {
-                yield return Agnatic;
-                yield return Cognatic;
-                yield return Enatic;
+                foreach (var g in _loaded) yield return g;
                 foreach (var item in ModAdditions) yield return item;
             }
         }
@@ -32,35 +38,26 @@ namespace BannerKings.Managers.Titles.Governments
 
         public override void Initialize()
         {
-            Agnatic.Initialize(new TextObject("{=F72Gfcyg}Agnatic"),
-                new TextObject("{=F72Gfcyg}Agnatic gender law gives precedence to male inheritors over females. While females are not blocked from inheritance, it its likely they will only inherit after the male options are exhausted, unless a female can exceed quite significantly in competence the best existing male option. Females are suppressed from important positions such as knighthood."),
-                0f,
-                0f,
-                0f,
-                1f,
-                0.1f,
-                false,
-                true);
+            _loaded.Clear();
+            foreach (var row in BKDataStore.Instance.GetRows("gender_laws"))
+            {
+                var id = BKXml.Attr(row, "id");
+                if (string.IsNullOrEmpty(id)) continue;
 
-            Cognatic.Initialize(new TextObject("{=kyB8tkgY}Cognatic"),
-                new TextObject("{=kyB8tkgY}Cognatic gender law gives no precedence to any of either genders, allowing both to fulfill important positions, and clan inheritances to be based solely on their competence criteria. For example, with Cognatic Primogeniture, the eldest child should inherit the clan, regardless of their gender."),
-                0f,
-                0f,
-                0f,
-                1f,
-                1f,
-                false,
-                false);
+                var name = BKXml.LocText(row, "gender_law", id, "name", fallbackIfMissing: id);
+                var description = BKXml.LocText(row, "gender_law", id, "description", fallbackIfMissing: string.Empty);
 
-            Enatic.Initialize(new TextObject("{=A4pJzFUm}Enatic"),
-                new TextObject("{=A4pJzFUm}Enatic gender law gives precedence to female inheritors over males. While males are not blocked from inheritance, it its likely they will only inherit after the female options are exhausted, unless a male can exceed quite significantly in competence the best existing female option. Males are suppressed from important positions such as knighthood."),
-                0f,
-                0f,
-                0f,
-                0.1f,
-                1f,
-                true,
-                false);
+                var genderLaw = new GenderLaw(id);
+                genderLaw.Initialize(name, description,
+                    BKXml.Float(row, "authoritarian", 0f),
+                    BKXml.Float(row, "oligarchic", 0f),
+                    BKXml.Float(row, "egalitarian", 0f),
+                    BKXml.Float(row, "male_preference", 0f),
+                    BKXml.Float(row, "female_preference", 0f),
+                    BKXml.Bool(row, "male_suppressed", false),
+                    BKXml.Bool(row, "female_suppressed", false));
+                _loaded.Add(genderLaw);
+            }
         }
     }
 }

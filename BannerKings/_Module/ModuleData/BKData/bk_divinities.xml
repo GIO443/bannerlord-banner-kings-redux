@@ -1,0 +1,212 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  BK structural data — Divinities (the named gods / saints / spirits each Faith
+  worships). Schema:
+    <divinity id="..." blessing_cost="N">
+      <name>...</name>
+      <description>...</description>
+      <effects>...</effects>          one-line mechanical effect summary
+      <epithet>...</epithet>          short title ("Sky-Father")
+      <lore>...</lore>                extended flavour paragraph
+      <prayer>...</prayer>            what the divinity is prayed to for
+    </divinity>
+  All text fields optional; missing fields fall back to empty TextObjects, not
+  null, so consumers can call SetTextVariable freely.
+-->
+<divinities>
+  <!-- Imperial pantheon (darusosian) -->
+  <divinity id="iovis" blessing_cost="350">
+    <name>Iovis</name>
+    <description>Iovis is the High Father of the Imperial pantheon, ruler of the bright heaven and giver of law. The Empire holds him supreme above the elder gods of conquered Calradia.</description>
+    <effects>Grants temporary martial inspiration: leadership and tactics gains.</effects>
+    <epithet>Sky-Father</epithet>
+    <lore>Iovis is the law that holds the Empire together. Without his hand the cities would burn and the borders crumble.</lore>
+    <prayer>Pray to him before judgement, before battle, before any oath that must outlast you.</prayer>
+  </divinity>
+
+  <divinity id="astaronia" blessing_cost="250">
+    <name>Astaronia</name>
+    <description>Astaronia, bride of Iovis, is the Mother of Calradia. She is honoured at the autumn equinox as the source of harvest, fertility and home.</description>
+    <effects>Boost to fief loyalty and child-bearing fortune for the household.</effects>
+    <epithet>Mother of Plenty</epithet>
+    <lore>Astaronia adopted the children of every people the Empire reached. To her, no field is foreign and no cradle is empty.</lore>
+    <prayer>She is offered grain, wine and the first fruit of every season.</prayer>
+  </divinity>
+
+  <divinity id="darusos" blessing_cost="300">
+    <name>Darusos</name>
+    <description>Darusos is the warrior-saint of the southern legions, the executioner of traitors and patron of the iron-fisted edict.</description>
+    <effects>Grants combat focus and a renown bonus on righteous executions.</effects>
+    <epithet>Iron Saint</epithet>
+    <lore>Darusos walked among the legions and broke faithless emperors with his own hand. He is the part of the faith the rebels fear.</lore>
+    <prayer>Where the law cannot reach, the saint will.</prayer>
+  </divinity>
+
+  <!-- Vlandic pantheon (canticles) -->
+  <divinity id="caion" blessing_cost="350">
+    <name>Caïon</name>
+    <description>Caïon is the High Lord of the Canticles, the binder of oaths and crowner of kings. The Vlandic faith holds him supreme.</description>
+    <effects>Boost to clan influence and oath-strength.</effects>
+    <epithet>Crowner</epithet>
+    <lore>Caïon is the breath behind every coronation. His hand sets the diadem, and only his hand may strip it.</lore>
+    <prayer>Break a sworn oath and Caïon turns from you forever.</prayer>
+  </divinity>
+
+  <divinity id="marcosus" blessing_cost="250">
+    <name>Marcosus</name>
+    <description>Marcosus is the warrior-saint of the lance, patron of every knight who rides under the Vlandic banner.</description>
+    <effects>Combat bonuses for mounted charges; renown reward on tournament victories.</effects>
+    <epithet>Lance-Saint</epithet>
+    <lore>Marcosus rode through three hundred enemies to bring back the standard. The lance you carry is his gift.</lore>
+    <prayer>May your saddle never empty and your banner never fall.</prayer>
+  </divinity>
+
+  <divinity id="belisaria" blessing_cost="250">
+    <name>Belisaria</name>
+    <description>Belisaria is the lady-saint of the hearth, mother of Caïon's heirs and shelterer of widows.</description>
+    <effects>Increased fertility chance and lower spouse-mourning malus.</effects>
+    <epithet>Lady of the Hearth</epithet>
+    <lore>Belisaria is sung of in every wedding hall of Vlandia. She blesses the marriage bed and the hearth that follows.</lore>
+    <prayer>She watches the children no one else watches.</prayer>
+  </divinity>
+
+  <divinity id="reginus" blessing_cost="250">
+    <name>Reginus</name>
+    <description>Reginus is the saint of the sworn word — keeper of contracts, judge of perjurors.</description>
+    <effects>Reduced relation loss when terminating contracts honourably.</effects>
+    <epithet>Word-Keeper</epithet>
+    <lore>Reginus binds liege and vassal in the same chain. Both are bound; neither may strike loose.</lore>
+    <prayer>Speak truly, and Reginus speaks for you.</prayer>
+  </divinity>
+
+  <!-- Battanian pantheon (amra) -->
+  <divinity id="perkos" blessing_cost="300">
+    <name>Pérkos</name>
+    <description>Pérkos is the Thunder Wielder of the highland faiths. His axe broke the Great Oak and from its sap mankind blossomed.</description>
+    <effects>Combat boost in storms; clan renown bonus on duel victory.</effects>
+    <epithet>Thunder Wielder</epithet>
+    <lore>Pérkos rules the canopy where the storm-clouds gather. When he strikes the oak, the world remembers it has roots.</lore>
+    <prayer>Offer your blade to him, and the storm will not turn against you.</prayer>
+  </divinity>
+
+  <divinity id="mathair" blessing_cost="200">
+    <name>Máthair</name>
+    <description>Máthair is the wood-mother of the Battanian woods, who weaves and unweaves the seasons.</description>
+    <effects>Increased village hearth growth; pasture acreage produces more.</effects>
+    <epithet>Wood-Mother</epithet>
+    <lore>Máthair walks under the canopy where the deer go to die. Speak softly and she may answer.</lore>
+    <prayer>She gives, she takes, and she gives again.</prayer>
+  </divinity>
+
+  <divinity id="iarnan" blessing_cost="200">
+    <name>Iarnan</name>
+    <description>Iarnan is the smith-spirit who taught the Fians to draw iron from the bog and sing it into a blade.</description>
+    <effects>Crafting bonuses; tier-up cost reductions on smithing.</effects>
+    <epithet>Smith of the Bog</epithet>
+    <lore>Every blade pulled from the lynn is Iarnan's gift back.</lore>
+    <prayer>Honour him, and your forge will not fail you.</prayer>
+  </divinity>
+
+  <divinity id="eilean" blessing_cost="200">
+    <name>Eilean</name>
+    <description>Eilean is the spirit of the sacred lynns, gateway between the seen world and the underworld of ancestors.</description>
+    <effects>Healing speed; recover from disease faster.</effects>
+    <epithet>Lady of the Waters</epithet>
+    <lore>The pools she watches over are not for drinking. The dead drink there, and listen.</lore>
+    <prayer>Cast a blade in, never take one out.</prayer>
+  </divinity>
+
+  <!-- Aserai pantheon (asera) -->
+  <divinity id="akhmar" blessing_cost="400">
+    <name>Akhmar</name>
+    <description>Akhmar is the One Most High, the Sun-Above-All, sovereign of the desert sky. The Aserai know no other.</description>
+    <effects>Trade caravan profits boost; reduced bandit interception risk while travelling.</effects>
+    <epithet>The Most High</epithet>
+    <lore>Akhmar is alone in the heaven and the heaven is enough. Speak his name and the road opens.</lore>
+    <prayer>Submit to him and you will need no other patron.</prayer>
+  </divinity>
+
+  <!-- Khuzait pantheon (sixWinds) -->
+  <divinity id="tengri" blessing_cost="300">
+    <name>Tengri</name>
+    <description>Tengri is the Sky Father of the steppe, eternal blue overhead, granter of fortune in war.</description>
+    <effects>Mounted combat bonus; party morale boost on the open map.</effects>
+    <epithet>Eternal Sky</epithet>
+    <lore>Tengri is the lid of heaven that touches every banner. While he watches, no khan rides alone.</lore>
+    <prayer>Pray to him at dawn, ride hard at noon, sleep under him at night.</prayer>
+  </divinity>
+
+  <divinity id="etugen" blessing_cost="200">
+    <name>Etugen</name>
+    <description>Etugen is the Earth Mother, the green mantle Tengri set down for the herds to graze upon.</description>
+    <effects>Pasture acreage yield boost; livestock count grows faster.</effects>
+    <epithet>Earth Mother</epithet>
+    <lore>Etugen is everything beneath the hoof. She does not speak — she nourishes.</lore>
+    <prayer>Bury your wishes in her, and she answers in grass.</prayer>
+  </divinity>
+
+  <divinity id="sulde" blessing_cost="300">
+    <name>Sülde</name>
+    <description>Sülde is the spirit-banner of the war-host, embodied in the horse-tail standard each khan plants before battle.</description>
+    <effects>Battle morale bonus when outnumbered; influence reward for crushing victories.</effects>
+    <epithet>Banner Spirit</epithet>
+    <lore>Sülde rides at the head of every war-band. While the banner stands, the war-band is alive.</lore>
+    <prayer>If the banner falls, run faster than your shame.</prayer>
+  </divinity>
+
+  <divinity id="asra" blessing_cost="200">
+    <name>Asra</name>
+    <description>Asra is the collective name of the steppe ancestors, who ride in the dust raised by the living host.</description>
+    <effects>Bonus piety on clan elder funerals; relation gain with same-culture clans.</effects>
+    <epithet>Riders Behind</epithet>
+    <lore>The dead ride at our backs. They keep us honest because they cannot be lied to.</lore>
+    <prayer>Pour the first cup into the dust before you drink.</prayer>
+  </divinity>
+
+  <!-- Northern pantheon (treelore — Sturgia) -->
+  <divinity id="frydan" blessing_cost="250">
+    <name>Frydan</name>
+    <description>Frydan is the warden of the long winter, who keeps the wolf-cold from breaking the houses.</description>
+    <effects>Winter-season food and morale penalty reduction.</effects>
+    <epithet>Winter-Warden</epithet>
+    <lore>Frydan keeps the door barred against the dark season. Honour him before the snow comes.</lore>
+    <prayer>A wood-pile is the truest prayer.</prayer>
+  </divinity>
+
+  <divinity id="matr" blessing_cost="200">
+    <name>Mátr</name>
+    <description>Mátr is the hearth-mother of the longhouse, holder of the broth-pot and the cradle alike.</description>
+    <effects>Increased fertility; reduced child-illness mortality.</effects>
+    <epithet>Hearth-Mother</epithet>
+    <lore>Mátr is the warmth at the centre of the winter house. While she keeps her place, the family endures.</lore>
+    <prayer>She listens for the cradle even when no-one else does.</prayer>
+  </divinity>
+
+  <divinity id="vethari" blessing_cost="200">
+    <name>Vethari</name>
+    <description>Vethari are the named ancestors of the Old Gods faith — every clan keeps a list, and every list is read at midwinter.</description>
+    <effects>Renown gain on funerals; piety on continuing a family line.</effects>
+    <epithet>The Named Dead</epithet>
+    <lore>The Vethari are not gone. They sit by the fire while you tell their stories.</lore>
+    <prayer>Forget them and they forget you back.</prayer>
+  </divinity>
+
+  <!-- Nord pantheon (osfeyd) -->
+  <divinity id="hreinwald" blessing_cost="350">
+    <name>Hreinwald</name>
+    <description>Hreinwald is the Sea-King of the Nordvyg, lord of grey water, patron of the longship and the prow-raven.</description>
+    <effects>Naval combat morale; ship-handling bonus; piety on successful raids.</effects>
+    <epithet>Sea-King</epithet>
+    <lore>Hreinwald rules where the keel touches the deep. No oath sworn on the wave is broken without his notice.</lore>
+    <prayer>Pour seawater over the prow before you push off.</prayer>
+  </divinity>
+
+  <divinity id="skoll" blessing_cost="250">
+    <name>Skǫll</name>
+    <description>Skǫll is the Wolf of the Deep, who follows the longship in the wake. He is fed on the fear of those whose shore you reach.</description>
+    <effects>Bonus loot on raids; reduced relations penalty for sacking villages.</effects>
+    <epithet>Wolf of the Deep</epithet>
+    <lore>Skǫll does not bless the man who never sails. He is for those who follow the prow.</lore>
+    <prayer>Feed him before he chooses to feed himself.</prayer>
+  </divinity>
+</divinities>

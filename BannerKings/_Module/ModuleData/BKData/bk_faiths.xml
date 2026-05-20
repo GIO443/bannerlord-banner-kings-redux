@@ -1,0 +1,301 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  BK structural data — Faiths.
+  Schema:
+    <faith id="..." flavor="Monotheistic|Polytheistic|Henotheistic|Dualistic"
+           main_god="<divinity_id>"
+           group="<faith_group_id>"
+           marriage_doctrine="<marriage_doctrine_id>"
+           war_doctrine="<war_doctrine_id>"
+           banner_code="..."           optional
+           faith_seat="<settlement_id>" optional>
+      <name>...</name>
+      <description>...</description>
+      <cults_desc>imperial cults</cults_desc>
+      <zealots_name>Sons of Darusos</zealots_name>
+      <blessing_action>...</blessing_action>
+      <blessing_action_name>...</blessing_action_name>
+      <blessing_question>...</blessing_question>
+      <blessing_confirm_question>...</blessing_confirm_question>
+      <natural_cultures>           variable size
+        <culture id="empire"/>
+      </natural_cultures>
+      <pantheon>                   variable size — minor divinities only;
+        <divinity ref="astaronia"/> main_god is the attribute above
+        <divinity ref="darusos"/>
+      </pantheon>
+      <doctrines>                  variable size
+        <doctrine ref="Legalism"/>
+        ...
+      </doctrines>
+      <ranks>                      variable size — N <rank/> = N clergy ranks
+        <rank>Acolyte</rank>        the text becomes bk_faith_<id>_rank_<n>
+        <rank>Lictor</rank>
+        <rank>Pontifex</rank>
+      </ranks>
+      <rites>                      variable size — keys resolve via RiteRegistry
+        <rite key="astaronia_festival"/>
+        ...
+      </rites>
+    </faith>
+  Adding a new faith: pick a unique id, fill every text field, list any number
+  of cultures / divinities / doctrines / ranks / rites. A faith with no rites
+  or no minor pantheon is legal (Asera ships with no rites and no minor
+  divinities). Faiths whose culture refs don't resolve at init time are
+  silently dropped from DefaultReligions, same as the hardcoded behaviour.
+-->
+<faiths>
+  <faith id="darusosian"
+         flavor="Henotheistic"
+         main_god="iovis"
+         group="imperial_orders"
+         marriage_doctrine="Monogamy"
+         war_doctrine="OpenWarfare">
+    <name>Darusosian Path</name>
+    <description>The Darusosian Path is the imperial faith of the Calradian Empire — the cult of Iovis the Sky-Father, his bride Astaronia, and the iron-saint Darusos. Its priests serve the legions and the law, and its rites uphold the unity of the Empire under one heaven.</description>
+    <cults_desc>imperial cults</cults_desc>
+    <zealots_name>Sons of Darusos</zealots_name>
+    <blessing_action>I would seek a blessing of the Triad.</blessing_action>
+    <blessing_action_name>imperial blessings</blessing_action_name>
+    <blessing_question>Which of the Triad shall hear your prayer?</blessing_question>
+    <blessing_confirm_question>Will you commit your devotion to {DIVINITY}?</blessing_confirm_question>
+    <natural_cultures>
+      <culture id="empire"/>
+    </natural_cultures>
+    <pantheon>
+      <divinity ref="astaronia"/>
+      <divinity ref="darusos"/>
+    </pantheon>
+    <doctrines>
+      <doctrine ref="legalism"/>
+      <doctrine ref="RenovatioImperi"/>
+      <doctrine ref="Tolerant"/>
+      <doctrine ref="Astrology"/>
+      <doctrine ref="Esotericism"/>
+    </doctrines>
+    <ranks>
+      <rank>Acolyte</rank>
+      <rank>Lictor</rank>
+      <rank>Pontifex</rank>
+    </ranks>
+    <rites>
+      <rite key="astaronia_festival"/>
+      <rite key="darusosian_homage"/>
+      <rite key="darusosian_execution"/>
+    </rites>
+  </faith>
+
+  <faith id="canticles"
+         flavor="Henotheistic"
+         main_god="caion"
+         group="vlandic_canonical"
+         marriage_doctrine="Monogamy"
+         war_doctrine="OpenWarfare">
+    <name>Canticles of Caïon</name>
+    <description>The Canticles are the sworn faith of Vlandia: a chivalric devotion to Caïon, crowner of kings, and his retinue of warrior-saints. Its priests bless oaths, marriages and lances; its great hymnals are sung at every coronation.</description>
+    <cults_desc>canticle saints</cults_desc>
+    <zealots_name>Order of the Lance</zealots_name>
+    <blessing_action>Father, would you sing a canticle for me?</blessing_action>
+    <blessing_action_name>canticle blessings</blessing_action_name>
+    <blessing_question>Which saint will you ask to sing for?</blessing_question>
+    <blessing_confirm_question>Will you commit yourself to the saint's road?</blessing_confirm_question>
+    <natural_cultures>
+      <culture id="vlandia"/>
+    </natural_cultures>
+    <pantheon>
+      <divinity ref="marcosus"/>
+      <divinity ref="belisaria"/>
+      <divinity ref="reginus"/>
+    </pantheon>
+    <doctrines>
+      <doctrine ref="legalism"/>
+      <doctrine ref="childbirth"/>
+      <doctrine ref="Warlike"/>
+      <doctrine ref="literalism"/>
+    </doctrines>
+    <ranks>
+      <rank>Brother</rank>
+      <rank>Canon</rank>
+      <rank>Primarch</rank>
+    </ranks>
+    <rites>
+      <rite key="lance_offering"/>
+      <rite key="vlandia_horse"/>
+    </rites>
+  </faith>
+
+  <faith id="amra"
+         flavor="Polytheistic"
+         main_god="perkos"
+         group="druidic_circles"
+         marriage_doctrine="Concubinage"
+         war_doctrine="NoWarfare">
+    <name>Amra Druidh</name>
+    <description>The druidic faith of the Battanian highlands. Pérkos the Thunder-Wielder rules the canopy, but Máthair, Iarnan and Eilean walk every glen and lynn. The druids carry the songs and bind the spirits to the deeds of clans.</description>
+    <cults_desc>druidic spirits</cults_desc>
+    <zealots_name>Fian Wardancers</zealots_name>
+    <blessing_action>I would seek a druid's blessing.</blessing_action>
+    <blessing_action_name>druidic blessings</blessing_action_name>
+    <blessing_question>Whose blessing do you carry from the lynn?</blessing_question>
+    <blessing_confirm_question>Will you carry their mark?</blessing_confirm_question>
+    <natural_cultures>
+      <culture id="battania"/>
+    </natural_cultures>
+    <pantheon>
+      <divinity ref="mathair"/>
+      <divinity ref="iarnan"/>
+      <divinity ref="eilean"/>
+    </pantheon>
+    <doctrines>
+      <doctrine ref="druidism"/>
+      <doctrine ref="animism"/>
+      <doctrine ref="Shamanism"/>
+      <doctrine ref="AncestorWorship"/>
+    </doctrines>
+    <ranks>
+      <rank>Bard</rank>
+      <rank>Arch-Druid</rank>
+    </ranks>
+    <rites>
+      <rite key="iron_offering"/>
+      <rite key="great_sword_offering"/>
+    </rites>
+  </faith>
+
+  <faith id="asera"
+         flavor="Monotheistic"
+         main_god="akhmar"
+         group="aserai_ulama"
+         marriage_doctrine="Polygamy"
+         war_doctrine="Reclamation">
+    <name>Path of Akhmar</name>
+    <description>The Aserai bow to Akhmar alone — the Sun-Most-High, sovereign of the desert sky. The Path is law, learning and submission; its imams hold the great mosques of the south and tolerate, but tax, the heathen at their gates.</description>
+    <cults_desc>the Most High</cults_desc>
+    <zealots_name>Sun-Sworn</zealots_name>
+    <blessing_action>Imam, I would have a blessing from the Most High.</blessing_action>
+    <blessing_action_name>sun-blessings</blessing_action_name>
+    <blessing_question>For what does Akhmar's faithful pray today?</blessing_question>
+    <blessing_confirm_question>Submit to the Most High and the path is yours.</blessing_confirm_question>
+    <natural_cultures>
+      <culture id="aserai"/>
+    </natural_cultures>
+    <pantheon/>
+    <doctrines>
+      <doctrine ref="Tolerant"/>
+      <doctrine ref="legalism"/>
+      <doctrine ref="literalism"/>
+      <doctrine ref="heathen_tax"/>
+    </doctrines>
+    <ranks>
+      <rank>Imam</rank>
+    </ranks>
+    <rites/>
+  </faith>
+
+  <faith id="sixWinds"
+         flavor="Polytheistic"
+         main_god="tengri"
+         group="steppe_khanate"
+         marriage_doctrine="AvunculatePolygamy"
+         war_doctrine="OpenWarfare">
+    <name>Six Winds</name>
+    <description>The shamanic faith of the steppe. Tengri rules the eternal sky; Etugen the green earth beneath the hoof; Sülde the war-banner; and the Asra ride at the back of every host. The shamans answer to clan first, spirit second.</description>
+    <cults_desc>sky and steppe spirits</cults_desc>
+    <zealots_name>Tail-Banners</zealots_name>
+    <blessing_action>Shaman, would you read the wind for me?</blessing_action>
+    <blessing_action_name>sky-blessings</blessing_action_name>
+    <blessing_question>Which spirit will the wind carry your prayer to?</blessing_question>
+    <blessing_confirm_question>Are you ready to ride under the spirit's hand?</blessing_confirm_question>
+    <natural_cultures>
+      <culture id="khuzait"/>
+    </natural_cultures>
+    <pantheon>
+      <divinity ref="etugen"/>
+      <divinity ref="sulde"/>
+      <divinity ref="asra"/>
+    </pantheon>
+    <doctrines>
+      <doctrine ref="AncestorWorship"/>
+      <doctrine ref="Shamanism"/>
+      <doctrine ref="pastorialism"/>
+      <doctrine ref="Warlike"/>
+    </doctrines>
+    <ranks>
+      <rank>Khan-Shaman</rank>
+    </ranks>
+    <rites/>
+  </faith>
+
+  <faith id="treelore"
+         flavor="Polytheistic"
+         main_god="perkos"
+         group="northern_elders"
+         marriage_doctrine="Monogamy"
+         war_doctrine="OpenWarfare">
+    <name>Old Gods of the North</name>
+    <description>The faith of Pérkos, Frydan, Mátr and the Vethari. Sturgia keeps the Old Gods in the longhouse, the war-mound and the midwinter fire; its priesthood is no priesthood at all but the eldercouncil of clans.</description>
+    <cults_desc>old gods</cults_desc>
+    <zealots_name>Oath-Sworn</zealots_name>
+    <blessing_action>Eldgothi, I would have a blessing of the Old Gods.</blessing_action>
+    <blessing_action_name>old-gods blessings</blessing_action_name>
+    <blessing_question>Which of the Old Gods will you call upon?</blessing_question>
+    <blessing_confirm_question>Will you bind your name to theirs?</blessing_confirm_question>
+    <natural_cultures>
+      <culture id="sturgia"/>
+    </natural_cultures>
+    <pantheon>
+      <divinity ref="frydan"/>
+      <divinity ref="matr"/>
+      <divinity ref="vethari"/>
+    </pantheon>
+    <doctrines>
+      <doctrine ref="AncestorWorship"/>
+      <doctrine ref="childbirth"/>
+      <doctrine ref="Warlike"/>
+      <doctrine ref="Tolerant"/>
+    </doctrines>
+    <ranks>
+      <rank>Eldgothi</rank>
+    </ranks>
+    <rites>
+      <rite key="axe_offering"/>
+      <rite key="treelore_festival"/>
+    </rites>
+  </faith>
+
+  <faith id="osfeyd"
+         flavor="Polytheistic"
+         main_god="hreinwald"
+         group="nord_chieftains"
+         marriage_doctrine="Monogamy"
+         war_doctrine="OpenWarfare">
+    <name>Osfeydian Tradition</name>
+    <description>The reaver-faith of the Nordvyg, named for the burnt shore where Osric's host first beached. Hreinwald rules the deep; Skǫll the wake; the Vethari ride in the longships' wash. Its rites bless the prow before raid and the axe before kin.</description>
+    <cults_desc>sea spirits</cults_desc>
+    <zealots_name>Hraef-Sworn</zealots_name>
+    <blessing_action>Hrafnskáld, give me a sea-blessing.</blessing_action>
+    <blessing_action_name>sea-blessings</blessing_action_name>
+    <blessing_question>Whose mark will you carry on the prow?</blessing_question>
+    <blessing_confirm_question>Will you sail under their sign?</blessing_confirm_question>
+    <natural_cultures>
+      <culture id="nord"/>
+    </natural_cultures>
+    <pantheon>
+      <divinity ref="skoll"/>
+      <divinity ref="vethari"/>
+      <divinity ref="perkos"/>
+    </pantheon>
+    <doctrines>
+      <doctrine ref="Reavers"/>
+      <doctrine ref="osrics_vengeance"/>
+      <doctrine ref="Warlike"/>
+      <doctrine ref="AncestorWorship"/>
+    </doctrines>
+    <ranks>
+      <rank>Hrafnskáld</rank>
+    </ranks>
+    <rites>
+      <rite key="axe_offering"/>
+    </rites>
+  </faith>
+</faiths>

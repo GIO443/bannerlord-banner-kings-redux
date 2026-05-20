@@ -14,6 +14,7 @@ If you're a player, you can ignore this page — see
 
 ## On this page
 
+- [Reskinning content: the XML data layer](#reskinning-content-the-xml-data-layer)
 - [Core philosophy: BK decides, vanilla executes](#core-philosophy-bk-decides-vanilla-executes)
 - [What "decision" means in practice](#what-decision-means-in-practice)
 - [What "executes" means in practice](#what-executes-means-in-practice)
@@ -26,6 +27,74 @@ If you're a player, you can ignore this page — see
 - [Recipe — extending an existing BK system from a sub-mod](#recipe--extending-an-existing-bk-system-from-a-sub-mod)
 - [Log loudly — but behind a toggle](#log-loudly--but-behind-a-toggle)
 - [Conventions](#conventions)
+
+---
+
+## Reskinning content: the XML data layer
+
+**If you only want to change BK's *content* — different religions,
+different titles, different lifestyles, a whole different setting — you
+do not need to write or compile any C#.** Stop here and read the
+[structural schema reference](../dev-reference/structural-schema.md)
+(`docs/dev-reference/structural-schema.md` in the repo). The rest of
+this page is about C#; this section is about XML.
+
+BK's flavor content is defined in XML data files, not hardcoded. That
+includes religions, faiths, divinities, doctrines, faith groups,
+marriage and war doctrines, lifestyles, innovations, eras, title names,
+governments, succession and inheritance laws, gender laws, casus belli,
+interest groups, mercenary privileges, and council positions.
+
+### How it works
+
+At startup BK scans **every loaded module** for
+`ModuleData/BKData/*.xml`, and merges what it finds by `(category, id)`
+— **last writer wins by module load order.** A mod that loads after BK
+overrides BK's rows; a mod can also add brand-new rows or remove BK's.
+
+So a setting-overhaul mod ships its own `ModuleData/BKData/` folder:
+
+```
+MyOverhaul/
+└── ModuleData/
+    └── BKData/
+        ├── bk_faiths.xml          ← your pantheon, BK faith ids reused
+        ├── bk_divinities.xml      ← your gods
+        ├── bk_governments.xml     ← your constitutions
+        └── bk_title_names.xml     ← your title nouns
+```
+
+Reuse a BK `id` to **replace** that entity; use a fresh `id` to **add**
+one. You only need to ship the files for the categories you actually
+change — anything you don't override keeps BK's defaults.
+
+### What needs C#, what doesn't
+
+| You want to… | Need C#? |
+|---|---|
+| Rename / re-describe an entity | No — edit the XML, or ship a `Languages/` override |
+| Re-tune numbers (costs, weights, scores) | No — edit the XML attribute |
+| Add / remove a religion, title, lifestyle, … | No — add or drop an XML row |
+| Re-mix which behaviour an entity uses | No — change its `behavior` / `type` / `key` attribute to another built-in |
+| Invent a genuinely new *algorithm* (a new rite, succession, casus belli win condition) | Yes — a small companion mod registers a new behaviour key; XML can then reference it |
+
+The XML carries data and picks behaviour from a fixed menu of named
+keys. It never carries code. That boundary is what keeps content mods
+safe and forward-compatible — see
+[Behaviour and registries](../dev-reference/structural-schema.md#behaviour-and-registries)
+in the schema reference.
+
+### The one rule
+
+An `id` is a public contract. Once shipped it is referenced by saves,
+by translations, and by other mods — never rename one. Everything else
+about a row is fair game to change.
+
+The full per-category field reference, the override and variable-size
+list rules, and the registry list are all in the
+[structural schema reference](../dev-reference/structural-schema.md). Its
+companion, [localization-schema.md](../dev-reference/localization-schema.md),
+covers translating or overriding the player-facing text.
 
 ---
 

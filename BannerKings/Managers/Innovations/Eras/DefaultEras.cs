@@ -1,37 +1,67 @@
+using System;
 using System.Collections.Generic;
+using BannerKings.Utils.BKData;
 using TaleWorlds.Localization;
 
 namespace BannerKings.Managers.Innovations.Eras
 {
+    /// <summary>
+    /// Eras are loaded from <c>ModuleData/BKData/bk_eras.xml</c> across every
+    /// installed module (last writer wins per id). Named properties resolve by
+    /// id, preserving the <c>DefaultEras.Instance.FirstEra</c> call surface that
+    /// <c>DefaultInnovations</c> binds against.
+    /// </summary>
     public class DefaultEras : DefaultTypeInitializer<DefaultEras, Era>
     {
-        public Era FirstEra { get; } = new Era("FirstEra");
-        public Era SecondEra { get; } = new Era("SecondEra");
-        public Era ThirdEra { get; } = new Era("ThirdEra");
+        private readonly List<Era> _loaded = new List<Era>();
+
+        public Era FirstEra => GetById("FirstEra");
+        public Era SecondEra => GetById("SecondEra");
+        public Era ThirdEra => GetById("ThirdEra");
 
         public override IEnumerable<Era> All
         {
             get
             {
-                yield return FirstEra;
-                yield return SecondEra;
-                yield return ThirdEra;
+                foreach (var e in _loaded) yield return e;
+                foreach (var item in ModAdditions) yield return item;
             }
         }
 
         public override void Initialize()
         {
-            FirstEra.Initialize(new TextObject("{=kyB8tkgY}Calradoi Age"),
-               new TextObject("{=ymwU30nA}The era of the Calradoi was the period in which the Imperium reigned unmatched. "),
-               null);
+            _loaded.Clear();
 
-            SecondEra.Initialize(new TextObject("{=FEJnz4oY}Internecine Age"),
-               new TextObject("{=UjhXMGN4}With the advent of the battle of Pendraic and death of emperor Arenicos Pethros, the former Imperium has shattered into civil war - an Internecine."),
-               FirstEra);
+            // Pass 1 — construct every era so a `previous` ref can resolve
+            // regardless of file order.
+            // OrdinalIgnoreCase to match BKDataStore's id semantics — a
+            // `previous` ref whose case differs from the row id still resolves.
+            var byId = new Dictionary<string, Era>(StringComparer.OrdinalIgnoreCase);
+            foreach (var row in BKDataStore.Instance.GetRows("eras"))
+            {
+                var id = BKXml.Attr(row, "id");
+                if (string.IsNullOrEmpty(id) || byId.ContainsKey(id)) continue;
+                var era = new Era(id);
+                byId[id] = era;
+                _loaded.Add(era);
+            }
 
-            ThirdEra.Initialize(new TextObject("{=E1FVOgX7}Dark Age"),
-               new TextObject("{=MN4aNnGP}Little is known about the period after the Internecine... However, scholars all agree that, within the 2 centuries, the empire was completely destroyed. Hordes have pillaged and razed cities to the ground, faiths and cultures ceased to exist and new kingdoms arose from the darkness. Yet, none ever shone a light so strong as did the Imperium."),
-               SecondEra);
+            // Pass 2 — initialize, resolving the previous-era chain.
+            foreach (var row in BKDataStore.Instance.GetRows("eras"))
+            {
+                var id = BKXml.Attr(row, "id");
+                if (string.IsNullOrEmpty(id) || !byId.TryGetValue(id, out var era)) continue;
+
+                var name = BKXml.LocText(row, "era", id, "name", fallbackIfMissing: id);
+                var description = BKXml.LocText(row, "era", id, "description", fallbackIfMissing: string.Empty);
+
+                Era previous = null;
+                var previousRef = BKXml.Attr(row, "previous");
+                if (!string.IsNullOrEmpty(previousRef))
+                    byId.TryGetValue(previousRef, out previous);
+
+                era.Initialize(name, description, previous);
+            }
         }
     }
 }

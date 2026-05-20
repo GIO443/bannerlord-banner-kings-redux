@@ -3,265 +3,145 @@ using BannerKings.Managers.Institutions.Religions.Doctrines;
 using BannerKings.Managers.Institutions.Religions.Doctrines.Marriage;
 using BannerKings.Managers.Institutions.Religions.Doctrines.War;
 using BannerKings.Managers.Institutions.Religions.Faiths.Rites;
-using BannerKings.Managers.Institutions.Religions.Faiths.Rites.Battania;
-using BannerKings.Managers.Institutions.Religions.Faiths.Rites.Empire;
-using BannerKings.Managers.Institutions.Religions.Faiths.Rites.Northern;
-using BannerKings.Managers.Institutions.Religions.Faiths.Rites.Vlandia;
 using BannerKings.Managers.Institutions.Religions.Faiths.Societies;
+using BannerKings.Utils.BKData;
 using TaleWorlds.Localization;
 
 namespace BannerKings.Managers.Institutions.Religions.Faiths
 {
+    /// <summary>
+    /// Faiths are loaded from <c>ModuleData/BKData/bk_faiths.xml</c> across every
+    /// installed module (last writer wins per id). A faith row pulls together
+    /// refs to a main divinity, a faith group, a marriage doctrine, a war
+    /// doctrine, plus variable-size lists of pantheon divinities, doctrines,
+    /// clergy rank labels, natural cultures, and rite keys. Unknown refs (the
+    /// flavor mod removed a doctrine, didn't bring War Sails) are silently
+    /// skipped, mirroring the pre-XML "drop and continue" tolerance.
+    /// </summary>
     public class DefaultFaiths : DefaultTypeInitializer<DefaultFaiths, Faith>
     {
-        public Faith Darusosian { get; private set; }
-        public Faith Canticles { get; private set; }
-        public Faith Amra { get; private set; }
-        public Faith Asera { get; private set; }
-        public Faith SixWinds { get; private set; }
-        public Faith Treelore { get; private set; }
-        public Faith Osfeyd { get; private set; }
+        private readonly List<Faith> _loaded = new List<Faith>();
+
+        public Faith Darusosian => GetById("darusosian");
+        public Faith Canticles => GetById("canticles");
+        public Faith Amra => GetById("amra");
+        public Faith Asera => GetById("asera");
+        public Faith SixWinds => GetById("sixWinds");
+        public Faith Treelore => GetById("treelore");
+        public Faith Osfeyd => GetById("osfeyd");
 
         public override IEnumerable<Faith> All
         {
             get
             {
-                yield return Darusosian;
-                yield return Canticles;
-                yield return Amra;
-                yield return Asera;
-                yield return SixWinds;
-                yield return Treelore;
-                yield return Osfeyd;
-                foreach (Faith item in ModAdditions)
-                {
-                    yield return item;
-                }
+                foreach (var f in _loaded) yield return f;
+                foreach (var item in ModAdditions) yield return item;
             }
         }
 
         public override void Initialize()
         {
+            _loaded.Clear();
+
             var divs = DefaultDivinities.Instance;
             var groups = DefaultFaithGroups.Instance;
             var docs = DefaultDoctrines.Instance;
             var marriage = DefaultMarriageDoctrines.Instance;
             var war = DefaultWarDoctrines.Instance;
 
-            // ----- Darusosian (Empire) -----
-            Darusosian = Build(new FaithPreset
+            foreach (var row in BKDataStore.Instance.GetRows("faiths"))
             {
-                Id = "darusosian",
-                Flavor = FaithFlavor.Henotheistic,
-                Name = new TextObject("{=!}Darusosian Path"),
-                Description = new TextObject("{=!}The Darusosian Path is the imperial faith of the Calradian Empire — the cult of Iovis the Sky-Father, his bride Astaronia, and the iron-saint Darusos. Its priests serve the legions and the law, and its rites uphold the unity of the Empire under one heaven."),
-                CultsDescription = new TextObject("{=!}imperial cults"),
-                ZealotsGroupName = new TextObject("{=!}Sons of Darusos"),
-                BlessingAction = new TextObject("{=!}I would seek a blessing of the Triad."),
-                BlessingActionName = new TextObject("{=!}imperial blessings"),
-                BlessingQuestion = new TextObject("{=!}Which of the Triad shall hear your prayer?"),
-                BlessingConfirmQuestion = new TextObject("{=!}Will you commit your devotion to {DIVINITY}?"),
-                NaturalCultureIds = new List<string> { "empire" },
-                RankTitles = new List<TextObject>
-                {
-                    new TextObject("{=!}Acolyte"),
-                    new TextObject("{=!}Lictor"),
-                    new TextObject("{=!}Pontifex"),
-                },
-            },
-            mainGod: divs.Iovis,
-            pantheon: new List<Divinity> { divs.Astaronia, divs.Darusos },
-            faithGroup: groups.ImperialOrders,
-            doctrines: new List<Doctrine> { docs.Legalism, docs.RenovatioImperi, docs.Tolerant, docs.Astrology, docs.Esotericism },
-            marriageDoctrine: marriage.Monogamy,
-            warDoctrine: war.OpenWarfare,
-            rites: new List<Rite> { new AstaroniaFestival(), new DarusosianHomage(), new DarusosianExecution() });
+                var id = BKXml.Attr(row, "id");
+                if (string.IsNullOrEmpty(id)) continue;
 
-            // ----- Canticles (Vlandia) -----
-            Canticles = Build(new FaithPreset
-            {
-                Id = "canticles",
-                Flavor = FaithFlavor.Henotheistic,
-                Name = new TextObject("{=!}Canticles of Caïon"),
-                Description = new TextObject("{=!}The Canticles are the sworn faith of Vlandia: a chivalric devotion to Caïon, crowner of kings, and his retinue of warrior-saints. Its priests bless oaths, marriages and lances; its great hymnals are sung at every coronation."),
-                CultsDescription = new TextObject("{=!}canticle saints"),
-                ZealotsGroupName = new TextObject("{=!}Order of the Lance"),
-                BlessingAction = new TextObject("{=!}Father, would you sing a canticle for me?"),
-                BlessingActionName = new TextObject("{=!}canticle blessings"),
-                BlessingQuestion = new TextObject("{=!}Which saint will you ask to sing for?"),
-                BlessingConfirmQuestion = new TextObject("{=!}Will you commit yourself to the saint's road?"),
-                NaturalCultureIds = new List<string> { "vlandia" },
-                RankTitles = new List<TextObject>
+                var preset = new FaithPreset
                 {
-                    new TextObject("{=!}Brother"),
-                    new TextObject("{=!}Canon"),
-                    new TextObject("{=!}Primarch"),
-                },
-            },
-            mainGod: divs.Caion,
-            pantheon: new List<Divinity> { divs.Marcosus, divs.Belisaria, divs.Reginus },
-            faithGroup: groups.VlandicCanonical,
-            doctrines: new List<Doctrine> { docs.Legalism, docs.Childbirth, docs.Warlike, docs.Literalism },
-            marriageDoctrine: marriage.Monogamy,
-            warDoctrine: war.OpenWarfare,
-            rites: new List<Rite> { new LanceOffering(), new VlandiaHorse() });
+                    Id = id,
+                    Flavor = BKXml.Enum(row, "flavor", FaithFlavor.Polytheistic),
+                    Name = BKXml.LocText(row, "faith", id, "name", fallbackIfMissing: id),
+                    Description = BKXml.LocText(row, "faith", id, "description", fallbackIfMissing: string.Empty),
+                    CultsDescription = BKXml.LocText(row, "faith", id, "cults_desc", fallbackIfMissing: "cults"),
+                    ZealotsGroupName = BKXml.LocText(row, "faith", id, "zealots_name", fallbackIfMissing: "zealots"),
+                    BlessingAction = BKXml.LocText(row, "faith", id, "blessing_action", fallbackIfMissing: "I seek a blessing."),
+                    BlessingActionName = BKXml.LocText(row, "faith", id, "blessing_action_name", fallbackIfMissing: "blessings"),
+                    BlessingQuestion = BKXml.LocText(row, "faith", id, "blessing_question", fallbackIfMissing: "Which divinity do you seek favour from?"),
+                    BlessingConfirmQuestion = BKXml.LocText(row, "faith", id, "blessing_confirm_question", fallbackIfMissing: "Are you certain in your devotion?"),
+                    FaithSeatId = BKXml.Attr(row, "faith_seat"),
+                    BannerCode = BKXml.Attr(row, "banner_code"),
+                    NaturalCultureIds = new List<string>(),
+                    RankTitles = new List<TextObject>(),
+                };
 
-            // ----- Amra (Battania) -----
-            Amra = Build(new FaithPreset
-            {
-                Id = "amra",
-                Flavor = FaithFlavor.Polytheistic,
-                Name = new TextObject("{=!}Amra Druidh"),
-                Description = new TextObject("{=!}The druidic faith of the Battanian highlands. Pérkos the Thunder-Wielder rules the canopy, but Máthair, Iarnan and Eilean walk every glen and lynn. The druids carry the songs and bind the spirits to the deeds of clans."),
-                CultsDescription = new TextObject("{=!}druidic spirits"),
-                ZealotsGroupName = new TextObject("{=!}Fian Wardancers"),
-                BlessingAction = new TextObject("{=!}I would seek a druid's blessing."),
-                BlessingActionName = new TextObject("{=!}druidic blessings"),
-                BlessingQuestion = new TextObject("{=!}Whose blessing do you carry from the lynn?"),
-                BlessingConfirmQuestion = new TextObject("{=!}Will you carry their mark?"),
-                NaturalCultureIds = new List<string> { "battania" },
-                RankTitles = new List<TextObject>
+                foreach (var cultureEl in BKXml.ReadChildren(row, "natural_cultures"))
                 {
-                    new TextObject("{=!}Bard"),
-                    new TextObject("{=!}Arch-Druid"),
-                },
-            },
-            mainGod: divs.Perkos,
-            pantheon: new List<Divinity> { divs.Mathair, divs.Iarnan, divs.Eilean },
-            faithGroup: groups.DruidicCircles,
-            doctrines: new List<Doctrine> { docs.Druidism, docs.Animism, docs.Shamanism, docs.AncestorWorship },
-            marriageDoctrine: marriage.Concubinage,
-            warDoctrine: war.NoWarfare,
-            rites: new List<Rite> { new IronOffering(), new GreatSwordOffering() });
+                    var cid = BKXml.Attr(cultureEl, "id");
+                    if (!string.IsNullOrEmpty(cid)) preset.NaturalCultureIds.Add(cid);
+                }
 
-            // ----- Asera (Aserai) -----
-            Asera = Build(new FaithPreset
-            {
-                Id = "asera",
-                Flavor = FaithFlavor.Monotheistic,
-                Name = new TextObject("{=!}Path of Akhmar"),
-                Description = new TextObject("{=!}The Aserai bow to Akhmar alone — the Sun-Most-High, sovereign of the desert sky. The Path is law, learning and submission; its imams hold the great mosques of the south and tolerate, but tax, the heathen at their gates."),
-                CultsDescription = new TextObject("{=!}the Most High"),
-                ZealotsGroupName = new TextObject("{=!}Sun-Sworn"),
-                BlessingAction = new TextObject("{=!}Imam, I would have a blessing from the Most High."),
-                BlessingActionName = new TextObject("{=!}sun-blessings"),
-                BlessingQuestion = new TextObject("{=!}For what does Akhmar's faithful pray today?"),
-                BlessingConfirmQuestion = new TextObject("{=!}Submit to the Most High and the path is yours."),
-                NaturalCultureIds = new List<string> { "aserai" },
-                RankTitles = new List<TextObject>
+                int rankN = 0;
+                foreach (var rankEl in BKXml.ReadChildren(row, "ranks"))
                 {
-                    new TextObject("{=!}Imam"),
-                },
-            },
-            mainGod: divs.Akhmar,
-            pantheon: new List<Divinity>(),
-            faithGroup: groups.AseraiUlama,
-            doctrines: new List<Doctrine> { docs.Tolerant, docs.Legalism, docs.Literalism, docs.HeathenTax },
-            marriageDoctrine: marriage.Polygamy,
-            warDoctrine: war.Reclamation,
-            rites: new List<Rite>());
+                    rankN++;
+                    var rankText = rankEl.Value ?? string.Empty;
+                    preset.RankTitles.Add(new TextObject(
+                        "{=bk_faith_" + id + "_rank_" + rankN + "}" + rankText));
+                }
 
-            // ----- SixWinds (Khuzait) -----
-            SixWinds = Build(new FaithPreset
-            {
-                Id = "sixWinds",
-                Flavor = FaithFlavor.Polytheistic,
-                Name = new TextObject("{=!}Six Winds"),
-                Description = new TextObject("{=!}The shamanic faith of the steppe. Tengri rules the eternal sky; Etugen the green earth beneath the hoof; Sülde the war-banner; and the Asra ride at the back of every host. The shamans answer to clan first, spirit second."),
-                CultsDescription = new TextObject("{=!}sky and steppe spirits"),
-                ZealotsGroupName = new TextObject("{=!}Tail-Banners"),
-                BlessingAction = new TextObject("{=!}Shaman, would you read the wind for me?"),
-                BlessingActionName = new TextObject("{=!}sky-blessings"),
-                BlessingQuestion = new TextObject("{=!}Which spirit will the wind carry your prayer to?"),
-                BlessingConfirmQuestion = new TextObject("{=!}Are you ready to ride under the spirit's hand?"),
-                NaturalCultureIds = new List<string> { "khuzait" },
-                RankTitles = new List<TextObject>
+                // Resolve refs. Missing refs collapse to null/empty — that's how
+                // setting-overhaul mods opt out of features (e.g. don't ship
+                // a war doctrine).
+                var mainGod = ResolveDivinity(divs, BKXml.Attr(row, "main_god"));
+                var pantheon = new List<Divinity>();
+                foreach (var refId in BKXml.ReadRefs(row, "pantheon"))
                 {
-                    new TextObject("{=!}Khan-Shaman"),
-                },
-            },
-            mainGod: divs.Tengri,
-            pantheon: new List<Divinity> { divs.Etugen, divs.Sulde, divs.Asra },
-            faithGroup: groups.SteppeKhanate,
-            doctrines: new List<Doctrine> { docs.AncestorWorship, docs.Shamanism, docs.Pastoralism, docs.Warlike },
-            marriageDoctrine: marriage.AvunculatePolygamy,
-            warDoctrine: war.OpenWarfare,
-            rites: new List<Rite>());
+                    var d = divs.GetById(refId);
+                    if (d != null) pantheon.Add(d);
+                }
 
-            // ----- Treelore (Sturgia) -----
-            Treelore = Build(new FaithPreset
-            {
-                Id = "treelore",
-                Flavor = FaithFlavor.Polytheistic,
-                Name = new TextObject("{=!}Old Gods of the North"),
-                Description = new TextObject("{=!}The faith of Pérkos, Frydan, Mátr and the Vethari. Sturgia keeps the Old Gods in the longhouse, the war-mound and the midwinter fire; its priesthood is no priesthood at all but the eldercouncil of clans."),
-                CultsDescription = new TextObject("{=!}old gods"),
-                ZealotsGroupName = new TextObject("{=!}Oath-Sworn"),
-                BlessingAction = new TextObject("{=!}Eldgothi, I would have a blessing of the Old Gods."),
-                BlessingActionName = new TextObject("{=!}old-gods blessings"),
-                BlessingQuestion = new TextObject("{=!}Which of the Old Gods will you call upon?"),
-                BlessingConfirmQuestion = new TextObject("{=!}Will you bind your name to theirs?"),
-                NaturalCultureIds = new List<string> { "sturgia" },
-                RankTitles = new List<TextObject>
-                {
-                    new TextObject("{=!}Eldgothi"),
-                },
-            },
-            mainGod: divs.Perkos,
-            pantheon: new List<Divinity> { divs.Frydan, divs.Matr, divs.Vethari },
-            faithGroup: groups.NorthernElders,
-            doctrines: new List<Doctrine> { docs.AncestorWorship, docs.Childbirth, docs.Warlike, docs.Tolerant },
-            marriageDoctrine: marriage.Monogamy,
-            warDoctrine: war.OpenWarfare,
-            rites: new List<Rite> { new AxeOffering(), new TreeloreFestival() });
+                var faithGroup = groups.GetById(BKXml.Attr(row, "group"));
+                var marriageDoctrine = marriage.GetById(BKXml.Attr(row, "marriage_doctrine"));
+                var warDoctrine = war.GetById(BKXml.Attr(row, "war_doctrine"));
 
-            // ----- Osfeyd (Nord) -----
-            Osfeyd = Build(new FaithPreset
-            {
-                Id = "osfeyd",
-                Flavor = FaithFlavor.Polytheistic,
-                Name = new TextObject("{=!}Osfeydian Tradition"),
-                Description = new TextObject("{=!}The reaver-faith of the Nordvyg, named for the burnt shore where Osric's host first beached. Hreinwald rules the deep; Skǫll the wake; the Vethari ride in the longships' wash. Its rites bless the prow before raid and the axe before kin."),
-                CultsDescription = new TextObject("{=!}sea spirits"),
-                ZealotsGroupName = new TextObject("{=!}Hraef-Sworn"),
-                BlessingAction = new TextObject("{=!}Hrafnskáld, give me a sea-blessing."),
-                BlessingActionName = new TextObject("{=!}sea-blessings"),
-                BlessingQuestion = new TextObject("{=!}Whose mark will you carry on the prow?"),
-                BlessingConfirmQuestion = new TextObject("{=!}Will you sail under their sign?"),
-                NaturalCultureIds = new List<string> { "nord" },
-                RankTitles = new List<TextObject>
+                var doctrines = new List<Doctrine>();
+                foreach (var refId in BKXml.ReadRefs(row, "doctrines"))
                 {
-                    new TextObject("{=!}Hrafnskáld"),
-                },
-            },
-            mainGod: divs.Hreinwald,
-            pantheon: new List<Divinity> { divs.Skoll, divs.Vethari, divs.Perkos },
-            faithGroup: groups.NordChieftains,
-            doctrines: new List<Doctrine> { docs.Reavers, docs.OsricsVengeance, docs.Warlike, docs.AncestorWorship },
-            marriageDoctrine: marriage.Monogamy,
-            warDoctrine: war.OpenWarfare,
-            rites: new List<Rite> { new AxeOffering() });
+                    var d = docs.GetById(refId);
+                    if (d != null) doctrines.Add(d);
+                }
+
+                var rites = new List<Rite>();
+                foreach (var riteEl in BKXml.ReadChildren(row, "rites"))
+                {
+                    var key = BKXml.Attr(riteEl, "key");
+                    var rite = RiteRegistry.Create(key);
+                    if (rite != null)
+                    {
+                        rites.Add(rite);
+                    }
+                    else if (!string.IsNullOrEmpty(key))
+                    {
+                        BKDataStore.Instance.AddDiagnostic(
+                            "[BKData] faith '" + id + "': unknown rite key '" + key + "' (typo, or rite not registered via RiteRegistry.Register?)");
+                    }
+                }
+
+                var faith = new PresetFaith(preset);
+                faith.Bind(mainGod,
+                    pantheon,
+                    faithGroup,
+                    doctrines,
+                    marriageDoctrine,
+                    warDoctrine,
+                    rites,
+                    societies: new List<Society>());
+                _loaded.Add(faith);
+            }
         }
 
-        private static Faith Build(FaithPreset preset,
-            Divinity mainGod,
-            List<Divinity> pantheon,
-            Groups.FaithGroup faithGroup,
-            List<Doctrine> doctrines,
-            MarriageDoctrine marriageDoctrine,
-            WarDoctrine warDoctrine,
-            List<Rite> rites)
+        private static Divinity ResolveDivinity(DefaultDivinities source, string id)
         {
-            var faith = new PresetFaith(preset);
-            faith.Bind(mainGod,
-                pantheon ?? new List<Divinity>(),
-                faithGroup,
-                doctrines ?? new List<Doctrine>(),
-                marriageDoctrine,
-                warDoctrine,
-                rites ?? new List<Rite>(),
-                societies: new List<Society>());
-            return faith;
+            if (string.IsNullOrEmpty(id)) return null;
+            return source.GetById(id);
         }
     }
 }

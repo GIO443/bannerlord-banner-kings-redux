@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  BK structural data — War Doctrines. A faith binds exactly one war doctrine
+  (bk_faiths.xml: war_doctrine="..."), which lists the holy-war casus belli
+  the faith endorses and the piety each one costs to invoke.
+
+  Schema:
+    <war_doctrine id="..." permanent="true|false">
+      <name>...</name>
+      <description>...</description>
+      <justifications>                           variable size, may be empty
+        <justification casus_belli="<casus_belli_id>" piety="N"/>
+      </justifications>
+    </war_doctrine>
+
+  casus_belli refs resolve against DefaultCasusBelli (still C#-defined; its
+  XML-ification is a later phase). Unknown casus_belli refs are skipped with
+  a diagnostic. An empty <justifications/> = the faith forbids holy war.
+-->
+<war_doctrines>
+  <war_doctrine id="OpenWarfare" permanent="false">
+    <name>Open Warfare</name>
+    <description>Open Warfare doctrine endorses both general forms of holy war: expansionist and reclamation holy wars. Expansionist wars are declared against enemies of the faith, while reclamation wars are targeted towards holy sites of the faith. Declaring a holy war requires a faith leader.</description>
+    <justifications>
+      <justification casus_belli="HolyWar" piety="1000"/>
+      <justification casus_belli="DivineReclamation" piety="600"/>
+    </justifications>
+  </war_doctrine>
+
+  <war_doctrine id="Reclamation" permanent="false">
+    <name>Reclamation Warfare</name>
+    <description>Reclamation Warfare endorses reclamation holy wars. Reclamation wars are targeted towards holy sites or the faith seat of your faith, and may be used whenever enemies of the faith hold them. Declaring a holy war requires a faith leader.</description>
+    <justifications>
+      <justification casus_belli="DivineReclamation" piety="500"/>
+    </justifications>
+  </war_doctrine>
+
+  <war_doctrine id="NoWarfare" permanent="false">
+    <name>Forbidden Warfare</name>
+    <description>Forbidden Warfare does not allow for any type of holy wars to be declared by the faith.</description>
+    <justifications/>
+  </war_doctrine>
+</war_doctrines>

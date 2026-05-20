@@ -1,0 +1,168 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  BK structural data — Doctrines.
+  Schema (see docs/dev-reference/structural-schema.md):
+    <doctrine id="..." permanent="true|false">
+      <name>...</name>
+      <description>...</description>
+      <effects>...</effects>
+      <incompatible>
+        <doctrine ref="other_doctrine_id"/>
+        ...     (variable size, may be empty or omitted)
+      </incompatible>
+    </doctrine>
+  Strings are inline today; flavor mods may override by id via either:
+    (a) editing this file (or shipping a same-id row in their own BKData),
+    (b) dropping a Languages/bk_doctrines.xml string override.
+-->
+<doctrines>
+  <doctrine id="AncestorWorship" permanent="false">
+    <name>Ancestor Worship</name>
+    <description>Honoring the ancestors is a crucial part of the faith, for they watch over the living, expecting them to fulfill their traditions. They live on as spirits, when they are not among the ranks of the gods themselves.</description>
+    <effects>Easier to marry within the same faith{newline}Clan renown yields piety</effects>
+    <incompatible/>
+  </doctrine>
+
+  <doctrine id="RenovatioImperi" permanent="false">
+    <name>Renovatio Imperi</name>
+    <description>Peace in Calradia can only exist with an united Empire. A kingdom under the teachings of Heaven. The faithful should cast aside their ambitions and work together for the benefit of the gods.</description>
+    <effects>On Imperial fiefs, showing mercy post siege, gain relations with all notables and lose no fief stability</effects>
+    <incompatible/>
+  </doctrine>
+
+  <doctrine id="Esotericism" permanent="false">
+    <name>Esotericism</name>
+    <description>Knowledge and faith are less divided than most think. The cosmos is littered with mysteryes, and to seek their answers is to seek to reach the gods themselves.</description>
+    <effects>Wisdom yields piety{newline}Finishing education projects yields piety and Theology</effects>
+    <incompatible/>
+  </doctrine>
+
+  <doctrine id="Astrology" permanent="false">
+    <name>Astrology</name>
+    <description>The study of the stars is the study of the divine itself. Much like the Sun blesses the land with fertility, the stars bless man with wisdom.</description>
+    <effects>Cultural innovations develop faster (when Cultural Head)
+Ship travels are faster</effects>
+    <incompatible/>
+  </doctrine>
+
+  <doctrine id="Tolerant" permanent="false">
+    <name>Tolerant</name>
+    <description>A tolerant faith considers all faiths to be different interpretations of the Truth, as different paths to the real god(s). Tolerant faiths do not have hostile opinions toward any other faith, facilitating marraiges and decreasing tensions in multiple faith fiefs.</description>
+    <effects>Every other faith is consedered Tolerated</effects>
+    <incompatible/>
+  </doctrine>
+
+  <doctrine id="Shamanism" permanent="false">
+    <name>Shamanism</name>
+    <description>Shamans are the intermediaries between manking and the spiritual world. They do not adhere to an organized structure, instead relying on oral tradition and local custom. Shamans often live close to nature, where the spirits lie, and perform rituals to access the spiritual world to communicate with them, acquiring knowledge to guide their people in the mundane plane.</description>
+    <effects>Preachers are able to heal diseases and curses</effects>
+    <incompatible>
+      <doctrine ref="druidism"/>
+    </incompatible>
+  </doctrine>
+
+  <doctrine id="osrics_vengeance" permanent="true">
+    <name>Osric's Vengeance</name>
+    <description>Osric fulfilled his vengeace against the Calradic gods when the captured Pravend, taking away their power and providing bountiful land to his people. As such, the Wilunding should follow in his path of occupying their enemies.</description>
+    <effects>Occupying fiefs yields significant piety</effects>
+    <incompatible>
+      <doctrine ref="Warlike"/>
+    </incompatible>
+  </doctrine>
+
+  <doctrine id="Reavers" permanent="false">
+    <name>Reavers</name>
+    <description>Raiding and pillaging is understood as a pious practice. This faith</description>
+    <effects>Piety gain raiding and fief pillaging of different cultures</effects>
+    <incompatible>
+      <doctrine ref="osrics_vengeance"/>
+    </incompatible>
+  </doctrine>
+
+  <doctrine id="Warlike" permanent="false">
+    <name>Warlike</name>
+    <description>Combat is considered by the faith a pious practice. The gods decide the winner, and to attempt to escape our fate through cravenness is an offence to the gods.</description>
+    <effects>Piety gain as battle reward</effects>
+    <incompatible>
+      <doctrine ref="osrics_vengeance"/>
+    </incompatible>
+  </doctrine>
+
+  <doctrine id="druidism" permanent="false">
+    <name>Druidism</name>
+    <description>Clergy is considered part of the Druid caste, who represent the spiritual power, but are also involved in political, material affairs. In a way, druids are a form of lesser nobility and cannot be excluded from political affairs.</description>
+    <effects>Preachers provide noble troops
+No religious council advisor causes daily influence loss</effects>
+    <incompatible/>
+  </doctrine>
+
+  <doctrine id="animism" permanent="false">
+    <name>Animism</name>
+    <description>Spirits inhabit everywhere in this world, hidden in plain sight. Under the earth, flowing along rivers or bound to animals or trees, spirits can be anywhere. It is the duty of the faithful to not harm the balance of the material world with the spiritual world, which are often one and the same.</description>
+    <effects>Woodland acreage provides piety
+Reduced baseline fervor</effects>
+    <incompatible/>
+  </doctrine>
+
+  <doctrine id="communal_faith" permanent="false">
+    <name>Communal Faith</name>
+    <description></description>
+    <effects></effects>
+    <incompatible/>
+  </doctrine>
+
+  <doctrine id="legalism" permanent="false">
+    <name>Legalism</name>
+    <description>Without laws, man is but beast. The wisdom of previous generations is preserved through law, which must be followed to the letter.</description>
+    <effects>Heathens can not fill council positions
++0.5 to vassal limit for each personal virtue</effects>
+    <incompatible/>
+  </doctrine>
+
+  <doctrine id="heathen_tax" permanent="false">
+    <name>Heathen Taxation</name>
+    <description>Non believers are tolerated, but only through their financial subjugation. They are not trusted for service.</description>
+    <effects>Heathen population yields extra tax
+Reduced militarism in predominantly heathen settlements</effects>
+    <incompatible/>
+  </doctrine>
+
+  <doctrine id="pastorialism" permanent="false">
+    <name>Pastorialism</name>
+    <description>Non believers are tolerated, but only through their financial subjugation. They are not trusted for service.</description>
+    <effects>Pasture and farmland acreage are more productive
+Reduced drafting efficiency</effects>
+    <incompatible/>
+  </doctrine>
+
+  <doctrine id="childbirth" permanent="false">
+    <name>Honored Childbirth</name>
+    <description>Birth of children and the spread of the family are seen as a blessing. The more children we bear, more will defend and honor our ways of life in the future.</description>
+    <effects>Clan renown is increased every time a child is born
+Increased fertility</effects>
+    <incompatible/>
+  </doctrine>
+
+  <doctrine id="pacifism" permanent="false">
+    <name>Pacifism</name>
+    <description>Peace is our most valued treasure. Unlike warmongering beasts, we cherish thriving through cooperation and hard work.</description>
+    <effects>Increased stability in settlements
+Piety loss after battles</effects>
+    <incompatible/>
+  </doctrine>
+
+  <doctrine id="literalism" permanent="false">
+    <name>Literalism</name>
+    <description>It is only through our holy texts that we can uphold our values and faith.</description>
+    <effects>High scholarship provides piety, illiteracy reduces piety
+Adds Court Philosopher to royal councils</effects>
+    <incompatible/>
+  </doctrine>
+
+  <doctrine id="sacrifice" permanent="false">
+    <name>Human Sacrifices</name>
+    <description>Worthy opponents are deserving of a better death than commoners in the battlefield. We can prove our devotion by ritually sacrificing them.</description>
+    <effects>Allows the Human Sacrifice rite</effects>
+    <incompatible/>
+  </doctrine>
+</doctrines>

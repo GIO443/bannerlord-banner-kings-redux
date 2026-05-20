@@ -1,0 +1,238 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  BK structural data — Innovations. An Innovation is a researchable cultural /
+  technological advance. It belongs to one Era, has a type, a research cost
+  (required_progress), an optional prerequisite innovation, and an optional
+  list of cultures that begin the campaign with it already unlocked.
+
+  Schema:
+    <innovation id="..."
+                type="Civic|Agriculture|Military|Technology|Building"
+                required_progress="N"
+                era="<era_id>"
+                requirement="<innovation_id>">     requirement optional
+      <name>...</name>
+      <description>...</description>
+      <effects>...</effects>
+      <starting_for>                                variable size, may be empty
+        <culture id="empire"/>
+        ...
+      </starting_for>
+    </innovation>
+
+  The loader builds innovations in two passes, so requirement may reference an
+  innovation declared later in the file. requirement / era refs that don't
+  resolve are skipped with a diagnostic (the innovation still loads, just
+  without that link).
+-->
+<innovations>
+  <innovation id="innovation_heavy_plough" type="Agriculture" required_progress="800" era="FirstEra">
+    <name>Heavy Plough</name>
+    <description>A adaptation of the plough, but heavier and used for tougher, moist terrain. This plough allows more soil to be turned over, facilitating agricultural work and recycling nutriets found in deeper soil layers.</description>
+    <effects>Improved farmland output</effects>
+    <starting_for>
+      <culture id="vlandia"/>
+      <culture id="empire"/>
+      <culture id="aserai"/>
+      <culture id="sturgia"/>
+      <culture id="battania"/>
+    </starting_for>
+  </innovation>
+
+  <innovation id="innovation_three_field_system" type="Agriculture" required_progress="2500" era="FirstEra" requirement="Manorialism">
+    <name>3 Fields System</name>
+    <description>A crop rotation system using 3 separate types of crops simultaneously. This system, also called Open Field, is a major improvement the culture of 2 fields, allowing the soil to regenerate as different types of crops provide and consume different nutrients.</description>
+    <effects>Greatly improved farmland output</effects>
+    <starting_for>
+      <culture id="battania"/>
+    </starting_for>
+  </innovation>
+
+  <innovation id="innovation_public_works" type="Civic" required_progress="2000" era="SecondEra" requirement="Burgage">
+    <name>Public Works</name>
+    <description>Focused efforts on public infrastructure by the state, such as roads and bridges, allow better development of the economy.</description>
+    <effects>Increased town prosperity and adm. costs</effects>
+    <starting_for/>
+  </innovation>
+
+  <innovation id="innovation_cogs" type="Technology" required_progress="1000" era="FirstEra">
+    <name>Cogs</name>
+    <description>These large devices were often made of massive strong wooden blocks shaped into almost perfect circular discs. Metal teeth were then bolted into the disc such that an array of cogs can produce complex axes of motion. They were mainly used in sophisticated mill designs such as watermills or windmills. Such mechanical mills facilitate the process of milling grains to make bread, an extremely important item in the continent's general diet. However, other mills could be essential parts in industrial military forges for producing armour, weapons and horse equipment fit for massive imperial armies.</description>
+    <effects>Increased production efficiency</effects>
+    <starting_for/>
+  </innovation>
+
+  <innovation id="innovation_water_mill" type="Building" required_progress="1500" era="FirstEra" requirement="innovation_cogs">
+    <name>Mills</name>
+    <description>A large contraption moved by the flow of water, wind or force. Mills largely facilitate the process of milling grains in order to make bread. Different types of mills may be constructed to fit any context - for example, a village with a river stream may use the flow of water to turn the mill. A more complex, but flexible mill could be moved by wind. Ultimately, however, they could simply be moved through slave labor.</description>
+    <effects>Enables construction of mills</effects>
+    <starting_for>
+      <culture id="vlandia"/>
+      <culture id="empire"/>
+    </starting_for>
+  </innovation>
+
+  <innovation id="innovation_stirrups" type="Military" required_progress="2000" era="FirstEra">
+    <name>Stirrups</name>
+    <description>A riding application that greatly helps with rider stability. The stirrup provides support for the rider's feet, reducing the risk of a fall and losing control of the animal. In military terms, it means cavalry can be significantly more effective and reliable. For the economy, it is also quite useful as the horse is widely used in agriculture, transportation and communication.</description>
+    <effects>Increased production efficiency
+Better cavalry efficiency in sim. battles</effects>
+    <starting_for>
+      <culture id="empire"/>
+      <culture id="khuzait"/>
+    </starting_for>
+  </innovation>
+
+  <innovation id="innovation_compass" type="Technology" required_progress="3000" era="ThirdEra" requirement="innovation_astrolabe">
+    <name>Compass</name>
+    <description>An instrument used to tell the cardinal directions, extensively used in long travels, by ship or land.</description>
+    <effects></effects>
+    <starting_for/>
+  </innovation>
+
+  <innovation id="innovation_horse_collar" type="Agriculture" required_progress="2000" era="FirstEra" requirement="innovation_heavy_plough">
+    <name>Horse Collar</name>
+    <description>A padded collar specifically made to fit horses allows the animal to comfortably pull ploughs with maximum efficiency of its strength. This in turn allows to the replacement of oxen teams for horse teams as plough pullers, a significant improvement due to the horses' increased speed and endurance over oxen.</description>
+    <effects>Significantly improved farmland output</effects>
+    <starting_for>
+      <culture id="vlandia"/>
+      <culture id="empire"/>
+      <culture id="khuzait"/>
+      <culture id="aserai"/>
+      <culture id="sturgia"/>
+    </starting_for>
+  </innovation>
+
+  <innovation id="innovation_horse_show" type="Agriculture" required_progress="1200" era="FirstEra" requirement="innovation_horse_collar">
+    <name>Horse Shoes</name>
+    <description>Metallic horse shows protect the hooves of the animal against the deterioration caused by intense labor. With the advent of teams of horses instead of oxen to pull ploughs, the shoes amplify the animal's advantage of working longer by protecting it moving ability.</description>
+    <effects>Improved farmland output</effects>
+    <starting_for/>
+  </innovation>
+
+  <innovation id="innovation_cranes" type="Technology" required_progress="3000" era="SecondEra">
+    <name>Cranes</name>
+    <description>Mechanismis capable of vertically carrying high volumes or weight of material. Cranes significantly increase production output by adding productivity to construction sites and trade hubs.</description>
+    <effects>Significantly improved construction speed
+Increased production efficiency</effects>
+    <starting_for/>
+  </innovation>
+
+  <innovation id="innovation_wheelbarrow" type="Technology" required_progress="1500" era="SecondEra" requirement="innovation_cranes">
+    <name>Wheelbarrow</name>
+    <description>The wheelbarrow is a goods transporting tool that allows a person to carry bigger weights with less efforts. It can be applied in a variety of situations, such as carrying ore out of mines, building material to constructions and grain sacks out of farms.</description>
+    <effects>Increased production efficiency</effects>
+    <starting_for>
+      <culture id="battania"/>
+    </starting_for>
+  </innovation>
+
+  <innovation id="innovation_blast_furnace" type="Technology" required_progress="5000" era="SecondEra" requirement="innovation_cranes">
+    <name>Blast Furnace</name>
+    <description>Blast furnaces efficiently transform iron ore into cast iron. This flexibe alloy can be easily shaped into different forms and products, thus making the furnaces an essential industrial appliance.</description>
+    <effects>Significantly increased production efficiency</effects>
+    <starting_for/>
+  </innovation>
+
+  <innovation id="Guilds" type="Civic" required_progress="2000" era="SecondEra" requirement="Burgage">
+    <name>Guilds</name>
+    <description>Guilds are associations of artisans that concern a specific trade. Their main purpose was the regulate a specific craft, trainning artisans, guaranteeing a minimum level of quality and destroying forgeries. This would allow, for example, artisans of a specific town to be renowned in a given craft, driving prices up and thus the guild's profits. Yet, this source of power among the merchants and artisans may prove a source of conflict with their noble overlords.</description>
+    <effects>Enables the existance of guilds in towns</effects>
+    <starting_for>
+      <culture id="empire"/>
+    </starting_for>
+  </innovation>
+
+  <innovation id="Burgage" type="Civic" required_progress="1000" era="SecondEra">
+    <name>Burgage</name>
+    <description>A Burgage is a rental property with a town, owned by a lord. Such plots are rented in exchange for monetary payment, providing a steady source of income to their noble overlords.</description>
+    <effects>Increased population cap in towns</effects>
+    <starting_for>
+      <culture id="vlandia"/>
+      <culture id="aserai"/>
+      <culture id="sturgia"/>
+    </starting_for>
+  </innovation>
+
+  <innovation id="Crossbows" type="Military" required_progress="2000" era="FirstEra" requirement="innovation_stirrups">
+    <name>Crossbows</name>
+    <description>A weapon developed by the Calradoi - a crossbow works by launching a bolt across a horizontal frame with the force of its string. The string, rather than drawn and held in place by a hand, is locked into place by a mechanism, allowing the crossbowman to aim the weapon, ready to release, with virtually no restrictions, as opposed to a bow, which requires significant strength to hold while ready.</description>
+    <effects>Enables the construction of crossbows</effects>
+    <starting_for>
+      <culture id="vlandia"/>
+      <culture id="empire"/>
+      <culture id="aserai"/>
+    </starting_for>
+  </innovation>
+
+  <innovation id="Forum" type="Building" required_progress="1000" era="SecondEra">
+    <name>Forum</name>
+    <description>A Calradian invention, the Forum is the center of town life, where announcements are made, sentences passed, and emperors are named. It is the marble heart of a city, and itself a form of art.</description>
+    <effects>Enables the construction of forums</effects>
+    <starting_for>
+      <culture id="empire"/>
+    </starting_for>
+  </innovation>
+
+  <innovation id="Aqueducts" type="Building" required_progress="1000" era="SecondEra" requirement="Forum">
+    <name>Aqueducts</name>
+    <description>A feat of engineering by the Calradoi - aqueducts transport water through a downard gradient from a water source to a town. The reliable supply of water serves to satiate the populace's thirst, but also provide water to industries such as farming, milling and dyeing, keeping food supply cheap and the economy active. It is said among the Calradoi a city without an aqueduct is doomed to failure.</description>
+    <effects>Enables the construction of aqueducts</effects>
+    <starting_for>
+      <culture id="empire"/>
+    </starting_for>
+  </innovation>
+
+  <innovation id="HalfPlateArmor" type="Technology" required_progress="2000" era="SecondEra" requirement="innovation_blast_furnace">
+    <name>Half-Plate Armor</name>
+    <description></description>
+    <effects>Enables the production of half-plated and similar armors</effects>
+    <starting_for/>
+  </innovation>
+
+  <innovation id="Theater" type="Building" required_progress="1000" era="SecondEra" requirement="Forum">
+    <name>Theater</name>
+    <description>It is unclear whether Calradians or Laconians first invented Theaters. More than a building, theaters are a cultural innovation - common folk gather to watch elaborate, classical works of both tragedy and comedy. In many ways, theaters stablish a cultural foundation and promote cultural values through the stories told in them.</description>
+    <effects>Enables the construction of theaters</effects>
+    <starting_for>
+      <culture id="empire"/>
+    </starting_for>
+  </innovation>
+
+  <innovation id="Manorialism" type="Civic" required_progress="1000" era="FirstEra">
+    <name>Manorialism</name>
+    <description>Originated from the Calradian Villae, manorialism describes the agrarian relationship of a suzerain and their dependents. While each peasant may own or rent certain parts of the fields, the entire fields are collectively worked on, and their productions shared, a significant part of which is paid to the overlord as taxes, who often lives in a large habitation - the manor.</description>
+    <effects>Enables new village buildings
+Reduced slave presence in villages</effects>
+    <starting_for>
+      <culture id="empire"/>
+    </starting_for>
+  </innovation>
+
+  <innovation id="Masonry" type="Building" required_progress="1500" era="FirstEra">
+    <name>Masonry</name>
+    <description>The art of molding stone to man's desire. Within the continent, this art was first explored in its depths by the Calradoi and the Darshi. Their imposing stone walls would, at times, make barbarian raiders entirely give up on raiding their towns, for they knew they could not overwhelm them. More often, it striked them with a sense of might - that those who built such walls were unmatched builders. The art of masonry later evolved into other forms of infrastructure, such as aqueducts and forums.</description>
+    <effects>Enables construction of level 2 walls</effects>
+    <starting_for/>
+  </innovation>
+
+  <innovation id="AdvancedMasonry" type="Building" required_progress="3000" era="SecondEra" requirement="innovation_cranes">
+    <name>Advanced Masonry</name>
+    <description>The final culmination of the art of masonry. Advanced masonry involves the construction of high, thick stone walls with deep foundations. Such walls are resistant even agains the strongest forms of siege engines, and certainly provide sisgnificant advantage to those under their protection..</description>
+    <effects>Enables construction of level 3 walls</effects>
+    <starting_for/>
+  </innovation>
+
+  <!--
+    Astrolabe is the prerequisite of Compass. The pre-XML code initialised it
+    but never listed it in DefaultInnovations.All, so GetById("innovation_astrolabe")
+    returned null and a saved Astrolabe could NRE in PostInitialize. Shipping it
+    as a normal row fixes that — it is now properly registered.
+  -->
+  <innovation id="innovation_astrolabe" type="Technology" required_progress="3000" era="ThirdEra">
+    <name>Astrolabe</name>
+    <description>.</description>
+    <effects>C</effects>
+    <starting_for/>
+  </innovation>
+</innovations>

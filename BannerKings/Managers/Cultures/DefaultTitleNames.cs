@@ -1,38 +1,40 @@
 using System.Collections.Generic;
 using System.Linq;
-using TaleWorlds.CampaignSystem;
-using TaleWorlds.Localization;
 using BannerKings.Managers.Titles;
+using BannerKings.Utils.BKData;
+using TaleWorlds.CampaignSystem;
+using TaleWorlds.Core;
+using TaleWorlds.Localization;
 
 namespace BannerKings.Managers.Cultures
 {
+    /// <summary>
+    /// Cultural title names are loaded from
+    /// <c>ModuleData/BKData/bk_title_names.xml</c> across every installed
+    /// module (last writer wins per id). Each row's <c>type</c> attribute
+    /// picks the rank (Empire / Kingdom / … / Prince / Knight). BK ships only
+    /// generic (culture-less) fallback rows; setting overhauls add
+    /// culture-specific rows.
+    /// </summary>
     public class DefaultTitleNames : DefaultTypeInitializer<DefaultTitleNames, CulturalTitleName>
     {
-        public CulturalTitleName DefaultEmpire { get; private set; }
-        public CulturalTitleName DefaultKing { get; private set; }
-        public CulturalTitleName DefaultDuke { get; private set; }
-        public CulturalTitleName DefaultCount { get; private set; }
-        public CulturalTitleName DefaultBaron { get; private set; }
-        public CulturalTitleName DefaultLord { get; private set; }
-        public CulturalTitleName DefaultPrince { get; private set; }
-        public CulturalTitleName DefaultKnight { get; private set; }
+        private readonly List<CulturalTitleName> _loaded = new List<CulturalTitleName>();
+
+        public CulturalTitleName DefaultEmpire => GetById("DefaultEmpire");
+        public CulturalTitleName DefaultKing => GetById("DefaultKing");
+        public CulturalTitleName DefaultDuke => GetById("DefaultDuke");
+        public CulturalTitleName DefaultCount => GetById("DefaultCount");
+        public CulturalTitleName DefaultBaron => GetById("DefaultBaron");
+        public CulturalTitleName DefaultLord => GetById("DefaultLord");
+        public CulturalTitleName DefaultPrince => GetById("DefaultPrince");
+        public CulturalTitleName DefaultKnight => GetById("DefaultKnight");
 
         public override IEnumerable<CulturalTitleName> All
         {
             get
             {
-                yield return DefaultKnight;
-                yield return DefaultPrince;
-                yield return DefaultLord;
-                yield return DefaultBaron;
-                yield return DefaultCount;
-                yield return DefaultDuke;
-                yield return DefaultKing;
-                yield return DefaultEmpire;
-                foreach (var item in ModAdditions)
-                {
-                    yield return item;
-                }
+                foreach (var t in _loaded) yield return t;
+                foreach (var item in ModAdditions) yield return item;
             }
         }
 
@@ -71,53 +73,51 @@ namespace BannerKings.Managers.Cultures
 
         public override void Initialize()
         {
-            DefaultEmpire = CulturalTitleName.CreateEmpire("DefaultEmpire",
-                null,
-                new TextObject("{=9WOQTiBr}Emperor"),
-                new TextObject("{=gbpokx6s}Empress"),
-                new TextObject("Empire"));
+            _loaded.Clear();
+            var cultures = Game.Current.ObjectManager.GetObjectTypeList<CultureObject>();
 
-            DefaultKing = CulturalTitleName.CreateKingdom("DefaultKing",
-                null,
-                new TextObject("{=zyKSROjQ}King"),
-                new TextObject("{=JmdALFU2}Queen"),
-                new TextObject("{=7x3HJ29f}Kingdom"));
+            foreach (var row in BKDataStore.Instance.GetRows("title_names"))
+            {
+                var id = BKXml.Attr(row, "id");
+                if (string.IsNullOrEmpty(id)) continue;
 
-            DefaultDuke = CulturalTitleName.CreateDuchy("DefaultDuke",
-                null,
-                new TextObject("{=vFJ7NjqE}Duke"),
-                new TextObject("{=5uFw1EmO}Duchess"),
-                new TextObject("{=HtWGKBDF}Dukedom"));
+                var type = BKXml.Attr(row, "type");
+                if (string.IsNullOrEmpty(type))
+                {
+                    BKDataStore.Instance.AddDiagnostic("[BKData] title_name '" + id + "': missing type attribute");
+                    continue;
+                }
 
-            DefaultCount = CulturalTitleName.CreateCounty("DefaultCount",
-                null,
-                new TextObject("{=hG2krbg9}Count"),
-                new TextObject("{=o513XU29}Countess"),
-                new TextObject("{=c6ggHVzS}County"));
+                CultureObject culture = null;
+                var cultureRef = BKXml.Attr(row, "culture");
+                if (!string.IsNullOrEmpty(cultureRef))
+                {
+                    culture = cultures.FirstOrDefault(c => c.StringId == cultureRef);
+                    if (culture == null) continue;
+                }
 
-            DefaultBaron = CulturalTitleName.CreateBarony("DefaultBaron",
-                null,
-                new TextObject("{=LvgTvjd1}Baron"),
-                new TextObject("{=yxq4RV7E}Baroness"),
-                new TextObject("{=qOLmvS0B}Barony"));
+                var name = BKXml.LocText(row, "title_name", id, "name", fallbackIfMissing: id);
+                var female = BKXml.LocText(row, "title_name", id, "female", fallbackIfMissing: id);
+                var realm = BKXml.LocText(row, "title_name", id, "realm", fallbackIfMissing: id);
 
-            DefaultLord = CulturalTitleName.CreateLordship("DefaultLord",
-                null,
-                new TextObject("{=Jd1iqDAX}Lord"),
-                new TextObject("{=8V8i6QCm}Lady"),
-                new TextObject("{=dwMA32rq}Lordship"));
-
-            DefaultPrince = CulturalTitleName.CreatePrince("DefaultPrince",
-                null,
-                new TextObject("{=V219eHY6}Prince"),
-                new TextObject("{=e7Nhe2YX}Princess"),
-                new TextObject("{=UZNcONWY}Princes"));
-
-            DefaultKnight = CulturalTitleName.CreateKnight("DefaultKnight",
-                null,
-                new TextObject("{=W9G4PTpt}Knight"),
-                new TextObject("{=6LHeHpCo}Knightess"),
-                new TextObject("{=ph4LMn6k}Knights"));
+                CulturalTitleName title;
+                switch (type.ToLowerInvariant())
+                {
+                    case "empire":   title = CulturalTitleName.CreateEmpire(id, culture, name, female, realm); break;
+                    case "kingdom":  title = CulturalTitleName.CreateKingdom(id, culture, name, female, realm); break;
+                    case "duchy":    title = CulturalTitleName.CreateDuchy(id, culture, name, female, realm); break;
+                    case "county":   title = CulturalTitleName.CreateCounty(id, culture, name, female, realm); break;
+                    case "barony":   title = CulturalTitleName.CreateBarony(id, culture, name, female, realm); break;
+                    case "lordship": title = CulturalTitleName.CreateLordship(id, culture, name, female, realm); break;
+                    case "prince":   title = CulturalTitleName.CreatePrince(id, culture, name, female, realm); break;
+                    case "knight":   title = CulturalTitleName.CreateKnight(id, culture, name, female, realm); break;
+                    default:
+                        BKDataStore.Instance.AddDiagnostic(
+                            "[BKData] title_name '" + id + "': unknown type '" + type + "'");
+                        continue;
+                }
+                _loaded.Add(title);
+            }
         }
     }
 }

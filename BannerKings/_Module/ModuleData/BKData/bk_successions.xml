@@ -1,0 +1,178 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  BK structural data — Successions. A succession law decides who inherits a
+  realm. The DATA (names, descriptions, political leanings, the per-culture
+  "ideal" map, the candidate/score explanation text) lives here; the BEHAVIOUR
+  (how candidates are enumerated and scored) is C# game logic resolved by the
+  behavior key against BannerKings.Utils.BKData.SuccessionRegistry.
+
+  Schema:
+    <succession id="..."
+                behavior="<registry_key>"
+                elected="true|false"
+                authoritarian="N" oligarchic="N" egalitarian="N">
+      <name>...</name>
+      <description>...</description>
+      <candidates_text>...</candidates_text>   who is eligible (UI text)
+      <score_text>...</score_text>             how they are scored (UI text)
+      <ideal_for>                               variable size, may be empty
+        <culture id="vlandia"/>
+      </ideal_for>
+    </succession>
+
+  behavior keys ship with BK: AseraiElective, Dictatorship, Imperial,
+  Hereditary, Republic, TheocraticElective, BattanianElective, FeudalElective,
+  TribalElective, WilundingElective. A setting overhaul re-skins any succession
+  freely but reuses one of these algorithms; a genuinely new algorithm needs a
+  C# companion mod calling SuccessionRegistry.Register(...).
+-->
+<successions>
+  <succession id="AseraiElective" behavior="AseraiElective" elected="true"
+              authoritarian="-0.7" oligarchic="1" egalitarian="-0.2">
+    <name>Nahasawi Elective</name>
+    <description>The Nahasawi succession is most interested in the economic prosperity of the realm, for trade is the blood that keeps the Nahasa clans alive. A strong leader, the Aserai say, is one both brave, so they may defeat their enemies, and generous, so they may be loved by those under their protection. Moreover, in keeping with the traditions of Banu Asera, the Nahasawi place value in the religious integrity and scholarly tendencies of their leader, or in other words, that they understand and seek Truth. A fool leader is no worse than a craven one.</description>
+    <candidates_text>- Heir of current ruler
+- Any Full Peerage clan leader</candidates_text>
+    <score_text>++ Skills
+++ Military power
++ Clan tier
++ Inheritance score (for clan inheritors)</score_text>
+    <ideal_for>
+      <culture id="aserai"/>
+    </ideal_for>
+  </succession>
+
+  <succession id="Dictatorship" behavior="Dictatorship" elected="false"
+              authoritarian="1" oligarchic="-0.2" egalitarian="-0.7">
+    <name>Dictatorship</name>
+    <description>Imperial successions are completely dictated by the emperor/empress. They will choose from most competent members in their family, as well as other family leaders. Imperial succession values age, family prestigy, military and administration skills. No election takes place.</description>
+    <candidates_text>-Inheritance candidates of current ruler
+- Title claimants
+- Anyone capable of leading an army (marshal, legates)</candidates_text>
+    <score_text>++ Inheritance score (for clan inheritors)
++ Title claim
++ Skills</score_text>
+    <ideal_for>
+      <culture id="empire_w"/>
+    </ideal_for>
+  </succession>
+
+  <succession id="Imperial" behavior="Imperial" elected="false"
+              authoritarian="1" oligarchic="-0.2" egalitarian="-0.7">
+    <name>Imperial</name>
+    <description>Imperial successions, despite not being elective, can be quite uncertain.</description>
+    <candidates_text>- Inheritance candidates of current ruler
+- Title claimants
+- Any clan leader capable of leading an army (marshal, legates)</candidates_text>
+    <score_text>++ Inheritance score (for clan inheritors)
+++ Influence cap
++ Title claim
++ Skills</score_text>
+    <ideal_for>
+      <culture id="empire_s"/>
+    </ideal_for>
+  </succession>
+
+  <succession id="Hereditary" behavior="Hereditary" elected="false"
+              authoritarian="0.8" oligarchic="-0.2" egalitarian="-0.6">
+    <name>Hereditary Monarchy</name>
+    <description>In hereditary monarchies, the monarch is always the ruling dynasty's leader. No election takes place, and the realm does not change leadership without extraordinary measures.</description>
+    <candidates_text>- Inheritance candidates of current ruler
+- Title claimants
+- Anyone with title of duke or higher (if there aren't at least 3 candidates)</candidates_text>
+    <score_text>+++ Inheritance score (for clan inheritors)
+++ Title claim
++ Clan tier</score_text>
+    <ideal_for/>
+  </succession>
+
+  <succession id="Republic" behavior="Republic" elected="true"
+              authoritarian="-1" oligarchic="0.4" egalitarian="0.9">
+    <name>Republican</name>
+    <description>Republican successions ensure the power is never concentrated. Each year, a new ruler is chosen from the realm's dynasties. The previous ruler is strickly forbidden to participate. Age, family prestige and administration skills are sought after in candidates.</description>
+    <candidates_text>- Any Full Peerage clan leader</candidates_text>
+    <score_text>+++ Political traits
+++ Clan tier
+++ Skills
++ Age</score_text>
+    <ideal_for>
+      <culture id="empire"/>
+    </ideal_for>
+  </succession>
+
+  <succession id="TheocraticElective" behavior="TheocraticElective" elected="true"
+              authoritarian="-0.2" oligarchic="-0.5" egalitarian="0.7">
+    <name>Theocratic Elective</name>
+    <description></description>
+    <candidates_text>-Every clan leader of same faith as current ruler</candidates_text>
+    <score_text>++ Piety
+++ Virtues
+++ Zealotry
++ Skills
++ Clan tier</score_text>
+    <ideal_for/>
+  </succession>
+
+  <succession id="BattanianElective" behavior="BattanianElective" elected="true"
+              authoritarian="-0.4" oligarchic="1" egalitarian="0.2">
+    <name>Battanian Elective</name>
+    <description>The Battanian succession is traditionally reliant upon renown. Caladog fen Gruffendoc is a notorious exception, who managed to leverage his close relationship to the previous High King, Aeril fen Uthelhain, to rally the traditional houses behind him. Yet, the tradition of renowned, strong leaders remains - Battanians care little for 'legal arguments' such as claims, and instead respect force and name. Family members of the ruler are generally preferred, but will quickly be cast aside once a stronger option presents itself.</description>
+    <candidates_text>- Inheritance candidates of current ruler
+- Any clan leader of clan tier 3 or higher</candidates_text>
+    <score_text>+++ Clan tier
+++ Skills
++ Inheritance score (for clan inheritors)
++ Military power</score_text>
+    <ideal_for/>
+  </succession>
+
+  <succession id="FeudalElective" behavior="FeudalElective" elected="true"
+              authoritarian="-0.4" oligarchic="1" egalitarian="0.2">
+    <name>Feudal Elective</name>
+    <description>A feudal elective succession is a compromise between a hereditary monarchy and a fully elective monarchy. Votes will be cast by the Peers, however the main candidates are the former ruler's family. However, title claimants will also be considered. If there is a scarcity of candidates available, strong families in the realm will also be considered candidates. If the chosen heir is from the former ruler's family, they will inherit the clan, regardless of Inheritance laws.</description>
+    <candidates_text>-Inheritance candidates of current ruler
+- Title claimants
+- Anyone with title of count or higher and clan tier 5 or higher</candidates_text>
+    <score_text>+++ Inheritance score (for clan inheritors)
+++ Title claim
+Influence cap
++ Clan tier
++ Skills</score_text>
+    <ideal_for/>
+  </succession>
+
+  <succession id="TribalElective" behavior="TribalElective" elected="true"
+              authoritarian="-0.4" oligarchic="1" egalitarian="0.2">
+    <name>Tribal Elective</name>
+    <description>Tribal Elective succession describes a generalized form of succession for the non-feudal and non-imperial cultures of Calradia. Such practices often care little for dynastic inheritance and none for legal trivialities such as claims. Instead, strong competent leaders are respected, specially those with renowned names, for these are the types of rulers that can rally together rivaling tribes that would otherwise be destroying each other.</description>
+    <candidates_text>-Inheritance candidates of current ruler
+- Title claimants
+- Anyone with title of count or higher and clan tier 5 or higher</candidates_text>
+    <score_text>++ Skills
+++ Military power
++ Clan tier
++ Inheritance score (for clan inheritors)</score_text>
+    <ideal_for>
+      <culture id="khuzait"/>
+      <culture id="sturgia"/>
+    </ideal_for>
+  </succession>
+
+  <succession id="WilundingElective" behavior="WilundingElective" elected="true"
+              authoritarian="-0.4" oligarchic="1" egalitarian="0.2">
+    <name>Wilunding Elective</name>
+    <description>The Wilunding succession is the traditional practice brought the Wilunding peoples, also known as Vlandians, from their ancestral home. This practice gives precedence to the ruling dynasty's inheritors, but in the absence of a good match, legitimizes powerful claimants and lords.</description>
+    <candidates_text>- Inheritance candidates of current ruler
+- Title claimants
+- Anyone with title of duke or higher (if there aren't at least 3 candidates)</candidates_text>
+    <score_text>++ Inheritance score (for clan inheritors)
+++ Military power
++ Clan tier
++ Title claim
++ Leadership</score_text>
+    <ideal_for>
+      <culture id="vlandia"/>
+      <culture id="nord"/>
+    </ideal_for>
+  </succession>
+</successions>

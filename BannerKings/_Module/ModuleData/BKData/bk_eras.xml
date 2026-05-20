@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  BK structural data — Eras. An Era is a tech-progression age; each Innovation
+  belongs to one. Eras form a chain via the previous attribute.
+
+  Schema:
+    <era id="..." previous="<era_id>">     previous optional (omit for the first era)
+      <name>...</name>
+      <description>...</description>
+    </era>
+
+  The loader builds eras in two passes, so previous may reference an era
+  declared later in the file.
+-->
+<eras>
+  <era id="FirstEra">
+    <name>Calradoi Age</name>
+    <description>The era of the Calradoi was the period in which the Imperium reigned unmatched. </description>
+  </era>
+
+  <era id="SecondEra" previous="FirstEra">
+    <name>Internecine Age</name>
+    <description>With the advent of the battle of Pendraic and death of emperor Arenicos Pethros, the former Imperium has shattered into civil war - an Internecine.</description>
+  </era>
+
+  <era id="ThirdEra" previous="SecondEra">
+    <name>Dark Age</name>
+    <description>Little is known about the period after the Internecine... However, scholars all agree that, within the 2 centuries, the empire was completely destroyed. Hordes have pillaged and razed cities to the ground, faiths and cultures ceased to exist and new kingdoms arose from the darkness. Yet, none ever shone a light so strong as did the Imperium.</description>
+  </era>
+</eras>

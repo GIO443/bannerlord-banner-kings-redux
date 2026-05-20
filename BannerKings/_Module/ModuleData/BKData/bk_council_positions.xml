@@ -1,0 +1,203 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  BK structural data — Council Positions. "Refs-only" conversion: the
+  structural refs (governing skills, council tasks, privileges, trait weights,
+  ai-priority flag) live here; the behaviour (adequacy / candidate-validity
+  predicates AND the per-culture title map) is C# resolved by the behavior key
+  against BannerKings.Utils.BKData.CouncilPositionRegistry.
+
+  Schema:
+    <council_position id="..."
+                      behavior="<registry_key>"
+                      primary_skill="<skill_id>"
+                      secondary_skill="<skill_id>"     optional (omit for none)
+                      ai_priority="true|false">
+      <tasks>      <task ref="<council_task_id>"/> ...      </tasks>
+      <privileges> <privilege id="ARMY_PRIVILEGE"/> ...     </privileges>
+      <trait_weights> <trait ref="<trait_id>" weight="N"/> ... </trait_weights>
+    </council_position>
+
+  Skill refs resolve against every registered SkillObject (vanilla + BK).
+  task refs resolve against DefaultCouncilTasks (the loader takes a GetCopy()).
+  privilege ids are the CouncilPrivileges enum. trait refs resolve against
+  every TraitObject. A council position carries no name in XML — its name is
+  produced at runtime by the behavior's per-culture CulturalName resolver.
+-->
+<council_positions>
+  <council_position id="LegionCommander1" behavior="LegionCommander" primary_skill="Leadership" secondary_skill="Tactics" ai_priority="true">
+    <tasks><task ref="GatherLegion"/></tasks>
+    <privileges>
+      <privilege id="ARMY_PRIVILEGE"/>
+      <privilege id="NOBLE_EXCLUSIVE"/>
+    </privileges>
+    <trait_weights>
+      <trait ref="Valor" weight="0.05"/>
+      <trait ref="Calculating" weight="0.05"/>
+    </trait_weights>
+  </council_position>
+
+  <council_position id="LegionCommander2" behavior="LegionCommander" primary_skill="Leadership" secondary_skill="Tactics" ai_priority="true">
+    <tasks><task ref="GatherLegion"/></tasks>
+    <privileges>
+      <privilege id="ARMY_PRIVILEGE"/>
+      <privilege id="NOBLE_EXCLUSIVE"/>
+    </privileges>
+    <trait_weights>
+      <trait ref="Valor" weight="0.05"/>
+      <trait ref="Calculating" weight="0.05"/>
+    </trait_weights>
+  </council_position>
+
+  <council_position id="LegionCommander3" behavior="LegionCommander" primary_skill="Leadership" secondary_skill="Tactics" ai_priority="true">
+    <tasks><task ref="GatherLegion"/></tasks>
+    <privileges>
+      <privilege id="ARMY_PRIVILEGE"/>
+      <privilege id="NOBLE_EXCLUSIVE"/>
+    </privileges>
+    <trait_weights>
+      <trait ref="Valor" weight="0.05"/>
+      <trait ref="Calculating" weight="0.05"/>
+    </trait_weights>
+  </council_position>
+
+  <council_position id="LegionCommander4" behavior="LegionCommander" primary_skill="Leadership" secondary_skill="Tactics" ai_priority="true">
+    <tasks><task ref="GatherLegion"/></tasks>
+    <privileges>
+      <privilege id="ARMY_PRIVILEGE"/>
+      <privilege id="NOBLE_EXCLUSIVE"/>
+    </privileges>
+    <trait_weights>
+      <trait ref="Valor" weight="0.05"/>
+      <trait ref="Calculating" weight="0.05"/>
+    </trait_weights>
+  </council_position>
+
+  <council_position id="LegionCommander5" behavior="LegionCommander" primary_skill="Leadership" secondary_skill="Tactics" ai_priority="true">
+    <tasks><task ref="GatherLegion"/></tasks>
+    <privileges>
+      <privilege id="ARMY_PRIVILEGE"/>
+      <privilege id="NOBLE_EXCLUSIVE"/>
+    </privileges>
+    <trait_weights>
+      <trait ref="Valor" weight="0.05"/>
+      <trait ref="Calculating" weight="0.05"/>
+    </trait_weights>
+  </council_position>
+
+  <council_position id="Marshall" behavior="Marshal" primary_skill="Leadership" secondary_skill="Tactics" ai_priority="false">
+    <tasks>
+      <task ref="OrganizeMilitia"/>
+      <task ref="EncourageMilitarism"/>
+    </tasks>
+    <privileges>
+      <privilege id="ARMY_PRIVILEGE"/>
+    </privileges>
+    <trait_weights/>
+  </council_position>
+
+  <council_position id="Steward" behavior="Steward" primary_skill="Steward" secondary_skill="Trade" ai_priority="false">
+    <tasks>
+      <task ref="DevelopEconomy"/>
+      <task ref="OverseeProduction"/>
+      <task ref="PromoteCulture"/>
+    </tasks>
+    <privileges/>
+    <trait_weights>
+      <trait ref="Generosity" weight="-0.05"/>
+      <trait ref="Calculating" weight="0.1"/>
+    </trait_weights>
+  </council_position>
+
+  <council_position id="Chancellor" behavior="Chancellor" primary_skill="Charm" secondary_skill="Lordship" ai_priority="false">
+    <tasks>
+      <task ref="OverseeDignataries"/>
+      <task ref="ManageVassals"/>
+      <task ref="ArbitrateRelations"/>
+    </tasks>
+    <privileges/>
+    <trait_weights/>
+  </council_position>
+
+  <council_position id="Spymaster" behavior="Spymaster" primary_skill="Roguery" secondary_skill="Lordship" ai_priority="false">
+    <tasks>
+      <task ref="OverseeSecurity"/>
+      <task ref="RepressCriminality"/>
+    </tasks>
+    <privileges/>
+    <trait_weights>
+      <trait ref="Mercy" weight="-0.1"/>
+      <trait ref="Calculating" weight="0.1"/>
+    </trait_weights>
+  </council_position>
+
+  <council_position id="Spiritual" behavior="Spiritual" primary_skill="Theology" secondary_skill="Scholarship" ai_priority="false">
+    <tasks>
+      <task ref="PromoteFaith"/>
+      <task ref="CultivatePiety"/>
+    </tasks>
+    <privileges>
+      <privilege id="CLERGYMEN_EXCLUSIVE"/>
+    </privileges>
+    <trait_weights/>
+  </council_position>
+
+  <council_position id="Spouse" behavior="Spouse" primary_skill="Lordship" secondary_skill="Steward" ai_priority="false">
+    <tasks>
+      <task ref="ManageDemesne"/>
+    </tasks>
+    <privileges/>
+    <trait_weights/>
+  </council_position>
+
+  <council_position id="CourtPhysician" behavior="CourtPhysician" primary_skill="Medicine" secondary_skill="Scholarship" ai_priority="false">
+    <tasks>
+      <task ref="FamilyCare"/>
+    </tasks>
+    <privileges/>
+    <trait_weights/>
+  </council_position>
+
+  <council_position id="CourtSmith" behavior="CourtSmith" primary_skill="Crafting" ai_priority="false">
+    <tasks>
+      <task ref="SmithWeapons"/>
+      <task ref="SmithArmors"/>
+      <task ref="SmithBardings"/>
+    </tasks>
+    <privileges/>
+    <trait_weights/>
+  </council_position>
+
+  <council_position id="CourtMusician" behavior="CourtMusician" primary_skill="Medicine" secondary_skill="Scholarship" ai_priority="false">
+    <tasks>
+      <task ref="EntertainFeastsMusician"/>
+    </tasks>
+    <privileges/>
+    <trait_weights>
+      <trait ref="Musician" weight="0.8"/>
+    </trait_weights>
+  </council_position>
+
+  <council_position id="Antiquarian" behavior="Antiquarian" primary_skill="Medicine" secondary_skill="Scholarship" ai_priority="false">
+    <tasks>
+      <task ref="EducateFamilyAntiquarian"/>
+    </tasks>
+    <privileges/>
+    <trait_weights/>
+  </council_position>
+
+  <council_position id="Castellan" behavior="Castellan" primary_skill="Steward" secondary_skill="Lordship" ai_priority="false">
+    <tasks>
+      <task ref="OverseeBaronies"/>
+    </tasks>
+    <privileges/>
+    <trait_weights/>
+  </council_position>
+
+  <council_position id="Constable" behavior="Constable" primary_skill="Steward" secondary_skill="Lordship" ai_priority="false">
+    <tasks>
+      <task ref="EnforceLaw"/>
+    </tasks>
+    <privileges/>
+    <trait_weights/>
+  </council_position>
+</council_positions>

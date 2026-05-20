@@ -1,201 +1,102 @@
+using System;
 using System.Collections.Generic;
+using BannerKings.Utils.BKData;
 using TaleWorlds.Localization;
 
 namespace BannerKings.Managers.Institutions.Religions.Doctrines
 {
+    /// <summary>
+    /// Doctrines are loaded from <c>ModuleData/BKData/bk_doctrines.xml</c> across
+    /// every installed module (last writer wins per id). Named properties on this
+    /// class resolve by id against the loaded set, so any consumer doing
+    /// <c>DefaultDoctrines.Instance.Druidism</c> keeps working as long as the
+    /// "druidism" row exists; flavor mods that wipe BK's row see a null here
+    /// (intentional — they're saying that doctrine no longer exists in their
+    /// setting).
+    /// </summary>
     public class DefaultDoctrines : DefaultTypeInitializer<DefaultDoctrines, Doctrine>
     {
-        public Doctrine Druidism { get; private set; }
-        public Doctrine Animism { get; private set; }
-        public Doctrine Legalism { get; private set; }
-        public Doctrine CommunalFaith { get; private set; }
-        public Doctrine Literalism { get; private set; }
-        public Doctrine Pastoralism { get; private set; }
-        public Doctrine Pacifism { get; private set; }
-        public Doctrine HeathenTax { get; private set; }
-        public Doctrine Childbirth { get; private set; }
-        public Doctrine Sacrifice { get; private set; }
-        public Doctrine OsricsVengeance { get; private set; }
-        public Doctrine Warlike { get; private set; }
-        public Doctrine Reavers { get; private set; }
-        public Doctrine Tolerant { get; private set; }
-        public Doctrine Shamanism { get; private set; }
-        public Doctrine Astrology { get; private set; }
-        public Doctrine Esotericism { get; private set; }
-        public Doctrine RenovatioImperi { get; private set; }
-        public Doctrine AncestorWorship { get; private set; }
-        public Doctrine Defensive { get; private set; }
+        private readonly List<Doctrine> _loaded = new List<Doctrine>();
+
+        public Doctrine Druidism => GetById("druidism");
+        public Doctrine Animism => GetById("animism");
+        public Doctrine Legalism => GetById("legalism");
+        public Doctrine CommunalFaith => GetById("communal_faith");
+        public Doctrine Literalism => GetById("literalism");
+        public Doctrine Pastoralism => GetById("pastorialism");
+        public Doctrine Pacifism => GetById("pacifism");
+        public Doctrine HeathenTax => GetById("heathen_tax");
+        public Doctrine Childbirth => GetById("childbirth");
+        public Doctrine Sacrifice => GetById("sacrifice");
+        public Doctrine OsricsVengeance => GetById("osrics_vengeance");
+        public Doctrine Warlike => GetById("Warlike");
+        public Doctrine Reavers => GetById("Reavers");
+        public Doctrine Tolerant => GetById("Tolerant");
+        public Doctrine Shamanism => GetById("Shamanism");
+        public Doctrine Astrology => GetById("Astrology");
+        public Doctrine Esotericism => GetById("Esotericism");
+        public Doctrine RenovatioImperi => GetById("RenovatioImperi");
+        public Doctrine AncestorWorship => GetById("AncestorWorship");
+        // Defensive doctrine never existed in data; left as a deliberately
+        // null property to match the historical pre-XML behaviour. Setting
+        // overhauls that want a "defensive" doctrine ship their own row.
+        public Doctrine Defensive => GetById("Defensive");
 
         public override IEnumerable<Doctrine> All
         {
             get
             {
-                yield return Druidism;
-                yield return Animism;
-                yield return Legalism;
-                yield return CommunalFaith;
-                yield return Literalism;
-                yield return Pastoralism;
-                yield return Pacifism;
-                yield return HeathenTax;
-                yield return Childbirth;
-                yield return Sacrifice;
-                yield return OsricsVengeance;
-                yield return Reavers;
-                yield return Tolerant;
-                yield return Shamanism;
-                yield return Astrology;
-                yield return Esotericism;
-                yield return RenovatioImperi;
-                yield return AncestorWorship;
-                yield return Warlike;
-                // Defensive property is declared at the top of this file
-                // but never initialised in Initialize() — yielding it
-                // would surface a null entry to consumers. Left out of
-                // the iteration intentionally until someone wires it up.
-                foreach (Doctrine item in ModAdditions)
-                {
-                    yield return item;
-                }
+                foreach (var d in _loaded) yield return d;
+                foreach (var item in ModAdditions) yield return item;
             }
         }
 
         public override void Initialize()
         {
-            AncestorWorship = new Doctrine("AncestorWorship",
-                new TextObject("{=Xiu8X9qO}Ancestor Worship"),
-                new TextObject("{=9p6qSRg8}Honoring the ancestors is a crucial part of the faith, for they watch over the living, expecting them to fulfill their traditions. They live on as spirits, when they are not among the ranks of the gods themselves."),
-                new TextObject("{=juD5XdS4}Easier to marry within the same faith{newline}Clan renown yields piety"),
-                new List<Doctrine>()
+            _loaded.Clear();
+
+            // Pass 1 — build every doctrine with an empty incompatibility list.
+            // Doctrine captures the List<Doctrine> by reference at construction,
+            // so we hold the same reference here and mutate it in pass 2 once
+            // every doctrine exists.
+            // OrdinalIgnoreCase to match BKDataStore's id semantics — an
+            // <incompatible> ref whose case differs from the row id resolves.
+            var byId = new Dictionary<string, Doctrine>(StringComparer.OrdinalIgnoreCase);
+            var incompListById = new Dictionary<string, List<Doctrine>>(StringComparer.OrdinalIgnoreCase);
+
+            foreach (var row in BKDataStore.Instance.GetRows("doctrines"))
+            {
+                var id = BKXml.Attr(row, "id");
+                if (string.IsNullOrEmpty(id)) continue;
+                if (byId.ContainsKey(id)) continue;
+
+                var permanent = BKXml.Bool(row, "permanent", false);
+                var name = BKXml.LocText(row, "doctrine", id, "name", fallbackIfMissing: id);
+                var description = BKXml.LocText(row, "doctrine", id, "description", fallbackIfMissing: string.Empty);
+                var effects = BKXml.LocText(row, "doctrine", id, "effects", fallbackIfMissing: string.Empty);
+
+                var incompList = new List<Doctrine>();
+                var doctrine = new Doctrine(id, name, description, effects, incompList, permanent);
+
+                byId[id] = doctrine;
+                incompListById[id] = incompList;
+                _loaded.Add(doctrine);
+            }
+
+            // Pass 2 — wire incompatibility refs. Unknown refs are silently
+            // skipped; that matches "row defined incompatibility with a
+            // doctrine that doesn't exist in this setting overhaul".
+            foreach (var row in BKDataStore.Instance.GetRows("doctrines"))
+            {
+                var id = BKXml.Attr(row, "id");
+                if (string.IsNullOrEmpty(id)) continue;
+                if (!incompListById.TryGetValue(id, out var list)) continue;
+                foreach (var refId in BKXml.ReadRefs(row, "incompatible"))
                 {
-                },
-                false);
-
-            RenovatioImperi = new Doctrine("RenovatioImperi",
-                new TextObject("{=fchnoe9s}Renovatio Imperi"),
-                new TextObject("{=M3JvSbgU}Peace in Calradia can only exist with an united Empire. A kingdom under the teachings of Heaven. The faithful should cast aside their ambitions and work together for the benefit of the gods."),
-                new TextObject("{=sv5WQvKn}On Imperial fiefs, showing mercy post siege, gain relations with all notables and lose no fief stability"),
-                new List<Doctrine>()
-                {
-                },
-                false);
-
-            Esotericism = new Doctrine("Esotericism",
-               new TextObject("{=YGuFNnk3}Esotericism"),
-               new TextObject("{=Q0d4cDjf}Knowledge and faith are less divided than most think. The cosmos is littered with mysteryes, and to seek their answers is to seek to reach the gods themselves."),
-               new TextObject("{=pOeZJvrH}Wisdom yields piety{newline}Finishing education projects yields piety and Theology"),
-               new List<Doctrine>()
-               {
-               },
-               false);
-
-            Astrology = new Doctrine("Astrology",
-               new TextObject("{=OuOni6ou}Astrology"),
-               new TextObject("{=T4Pgu3ej}The study of the stars is the study of the divine itself. Much like the Sun blesses the land with fertility, the stars bless man with wisdom."),
-               new TextObject("{=kyB8tkgY}Cultural innovations develop faster (when Cultural Head)\nShip travels are faster"),
-               new List<Doctrine>()
-               {
-               },
-               false);
-
-            Tolerant = new Doctrine("Tolerant",
-               new TextObject("{=LZrCRven}Tolerant"),
-               new TextObject("{=am2cZ8UT}A tolerant faith considers all faiths to be different interpretations of the Truth, as different paths to the real god(s). Tolerant faiths do not have hostile opinions toward any other faith, facilitating marraiges and decreasing tensions in multiple faith fiefs."),
-               new TextObject("{=MtkhyDww}Every other faith is consedered Tolerated"),
-               new List<Doctrine>()
-               {
-               },
-               false);
-
-            Shamanism = new Doctrine("Shamanism",
-               new TextObject("{=t4G2QPKk}Shamanism"),
-               new TextObject("{=2ibJQmci}Shamans are the intermediaries between manking and the spiritual world. They do not adhere to an organized structure, instead relying on oral tradition and local custom. Shamans often live close to nature, where the spirits lie, and perform rituals to access the spiritual world to communicate with them, acquiring knowledge to guide their people in the mundane plane."),
-               new TextObject("{=amGHABLU}Preachers are able to heal diseases and curses"),
-               new List<Doctrine>()
-               {
-                   Druidism
-               },
-               false);
-
-            OsricsVengeance = new Doctrine("osrics_vengeance", 
-                new TextObject("{=5MQPBU0H}Osric's Vengeance"),
-                new TextObject("{=o4TWonXM}Osric fulfilled his vengeace against the Calradic gods when the captured Pravend, taking away their power and providing bountiful land to his people. As such, the Wilunding should follow in his path of occupying their enemies."),
-                new TextObject("{=cRk0gMDk}Occupying fiefs yields significant piety"),
-                new List<Doctrine>()
-                {
-                    Warlike
-                },
-                true);
-
-            Reavers = new Doctrine("Reavers",
-                new TextObject("{=RCHN6ovr}Reavers"),
-                new TextObject("{=pA8rNnUH}Raiding and pillaging is understood as a pious practice. This faith"),
-                new TextObject("Piety gain raiding and fief pillaging of different cultures"),
-                new List<Doctrine>()
-                {
-                    OsricsVengeance
-                });
-
-            Warlike = new Doctrine("Warlike",
-                new TextObject("{=P5ptbVxu}Warlike"),
-                new TextObject("{=kyB8tkgY}Combat is considered by the faith a pious practice. The gods decide the winner, and to attempt to escape our fate through cravenness is an offence to the gods."),
-                new TextObject("Piety gain as battle reward"),
-                new List<Doctrine>()
-                {
-                    OsricsVengeance
-                });
-
-            Druidism = new Doctrine("druidism", 
-                new TextObject("{=9kA2mxU8}Druidism"),
-                new TextObject("{=5pkaQ17t}Clergy is considered part of the Druid caste, who represent the spiritual power, but are also involved in political, material affairs. In a way, druids are a form of lesser nobility and cannot be excluded from political affairs."),
-                new TextObject("{=9TwjtYhb}Preachers provide noble troops\nNo religious council advisor causes daily influence loss"),
-                new List<Doctrine>());
-
-            Animism = new Doctrine("animism", 
-                new TextObject("{=OZqf2Rab}Animism"),
-                new TextObject("{=GxdpgOvT}Spirits inhabit everywhere in this world, hidden in plain sight. Under the earth, flowing along rivers or bound to animals or trees, spirits can be anywhere. It is the duty of the faithful to not harm the balance of the material world with the spiritual world, which are often one and the same."),
-                new TextObject("{=FRAS5TAC}Woodland acreage provides piety\nReduced baseline fervor"),
-                new List<Doctrine>());
-
-            CommunalFaith = new Doctrine("communal_faith", new TextObject("{=Pj5aVLht}Communal Faith"),
-                new TextObject("{=!}"),
-                new TextObject("{=!}"),
-                new List<Doctrine>());
-
-            Legalism = new Doctrine("legalism", new TextObject("{=A7pNHzFo}Legalism"),
-                new TextObject("{=OKTdXTNh}Without laws, man is but beast. The wisdom of previous generations is preserved through law, which must be followed to the letter."),
-                new TextObject("{=hhwx3SVn}Heathens can not fill council positions\n+0.5 to vassal limit for each personal virtue"),
-                new List<Doctrine>());
-
-            HeathenTax = new Doctrine("heathen_tax", new TextObject("{=opRTVAF6}Heathen Taxation"),
-                new TextObject("{=QvoijhLH}Non believers are tolerated, but only through their financial subjugation. They are not trusted for service."),
-                new TextObject("{=6tDiRTo6}Heathen population yields extra tax\nReduced militarism in predominantly heathen settlements"),
-                new List<Doctrine>());
-
-            Pastoralism = new Doctrine("pastorialism", new TextObject("{=XX2xYuzs}Pastorialism"),
-                new TextObject("{=QvoijhLH}Non believers are tolerated, but only through their financial subjugation. They are not trusted for service."),
-                new TextObject("{=nBidhxSN}Pasture and farmland acreage are more productive\nReduced drafting efficiency"),
-                new List<Doctrine>());
-
-            Childbirth = new Doctrine("childbirth", new TextObject("{=DXNnpp89}Honored Childbirth"),
-                new TextObject("{=Xp0KPwWU}Birth of children and the spread of the family are seen as a blessing. The more children we bear, more will defend and honor our ways of life in the future."),
-                new TextObject("{=BV57JShf}Clan renown is increased every time a child is born\nIncreased fertility"),
-                new List<Doctrine>());
-
-            Pacifism = new Doctrine("pacifism", new TextObject("{=555i9sjK}Pacifism"),
-                new TextObject("{=a0e4FBRs}Peace is our most valued treasure. Unlike warmongering beasts, we cherish thriving through cooperation and hard work."),
-                new TextObject("{=Z2at3qd1}Increased stability in settlements\nPiety loss after battles"),
-                new List<Doctrine>());
-
-            Literalism = new Doctrine("literalism", new TextObject("{=qPcN1VEv}Literalism"),
-                new TextObject("{=0srttZAq}It is only through our holy texts that we can uphold our values and faith."),
-                new TextObject("{=FrtZRbPA}High scholarship provides piety, illiteracy reduces piety\nAdds Court Philosopher to royal councils"),
-                new List<Doctrine>());
-
-            Sacrifice = new Doctrine("sacrifice", new TextObject("{=DOiR2ymQ}Human Sacrifices"),
-                new TextObject("{=cE3uPWSF}Worthy opponents are deserving of a better death than commoners in the battlefield. We can prove our devotion by ritually sacrificing them."),
-                new TextObject("{=wtEXUh89}Allows the Human Sacrifice rite"),
-                new List<Doctrine>());
+                    if (byId.TryGetValue(refId, out var other) && other != null)
+                        list.Add(other);
+                }
+            }
         }
     }
 }

@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  BK structural data — Faith Groups. A faith group is the supra-faith
+  organisation a Faith belongs to (its priesthood / hierarchy). The behaviour
+  of a group (leader / preacher / temporal / political) is fixed by its
+  C# subclass, selected here via the type attribute and resolved through
+  BannerKings.Utils.BKData.FaithGroupRegistry.
+
+  Schema:
+    <faith_group id="..." type="Temporal|Disorganized|LandedPreacher">
+      <name>...</name>
+      <title>...</title>           rank title of the group's leader
+      <description>...</description>
+    </faith_group>
+
+  type="Appointed" is NOT supported from XML — AppointedGroup needs a live
+  CouncilMember reference. A mod wanting one ships a C# companion and adds it
+  via DefaultFaithGroups.AddObject(...).
+-->
+<faith_groups>
+  <faith_group id="imperial_orders" type="Temporal">
+    <name>Imperial Orders</name>
+    <title>Pontifex</title>
+    <description>The Imperial Orders descend from the temple-colleges of Old Pravend, organised under the eye of the reigning Imperial line. Their pontifex is by tradition seated at the Imperial capital.</description>
+  </faith_group>
+
+  <faith_group id="vlandic_canonical" type="Temporal">
+    <name>Canonical See</name>
+    <title>Primarch</title>
+    <description>The Canonical See is the assembly of priests who hold benefices across Vlandia, recognising a single primarch by oath.</description>
+  </faith_group>
+
+  <faith_group id="druidic_circles" type="Disorganized">
+    <name>Druidic Circles</name>
+    <title>Arch-Druid</title>
+    <description>The druids of the Battanian highlands keep no central seat. Their counsel is heard in the sacred lynns and oak-rings, never under one roof.</description>
+  </faith_group>
+
+  <faith_group id="aserai_ulama" type="Temporal">
+    <name>Ulama of the Sun</name>
+    <title>Imam</title>
+    <description>The Ulama are the learned faithful of the Aserai oases, gathered around the great mosques and madrasas of the south.</description>
+  </faith_group>
+
+  <faith_group id="steppe_khanate" type="Temporal">
+    <name>Sky-Shamans</name>
+    <title>Khan-Shaman</title>
+    <description>The shamans of the steppe answer first to clan and khan, second to the spirits beneath the open sky.</description>
+  </faith_group>
+
+  <faith_group id="northern_elders" type="Temporal">
+    <name>Old Gods Eldercouncil</name>
+    <title>Eldgothi</title>
+    <description>The eldercouncil of the northern peoples gathers at the great oaks each year to renew the bonds of the Old Gods with the living.</description>
+  </faith_group>
+
+  <faith_group id="nord_chieftains" type="Disorganized">
+    <name>Hraef-Sworn</name>
+    <title>Hrafnskáld</title>
+    <description>The Nordvyg recognise no priesthood beyond their own chieftains, who lead the offering and the war-rite alike.</description>
+  </faith_group>
+</faith_groups>

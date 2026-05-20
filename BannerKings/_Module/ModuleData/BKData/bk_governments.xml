@@ -1,0 +1,126 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  BK structural data — Governments. A government is a realm's constitutional
+  form. It carries political leanings, a mercantilism modifier, the list of
+  policies it prohibits, and the successions it permits.
+
+  Schema:
+    <government id="..."
+                mercantilism="N"
+                authoritarian="N" oligarchic="N" egalitarian="N">
+      <name>...</name>
+      <description>...</description>
+      <effects>...</effects>
+      <prohibited_policies>                  variable size
+        <policy ref="<policy_string_id>"/>
+      </prohibited_policies>
+      <successions>                          variable size
+        <succession ref="<succession_id>"/>
+      </successions>
+    </government>
+
+  policy refs resolve against every registered PolicyObject — vanilla
+  (policy_war_tax, policy_sacred_majesty, …) and BK (policy_limited_army_privilege).
+  succession refs resolve against bk_successions.xml ids. Unknown refs are
+  skipped with a diagnostic.
+-->
+<governments>
+  <government id="Republic" mercantilism="0.5" authoritarian="-1" oligarchic="0.6" egalitarian="1">
+    <name>Republic</name>
+    <description>Republics are a Calradoi government with the purpose of preventing authoritarian regimes of power. Before the Calradoi organized themselves into the empire, they were a republic, government by a body of peers called the Senate. They were traditionally quite resistant to any attempts of power concentration at the hands of one or another senator, lest they turn into a monarchical regime... Yet, at times of war, strong, unquestioned leadership was needed, wich could be granted to a temporary senator holding all the power - the Diktator. History teaches that one Diktator too influential is all it takes to topple a republic.</description>
+    <effects>- Every year, an election for ruler takes place (Republican succession){newline}- Settlement production quality +10%{newline}- Settlement loyalty +1{newline}- Settlement mercantilism +50%</effects>
+    <prohibited_policies>
+      <policy ref="policy_sacred_majesty"/>
+      <policy ref="policy_crown_duty"/>
+      <policy ref="policy_imperial_towns"/>
+      <policy ref="policy_royal_commissions"/>
+      <policy ref="policy_royal_guard"/>
+      <policy ref="policy_royal_privilege"/>
+      <policy ref="policy_war_tax"/>
+      <policy ref="policy_castle_charters"/>
+      <policy ref="policy_state_monopolies"/>
+      <policy ref="policy_debasement_of_the_currency"/>
+      <policy ref="policy_land_tax"/>
+      <policy ref="policy_limited_army_privilege"/>
+    </prohibited_policies>
+    <successions>
+      <succession ref="Republic"/>
+      <succession ref="Dictatorship"/>
+    </successions>
+  </government>
+
+  <government id="Imperial" mercantilism="0.2" authoritarian="1" oligarchic="-0.2" egalitarian="-0.5">
+    <name>Imperial</name>
+    <description>The Calradoi Imperial government was created after its original Republic. Unlike feudal monarchies, the empire, though often hereditary, is built on a different ethos. Though a Senate may exist, it is more often than not a formality than an effective political force. All property is considered ultimately the emperor's, and thus their vassals are mere administrators, rather than owners of their domains. In theory, ruling families only inherit their properties by the emperor's grace, who temporarily holds them in the family head's death, before granting it back to them. In truth, many emperors cannot afford to not concede to such influential families. Imperial fiefs are highly integrated, with security and assimilation as priorities.</description>
+    <effects>- Settlement cultural weight +40%{newline}- Settlement security +1{newline}- Settlement mercantilism +20%</effects>
+    <prohibited_policies>
+      <policy ref="policy_war_tax"/>
+      <policy ref="policy_lords_privy_council"/>
+      <policy ref="policy_feudal_inheritance"/>
+      <policy ref="policy_castle_charters"/>
+      <policy ref="policy_bailiffs"/>
+      <policy ref="policy_hunting_rights"/>
+      <policy ref="policy_grazing_rights"/>
+      <policy ref="policy_marshals"/>
+      <policy ref="policy_cantons"/>
+      <policy ref="policy_council_of_the_commons"/>
+      <policy ref="policy_noble_retinues"/>
+      <policy ref="policy_limited_army_privilege"/>
+    </prohibited_policies>
+    <successions>
+      <succession ref="Imperial"/>
+      <succession ref="Dictatorship"/>
+    </successions>
+  </government>
+
+  <government id="Tribal" mercantilism="0.3" authoritarian="-0.7" oligarchic="0.5" egalitarian="0.4">
+    <name>Tribal</name>
+    <description>Most non-Imperial societies are organized in the 'tribal' manner, for example: the Battanians who united under a High-Kingdom to fight their common enemy, the Nahasawi as a tribe confederation with the purpose of protecting trade and prosperity. Tribal administrations are often more descentralized and autonomous than otherwise, and legal arguments often have no place against military force and cultural tradition.</description>
+    <effects>- Settlement militia +1{newline}- Settlement draft efficiency +20%{newline}- Settlement mercantilism +30%</effects>
+    <prohibited_policies>
+      <policy ref="policy_sacred_majesty"/>
+      <policy ref="policy_debasement_of_the_currency"/>
+      <policy ref="policy_crown_duty"/>
+      <policy ref="policy_imperial_towns"/>
+      <policy ref="policy_royal_commissions"/>
+      <policy ref="policy_royal_guard"/>
+      <policy ref="policy_royal_privilege"/>
+      <policy ref="policy_castle_charters"/>
+      <policy ref="policy_senate"/>
+      <policy ref="policy_citizenship"/>
+      <policy ref="policy_magistrates"/>
+      <policy ref="policy_feudal_inheritance"/>
+      <policy ref="policy_precarial_land_tenure"/>
+      <policy ref="policy_limited_army_privilege"/>
+    </prohibited_policies>
+    <successions>
+      <succession ref="TribalElective"/>
+      <succession ref="WilundingElective"/>
+      <succession ref="BattanianElective"/>
+    </successions>
+  </government>
+
+  <government id="Feudal" mercantilism="0.15" authoritarian="-0.4" oligarchic="0.7" egalitarian="-0.2">
+    <name>Feudal</name>
+    <description>Feudal governments stablish the authority of a life-serving ruler, while keeping a relatively degree of autonomy to their vassals. Unlike in empires, feudal societies have a strong sense of property, and legal claims and technicalities often take precedence over other factors. While the king or queen draw great influence, their subordinate peers are guaranteed certain securities that the ruler is bound by law to follow.</description>
+    <effects>- Petitioning rights yields no relation loss{newline}- Settlement stability +5%{newline}- Settlement prod. efficiency +10%{newline}- Settlement mercantilism +15%</effects>
+    <prohibited_policies>
+      <policy ref="policy_imperial_towns"/>
+      <policy ref="policy_precarial_land_tenure"/>
+      <policy ref="policy_war_tax"/>
+      <policy ref="policy_state_monopolies"/>
+      <policy ref="policy_senate"/>
+      <policy ref="policy_council_of_the_commons"/>
+      <policy ref="policy_citizenship"/>
+      <policy ref="policy_tribunes_of_the_people"/>
+      <policy ref="policy_cantons"/>
+      <policy ref="policy_magistrates"/>
+    </prohibited_policies>
+    <successions>
+      <succession ref="FeudalElective"/>
+      <succession ref="WilundingElective"/>
+      <succession ref="TheocraticElective"/>
+      <succession ref="Hereditary"/>
+    </successions>
+  </government>
+</governments>

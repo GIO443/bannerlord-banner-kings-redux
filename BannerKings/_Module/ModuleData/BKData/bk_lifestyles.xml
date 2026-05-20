@@ -1,0 +1,255 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  BK structural data — Lifestyles. A lifestyle is an education path: two
+  governing skills, an ordered list of perks unlocked by investing focus, a
+  passive effect line with two numeric slots, and an optional native culture.
+
+  Schema:
+    <lifestyle id="..."
+               first_skill="<skill_id>"
+               second_skill="<skill_id>"
+               first_effect="N"            substituted into {EFFECT1}
+               second_effect="N"           substituted into {EFFECT2}
+               culture="<culture_id>">      optional
+      <name>...</name>
+      <description>...</description>
+      <effects>...{EFFECT1}...{EFFECT2}...</effects>
+      <perks>                               ordered — perks[n] unlocks at focus n
+        <perk ref="<perk_string_id>"/>
+        ...
+      </perks>
+    </lifestyle>
+
+  Skill refs resolve against every registered SkillObject (vanilla + BK), perk
+  refs against every registered PerkObject. Perk order is significant: the nth
+  perk is the one unlocked by the nth invested focus point.
+
+  Culture gating: a lifestyle with NO culture attribute is universal. A
+  lifestyle whose culture attribute is set but does not resolve at load time
+  is DROPPED — this is how the Nord seafaring lifestyles below stay absent
+  unless War Sails (which registers the "nord" culture) is installed.
+-->
+<lifestyles>
+  <lifestyle id="lifestyle_cataphract" first_skill="Polearm" second_skill="Riding" first_effect="12" second_effect="25" culture="empire">
+    <name>Cataphract</name>
+    <description>Developed as a tactical necessity, Imperial cataphracts have become the symbol of the Imperial cavalry. Other than smashing through infantry formations, they became a requirement to stand against other heavy cavalry regiments, such as those from the east and south. Though their main weapon is the lance, used for head-on charging, cataphracts also train in skirmishing and mobility drills, adapting to what the battlefield requires, yet not relinquishing their outstanding, heavy equipment.</description>
+    <effects>Increased renown from victories by {EFFECT1}%
+Non-cavalry units need {EFFECT2}% more experience to upgrade</effects>
+    <perks>
+      <perk ref="LifestyleCataphractEquites"/>
+      <perk ref="LifestyleCataphractAdaptiveTactics"/>
+      <perk ref="LifestyleCataphractKlibanophori"/>
+    </perks>
+  </lifestyle>
+
+  <lifestyle id="lifestyle_ritter" first_skill="Lordship" second_skill="Riding" first_effect="5" second_effect="15" culture="vlandia">
+    <name>Ritter</name>
+    <description>Vlandians have developed a concept many of them call Ritter, or Reterius as Imperials call it. These are small lords recognized as distinguished soldiers, preferring mounted combat with lances and swords, who tend to their manor demesnes in times of peace. To non-Vlandians, they are best known for the earth-shaking gallop of their cavalry charges.</description>
+    <effects>You and melee cavalry in your formation deals {EFFECT1}% more melee damage.{EFFECT1}%
+You and your formation deal {EFFECT2}% less ranged damaged, mounted or otherwise.</effects>
+    <perks>
+      <perk ref="LifestyleRitterIronHorses"/>
+      <perk ref="LifestyleRitterOathbound"/>
+      <perk ref="LifestyleRitterPettySuzerain"/>
+    </perks>
+  </lifestyle>
+
+  <lifestyle id="lifestyle_fian" first_skill="Bow" second_skill="TwoHanded" first_effect="1.5" second_effect="25" culture="battania">
+    <name>Fian</name>
+    <description>Fians are the epitome of Battanian combat. Long ago, their ancestors discovered that ambushes in the woods with longbows were specially deadly. But if the bow was not enough, a greatsword would do the rest. Ever since, the mastery of longbow and greatswords has been the staple for Battanian nobility, who stills despises the horse as a sign of status.</description>
+    <effects>Battanian settlements have +{EFFECT1} militia
+Reduced damage by {EFFECT2}% when mounted</effects>
+    <perks>
+      <perk ref="LifestyleFianHighlander"/>
+      <perk ref="LifestyleFianRanger"/>
+      <perk ref="LifestyleFianFennid"/>
+    </perks>
+  </lifestyle>
+
+  <lifestyle id="lifestyle_varyag" first_skill="Athletics" second_skill="OneHanded" first_effect="8" second_effect="20" culture="sturgia">
+    <name>Varyag</name>
+    <description>Varyags are known in Sturgian culture as men of valor, adventure and prestige. These nearly mythical heroes often prove their worth in fierce shieldwall combat. Being individualistic adventurers, they will often serve as mercenaries, raid and plunder others as the opportunities come, though preferably non-Sturgians. Yet, a high moral code is expected of them, when it comes to courage and honor - a varyag afraid of death or that does not keep his word is no true varyag -, and those that follow the unwritten code are considered Drengrs.</description>
+    <effects>Infantry troops are {EFFECT1}% faster on the map
+You and your formation deal {EFFECT2}% less damage when mounted</effects>
+    <perks>
+      <perk ref="LifestyleVaryagShieldBrother"/>
+      <perk ref="LifestyleVaryagRecognizedMercenary"/>
+      <perk ref="LifestyleVaryagDrengr"/>
+    </perks>
+  </lifestyle>
+
+  <lifestyle id="lifestyle_kheshig" first_skill="Riding" second_skill="Bow" first_effect="15" second_effect="0.5" culture="khuzait">
+    <name>Kheshig</name>
+    <description>Kheshig is the way of life adopted by the eastern nomads, as an adaptation to the harsh steppe life. Kheshig travel in large groups of mounted warriors, often with many spare horses and cattle heads. These feed the horde with dairy and meat. They are known for expert mounted archery skirmishing, and merciless raiding. Yet, Kheshig have a profound sense of respect to those born in the steppes, and find honor in serving a strong leader.</description>
+    <effects>Party size increased by {EFFECT1}%
+Non-Khuzait troops negatively affect morale by {EFFECT2}%</effects>
+    <perks>
+      <perk ref="LifestyleKheshigRaider"/>
+      <perk ref="LifestyleKheshigOutrider"/>
+      <perk ref="LifestyleKheshigHonorGuard"/>
+    </perks>
+  </lifestyle>
+
+  <lifestyle id="lifestyle_jawwal" first_skill="Throwing" second_skill="Riding" first_effect="30" second_effect="15" culture="aserai">
+    <name>Jawwal</name>
+    <description>The Jawwal represent a traditional and conservative way of living in the southern Nahasa dunes. Relying on their camels for mobility, carrying goods and even food, they have mastered survival on the sandy dunes, and are known for raiding and harassing tactics, specially with mounted skirmishing.</description>
+    <effects>Party consumes {EFFECT1}% less food while on deserts
+Demesne limit reduced by {EFFECT2}%</effects>
+    <perks>
+      <perk ref="LifestyleJawwalGhazw"/>
+      <perk ref="LifestyleJawwalCamelMaster"/>
+      <perk ref="LifestyleJawwalDuneRider"/>
+    </perks>
+  </lifestyle>
+
+  <lifestyle id="lifestyle_mercenary" first_skill="Leadership" second_skill="Roguery" first_effect="20" second_effect="10">
+    <name>Mercenary</name>
+    <description>Mercenaries in the continent have become more and more relevant since the crumbling of the Empire. Ravaged by internal and exterior wars, the Imperial factions rely progressively more on foreign troops, as the populace becomes thinner with every squabbling conflict of Imperial lords and raid from foreigners. Currently, the life of a mercenary may prove quite profitable and prosperous in the continent - if they are to survive.</description>
+    <effects>Influence is {EFFECT1}% more profitable as mercenary
+Settlement stability reduced by {EFFECT2}%</effects>
+    <perks>
+      <perk ref="LifestyleMercenaryLocalConnections"/>
+      <perk ref="LifestyleMercenaryRansacker"/>
+      <perk ref="LifestyleMercenarySellswords"/>
+    </perks>
+  </lifestyle>
+
+  <lifestyle id="lifestyle_outlaw" first_skill="Roguery" second_skill="Scouting" first_effect="10" second_effect="8">
+    <name>Outlaw</name>
+    <description>Universally shamed, yet universally present, no realm can fully rid itself of outlaws. More 'professional' outlaws will specialize in efficient plundering, speed and furtiveness to avoid law enforcement. Known outlaws often become notorious for kidnapping nobles and demanding unfair ransoms.</description>
+    <effects>Bandit troops are {EFFECT1}% faster on map
+Randomly lose relations with heroes that disapprove criminality when leaving dialogue</effects>
+    <perks>
+      <perk ref="LifestyleOutlawKidnapper"/>
+      <perk ref="LifestyleOutlawPlunderer"/>
+      <perk ref="LifestyleOutlawNightPredator"/>
+    </perks>
+  </lifestyle>
+
+  <lifestyle id="lifestyle_gladiator" first_skill="Athletics" second_skill="Riding" first_effect="200" second_effect="20">
+    <name>Gladiator</name>
+    <description>As a means of entertainement, Imperials have developed the gladiatorial combat in arenas. It is possible this was an adaptation of earlier forms of duels used by the Palaics to judge valor. Nevertheless, the gladiatorial combat became a staple in the empire. Up to this day, an adventurer of little renown can prove his worth in the arenas and draw attention to himself as someone worthy of the lords' attention.</description>
+    <effects>Combat experience in tournaments increased by {EFFECT1}%
+Trade penalty increased by {EFFECT2}%</effects>
+    <perks>
+      <perk ref="LifestyleGladiatorPromisingAthlete"/>
+      <perk ref="LifestyleGladiatorTourDeCalradia"/>
+      <perk ref="LifestyleGladiatorCrowdsFavorite"/>
+    </perks>
+  </lifestyle>
+
+  <lifestyle id="lifestyle_caravaneer" first_skill="Trade" second_skill="Scouting" first_effect="10" second_effect="8">
+    <name>Caravaneer</name>
+    <description></description>
+    <effects>Reduced trade penalty by {EFFECT1}%
+Reduced speed during nighttime by {EFFECT2}%</effects>
+    <perks>
+      <perk ref="LifestyleCaravaneerStrider"/>
+      <perk ref="LifestyleCaravaneerDealer"/>
+      <perk ref="LifestyleCaravaneerOutsideConnections"/>
+    </perks>
+  </lifestyle>
+
+  <lifestyle id="lifestyle_august" first_skill="Leadership" second_skill="Lordship" first_effect="1" second_effect="20">
+    <name>August</name>
+    <description>A term coined by the Imperials, August is a lord that outshines his peers. Not only they are shrewd administrators of their realm, they are also distinguished commanders, directly leading their troops against any threats to their people. August leaders are those forever to be remembered in history as examples of what a true leader ought to be.</description>
+    <effects>1 knight less is counted towards vassal limit
+Trade penalty increased by {EFFECT2}%</effects>
+    <perks>
+      <perk ref="LifestyleAugustCommander"/>
+      <perk ref="LifestyleAugustDeFacto"/>
+      <perk ref="LifestyleAugustDeJure"/>
+      <perk ref="LifestyleAugustKingOfKings"/>
+    </perks>
+  </lifestyle>
+
+  <lifestyle id="lifestyle_siegeEngineer" first_skill="Engineering" second_skill="Tactics" first_effect="30" second_effect="10">
+    <name>Siege Engineer</name>
+    <description>Highly sought-after specialists, siege engineers specialize in both defending and taking down enemy settlements. A relatively new art, sieges become more prevalent in the continent as populations gather in towns, and all-out wars break between kingdoms rather than small, tribal raids.</description>
+    <effects>Party expenses are {EFFECT1}% cheaper during sieges
+Settlements of different culture have {EFFECT2}% more autonomy</effects>
+    <perks>
+      <perk ref="LifestyleSiegeEngineer"/>
+      <perk ref="LifestyleSiegePlanner"/>
+      <perk ref="LifestyleSiegeOverseer"/>
+    </perks>
+  </lifestyle>
+
+  <lifestyle id="lifestyle_civilAdministrator" first_skill="Engineering" second_skill="Steward" first_effect="20" second_effect="15">
+    <name>Civil Administrator</name>
+    <description>A rare skill in the continent, administrators are those specialized in the building of efficient, propserous towns. As most folks are preoccupied in not starving or dying violently, and education being rare and expensive, little has been developed in terms of planning efficient cities.</description>
+    <effects>Reduced demesne weight of towns by {EFFECT1}%
+Party size reduced by {EFFECT2}%</effects>
+    <perks>
+      <perk ref="LifestyleCivilEngineer"/>
+      <perk ref="LifestyleCivilCultivator"/>
+      <perk ref="LifestyleCivilManufacturer"/>
+      <perk ref="LifestyleCivilOverseer"/>
+    </perks>
+  </lifestyle>
+
+  <lifestyle id="lifestyle_artisan" first_skill="Crafting" second_skill="Trade" first_effect="10" second_effect="15">
+    <name>Artisan</name>
+    <description>Essential to the economy, artisans produce manufactured goods in high demand, such as high quality textiles, tools, beer, and much more. As one inclined to the artisan world, you have keen insight into crafting and managing your workshops.</description>
+    <effects>Chance of botching items when smithing reduced by {EFFECT1}%
+Recruiting troops is {EFFECT2}% more expensive</effects>
+    <perks>
+      <perk ref="LifestyleArtisanSmith"/>
+      <perk ref="LifestyleArtisanCraftsman"/>
+      <perk ref="LifestyleArtisanEntrepeneur"/>
+    </perks>
+  </lifestyle>
+
+  <lifestyle id="lifestyle_commander" first_skill="Leadership" second_skill="Tactics" first_effect="25" second_effect="15">
+    <name>Commander</name>
+    <description></description>
+    <effects>Party supplies build up at a {EFFECT1}% slower rate.
+Influence gain reduced by {EFFECT2}%, other than battle reward</effects>
+    <perks>
+      <perk ref="LifestyleCommanderLogistician"/>
+      <perk ref="LifestyleCommanderInspirer"/>
+      <perk ref="LifestyleCommanderWarband"/>
+    </perks>
+  </lifestyle>
+
+  <!--
+    Seafaring lifestyles — culture="nord" resolves only when War Sails
+    (NavalDLC) is installed. Without it the loader drops these three rows,
+    reproducing the pre-XML ModCompat.WarSails gate.
+  -->
+  <lifestyle id="lifestyle_jomsviking" first_skill="TwoHanded" second_skill="Athletics" first_effect="8" second_effect="5" culture="nord">
+    <name>Jomsviking</name>
+    <description>Sworn brothers of the longhouse, the Jomsvikings are sea-borne warriors trained from boyhood for boarding actions and shieldwall combat. Their reputation is built on disciplined ferocity in close quarters and indifference to wounds — qualities prized on a wind-tossed deck.</description>
+    <effects>You and infantry in your formation deal {EFFECT1}% more melee damage
+Party morale ceiling increased by {EFFECT2}%</effects>
+    <perks>
+      <perk ref="LifestyleJomsvikingShieldwall"/>
+      <perk ref="LifestyleJomsvikingSeaToughness"/>
+      <perk ref="LifestyleJomsvikingBoardingFury"/>
+    </perks>
+  </lifestyle>
+
+  <lifestyle id="lifestyle_drakkar_captain" first_skill="Leadership" second_skill="Tactics" first_effect="4" second_effect="15" culture="nord">
+    <name>Drakkar Captain</name>
+    <description>Captain of a longship and a sworn band, the drakkar captain reads weather, current and shoreline as easily as he reads his crew. His command keeps his men rowing through storm and surf, and his name on the prow is enough to scatter coastal villagers before the keel touches sand.</description>
+    <effects>Party speed increased by {EFFECT1}%
+Loot from raids increased by {EFFECT2}%</effects>
+    <perks>
+      <perk ref="LifestyleDrakkarHelmsman"/>
+      <perk ref="LifestyleDrakkarRaidMaster"/>
+      <perk ref="LifestyleDrakkarSeaCommander"/>
+    </perks>
+  </lifestyle>
+
+  <lifestyle id="lifestyle_sjofarandi" first_skill="Bow" second_skill="Scouting" first_effect="12" second_effect="6" culture="nord">
+    <name>Sjofarandi</name>
+    <description>The sjofarandi — "sea-farer" — is the navigator and pathfinder of a Nord war-band. Equally at home reading the stars or pulling a bowstring on a moving deck, his role is to guide a longship safely between shorelines, and to scout enemies before the prow makes landfall.</description>
+    <effects>Party scouting range increased by {EFFECT1}%
+You and archers in your formation deal {EFFECT2}% more bow damage</effects>
+    <perks>
+      <perk ref="LifestyleSjofarandiPathfinder"/>
+      <perk ref="LifestyleSjofarandiCoastalHunter"/>
+      <perk ref="LifestyleSjofarandiSeaEyes"/>
+    </perks>
+  </lifestyle>
+</lifestyles>

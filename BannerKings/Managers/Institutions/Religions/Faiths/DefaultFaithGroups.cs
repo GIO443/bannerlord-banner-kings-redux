@@ -1,80 +1,64 @@
 using System.Collections.Generic;
 using BannerKings.Managers.Institutions.Religions.Faiths.Groups;
+using BannerKings.Utils.BKData;
 using TaleWorlds.Localization;
 
 namespace BannerKings.Managers.Institutions.Religions.Faiths
 {
+    /// <summary>
+    /// Faith groups are loaded from <c>ModuleData/BKData/bk_faith_groups.xml</c>
+    /// across every installed module (last writer wins per id). The behaviour
+    /// class (Temporal / Disorganized / LandedPreacher) is picked via the row's
+    /// <c>type</c> attribute and resolved through <see cref="FaithGroupRegistry"/>.
+    /// Named properties resolve by id, preserving the
+    /// <c>DefaultFaithGroups.Instance.ImperialOrders</c> call surface.
+    /// </summary>
     public class DefaultFaithGroups : DefaultTypeInitializer<DefaultFaithGroups, FaithGroup>
     {
-        public FaithGroup ImperialOrders { get; private set; }
-        public FaithGroup VlandicCanonical { get; private set; }
-        public FaithGroup DruidicCircles { get; private set; }
-        public FaithGroup AseraiUlama { get; private set; }
-        public FaithGroup SteppeKhanate { get; private set; }
-        public FaithGroup NorthernElders { get; private set; }
-        public FaithGroup NordChieftains { get; private set; }
+        private readonly List<FaithGroup> _loaded = new List<FaithGroup>();
+
+        public FaithGroup ImperialOrders => GetById("imperial_orders");
+        public FaithGroup VlandicCanonical => GetById("vlandic_canonical");
+        public FaithGroup DruidicCircles => GetById("druidic_circles");
+        public FaithGroup AseraiUlama => GetById("aserai_ulama");
+        public FaithGroup SteppeKhanate => GetById("steppe_khanate");
+        public FaithGroup NorthernElders => GetById("northern_elders");
+        public FaithGroup NordChieftains => GetById("nord_chieftains");
 
         public override IEnumerable<FaithGroup> All
         {
             get
             {
-                yield return ImperialOrders;
-                yield return VlandicCanonical;
-                yield return DruidicCircles;
-                yield return AseraiUlama;
-                yield return SteppeKhanate;
-                yield return NorthernElders;
-                yield return NordChieftains;
-                foreach (FaithGroup item in ModAdditions)
-                {
-                    yield return item;
-                }
+                foreach (var g in _loaded) yield return g;
+                foreach (var item in ModAdditions) yield return item;
             }
         }
 
         public override void Initialize()
         {
-            ImperialOrders = new TemporalGroup("imperial_orders");
-            ImperialOrders.Initialize(
-                new TextObject("{=!}Imperial Orders"),
-                new TextObject("{=!}Pontifex"),
-                new TextObject("{=!}The Imperial Orders descend from the temple-colleges of Old Pravend, organised under the eye of the reigning Imperial line. Their pontifex is by tradition seated at the Imperial capital."));
+            _loaded.Clear();
+            foreach (var row in BKDataStore.Instance.GetRows("faith_groups"))
+            {
+                var id = BKXml.Attr(row, "id");
+                if (string.IsNullOrEmpty(id)) continue;
 
-            VlandicCanonical = new TemporalGroup("vlandic_canonical");
-            VlandicCanonical.Initialize(
-                new TextObject("{=!}Canonical See"),
-                new TextObject("{=!}Primarch"),
-                new TextObject("{=!}The Canonical See is the assembly of priests who hold benefices across Vlandia, recognising a single primarch by oath."));
+                var type = BKXml.Attr(row, "type");
+                var group = FaithGroupRegistry.Create(type, id);
+                if (group == null)
+                {
+                    BKDataStore.Instance.AddDiagnostic(
+                        "[BKData] faith_group '" + id + "': unknown type '" + type +
+                        "' (expected Temporal / Disorganized / LandedPreacher, or register a custom type via FaithGroupRegistry.Register)");
+                    continue;
+                }
 
-            DruidicCircles = new DisorganizedGroup("druidic_circles");
-            DruidicCircles.Initialize(
-                new TextObject("{=!}Druidic Circles"),
-                new TextObject("{=!}Arch-Druid"),
-                new TextObject("{=!}The druids of the Battanian highlands keep no central seat. Their counsel is heard in the sacred lynns and oak-rings, never under one roof."));
+                var name = BKXml.LocText(row, "faith_group", id, "name", fallbackIfMissing: id);
+                var title = BKXml.LocText(row, "faith_group", id, "title", fallbackIfMissing: string.Empty);
+                var description = BKXml.LocText(row, "faith_group", id, "description", fallbackIfMissing: string.Empty);
 
-            AseraiUlama = new TemporalGroup("aserai_ulama");
-            AseraiUlama.Initialize(
-                new TextObject("{=!}Ulama of the Sun"),
-                new TextObject("{=!}Imam"),
-                new TextObject("{=!}The Ulama are the learned faithful of the Aserai oases, gathered around the great mosques and madrasas of the south."));
-
-            SteppeKhanate = new TemporalGroup("steppe_khanate");
-            SteppeKhanate.Initialize(
-                new TextObject("{=!}Sky-Shamans"),
-                new TextObject("{=!}Khan-Shaman"),
-                new TextObject("{=!}The shamans of the steppe answer first to clan and khan, second to the spirits beneath the open sky."));
-
-            NorthernElders = new TemporalGroup("northern_elders");
-            NorthernElders.Initialize(
-                new TextObject("{=!}Old Gods Eldercouncil"),
-                new TextObject("{=!}Eldgothi"),
-                new TextObject("{=!}The eldercouncil of the northern peoples gathers at the great oaks each year to renew the bonds of the Old Gods with the living."));
-
-            NordChieftains = new DisorganizedGroup("nord_chieftains");
-            NordChieftains.Initialize(
-                new TextObject("{=!}Hraef-Sworn"),
-                new TextObject("{=!}Hrafnskáld"),
-                new TextObject("{=!}The Nordvyg recognise no priesthood beyond their own chieftains, who lead the offering and the war-rite alike."));
+                group.Initialize(name, title, description);
+                _loaded.Add(group);
+            }
         }
     }
 }

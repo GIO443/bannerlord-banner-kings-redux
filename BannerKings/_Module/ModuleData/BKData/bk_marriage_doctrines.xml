@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  BK structural data — Marriage Doctrines. A faith binds exactly one marriage
+  doctrine (bk_faiths.xml: marriage_doctrine="..."), which governs how many
+  consorts a clan leader may take, the consanguinity restriction, and whether
+  spouses from untolerated faiths are allowed.
+
+  Schema:
+    <marriage_doctrine id="..."
+                       consorts="N"               extra spouses/concubines
+                       consanguinity="N"          forbidden blood-degree
+                       accepts_untolerated="true|false"
+                       is_concubinage="true|false">
+      <name>...</name>
+      <description>...</description>
+    </marriage_doctrine>
+
+  consorts=0 means no additional spouses. consanguinity=0 means any relation
+  is allowed. is_concubinage flips the consort wording between "concubines"
+  (forced-marriageable, no diplomatic binding) and "secondary spouses".
+-->
+<marriage_doctrines>
+  <marriage_doctrine id="Monogamy" consorts="0" consanguinity="2" accepts_untolerated="true" is_concubinage="false">
+    <name>Monogamy</name>
+    <description>Monogamy is a marriage system in which two spouses, male and female, are equally bound to each other. The marriage is always diplomatically binding. It does not accept any close degree of blood relation.</description>
+  </marriage_doctrine>
+
+  <marriage_doctrine id="AvunculateMonogamy" consorts="0" consanguinity="1" accepts_untolerated="true" is_concubinage="false">
+    <name>Monogamy</name>
+    <description>Avunculate Monogamy is a marriage system in which two spouses, male and female, are equally bound to each other. The marriage is always diplomatically binding. Spouses may not be close relatives.</description>
+  </marriage_doctrine>
+
+  <marriage_doctrine id="AvunculateConcubinage" consorts="3" consanguinity="1" accepts_untolerated="true" is_concubinage="true">
+    <name>Avunculate Concubinage</name>
+    <description>Avunculate Concubinage doctrine allows for clan leaders to take up to 3 concubines/consorts. Concubines may be forced into concubinage when imprisoned. Concubines yield no diplomatic bindings such as alliances. Spouses may not be close relatives.</description>
+  </marriage_doctrine>
+
+  <marriage_doctrine id="OpenConcubinage" consorts="2" consanguinity="0" accepts_untolerated="true" is_concubinage="true">
+    <name>Open Concubinage</name>
+    <description>Open Concubinage doctrine allows for clan leaders to take up to 3 concubines/consorts. Concubines may be forced into concubinage when imprisoned. Concubines yield no diplomatic bindings such as alliances. There are no restrictions towards consanguinity: close family may marry.</description>
+  </marriage_doctrine>
+
+  <marriage_doctrine id="Concubinage" consorts="3" consanguinity="2" accepts_untolerated="true" is_concubinage="true">
+    <name>Concubinage</name>
+    <description>Concubinage doctrine allows for clan leaders to take up to 3 concubines/consorts. Concubines may be forced into concubinage when imprisoned. Concubines yield no diplomatic bindings such as alliances. It does not accept any close degree of blood relation.</description>
+  </marriage_doctrine>
+
+  <marriage_doctrine id="Polygamy" consorts="3" consanguinity="2" accepts_untolerated="true" is_concubinage="false">
+    <name>Polygamy</name>
+    <description>Polygamy is a marriage system in which a lead spouse (a clan leader) may have one primary spouse, as weall as 3 secondary spouses. Secondary spouses may not be forced into marriage, and their marriages are also diplomatically binding, alongside the primary spouse. It does not accept any close degree of blood relation.</description>
+  </marriage_doctrine>
+
+  <marriage_doctrine id="AvunculatePolygamy" consorts="3" consanguinity="1" accepts_untolerated="true" is_concubinage="false">
+    <name>Polygamy</name>
+    <description>Avunculate Polygamy is a marriage system in which a lead spouse (a clan leader) may have one primary spouse, as weall as 3 secondary spouses. Secondary spouses may not be forced into marriage, and their marriages are also diplomatically binding, alongside the primary spouse. </description>
+  </marriage_doctrine>
+</marriage_doctrines>

@@ -184,6 +184,14 @@ namespace BannerKings
 
         public void Initialize()
         {
+            // Scan every loaded module for ModuleData/BKData/*.xml and merge
+            // rows by (category, id) — last writer wins by module load order.
+            // Must run before any Default*.Initialize() that reads from the
+            // store. Pure-data Default* classes (DefaultDoctrines, Divinities,
+            // Faiths, Religions today) consume rows here; classes that haven't
+            // been XML-ified yet are untouched.
+            BannerKings.Utils.BKData.BKDataStore.Instance.Scan();
+
             BKSkillEffects.Instance.Initialize();
             BKSkillEffects.Instance.AddVanilla();
             DefaultPopulationNames.Instance.Initialize();

@@ -1,98 +1,57 @@
 using System.Collections.Generic;
+using BannerKings.Utils.BKData;
 using TaleWorlds.Localization;
 
 namespace BannerKings.Managers.Institutions.Religions.Doctrines.Marriage
 {
+    /// <summary>
+    /// Marriage doctrines are loaded from
+    /// <c>ModuleData/BKData/bk_marriage_doctrines.xml</c> across every installed
+    /// module (last writer wins per id). Named properties resolve by id,
+    /// preserving the <c>DefaultMarriageDoctrines.Instance.Monogamy</c> call
+    /// surface that <c>DefaultFaiths</c> binds against.
+    /// </summary>
     public class DefaultMarriageDoctrines : DefaultTypeInitializer<DefaultMarriageDoctrines, MarriageDoctrine>
     {
-        public MarriageDoctrine Monogamy { get; set; }
-        public MarriageDoctrine AvunculateMonogamy { get; set; }
-        public MarriageDoctrine Concubinage { get; set; }
-        public MarriageDoctrine OpenConcubinage { get; set; }
-        public MarriageDoctrine AvunculateConcubinage { get; set; }
-        public MarriageDoctrine Polygamy { get; set; }
-        public MarriageDoctrine AvunculatePolygamy { get; set; }
+        private readonly List<MarriageDoctrine> _loaded = new List<MarriageDoctrine>();
+
+        public MarriageDoctrine Monogamy => GetById("Monogamy");
+        public MarriageDoctrine AvunculateMonogamy => GetById("AvunculateMonogamy");
+        public MarriageDoctrine Concubinage => GetById("Concubinage");
+        public MarriageDoctrine OpenConcubinage => GetById("OpenConcubinage");
+        public MarriageDoctrine AvunculateConcubinage => GetById("AvunculateConcubinage");
+        public MarriageDoctrine Polygamy => GetById("Polygamy");
+        public MarriageDoctrine AvunculatePolygamy => GetById("AvunculatePolygamy");
+
         public override IEnumerable<MarriageDoctrine> All
         {
             get
             {
-                yield return Monogamy;
-                yield return Concubinage;
-                yield return Polygamy;
-                yield return OpenConcubinage;
-                yield return AvunculateConcubinage;
-                yield return AvunculatePolygamy;
-                yield return AvunculateMonogamy;
+                foreach (var d in _loaded) yield return d;
+                foreach (var item in ModAdditions) yield return item;
             }
         }
 
         public override void Initialize()
         {
-            Monogamy = new MarriageDoctrine("Monogamy",
-                new TextObject("{=!}Monogamy"),
-                new TextObject("{=!}Monogamy is a marriage system in which two spouses, male and female, are equally bound to each other. The marriage is always diplomatically binding. It does not accept any close degree of blood relation."),
-                TextObject.GetEmpty(),
-                new List<Doctrine>(),
-                0,
-                2,
-                true);
+            _loaded.Clear();
+            foreach (var row in BKDataStore.Instance.GetRows("marriage_doctrines"))
+            {
+                var id = BKXml.Attr(row, "id");
+                if (string.IsNullOrEmpty(id)) continue;
 
-            AvunculateMonogamy = new MarriageDoctrine("AvunculateMonogamy",
-                new TextObject("{=!}Monogamy"),
-                new TextObject("{=!}Avunculate Monogamy is a marriage system in which two spouses, male and female, are equally bound to each other. The marriage is always diplomatically binding. Spouses may not be close relatives."),
-                TextObject.GetEmpty(),
-                new List<Doctrine>(),
-                0,
-                1,
-                true);
+                var consorts = BKXml.Int(row, "consorts", 0);
+                var consanguinity = BKXml.Int(row, "consanguinity", 0);
+                var acceptsUntolerated = BKXml.Bool(row, "accepts_untolerated", true);
+                var isConcubinage = BKXml.Bool(row, "is_concubinage", false);
 
-            AvunculateConcubinage = new MarriageDoctrine("AvunculateConcubinage",
-                new TextObject("{=!}Avunculate Concubinage"),
-                new TextObject("{=!}Avunculate Concubinage doctrine allows for clan leaders to take up to 3 concubines/consorts. Concubines may be forced into concubinage when imprisoned. Concubines yield no diplomatic bindings such as alliances. Spouses may not be close relatives."),
-                TextObject.GetEmpty(),
-                new List<Doctrine>(),
-                3,
-                1,
-                true,
-                true);
+                var name = BKXml.LocText(row, "marriage_doctrine", id, "name", fallbackIfMissing: id);
+                var description = BKXml.LocText(row, "marriage_doctrine", id, "description", fallbackIfMissing: string.Empty);
 
-            OpenConcubinage = new MarriageDoctrine("OpenConcubinage",
-                new TextObject("{=!}Open Concubinage"),
-                new TextObject("{=!}Open Concubinage doctrine allows for clan leaders to take up to 3 concubines/consorts. Concubines may be forced into concubinage when imprisoned. Concubines yield no diplomatic bindings such as alliances. There are no restrictions towards consanguinity: close family may marry."),
-                TextObject.GetEmpty(),
-                new List<Doctrine>(),
-                2,
-                0,
-                true,
-                true);
-
-            Concubinage = new MarriageDoctrine("Concubinage",
-                new TextObject("{=!}Concubinage"),
-                new TextObject("{=!}Concubinage doctrine allows for clan leaders to take up to 3 concubines/consorts. Concubines may be forced into concubinage when imprisoned. Concubines yield no diplomatic bindings such as alliances. It does not accept any close degree of blood relation."),
-                TextObject.GetEmpty(),
-                new List<Doctrine>(),
-                3,
-                2,
-                true,
-                true);
-
-            Polygamy = new MarriageDoctrine("Polygamy",
-                new TextObject("{=!}Polygamy"),
-                new TextObject("{=!}Polygamy is a marriage system in which a lead spouse (a clan leader) may have one primary spouse, as weall as 3 secondary spouses. Secondary spouses may not be forced into marriage, and their marriages are also diplomatically binding, alongside the primary spouse. It does not accept any close degree of blood relation."),
-                TextObject.GetEmpty(),
-                new List<Doctrine>(),
-                3,
-                2,
-                true);
-
-            AvunculatePolygamy = new MarriageDoctrine("AvunculatePolygamy",
-                new TextObject("{=!}Polygamy"),
-                new TextObject("{=!}Avunculate Polygamy is a marriage system in which a lead spouse (a clan leader) may have one primary spouse, as weall as 3 secondary spouses. Secondary spouses may not be forced into marriage, and their marriages are also diplomatically binding, alongside the primary spouse. "),
-                TextObject.GetEmpty(),
-                new List<Doctrine>(),
-                3,
-                1,
-                true);
+                var doctrine = new MarriageDoctrine(id, name, description, TextObject.GetEmpty(),
+                    new List<Doctrine>(), consorts, consanguinity, acceptsUntolerated, isConcubinage);
+                _loaded.Add(doctrine);
+            }
         }
     }
 }

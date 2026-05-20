@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  BK structural data — Inheritances. An inheritance law governs who succeeds
+  to a clan: it weights children / siblings / spouse / other relatives, and
+  carries authoritarian / oligarchic / egalitarian political leanings.
+
+  Schema:
+    <inheritance id="..."
+                 children_score="N"
+                 sibling_score="N"
+                 spouse_score="N"
+                 relative_score="N"
+                 authoritarian="N"
+                 oligarchic="N"
+                 egalitarian="N">
+      <name>...</name>
+      <description>...</description>
+    </inheritance>
+-->
+<inheritances>
+  <inheritance id="Primogeniture"
+               children_score="300" sibling_score="150" spouse_score="100" relative_score="30"
+               authoritarian="1" oligarchic="-0.2" egalitarian="-0.8">
+    <name>Primogeniture</name>
+    <description>Primogeniture inheritance gives precedence to the children of the deceased, from eldest to youngest. Whether the firstborn son or daughter will be chosen depends on the Gender Law in place.</description>
+  </inheritance>
+
+  <inheritance id="Ultimogeniture"
+               children_score="300" sibling_score="150" spouse_score="100" relative_score="30"
+               authoritarian="0.5" oligarchic="0.2" egalitarian="-0.5">
+    <name>Ultimogeniture</name>
+    <description>Ultimogeniture inheritance gives precedence to the children of the deceased, from youngest to eldest. Whether the youngest son or daughter will be chosen depends on the Gender Law in place.</description>
+  </inheritance>
+
+  <inheritance id="Seniority"
+               children_score="100" sibling_score="100" spouse_score="100" relative_score="100"
+               authoritarian="-0.4" oligarchic="0.4" egalitarian="1">
+    <name>Seniority</name>
+    <description>Seniority inheritance gives no precedence to any particular member of a household. The main criteria is their age, meaning that household members without blood ties may take precedence over children or close relatives. Whether the eldest man or woman will be chosen depends on the Gender Law in place.</description>
+  </inheritance>
+</inheritances>
