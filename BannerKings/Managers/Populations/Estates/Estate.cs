@@ -80,6 +80,17 @@ namespace BannerKings.Managers.Populations.Estates
         {
             BannerKingsConfig.Instance.PopulationManager.ChangeEstateOwner(this, newOnwer);
             Owner = newOnwer;
+            // Phase 4 weave — keep the bound BetterEconomy estate parcel's
+            // owner in sync with the BK estate's feudal owner.
+            if (!string.IsNullOrEmpty(BoundEstateId) && EstatesData != null)
+            {
+                var record = BannerKings.Utils.BetterEconomyBridge.GetEstateById(EstatesData.Settlement, BoundEstateId);
+                if (record != null)
+                {
+                    BannerKings.Utils.BetterEconomyBridge.SetEstateOwner(record, newOnwer);
+                }
+            }
+
             if (newOnwer == Hero.MainHero)
             {
                 MBInformationManager.AddQuickInformation(new TextObject("{=U6bVmS8Z}You are now the owner of an estate at {SETTLEMENT}")
@@ -89,6 +100,10 @@ namespace BannerKings.Managers.Populations.Estates
                     null, Utils.Helpers.GetRelationDecisionSound());
             }
         }
+
+        // Phase 4 weave — the BetterEconomy estate parcel (EstateRecord.EstateId)
+        // this BK estate sits on. Null until anchored, and on pre-weave saves.
+        public void SetBoundEstate(string estateId) => BoundEstateId = estateId;
 
         public ExplainedNumber TaxRatio => BannerKingsConfig.Instance.EstatesModel.GetTaxRatio(this, true);
         public bool IsDisabled => Owner == null;
@@ -130,7 +145,27 @@ namespace BannerKings.Managers.Populations.Estates
                     workforce);
             }
         }
-        public ExplainedNumber Production => BannerKingsConfig.Instance.EstatesModel.CalculateEstateProduction(this, true);
+        public ExplainedNumber Production
+        {
+            get
+            {
+                var result = BannerKingsConfig.Instance.EstatesModel.CalculateEstateProduction(this, true);
+                // Phase 4 weave — the bound BetterEconomy estate parcel's size
+                // and quality are the land basis now; BK's own acreage split is
+                // no longer what drives output.
+                if (!string.IsNullOrEmpty(BoundEstateId) && EstatesData != null)
+                {
+                    var record = BannerKings.Utils.BetterEconomyBridge.GetEstateById(EstatesData.Settlement, BoundEstateId);
+                    if (record != null)
+                    {
+                        result.AddFactor(record.Quality - 1f, new TextObject("{=!}Estate quality"));
+                        result.AddFactor(record.Size - 1f, new TextObject("{=!}Estate size"));
+                    }
+                }
+
+                return result;
+            }
+        }
         public ExplainedNumber PopulationCapacity => BannerKingsConfig.Instance.GrowthModel.CalculateEstateCap(this, false);
         public ExplainedNumber PopulationCapacityExplained => BannerKingsConfig.Instance.GrowthModel.CalculateEstateCap(this, true);
         public ExplainedNumber MaxManpower => BannerKingsConfig.Instance.EstatesModel.CalculateEstateManpower(this);
@@ -299,6 +334,8 @@ namespace BannerKings.Managers.Populations.Estates
         // (Phase 7) will also stamp this when it lands so player and
         // AI share the same cooldown discipline.
         [SaveableProperty(16)] public CampaignTime LastSpecChange { get; set; } = CampaignTime.Zero;
+
+        [SaveableProperty(17)] public string BoundEstateId { get; private set; }
 
         public void AddSlaves(int slaves) => Slaves += slaves;
 

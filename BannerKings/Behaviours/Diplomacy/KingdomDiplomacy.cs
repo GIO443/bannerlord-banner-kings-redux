@@ -27,6 +27,7 @@ namespace BannerKings.Behaviours.Diplomacy
         [SaveableProperty(8)] public List<RadicalGroup> RadicalGroups { get; private set; }
         [SaveableProperty(9)] public int CrownAuthority { get; private set; }
         [SaveableProperty(10)] public int GovernmentTransitionPressure { get; private set; }
+        [SaveableProperty(11)] private CampaignTime LastPoliticsProposal { get; set; }
         public float LegitimacyChange
         {
             get
@@ -134,6 +135,21 @@ namespace BannerKings.Behaviours.Diplomacy
             if (old != v)
                 BannerKings.Utils.Logs.Politics(() => $"{Kingdom?.Name}: government-transition pressure {old} -> {v}");
         }
+
+        // Realm-wide politics-proposal cooldown — keeps AI-generated kingdom
+        // politics decisions from arriving back-to-back so the player isn't
+        // spammed. The window shortens as the MCM Political Pressure scaler
+        // rises. An unset (old-save / fresh) value reads as long-elapsed, so
+        // the first proposal is always ready.
+        private const int PoliticsProposalCooldownDays = 30;
+
+        public bool PoliticsProposalReady()
+        {
+            float pressure = MathF.Max(0.5f, BannerKings.Settings.BannerKingsSettings.Instance.PoliticalPressure);
+            return LastPoliticsProposal.ElapsedDaysUntilNow >= PoliticsProposalCooldownDays / pressure;
+        }
+
+        public void MarkPoliticsProposal() => LastPoliticsProposal = CampaignTime.Now;
 
         // A clan spends influence to drag the realm's pending government
         // transition down (resist) or drive it up (accelerate). The pressure

@@ -53,24 +53,19 @@ namespace BannerKings.Managers.Kingdoms.Contract
         public override float DetermineSupport(Clan clan, DecisionOutcome possibleOutcome)
         {
             var outcome = possibleOutcome as CrownAuthorityDecisionOutcome;
-            if (outcome == null) return 0f;
+            if (outcome == null || clan?.Leader == null) return 0f;
 
-            // A clan's appetite for a strong crown. Authoritarian leaders and
-            // the ruling clan want authority concentrated; oligarchic and
-            // egalitarian leaders, and great magnates with much to lose,
-            // resist it.
-            float lean = 0.8f * clan.Leader.GetTraitLevel(DefaultTraits.Authoritarian)
-                       - 0.6f * clan.Leader.GetTraitLevel(DefaultTraits.Oligarchic)
-                       - 0.3f * clan.Leader.GetTraitLevel(DefaultTraits.Egalitarian);
-
-            if (clan == Kingdom.RulingClan) lean += 2f;
-            if (clan.Tier >= 5) lean -= 1f;
-            else if (clan.Tier >= 3) lean -= 0.4f;
+            // A clan's appetite for a strong crown is its Centralism axis —
+            // derived from personality, culture standing, and the economic
+            // condition of its holdings. The ruling clan always leans toward
+            // a stronger crown on top of that.
+            float lean = BannerKings.Behaviours.Diplomacy.BKPoliticalDisposition.Get(clan).Centralism;
+            if (clan == Kingdom.RulingClan) lean += 1f;
 
             // Signed distance: a pro-crown clan backs the higher-authority
             // outcome, an autonomy-minded clan the lower one. The "keep
             // current" outcome scores 0 for everyone — neutral baseline.
-            float support = lean * (outcome.Authority - CurrentAuthority) * 50f;
+            float support = lean * (outcome.Authority - CurrentAuthority) * 100f;
 
             // Route through the unified voting mechanic — government type
             // weights each clan's vote and zeroes non-voters.

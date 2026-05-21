@@ -216,10 +216,56 @@ namespace BannerKings.Managers.Populations.Estates
             }
         }
 
+        // Phase 4 weave — bind each BK estate to an unclaimed BetterEconomy
+        // estate parcel in this settlement and seed that parcel's owner from
+        // the BK estate. Idempotent: estates already bound are skipped, so it
+        // self-heals pre-weave saves (BoundEstateId null) on the next tick.
+        private void AnchorEstatesToBetterEconomy()
+        {
+            if (Estates == null || Estates.Count == 0)
+            {
+                return;
+            }
+
+            var bound = new HashSet<string>();
+            foreach (var estate in Estates)
+            {
+                if (!string.IsNullOrEmpty(estate.BoundEstateId))
+                {
+                    bound.Add(estate.BoundEstateId);
+                }
+            }
+
+            foreach (var estate in Estates)
+            {
+                if (!string.IsNullOrEmpty(estate.BoundEstateId))
+                {
+                    continue;
+                }
+
+                var parcelId = BannerKings.Utils.BetterEconomyBridge.ClaimUnanchoredEstate(Settlement, bound);
+                if (parcelId == null)
+                {
+                    break;
+                }
+
+                estate.SetBoundEstate(parcelId);
+                bound.Add(parcelId);
+
+                var record = BannerKings.Utils.BetterEconomyBridge.GetEstateById(Settlement, parcelId);
+                if (record != null)
+                {
+                    BannerKings.Utils.BetterEconomyBridge.SetEstateOwner(record, estate.Owner);
+                }
+            }
+        }
+
         internal override void Update(PopulationData data = null)
         {
             ExceptionUtils.TryCatch(() =>
             {
+                AnchorEstatesToBetterEconomy();
+
                 float growthFactor = 0f;
                 if (Settlement.IsVillage)
                 {

@@ -83,14 +83,29 @@ namespace BannerKings.Behaviours.Diplomacy
                     }
                 }
 
-                // AI Republics occasionally re-tune their mandate: levy in
-                // wartime, prosperity in peace.
+                // AI Republics re-tune their mandate by the ruling clan's
+                // disposition: a militarist realm levies (in bulk at war, as
+                // a professional core in peace); a developer realm invests in
+                // prosperity; an ambivalent one stays balanced.
                 if (kingdom.RulingClan != null && kingdom.RulingClan != Clan.PlayerClan
                     && kingdom.RulingClan.Leader != null && MBRandom.RandomFloat < 0.03f)
                 {
-                    bool atWar = FactionHelper.GetEnemyKingdoms(kingdom).Any();
-                    ProposeMandate(kingdom, kingdom.RulingClan,
-                        atWar ? RepublicMandate.LevyQuantity : RepublicMandate.Prosperity);
+                    var disposition = BKPoliticalDisposition.Get(kingdom.RulingClan);
+                    RepublicMandate desired;
+                    if (disposition.Militarism > 0.33f)
+                    {
+                        bool atWar = FactionHelper.GetEnemyKingdoms(kingdom).Any();
+                        desired = atWar ? RepublicMandate.LevyQuantity : RepublicMandate.LevyQuality;
+                    }
+                    else if (disposition.Militarism < -0.33f)
+                    {
+                        desired = RepublicMandate.Prosperity;
+                    }
+                    else
+                    {
+                        desired = RepublicMandate.Balanced;
+                    }
+                    ProposeMandate(kingdom, kingdom.RulingClan, desired);
                 }
             }
         }

@@ -627,25 +627,35 @@ namespace BannerKings.Behaviours.Diplomacy
             if (diplomacy == null) return;
             var government = diplomacy.Government;
             if (government == null) return;
+            if (!diplomacy.PoliticsProposalReady()) return;
 
             Clan ruler = kingdom.RulingClan;
             if (ruler.Influence < 225f) return;
-            if (MBRandom.RandomFloat > 0.015f) return;
 
             int current = diplomacy.CrownAuthority;
-            // Authoritarian, legitimate, secure rulers centralise; egalitarian
-            // or shaky ones devolve power to keep the peers content.
-            float lean = 0.6f * ruler.Leader.GetTraitLevel(DefaultTraits.Authoritarian)
-                       - 0.5f * ruler.Leader.GetTraitLevel(DefaultTraits.Egalitarian)
+            // The ruler's Centralism drives the direction; weak legitimacy
+            // pushes a shaky ruler to devolve power and keep the peers content.
+            float lean = BKPoliticalDisposition.Get(ruler).Centralism
                        + (diplomacy.Legitimacy - 0.5f);
 
+            // Proposal frequency scales with how strongly the ruler wants the
+            // change — a committed centralist acts often, an ambivalent one
+            // rarely. Replaces the flat 1.5%/day roll.
+            float urgency = MathF.Abs(lean);
+            if (urgency < 0.25f) return;
+            if (MBRandom.RandomFloat > 0.01f + 0.06f * urgency) return;
+
             int proposed;
-            if (lean > 0.25f && current < government.CrownAuthorityCeiling) proposed = current + 1;
-            else if (lean < -0.25f && current > government.CrownAuthorityFloor) proposed = current - 1;
+            if (lean > 0f && current < government.CrownAuthorityCeiling) proposed = current + 1;
+            else if (lean < 0f && current > government.CrownAuthorityFloor) proposed = current - 1;
             else return;
 
             var decision = new CrownAuthorityDecision(ruler, proposed);
-            if (decision.IsAllowed()) kingdom.AddDecision(decision);
+            if (decision.IsAllowed())
+            {
+                kingdom.AddDecision(decision);
+                diplomacy.MarkPoliticsProposal();
+            }
         }
 
         private enum AscendantForce { None, Centralist, Populist }
@@ -792,12 +802,14 @@ namespace BannerKings.Behaviours.Diplomacy
             {
                 if (clan == Clan.PlayerClan) continue;        // player pulls their own lever
                 if (clan.Leader == null || clan.IsUnderMercenaryService) continue;
-                if (MBRandom.RandomFloat > 0.04f) continue;
 
-                float lean = clan.Leader.GetTraitLevel(DefaultTraits.Authoritarian)
-                           - clan.Leader.GetTraitLevel(DefaultTraits.Egalitarian);
-                if (lean == 0f) continue;
-                bool favoursTransition = centralizing ? lean > 0f : lean < 0f;
+                float centralism = BKPoliticalDisposition.Get(clan).Centralism;
+                if (MathF.Abs(centralism) < 0.15f) continue;
+                // A clan pulls the lever the harder it cares about the
+                // direction — replaces the flat 4%/day roll.
+                if (MBRandom.RandomFloat > 0.02f + 0.08f * MathF.Abs(centralism)) continue;
+
+                bool favoursTransition = centralizing ? centralism > 0f : centralism < 0f;
                 diplomacy.ApplyTransitionLever(clan, favoursTransition);
             }
         }
@@ -1009,13 +1021,13 @@ namespace BannerKings.Behaviours.Diplomacy
             }
 
             if (strongest == null || best < 0.35f) return AscendantForce.None;
-            switch (strongest.StringId)
-            {
-                case "royalists": return AscendantForce.Centralist;
-                case "commoners":
-                case "oligarchists": return AscendantForce.Populist;
-                default: return AscendantForce.None;
-            }
+
+            // The group's constitutional pull is declared in
+            // bk_interest_groups.xml (centralism_pull) — data, not a hardcoded
+            // StringId switch, so a modded interest group classifies itself.
+            if (strongest.CentralismPull > 0.15f) return AscendantForce.Centralist;
+            if (strongest.CentralismPull < -0.15f) return AscendantForce.Populist;
+            return AscendantForce.None;
         }
 
         // A non-ruling clan with the military muscle to seize the realm:

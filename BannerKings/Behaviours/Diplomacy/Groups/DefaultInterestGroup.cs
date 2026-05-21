@@ -119,7 +119,8 @@ namespace BannerKings.Behaviours.Diplomacy.Groups
                     supportedCasusBelli,
                     possibleDemands,
                     favoredPosition,
-                    BKXml.Float(row, "legitimacy_factor", 0f));
+                    BKXml.Float(row, "legitimacy_factor", 0f),
+                    BKXml.Float(row, "centralism_pull", 0f));
                 _loaded.Add(group);
             }
         }

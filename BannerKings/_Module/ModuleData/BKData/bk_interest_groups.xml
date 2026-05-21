@@ -13,6 +13,7 @@
                     allows_commoners="true|false"
                     allows_nobles="true|false"
                     favored_position="<council_member_id>"   optional
+                    centralism_pull="N"                      optional, -1..1, default 0
                     legitimacy_factor="N">
       <name>...</name>
       <description>...</description>
@@ -33,7 +34,7 @@
 <interest_groups>
   <interest_group id="royalists" main_trait="Authoritarian"
                   demands_council="true" allows_commoners="true" allows_nobles="true"
-                  legitimacy_factor="0.5">
+                  centralism_pull="1" legitimacy_factor="0.5">
     <name>Royalists</name>
     <description>The royalists are those who support the royal administration. They favor the sovereign even over themselves, be for true loyalty or for the prospect of compensation. Royalists support everything that benefits the royal administration regardless of impacts on other groups.</description>
     <occupations/>
@@ -75,7 +76,7 @@
 
   <interest_group id="traditionalists" main_trait="Diligent"
                   demands_council="true" allows_commoners="true" allows_nobles="true"
-                  legitimacy_factor="0.5">
+                  centralism_pull="0" legitimacy_factor="0.5">
     <name>Traditionalists</name>
     <description>Traditionalists support the way of the ancestors. More than anything, they believe in strength. While they recognize the necessity for a strong ruler, they also do the necessity of liberty for the noble classes. They aim for a balance of power between the sovereign and their vassals, a continuation of old traditions and exerting power through force.</description>
     <occupations>
@@ -126,7 +127,7 @@
 
   <interest_group id="oligarchists" main_trait="Oligarchic"
                   demands_council="true" allows_commoners="false" allows_nobles="true"
-                  legitimacy_factor="0.4">
+                  centralism_pull="-1" legitimacy_factor="0.4">
     <name>Oligarchists</name>
     <description>Oligarchists are noble people of influence that are concerned, first and foremost, with their own advantage. They continuously seek benefits for themselves or their peers, understanding they are part of the same class. Thus, their interests are often misaligned both with the ruler's, and with the common people.</description>
     <occupations>
@@ -173,7 +174,7 @@
 
   <interest_group id="zealots" main_trait="Zealous"
                   demands_council="true" allows_commoners="true" allows_nobles="true"
-                  favored_position="Spiritual" legitimacy_factor="0.2">
+                  favored_position="Spiritual" centralism_pull="0" legitimacy_factor="0.2">
     <name>Zealots</name>
     <description>Zealots represent those of most religious fervor within the realm. As a group, they are most concerned with the strengthening of their faith and the upholding of its values. A ruler that does not follow the realm's traditional faith will have great difficulty gathering support from such zealots. Those that do follow it, still need to prove themselves by upholding the faith's virtues. Zealots, loyal first and foremost to their faith, gather members both within and withou the nobility.</description>
     <occupations>
@@ -220,7 +221,7 @@
 
   <interest_group id="commoners" main_trait="Just"
                   demands_council="false" allows_commoners="true" allows_nobles="false"
-                  legitimacy_factor="0.8">
+                  centralism_pull="-1" legitimacy_factor="0.8">
     <name>Commoners</name>
     <description>Commoners represent the general populace, intermediated by fief dignataries. The benefit of the commoners often clashes with the benefit of the high nobility. However, the populace is open to supporting rulers that represent them. Often, that means a shared cultural and religious tradition, as well as signs of certain virtues, such as a keen sense of justice and generosity.</description>
     <occupations>

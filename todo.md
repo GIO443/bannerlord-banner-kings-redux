@@ -23,6 +23,32 @@ behind the default-off `EnablePoliticsRework` MCM toggle). Left to do:
       political stakes. BK→Fourberie feed (surfacing BK grudges as contract
       fodder) is best-effort only.
 
+- [ ] **Phase 7 — AI political intelligence.** AI interacts with the
+      politics systems through one derived scoring layer, minimal hardcoding.
+  - [x] **7a — `BKPoliticalDisposition`.** Per-clan disposition, three signed
+        axes — Centralism (+centralist/-autonomist), Ambition (+ambitious/
+        -content), Militarism (+militarist/-developer) — derived from
+        personality (traits), culture (realm insider/outsider, measured not
+        per-culture), and holdings economics (foreign-pop share via
+        `CultureData`, prosperity, relative strength). Lazy daily cache,
+        never saved. All weights centralised in `BKPoliticsTuning`.
+  - [x] **7b — Coalesced kingdom politics.** Rewire the 6 AI touch-points
+        (CA propose/vote, demesne-law vote, transition levers,
+        `GetAscendantForce`, Republic mandate) to read the three axes;
+        derive group constitutional pull from group data, not the StringId
+        switch. Vassal intent funnels through bloc tension → one coalesced
+        proposal; realm proposal cooldown (~3-6 wk, one `CampaignTime` on
+        `KingdomDiplomacy`) so the player isn't spammed. Per-kingdom
+        evaluation staggered by day-of-week; nothing added to the daily tick.
+  - [ ] **7c — `BKVassalPoliticsBehavior` + government-typed levers.**
+        Vassal-to-vassal politics: derived rivalries, sensing weakness,
+        power-grabs, climbing the realm hierarchy via existing BK systems
+        (claims, council seats, marriage, usurpation). Each government
+        exposes a lever set (loyal climb / treacherous climb) declared in
+        `bk_governments.xml`; a generic evaluator scores levers by
+        disposition + sensed strength of the superior. Player Realm Politics
+        screen options become government-dependent. AI-vs-AI resolves
+        without popups — surfaces to the player only as notifications.
 - [ ] **Before the politics rework ships (version bump):** run a full cold
       critic pass over the whole rework, and an in-game playtest with the
       toggle on. It is a large body of code now (~14 commits), all behind the

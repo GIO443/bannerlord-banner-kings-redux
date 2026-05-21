@@ -3,6 +3,7 @@ using System.Linq;
 using BannerKings.Managers;
 using BetterEconomy.Behaviors;
 using BetterEconomy.Core;
+using TaleWorlds.CampaignSystem;
 using TaleWorlds.CampaignSystem.Settlements;
 
 namespace BannerKings.Utils
@@ -118,6 +119,73 @@ namespace BannerKings.Utils
             }
 
             return feudal.GetEstatesForSettlement(settlement) ?? Enumerable.Empty<EstateRecord>();
+        }
+
+        /// <summary>A specific BetterEconomy estate parcel by id within a settlement, or null.</summary>
+        public static EstateRecord GetEstateById(Settlement settlement, string estateId)
+        {
+            if (string.IsNullOrEmpty(estateId))
+            {
+                return null;
+            }
+
+            foreach (var record in GetEstates(settlement))
+            {
+                if (record != null && record.EstateId == estateId)
+                {
+                    return record;
+                }
+            }
+
+            return null;
+        }
+
+        /// <summary>
+        /// The id of the first BetterEconomy estate parcel in <paramref name="settlement"/>
+        /// not already present in <paramref name="claimedIds"/>, or null when every
+        /// parcel is taken. Used by the BK estate weave to anchor BK estates 1:1.
+        /// </summary>
+        public static string ClaimUnanchoredEstate(Settlement settlement, ICollection<string> claimedIds)
+        {
+            foreach (var record in GetEstates(settlement))
+            {
+                if (record == null || string.IsNullOrEmpty(record.EstateId))
+                {
+                    continue;
+                }
+
+                if (claimedIds == null || !claimedIds.Contains(record.EstateId))
+                {
+                    return record.EstateId;
+                }
+            }
+
+            return null;
+        }
+
+        /// <summary>
+        /// Writes a BK estate's hero owner into its woven BetterEconomy parcel so
+        /// the economic layer and the feudal layer agree on who holds the land.
+        /// A null owner resets the parcel to abstract-local ownership.
+        /// </summary>
+        public static void SetEstateOwner(EstateRecord record, Hero owner)
+        {
+            if (record == null)
+            {
+                return;
+            }
+
+            if (owner == null)
+            {
+                record.OwnerHeroId = null;
+                record.OwnerClanId = null;
+                record.OwnerType = EstateOwnerType.AbstractLocal;
+                return;
+            }
+
+            record.OwnerHeroId = owner.StringId;
+            record.OwnerClanId = owner.Clan != null ? owner.Clan.StringId : null;
+            record.OwnerType = EstateOwnerType.OwnerClan;
         }
     }
 }

@@ -26,7 +26,7 @@ namespace BannerKings.Behaviours.Diplomacy.Groups
             bool demandsCouncil, bool allowsCommoners, bool allowsNobles, List<Occupation> preferredOccupations, 
             List<PolicyObject> supportedPolicy, List<PolicyObject> shunnedPolicies, List<DemesneLaw> supportedLaws, 
             List<DemesneLaw> shunnedLaws, List<CasusBelli> supportedCasusBelli, List<Demand> possibleDemands,
-            CouncilMember favoredPosition, float legitimacyFactor)
+            CouncilMember favoredPosition, float legitimacyFactor, float centralismPull = 0f)
         {
             Initialize(name, description);
             MainTrait = mainTrait;
@@ -57,6 +57,7 @@ namespace BannerKings.Behaviours.Diplomacy.Groups
 
             FavoredPosition = favoredPosition;
             LegitimacyFactor = legitimacyFactor;
+            CentralismPull = centralismPull;
         }
 
         public override DiplomacyGroup GetCopy(KingdomDiplomacy diplomacy)
@@ -64,7 +65,8 @@ namespace BannerKings.Behaviours.Diplomacy.Groups
             InterestGroup result = new InterestGroup(StringId);
             result.Initialize(Name, Description, MainTrait, DemandsCouncil, AllowsCommoners,
                 AllowsNobles, PreferredOccupations, SupportedPolicies, ShunnedPolicies, SupportedLaws,
-                ShunnedLaws, SupportedCasusBelli, PossibleDemands, FavoredPosition, LegitimacyFactor);
+                ShunnedLaws, SupportedCasusBelli, PossibleDemands, FavoredPosition, LegitimacyFactor,
+                CentralismPull);
             result.KingdomDiplomacy = diplomacy;
             return result;
         }
@@ -74,7 +76,8 @@ namespace BannerKings.Behaviours.Diplomacy.Groups
             InterestGroup i = DefaultInterestGroup.Instance.GetById(this);
             Initialize(i.Name, i.Description, i.MainTrait, i.DemandsCouncil, i.AllowsCommoners,
                 i.AllowsNobles, i.PreferredOccupations, i.SupportedPolicies, i.ShunnedPolicies, i.SupportedLaws,
-                i.ShunnedLaws, i.SupportedCasusBelli, i.PossibleDemands, i.FavoredPosition, i.LegitimacyFactor);
+                i.ShunnedLaws, i.SupportedCasusBelli, i.PossibleDemands, i.FavoredPosition, i.LegitimacyFactor,
+                i.CentralismPull);
             foreach (var demand in PossibleDemands)
             {
                 demand.SetTexts();
@@ -166,6 +169,9 @@ namespace BannerKings.Behaviours.Diplomacy.Groups
         public bool AllowsCommoners { get; private set; }
         public bool AllowsNobles { get; private set; }
         public float LegitimacyFactor { get; private set; }
+        // Politics rework — the group's constitutional lean toward a strong
+        // crown (+1) or devolved power (-1), declared in bk_interest_groups.xml.
+        public float CentralismPull { get; private set; }
         public List<Occupation> PreferredOccupations { get; private set; }
         public List<PolicyObject> SupportedPolicies { get; private set; }
         public List<PolicyObject> ShunnedPolicies { get; private set; }

@@ -76,6 +76,22 @@ namespace BannerKings.Managers.Kingdoms.Contract
         public override float DetermineSupport(Clan clan, DecisionOutcome possibleOutcome)
         {
             var outcome = possibleOutcome as DemesneLawDecisionOutcome;
+            if (outcome?.Law == null || clan?.Leader == null) return 0f;
+
+            // Politics rework — a clan's Centralism decides how it reads a
+            // law's ideological lean: an authoritarian-weighted law is a
+            // centralist's law, an egalitarian or oligarchic one an
+            // autonomist's. Off the rework, the original trait formula stands.
+            if (BannerKings.Settings.BannerKingsSettings.Instance.EnablePoliticsRework)
+            {
+                float centralism = BannerKings.Behaviours.Diplomacy.BKPoliticalDisposition.Get(clan).Centralism;
+                if (Kingdom != null && Kingdom.RulingClan == clan) centralism += 0.5f;
+                float lawLean = outcome.Law.AuthoritarianWeight
+                              - outcome.Law.EgalitarianWeight
+                              - outcome.Law.OligarchicWeight;
+                return centralism * lawLean * 100f
+                     * BannerKingsConfig.Instance.KingdomDecisionModel.GetVoteWeight(Kingdom, clan);
+            }
 
             float egalitatian = 0.6f * (float)clan.Leader.GetTraitLevel(DefaultTraits.Egalitarian) - 0.9f * (float)clan.Leader.GetTraitLevel(DefaultTraits.Oligarchic);
             float oligarchic = 0.6f * (float)clan.Leader.GetTraitLevel(DefaultTraits.Oligarchic) - 0.9f * (float)clan.Leader.GetTraitLevel(DefaultTraits.Egalitarian) - 0.5f * (float)clan.Leader.GetTraitLevel(DefaultTraits.Authoritarian);
