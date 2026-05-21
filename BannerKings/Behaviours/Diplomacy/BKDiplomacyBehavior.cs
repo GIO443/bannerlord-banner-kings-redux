@@ -1070,6 +1070,7 @@ namespace BannerKings.Behaviours.Diplomacy
                 diplomacy.SetCrownAuthority(diplomacy.CrownAuthority);
                 InformationManager.DisplayMessage(new InformationMessage(message.ToString(),
                     Color.FromUint(Utils.TextHelper.COLOR_LIGHT_YELLOW)));
+                BannerKings.Utils.Logs.Politics(() => $"{kingdom.Name}: realm government changed to {newGovernment.Name}");
             }
 
             PromptOrApply(kingdom,
@@ -1088,6 +1089,7 @@ namespace BannerKings.Behaviours.Diplomacy
                 KingdomActions.SetRulerWithTitle(usurper.Leader, kingdom);
                 InformationManager.DisplayMessage(new InformationMessage(message.ToString(),
                     Color.FromUint(Utils.TextHelper.COLOR_LIGHT_YELLOW)));
+                BannerKings.Utils.Logs.Politics(() => $"{kingdom.Name}: throne usurped by {usurper.Name} ({usurper.Leader?.Name})");
             }
 
             PromptOrApply(kingdom,

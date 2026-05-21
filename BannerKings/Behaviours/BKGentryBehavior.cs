@@ -648,15 +648,16 @@ namespace BannerKings.Behaviours
             hero.CharacterObject.IsFemale = isOffspringFemale;
             hero.Mother = mother;
             hero.Father = father;
-            EquipmentFlags customFlags = EquipmentFlags.IsNobleTemplate | EquipmentFlags.IsChildEquipmentTemplate;
-            MBEquipmentRoster randomElementInefficiently = TaleWorlds.CampaignSystem.Campaign.Current.Models.EquipmentSelectionModel
-                .GetEquipmentRostersForDeliveredOffspring(hero).GetRandomElementInefficiently<MBEquipmentRoster>();
-            if (randomElementInefficiently != null)
+            // 1.4: EquipmentSelectionModel.GetEquipmentRostersForDeliveredOffspring
+            // (returned rosters) → GetEquipmentForDeliveredOffspring, which
+            // returns a single ready Equipment. The EquipmentFlags enum is gone.
+            Equipment offspringEquipment = TaleWorlds.CampaignSystem.Campaign.Current.Models.EquipmentSelectionModel
+                .GetEquipmentForDeliveredOffspring(hero);
+            if (offspringEquipment != null)
             {
-                Equipment randomElementInefficiently2 = randomElementInefficiently.GetCivilianEquipments().GetRandomElementInefficiently<Equipment>();
-                EquipmentHelper.AssignHeroEquipmentFromEquipment(hero, randomElementInefficiently2);
+                EquipmentHelper.AssignHeroEquipmentFromEquipment(hero, offspringEquipment);
                 Equipment equipment = new Equipment(Equipment.EquipmentType.Battle);
-                equipment.FillFrom(randomElementInefficiently2, false);
+                equipment.FillFrom(offspringEquipment, false);
                 EquipmentHelper.AssignHeroEquipmentFromEquipment(hero, equipment);
             }
 
@@ -697,10 +698,12 @@ namespace BannerKings.Behaviours
             var roster = (from e in source where e.EquipmentCulture == culture select e).ToList()
                 .GetRandomElementWithPredicate(x => 
                 {
-                    bool noble = x.HasEquipmentFlags(EquipmentFlags.IsNobleTemplate);
-                    bool genderAppropriate = female ? x.HasEquipmentFlags(EquipmentFlags.IsFemaleTemplate) : !x.HasEquipmentFlags(EquipmentFlags.IsFemaleTemplate);
-                    bool adequate = civillian ? x.HasEquipmentFlags(EquipmentFlags.IsCivilianTemplate) : x.HasEquipmentFlags(EquipmentFlags.IsMediumTemplate);
-                    return noble && genderAppropriate && adequate;
+                    // 1.4 EquipmentCategories dropped the Medium/Civilian roster
+                    // flags; the civilian-vs-battle split is selected per-Equipment.
+                    bool noble = x.EquipmentCategories.HasFlag(EquipmentCategories.IsLordTemplate);
+                    bool isFemaleRoster = x.EquipmentCategories.HasFlag(EquipmentCategories.IsFemaleTemplate);
+                    bool genderAppropriate = female ? isFemaleRoster : !isFemaleRoster;
+                    return noble && genderAppropriate;
                 });
             if (roster == null)
             {

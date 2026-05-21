@@ -1,6 +1,7 @@
 ﻿using Helpers;
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using TaleWorlds.CampaignSystem.CampaignBehaviors;
 using TaleWorlds.CampaignSystem.ComponentInterfaces;
 using TaleWorlds.CampaignSystem.Map;
@@ -240,8 +241,9 @@ namespace BannerKings.Behaviours
                     int num33 = 0;
                     if (item < 1f && true) // CanPayMoreWage removed in 1.3.x
                     {
-                        num32 = value2.NumberOfLordPartiesAt;
-                        num33 = value2.NumberOfLordPartiesTargeting;
+                        // 1.4 removed Settlement.NumberOfLordPartiesAt/Targeting — compute directly.
+                        num32 = value2.Parties.Count(p => p.IsLordParty);
+                        num33 = MobileParty.All.Count(p => p.IsLordParty && p.TargetSettlement == value2);
                         if (currentSettlementOfMobilePartyForAICalculation == value2)
                         {
                             int num34 = num32;

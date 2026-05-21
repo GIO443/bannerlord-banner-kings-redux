@@ -115,7 +115,10 @@ namespace BannerKings.Behaviours.Diplomacy
             int ceiling = gov != null ? gov.CrownAuthorityCeiling : 4;
             if (level < floor) level = floor;
             if (level > ceiling) level = ceiling;
+            int old = CrownAuthority;
             CrownAuthority = level;
+            if (old != level)
+                BannerKings.Utils.Logs.Politics(() => $"{Kingdom?.Name}: Crown Authority {old} -> {level} (band [{floor}..{ceiling}])");
         }
 
         // Influence a clan spends per pull of a government-transition lever.
@@ -126,7 +129,10 @@ namespace BannerKings.Behaviours.Diplomacy
             int v = GovernmentTransitionPressure + delta;
             if (v < 0) v = 0;
             if (v > 100) v = 100;
+            int old = GovernmentTransitionPressure;
             GovernmentTransitionPressure = v;
+            if (old != v)
+                BannerKings.Utils.Logs.Politics(() => $"{Kingdom?.Name}: government-transition pressure {old} -> {v}");
         }
 
         // A clan spends influence to drag the realm's pending government
@@ -148,46 +154,23 @@ namespace BannerKings.Behaviours.Diplomacy
             return true;
         }
 
-        // Natural post-peace truce duration. After any MakePeaceAction.Apply
-        // call (vanilla peace decision, mercenary contract end, kingdom
-        // destruction, etc.) two kingdoms get this much time before BK's
-        // war-proposal AI can re-target them. Reads vanilla's
-        // StanceLink.PeaceDeclarationDate as the canonical source of truth
-        // for "when did peace last begin" — no parallel BK record needed
-        // for the natural-truce case. The Truces dict is a paid-extension
-        // layer on top (player buys a longer truce, AI accepts an offer).
-        public const float NaturalTruceYears = 1f;
-
-        // Single canonical accessor: is there an active truce, from any
-        // source (vanilla peace-window OR BK paid extension)?
+        // Single canonical accessor: is there an active BK truce with this
+        // kingdom? Only BK's paid-extension layer (the Truces dict) counts.
+        //
+        // BK used to also derive a 1-year "natural" post-peace truce from
+        // vanilla's StanceLink.PeaceDeclarationDate. For two kingdoms that
+        // had never been at war that date is the unset default, which the
+        // elapsed-days check read as "peace just happened" — so every
+        // neutral pair counted as in-truce for the first in-game year and
+        // every AI war declaration was suppressed. Removed: vanilla already
+        // gates war re-declaration on PeaceDeclarationDate, so the natural
+        // post-peace cooldown is vanilla's job. BK keeps only paid truces.
         public bool IsInTruce(Kingdom kingdom)
         {
             if (kingdom == null || kingdom == Kingdom) return false;
 
-            // Natural truce derived from vanilla's PeaceDeclarationDate.
-            // Only counts when currently neutral — once war is declared,
-            // PeaceDeclarationDate stays as a historical record but the
-            // truce is broken (covered by vanilla flipping IsNeutral=false).
-            try
-            {
-                var stance = Kingdom.GetStanceWith(kingdom);
-                if (stance != null && stance.IsNeutral)
-                {
-                    var peaceDate = stance.PeaceDeclarationDate;
-                    // CampaignTime default / Never resolves to a far-past
-                    // date, making the elapsed check trivially exceed the
-                    // window for kingdoms that never made peace. Two
-                    // never-warred kingdoms thus correctly return false.
-                    var elapsedDays = peaceDate.ElapsedDaysUntilNow;
-                    if (elapsedDays >= 0f && elapsedDays < NaturalTruceYears * CampaignTime.DaysInYear)
-                    {
-                        return true;
-                    }
-                }
-            }
-            catch { /* defensive */ }
-
-            // BK paid-extension layer.
+            // BK paid-extension layer (player buys a longer truce, AI
+            // accepts an offer).
             if (Truces.ContainsKey(kingdom))
             {
                 return Truces[kingdom].RemainingHoursFromNow > 0f;

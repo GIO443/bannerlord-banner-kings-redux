@@ -54,6 +54,7 @@ namespace BannerKings.Behaviours.Diplomacy
             if (proposer.Influence < MandateInfluenceCost) return false;
             ChangeClanInfluenceAction.Apply(proposer, -MandateInfluenceCost);
             mandates[kingdom] = mandate;
+            BannerKings.Utils.Logs.Politics(() => $"{kingdom.Name} [Republic]: mandate set to {mandate} by {proposer.Name}");
             return true;
         }
 

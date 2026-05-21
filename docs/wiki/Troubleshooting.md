@@ -195,6 +195,38 @@ etc. — anything also present in the original release) are upstream
 BK problems. They'll get fixed in Redux as we encounter them, but the
 underlying design is R-Vaccari's.
 
+### Diagnostic logging
+
+BK can append a focused event log to help diagnose a misbehaving system.
+Open **MCM → Banner Kings → Diagnostics** and turn on the toggle for the
+system you're investigating — e.g. **Log Politics Rework**. Each toggle
+writes a plain-text file under
+`%LOCALAPPDATA%\BannerKings\ModLogs\` (e.g. `BK_politics.txt`). These
+logs are quiet — they fire on actual events, not every tick — so it's
+fine to leave the relevant one on for a play session and attach the file
+to a bug report. Turn it back off when you're done.
+
+`BK_politics.txt` records Crown Authority changes, government-transition
+pressure and realm government changes / usurpations, faction-tension
+escalations, Imperial donative shortfalls, and Republic mandate changes.
+
+### Testing the politics rework
+
+To check the politics rework without waiting for a campaign to develop,
+enable cheats (`cheat_mode 1` in `engine_config.txt`, or via the
+launcher) and use the console (Alt+~):
+
+- `bannerkings.politics_dump` — writes a full snapshot of your realm's
+  politics (government, Crown Authority, transition pressure, faction
+  tensions, every clan's vote weight) to `BK_politics_dump.txt` in the
+  ModLogs folder. Pass a kingdom name, or `all`, to dump others.
+- `bannerkings.politics_set_ca <kingdom> | <0-4>` — set Crown Authority
+  (clamped to the government's legal band).
+- `bannerkings.politics_set_tension <kingdom> | <0-100>` — set every
+  interest group's tension; at 100 the next weekly tick forces a demand.
+- `bannerkings.politics_add_transition <kingdom> | <delta>` — push
+  government-transition pressure; reach 100 to force a government change.
+
 ---
 
 ## Credits & license

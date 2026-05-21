@@ -73,13 +73,12 @@ namespace BannerKings.Behaviours
                 //   if (!hero.Clan.Heroes.Contains(hero))
                 //       ClanActions.JoinClan(hero, hero.Clan);
 
-                if (!CanCreateClan(hero))
-                {
-                    return;
-                }
-
                 var originalClan = hero.Clan;
-                if (hero.Spouse != null && Utils.Helpers.IsClanLeader(hero.Spouse))
+                // Knighthood now always founds a new clan (subject only to the
+                // one-knight-clan-per-village cap checked above). The single
+                // hard guard left is against knighting a clan's own leader,
+                // which would decapitate the original clan.
+                if (originalClan == null || hero == originalClan.Leader)
                 {
                     return;
                 }
@@ -160,9 +159,55 @@ namespace BannerKings.Behaviours
             // since we never want LESS renown than vanilla intent.
             float renownScale = BannerKings.Settings.BannerKingsSettings.Instance?.ClanRenown ?? 1f;
             if (renownScale < 1f) renownScale = 1f;
-            var newClan = ClanActions.CreateNewClan(hero, title.Fief, hero.StringId + "_knight_clan", name, 250f * renownScale, true);
+            var newClan = ClanActions.CreateNewClan(hero, title.Fief, hero.StringId + "_knight_clan", name, 250f * renownScale, false);
             if (newClan != null)
             {
+                // The knight is sponsored by their former liege: the leader of
+                // the clan releasing them pays the 50,000-gold establishment
+                // cost, floored at what they can afford so a poor sponsor is
+                // never driven into debt.
+                var sponsor = originalClan?.Leader;
+                if (sponsor != null)
+                {
+                    int paid = System.Math.Min(50000, System.Math.Max(0, sponsor.Gold));
+                    if (paid > 0)
+                    {
+                        sponsor.ChangeHeroGold(-paid);
+                    }
+                }
+
+                // The new clan's leader must be a Lord — the removed
+                // CanCreateClan gate used to guarantee this; with knighthood
+                // now unconditional, set it explicitly.
+                if (hero.Occupation != Occupation.Lord)
+                {
+                    hero.SetNewOccupation(Occupation.Lord);
+                }
+
+                // NPC-knighted heroes are usually promoted notables or
+                // companions with poor management skills — left alone, the new
+                // knight clan fields a uselessly small party. Give NPC knights
+                // a Steward / Leadership floor (plus the backing attribute
+                // points) so the clan can raise a real warband. AddSkillXp
+                // routes through the normal skill-up path, so NPC perk
+                // auto-selection picks up the party-size perks naturally.
+                // Player-knighted companions are left untouched — the player
+                // curates those.
+                if (originalClan != Clan.PlayerClan)
+                {
+                    hero.HeroDeveloper.AddAttribute(DefaultCharacterAttributes.Intelligence, 2, false);
+                    hero.HeroDeveloper.AddAttribute(DefaultCharacterAttributes.Social, 2, false);
+                    if (hero.GetSkillValue(DefaultSkills.Steward) < 100)
+                    {
+                        hero.AddSkillXp(DefaultSkills.Steward, 60000f);
+                    }
+
+                    if (hero.GetSkillValue(DefaultSkills.Leadership) < 75)
+                    {
+                        hero.AddSkillXp(DefaultSkills.Leadership, 40000f);
+                    }
+                }
+
                 // Income endowment for new knight clans. Without this, a
                 // freshly-spun knight clan has only the BK Lordship-tier
                 // title for one village — typically ~20-80 gold/day in BK
@@ -198,13 +243,6 @@ namespace BannerKings.Behaviours
                         .SetTextVariable("HERO", hero.Name)
                         .SetTextVariable("ORIGINAL", originalClan.Name));
             }
-        }
-
-        private bool CanCreateClan(Hero hero)
-        {
-            return hero.Gold >= 50000 && BannerKingsConfig.Instance.TitleManager.GetKnightInfluence(hero) >= 350f &&
-                   hero.Occupation == Occupation.Lord &&
-                   !Utils.Helpers.IsCloseFamily(hero, hero.Clan.Leader);
         }
 
         // Cap: at most one knight clan per village. Knight-clan marker

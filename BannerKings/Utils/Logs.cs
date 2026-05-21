@@ -28,6 +28,7 @@ namespace BannerKings.Utils
         private static bool MajorEventsEnabled => Settings.BannerKingsSettings.Instance?.LogMajorEvents ?? false;
         private static bool CaravanLifecycleEnabled => Settings.BannerKingsSettings.Instance?.LogCaravanLifecycle ?? false;
         private static bool BattleResolutionEnabled => Settings.BannerKingsSettings.Instance?.LogBattleResolution ?? false;
+        private static bool PoliticsEnabled => Settings.BannerKingsSettings.Instance?.LogPolitics ?? false;
         public static bool RosterMutationsTraceEnabled => Settings.BannerKingsSettings.Instance?.LogRosterMutationsTrace ?? false;
 
         public static void Rescue(Func<string> line)
@@ -82,6 +83,12 @@ namespace BannerKings.Utils
         {
             if (!RosterMutationsTraceEnabled) return;
             Write("roster_mutations.txt", line);
+        }
+
+        public static void Politics(Func<string> line)
+        {
+            if (!PoliticsEnabled) return;
+            Write("politics.txt", line);
         }
 
         private static void Write(string filename, Func<string> line)

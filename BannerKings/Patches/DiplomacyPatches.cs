@@ -376,8 +376,10 @@ namespace BannerKings.Patches
                     {
                         try
                         {
-                            var proposer = TaleWorlds.CampaignSystem.Election.StartAllianceDecision
-                                .GetProposerClanForPlayerKingdom(newAlly);
+                            // 1.4 removed StartAllianceDecision.GetProposerClanFor
+                            // PlayerKingdom. The player initiates this from their
+                            // own diplomacy screen, so the player clan proposes.
+                            var proposer = Clan.PlayerClan;
                             if (proposer != null)
                             {
                                 Clan.PlayerClan.Kingdom.AddDecision(

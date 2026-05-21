@@ -138,6 +138,7 @@ namespace BannerKings.Behaviours.Diplomacy.Groups
                         if (CanPushDemand(demand, influence.ResultNumber).Item1)
                         {
                             demand.SetUp();
+                            BannerKings.Utils.Logs.Politics(() => $"{KingdomDiplomacy?.Kingdom?.Name}: group '{Name}' tension reached 100 — escalated demand '{demand.Name}'");
                             break;
                         }
                     }

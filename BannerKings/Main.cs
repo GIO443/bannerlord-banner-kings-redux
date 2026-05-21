@@ -154,8 +154,11 @@ namespace BannerKings
             // estate-as-village-workshop redesign and the retinue mechanic
             // will be revisited then.
             campaignStarter.AddBehavior(new BKFeastBehavior());
-            
-            campaignStarter.AddBehavior(new BKWorkshopBehavior());
+
+            // BK's workshop system is retired — Bannerlord Living Economy owns
+            // workshop production (WorkshopProductionPatch). BKWorkshopBehavior
+            // is no longer registered; BKWorkshopModel is no longer added as a
+            // game model (below).
             campaignStarter.AddBehavior(new BKGentryBehavior());
             campaignStarter.AddBehavior(new BKBanditBehavior());
             campaignStarter.AddBehavior(new BKDiplomacyBehavior());
@@ -212,7 +215,10 @@ namespace BannerKings
             // BK economy models (PriceFactor, ClanFinance, Construction, Tax,
             // Economy, VillageProduction) stay registered — EOF wraps + delegates
             // those, so BK's logic survives stacked underneath.
-            if (!ModCompat.EconomyOverhaul)
+            // Bannerlord Living Economy (compat=0) owns the Prosperity,
+            // VillageProduction, SettlementEconomy and item-price model slots.
+            // BK yields all four so the two mods don't double-register a slot.
+            if (!ModCompat.EconomyOverhaul && !ModCompat.BetterEconomy)
                 campaignStarter.AddModel(BannerKingsConfig.Instance.ProsperityModel);
             campaignStarter.AddModel(BannerKingsConfig.Instance.TaxModel);
             if (!ModCompat.EconomyOverhaul)
@@ -227,18 +233,15 @@ namespace BannerKings
                 campaignStarter.AddModel(BannerKingsConfig.Instance.InfluenceModel);
             if (!ModCompat.EconomyOverhaul)
                 campaignStarter.AddModel(new BKLoyaltyModel());
-            campaignStarter.AddModel(BannerKingsConfig.Instance.VillageProductionModel);
-            campaignStarter.AddModel(BannerKingsConfig.Instance.EconomyModel);
-            campaignStarter.AddModel(new BKPriceFactorModel());
-            // EOF Harmony-patches DefaultWorkshopModel.GetEffectiveConversionSpeedOfProduction
-            // to apply per-workshop upgrade-level scaling. BKWorkshopModel inherits from the
-            // abstract WorkshopModel directly, not DefaultWorkshopModel, so EOF's patch never
-            // reaches BK's instance — upgrades would raise wages (entity property patch fires
-            // universally) but not production speed, leaving upgraded workshops net-negative
-            // for the player. Cede the WorkshopModel slot to vanilla under EOF; BK's
-            // workshop count cap, custom buying/inventory costs, and tax are lost in trade.
-            if (!ModCompat.EconomyOverhaul)
-                campaignStarter.AddModel(BannerKingsConfig.Instance.WorkshopModel);
+            if (!ModCompat.BetterEconomy)
+                campaignStarter.AddModel(BannerKingsConfig.Instance.VillageProductionModel);
+            if (!ModCompat.BetterEconomy)
+                campaignStarter.AddModel(BannerKingsConfig.Instance.EconomyModel);
+            if (!ModCompat.BetterEconomy)
+                campaignStarter.AddModel(new BKPriceFactorModel());
+            // BK's workshop system is retired — Bannerlord Living Economy owns
+            // workshops. BKWorkshopModel is no longer registered; the vanilla /
+            // BetterEconomy workshop model holds the slot.
             campaignStarter.AddModel(BannerKingsConfig.Instance.ClanFinanceModel);
             campaignStarter.AddModel(BannerKingsConfig.Instance.ArmyManagementModel);
             campaignStarter.AddModel(BannerKingsConfig.Instance.VolunteerModel);
@@ -291,6 +294,21 @@ namespace BannerKings
         {
             base.OnSubModuleLoad();
             BKDiagnostics.Install();
+
+            // Bannerlord Living Economy owns population + economy in this build.
+            // Flip its BannerKings-compatibility mode to 0 so it runs its full
+            // simulation (its own population, prosperity, village production,
+            // item prices) instead of deferring to BK. BK is ordered to load
+            // after BetterEconomy, so this set lands after its SettingsLoader
+            // and wins. (Its runtime settings-reload hotkey can revert this —
+            // acceptable for now; see the BetterEconomy integration TODO.)
+            try
+            {
+                BetterEconomy.Config.BetterEconomySettings.BannerKingsCompatibilityMode = 0;
+            }
+            catch
+            {
+            }
 
             // ContainerLoadData.FillObject Finalizer for the religion dup-key
             // backstop. Installs first so it's covering the very first save

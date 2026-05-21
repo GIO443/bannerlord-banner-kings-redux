@@ -102,7 +102,7 @@ namespace BannerKings.Components
 
                 if (raidTarget != null)
                 {
-                    party.SetMoveRaidSettlement(raidTarget.Settlement, MobileParty.NavigationType.Default);
+                    party.SetMoveRaidSettlement(raidTarget.Settlement, MobileParty.NavigationType.Default, false);
                 }
 
                 if (robbingTarget != null)
@@ -195,7 +195,7 @@ namespace BannerKings.Components
                                 x.Village.Hearth > 100f && x.Village.Militia < party.MemberRoster.TotalManCount * 0.5f, party);
                     if (target != null)
                     {
-                        party.SetMoveRaidSettlement(target, MobileParty.NavigationType.Default);
+                        party.SetMoveRaidSettlement(target, MobileParty.NavigationType.Default, false);
                         // RecalculateShortTermAi removed in 1.3.x
                         raidTarget = target.Village;
                         lastDecision = CampaignTime.Now;

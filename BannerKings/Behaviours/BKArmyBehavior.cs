@@ -117,7 +117,8 @@ namespace BannerKings.Behaviours
             // padding, is what keeps the army alive once formed.
             if (leader.Clan.Influence < 100f) return;
             if (party.TotalFoodAtInventory < party.MemberRoster.TotalManCount * 0.5f) return;
-            if (BannerKingsConfig.Instance.ArmyManagementModel.GetMobilePartiesToCallToArmy(party).Count < 2) return;
+            BannerKingsConfig.Instance.ArmyManagementModel.CanLordCreateArmy(party, out var armyMembers);
+            if (armyMembers == null || armyMembers.Count < 2) return;
             if (leader.Clan.Influence < BannerKingsConfig.Instance.InfluenceModel.CalculateInfluenceCap(leader.Clan).ResultNumber * 0.4f) return;
 
             var (target, type) = objective.Value;

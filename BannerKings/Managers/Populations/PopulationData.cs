@@ -355,7 +355,48 @@ namespace BannerKings.Managers.Populations
                 {
                     pops.count = 0;
                 }
+
+                // Bannerlord Living Economy owns population — push the delta
+                // into its authoritative SettlementClassState so the change
+                // survives the next SyncClassesFromBetterEconomy refresh.
+                BannerKings.Utils.BetterEconomyBridge.UpdateClassCount(settlement, type, count);
             }
+        }
+
+        // Mirror Bannerlord Living Economy's authoritative social-class counts
+        // into BK's `classes` list (Slaves ← BondedLaborers). When the class
+        // state isn't available yet — early load, before BetterEconomy seeds
+        // it — the existing counts are left intact rather than zeroed.
+        private void SyncClassesFromBetterEconomy()
+        {
+            if (BannerKings.Utils.BetterEconomyBridge.GetClassState(settlement) == null)
+            {
+                return;
+            }
+
+            MirrorClassCount(PopType.Nobles);
+            MirrorClassCount(PopType.Craftsmen);
+            MirrorClassCount(PopType.Serfs);
+            MirrorClassCount(PopType.Tenants);
+            MirrorClassCount(PopType.Slaves);
+        }
+
+        private void MirrorClassCount(PopType type)
+        {
+            var count = (int) BannerKings.Utils.BetterEconomyBridge.GetClassCount(settlement, type);
+            if (count < 0)
+            {
+                count = 0;
+            }
+
+            var pops = classes.Find(popClass => popClass.type == type);
+            if (pops == null)
+            {
+                pops = new PopulationClass(type, 0);
+                classes.Add(pops);
+            }
+
+            pops.count = count;
         }
 
         public int GetTypeCount(PopType type)
@@ -377,9 +418,10 @@ namespace BannerKings.Managers.Populations
 
         internal override void Update(PopulationData data)
         {
-            var model = BannerKingsConfig.Instance.GrowthModel;
-            var growthFactor = (int) model.CalculateEffect(settlement, this).ResultNumber;
-            UpdatePopulation(settlement, growthFactor, PopType.None);
+            // Population is owned by Bannerlord Living Economy — BK mirrors its
+            // SettlementClassState each tick instead of running BK's own
+            // growth + class-balance simulation (UpdatePopulation / BalanceClasses).
+            SyncClassesFromBetterEconomy();
             var stabilityModel = BannerKingsConfig.Instance.StabilityModel;
             Stability += stabilityModel.CalculateEffect(settlement).ResultNumber;
             Autonomy += stabilityModel.CalculateAutonomyEffect(settlement, Stability, Autonomy).ResultNumber;

@@ -158,28 +158,14 @@ namespace BannerKings.UI.Extensions
                     TradePactText = new TextObject("{=er8kmimQ}Not Present").ToString();
                 }
 
-                if (bkDiplomacy.IsInTruce(targetKingdom))
+                // IsInTruce is paid-truce-only now (the BK Truces dict) —
+                // the natural post-peace window is vanilla's. When a truce
+                // shows, the dict carries its explicit expiry.
+                if (bkDiplomacy.IsInTruce(targetKingdom)
+                    && bkDiplomacy.Truces != null
+                    && bkDiplomacy.Truces.TryGetValue(targetKingdom, out var until))
                 {
-                    // Truce can come from either source: vanilla
-                    // PeaceDeclarationDate (natural post-peace window) or
-                    // BK paid-extension dict. Prefer the dict's explicit
-                    // expiry when present (paid extension carries through
-                    // the natural window); otherwise display the natural
-                    // window's end derived from PeaceDeclarationDate.
-                    // Direct dict indexer access without the ContainsKey
-                    // guard would KeyNotFoundException when only the
-                    // natural-window applies.
-                    if (bkDiplomacy.Truces != null && bkDiplomacy.Truces.TryGetValue(targetKingdom, out var until))
-                    {
-                        TruceText = until.ToString();
-                    }
-                    else
-                    {
-                        var truceStance = currentKingdom.GetStanceWith(targetKingdom);
-                        var naturalEnd = truceStance.PeaceDeclarationDate
-                            + CampaignTime.Years(KingdomDiplomacy.NaturalTruceYears);
-                        TruceText = naturalEnd.ToString();
-                    }
+                    TruceText = until.ToString();
                 }
                 else
                 {

@@ -94,11 +94,14 @@ namespace BannerKings.Behaviours.Diplomacy
             }
             current = MathF.Clamp(current, 0f, 100f);
             loyalty[kingdom] = current;
+            float loggedCurrent = current;
+            BannerKings.Utils.Logs.Politics(() => $"{kingdom.Name} [Imperial]: donative {paid:n0}/{donative:n0} paid, loyalty -> {loggedCurrent:0.0}");
 
             // Below 60 the realm rots — the lower the loyalty, the harder all
             // four fronts erode.
             float deficit = current < 60f ? (60f - current) / 60f : 0f;
             if (deficit <= 0f) return;
+            BannerKings.Utils.Logs.Politics(() => $"{kingdom.Name} [Imperial]: loyalty {loggedCurrent:0.0} below threshold — four-front erosion firing (deficit {deficit:0.00})");
 
             // Front 1 — disloyal soldiers feed the usurpation / transition
             // pressure of the government cycle.

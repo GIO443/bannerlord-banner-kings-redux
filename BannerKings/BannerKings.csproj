@@ -80,6 +80,16 @@
 	  <Folder Include="Patches\" />
 	</ItemGroup>
 
+	<!-- Bannerlord Living Economy (BetterEconomy) — hard dependency. BK
+	     force-enables and reads its feudal-economy layer (social classes,
+	     estates, demand). Reference DLL lives under ref/ (gitignored). -->
+	<ItemGroup>
+		<Reference Include="BetterEconomy">
+			<HintPath>..\ref\Econ Mod\BetterEconomy\bin\Win64_Shipping_Client\BetterEconomy.dll</HintPath>
+			<Private>false</Private>
+		</Reference>
+	</ItemGroup>
+
 	<PropertyGroup>
 		<ModuleRoot>$([System.IO.Path]::GetDirectoryName($([System.IO.Path]::GetDirectoryName($(OutputPath)))))</ModuleRoot>
 	</PropertyGroup>

@@ -341,6 +341,11 @@ namespace BannerKings.Settings
         [SettingPropertyGroup("{=!}Diagnostics")]
         public bool LogKingdomDecisions { get; set; } = false;
 
+        [SettingProperty("{=!}Log Politics Rework", RequireRestart = false,
+            HintText = "{=!}Append politics-rework events to BK_politics.txt: Crown Authority changes, government-transition pressure shifts and realm government changes / throne usurpations, faction-tension escalation into demands, Imperial donative shortfalls and four-front erosion, and Republic mandate changes. Only meaningful with Enable Politics Rework on. Quiet volume — fires on actual political events, not per-tick. Default: false.")]
+        [SettingPropertyGroup("{=!}Diagnostics")]
+        public bool LogPolitics { get; set; } = false;
+
         [SettingProperty("{=!}Log Religion / Title Decisions", RequireRestart = false,
             HintText = "{=!}Append religion conversions, faith-piety changes, title inheritance, and claim resolution to BK_religion_titles.txt. Useful for narrative-tracing weird cultural / clergy outcomes. Default: false.")]
         [SettingPropertyGroup("{=!}Diagnostics")]

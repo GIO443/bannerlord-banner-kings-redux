@@ -25,6 +25,7 @@ namespace BannerKings.UI.Extensions
 
         public KingdomManagementMixin(KingdomManagementVM vm) : base(vm)
         {
+            BannerKings.Utils.BKFreezeTrace.Enter("KingdomManagementMixin.ctor");
             kingdomManagement = vm;
 
             // Set the visibility flags FIRST so that even if any sub-VM
@@ -37,9 +38,12 @@ namespace BannerKings.UI.Extensions
             GroupsEnabled = false;
             ShowCareer = false;
 
+            BannerKings.Utils.BKFreezeTrace.Enter("  CourtVM");
             try { courtVM = new CourtVM(true); }
             catch { courtVM = null; }
+            BannerKings.Utils.BKFreezeTrace.Exit("  CourtVM");
 
+            BannerKings.Utils.BKFreezeTrace.Enter("  DemesneVM");
             try
             {
                 var title = BannerKingsConfig.Instance.TitleManager?.GetSovereignTitle(vm.Kingdom);
@@ -52,6 +56,7 @@ namespace BannerKings.UI.Extensions
                 demesneVM = null;
                 DemesneEnabled = false;
             }
+            BannerKings.Utils.BKFreezeTrace.Exit("  DemesneVM");
 
             // Don't call kingdomManagement.RefreshValues() here. UIExtenderEx
             // already invokes RefreshValues on the host VM after mixin
@@ -61,6 +66,7 @@ namespace BannerKings.UI.Extensions
             // Court/Demesne/Groups/Career sub-VM refreshes. The first auto-
             // refresh (after this ctor completes) now does the work alone.
 
+            BannerKings.Utils.BKFreezeTrace.Enter("  GroupsVM");
             try
             {
                 var diplomacy = TaleWorlds.CampaignSystem.Campaign.Current
@@ -73,7 +79,9 @@ namespace BannerKings.UI.Extensions
                 Groups = null;
                 GroupsEnabled = false;
             }
+            BannerKings.Utils.BKFreezeTrace.Exit("  GroupsVM");
 
+            BannerKings.Utils.BKFreezeTrace.Enter("  CareerVM");
             try
             {
                 Career = new MercenaryCareerVM();
@@ -85,6 +93,8 @@ namespace BannerKings.UI.Extensions
                 Career = null;
                 ShowCareer = false;
             }
+            BannerKings.Utils.BKFreezeTrace.Exit("  CareerVM");
+            BannerKings.Utils.BKFreezeTrace.Exit("KingdomManagementMixin.ctor");
         }
 
         [DataSourceProperty]

@@ -1,8 +1,11 @@
 ﻿using BannerKings.Behaviours;
+using BannerKings.Behaviours.Diplomacy;
 using BannerKings.CampaignContent.Economy.Layered;
+using BannerKings.Extensions;
 using BannerKings.Managers.Helpers;
 using BannerKings.Managers.Innovations;
 using BannerKings.Managers.Court;
+using BannerKings.Managers.Titles.Governments;
 using BannerKings.Behaviours.Mercenary;
 using System;
 using System.Collections.Generic;
@@ -510,6 +513,183 @@ namespace BannerKings
         // so they're inert without cheats enabled in the launcher. None of these
         // touch the slave-raid surface (separate work in flight on 1.6.x).
         // =====================================================================
+
+        // ---- Politics rework test cheats ---------------------------------
+        // All four route through existing public BK API (KingdomDiplomacy /
+        // InterestGroup public setters, which clamp) — no parallel logic.
+        // Useful for force-checking the rework without waiting for the
+        // campaign to develop naturally.
+
+        // Read-only snapshot of a realm's politics state. No arg → player
+        // kingdom; "all" → every live kingdom; else a named kingdom.
+        // Output → BK_politics_dump.txt in the ModLogs folder.
+        [CommandLineFunctionality.CommandLineArgumentFunction("politics_dump", "bannerkings")]
+        public static string PoliticsDump(List<string> strings)
+        {
+            var sb = new StringBuilder();
+            try
+            {
+                bool on = BannerKings.Settings.BannerKingsSettings.Instance?.EnablePoliticsRework ?? false;
+                sb.AppendLine($"Politics rework toggle: {(on ? "ON" : "OFF — systems dormant until enabled in MCM")}");
+                sb.AppendLine();
+
+                string token = strings != null && strings.Count > 0
+                    ? CampaignCheats.ConcatenateString(strings).Trim() : null;
+
+                List<Kingdom> targets;
+                if (string.IsNullOrEmpty(token))
+                {
+                    var pk = Clan.PlayerClan?.Kingdom;
+                    if (pk == null) return "No player kingdom — pass a kingdom name, or 'all'.";
+                    targets = new List<Kingdom> { pk };
+                }
+                else if (token.Equals("all", StringComparison.OrdinalIgnoreCase))
+                {
+                    targets = Kingdom.All.Where(k => k != null && !k.IsEliminated).ToList();
+                }
+                else
+                {
+                    var k = FindKingdom(token);
+                    if (k == null) return $"Kingdom not found: {token}";
+                    targets = new List<Kingdom> { k };
+                }
+
+                foreach (var k in targets) DumpKingdomPolitics(k, sb);
+            }
+            catch (Exception ex) { sb.AppendLine("[politics_dump error: " + ex.Message + "]"); }
+
+            WriteDiagnosticFile("politics_dump.txt", sb.ToString());
+            string summary = "politics_dump: written to BK_politics_dump.txt (BannerKings/ModLogs).";
+            InformationManager.DisplayMessage(new InformationMessage(summary, Color.FromUint(0xFFFFD700)));
+            return summary;
+        }
+
+        private static void DumpKingdomPolitics(Kingdom kingdom, StringBuilder sb)
+        {
+            sb.AppendLine($"=== Politics: {kingdom.Name} ===");
+            var diplomacy = kingdom.GetKingdomDiplomacy();
+            if (diplomacy == null) { sb.AppendLine("  (no KingdomDiplomacy record)"); sb.AppendLine(); return; }
+
+            var gov = diplomacy.Government;
+            if (gov != null)
+            {
+                sb.AppendLine($"  Government: {gov.Name} | layer {gov.PoliticalLayer} | council {gov.CouncilControl}");
+                sb.AppendLine($"  Crown Authority: {diplomacy.CrownAuthority} / band [{gov.CrownAuthorityFloor}..{gov.CrownAuthorityCeiling}]");
+            }
+            else
+            {
+                sb.AppendLine("  Government: (no sovereign title resolved)");
+                sb.AppendLine($"  Crown Authority: {diplomacy.CrownAuthority}");
+            }
+            sb.AppendLine($"  Transition pressure: {diplomacy.GovernmentTransitionPressure} / 100");
+
+            var defaults = DefaultGovernments.Instance;
+            if (gov == defaults.Imperial)
+            {
+                var b = Campaign.Current.GetCampaignBehavior<BKImperialLoyaltyBehavior>();
+                if (b != null)
+                    sb.AppendLine($"  Imperial loyalty: {b.GetLoyalty(kingdom):0.0} / 100 (weekly donative {b.GetWeeklyDonative(kingdom):n0})");
+            }
+            else if (gov == defaults.Republic)
+            {
+                var b = Campaign.Current.GetCampaignBehavior<BKRepublicLegislationBehavior>();
+                if (b != null)
+                    sb.AppendLine($"  Republic mandate: {b.GetMandate(kingdom)}");
+            }
+
+            var groups = diplomacy.Groups;
+            sb.AppendLine($"  Interest groups ({groups?.Count ?? 0}):");
+            if (groups != null)
+                foreach (var g in groups)
+                {
+                    if (g == null) continue;
+                    string demand = g.CurrentDemand != null ? g.CurrentDemand.Name?.ToString() : "(none)";
+                    sb.AppendLine($"    {g.Name} | tension {g.TensionPressure:0}/100 | leader {g.Leader?.Name?.ToString() ?? "(none)"} | members {g.Members?.Count ?? 0} | active demand {demand}");
+                }
+
+            sb.AppendLine("  Clans & unified vote weight:");
+            var model = BannerKingsConfig.Instance.KingdomDecisionModel;
+            foreach (var clan in kingdom.Clans)
+            {
+                if (clan == null || clan.Leader == null) continue;
+                float w = 0f;
+                try { w = model.GetVoteWeight(kingdom, clan); } catch { /* model not ready */ }
+                sb.AppendLine($"    {clan.Name} | tier {clan.Tier} | voteWeight {w:0.00}{(clan == kingdom.RulingClan ? "  (ruler)" : "")}");
+            }
+            sb.AppendLine();
+        }
+
+        // Force-set a realm's Crown Authority. Value is clamped to the
+        // government's legal band by KingdomDiplomacy.SetCrownAuthority.
+        [CommandLineFunctionality.CommandLineArgumentFunction("politics_set_ca", "bannerkings")]
+        public static string PoliticsSetCa(List<string> strings)
+        {
+            if (!CampaignCheats.CheckCheatUsage(ref CampaignCheats.ErrorType)) return CampaignCheats.ErrorType;
+            if (strings == null || strings.Count == 0)
+                return "Format: bannerkings.politics_set_ca <kingdom> | <0-4>";
+
+            var parts = CampaignCheats.ConcatenateString(strings).Split('|');
+            if (parts.Length != 2) return "Format: bannerkings.politics_set_ca <kingdom> | <0-4>";
+
+            var k = FindKingdom(parts[0].Trim());
+            if (k == null) return $"Kingdom not found: {parts[0]}";
+            if (!int.TryParse(parts[1].Trim(), out int level)) return "Crown Authority level must be an integer.";
+
+            var d = k.GetKingdomDiplomacy();
+            if (d == null) return $"{k.Name} has no KingdomDiplomacy record.";
+            d.SetCrownAuthority(level);
+            return $"{k.Name}: Crown Authority requested {level}, clamped to {d.CrownAuthority}.";
+        }
+
+        // Force every interest group of a realm to a tension value. At 100 the
+        // next weekly political tick escalates any pushable demand.
+        [CommandLineFunctionality.CommandLineArgumentFunction("politics_set_tension", "bannerkings")]
+        public static string PoliticsSetTension(List<string> strings)
+        {
+            if (!CampaignCheats.CheckCheatUsage(ref CampaignCheats.ErrorType)) return CampaignCheats.ErrorType;
+            if (strings == null || strings.Count == 0)
+                return "Format: bannerkings.politics_set_tension <kingdom> | <0-100>";
+
+            var parts = CampaignCheats.ConcatenateString(strings).Split('|');
+            if (parts.Length != 2) return "Format: bannerkings.politics_set_tension <kingdom> | <0-100>";
+
+            var k = FindKingdom(parts[0].Trim());
+            if (k == null) return $"Kingdom not found: {parts[0]}";
+            if (!float.TryParse(parts[1].Trim(), out float target)) return "Tension must be a number 0-100.";
+
+            var d = k.GetKingdomDiplomacy();
+            if (d == null || d.Groups == null || d.Groups.Count == 0) return $"{k.Name} has no interest groups.";
+            int n = 0;
+            foreach (var g in d.Groups)
+            {
+                if (g == null) continue;
+                g.AddTensionPressure(target - g.TensionPressure);
+                n++;
+            }
+            return $"{k.Name}: tension set to {target:0} on {n} interest group(s).";
+        }
+
+        // Shift a realm's government-transition pressure. Push to 100 to force
+        // the next political tick to propose a government change / usurpation.
+        [CommandLineFunctionality.CommandLineArgumentFunction("politics_add_transition", "bannerkings")]
+        public static string PoliticsAddTransition(List<string> strings)
+        {
+            if (!CampaignCheats.CheckCheatUsage(ref CampaignCheats.ErrorType)) return CampaignCheats.ErrorType;
+            if (strings == null || strings.Count == 0)
+                return "Format: bannerkings.politics_add_transition <kingdom> | <delta, e.g. 100>";
+
+            var parts = CampaignCheats.ConcatenateString(strings).Split('|');
+            if (parts.Length != 2) return "Format: bannerkings.politics_add_transition <kingdom> | <delta, e.g. 100>";
+
+            var k = FindKingdom(parts[0].Trim());
+            if (k == null) return $"Kingdom not found: {parts[0]}";
+            if (!int.TryParse(parts[1].Trim(), out int delta)) return "Delta must be an integer.";
+
+            var d = k.GetKingdomDiplomacy();
+            if (d == null) return $"{k.Name} has no KingdomDiplomacy record.";
+            d.AddTransitionPressure(delta);
+            return $"{k.Name}: transition pressure now {d.GovernmentTransitionPressure}/100.";
+        }
 
         [CommandLineFunctionality.CommandLineArgumentFunction("test_setup", "bannerkings")]
         public static string TestSetup(List<string> strings)

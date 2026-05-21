@@ -477,9 +477,9 @@ namespace BannerKings.Behaviours
         {
             foreach (var warPartyComponent in hero.Clan.WarPartyComponents)
             {
-                if ((int)warPartyComponent.MobileParty.GetHeroPartyRole(hero) != 0)
+                if (warPartyComponent.MobileParty.GetHeroPartyRoles(hero).Count > 0)
                 {
-                    warPartyComponent.MobileParty.RemoveHeroPartyRole(hero);
+                    warPartyComponent.MobileParty.RemoveAllPartyRolesOfHero(hero);
                 }
             }
         }
@@ -1184,7 +1184,7 @@ namespace BannerKings.Behaviours
                 }
 
             Skills:
-                if (companion.PartyBelongedTo != null && (int)companion.PartyBelongedTo.GetHeroPartyRole(companion) != 0)
+                if (companion.PartyBelongedTo != null && companion.PartyBelongedTo.GetHeroPartyRoles(companion).Count > 0)
                 {
                     continue;
                 }
@@ -1345,7 +1345,7 @@ namespace BannerKings.Behaviours
             var roster = (from e in source where e.EquipmentCulture == clan.Culture select e).ToList()
                 .GetRandomElementWithPredicate(x =>
                     noble
-                        ? x.HasEquipmentFlags(EquipmentFlags.IsMediumTemplate)
+                        ? x.EquipmentCategories.HasFlag(EquipmentCategories.IsLordTemplate)
                         : x.StringId.Contains("bannerkings_companion"));
 
             if (roster == null)
@@ -1373,7 +1373,7 @@ namespace BannerKings.Behaviours
                 return;
             }
 
-            if (clan.WarPartyComponents.Count >= clan.CommanderLimit || clan.Settlements.Count(x => x.IsVillage) <= 1)
+            if (clan.WarPartyComponents.Count >= clan.WarPartyLimit || clan.Settlements.Count(x => x.IsVillage) <= 1)
             {
                 return;
             }
@@ -1442,7 +1442,7 @@ namespace BannerKings.Behaviours
             }
 
             var roster = (from e in source
-                            where e.HasEquipmentFlags(EquipmentFlags.IsMediumTemplate)
+                            where e.EquipmentCategories.HasFlag(EquipmentCategories.IsLordTemplate)
                             select e
                 into x
                             orderby MBRandom.RandomInt()

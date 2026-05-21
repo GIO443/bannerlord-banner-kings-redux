@@ -51,6 +51,14 @@ namespace BannerKings.Utils
         public const string EconomyOverhaulId = "Bannerlord.EconomyOverhaul";
         public const string EconomyOverhaulAsm = "Bannerlord.Economy_Overhaul";
 
+        // Bannerlord Living Economy (BetterEconomy) — https://www.nexusmods.com/mountandblade2bannerlord/mods/10796
+        // Hard dependency as of the BetterEconomy integration (it replaces EOF).
+        // Module Id and assembly name are both `BetterEconomy`. BK force-enables
+        // its FeudalEconomyCampaignBehavior and reads the social-class / estate
+        // layer through BannerKings.Utils.BetterEconomyBridge.
+        public const string BetterEconomyId = "BetterEconomy";
+        public const string BetterEconomyAsm = "BetterEconomy";
+
         // Realm of Thrones — total conversion replacing Calradia with Westeros.
         // BK doesn't ship ROT-specific data; a separate compat patch mod is
         // expected to register ROT lifestyles, titles, lanes, etc. via BK's
@@ -109,6 +117,10 @@ namespace BannerKings.Utils
         /// <summary>True if Economy Overhaul Framework is loaded.</summary>
         public static bool EconomyOverhaul
             => IsLoaded(EconomyOverhaulId, EconomyOverhaulAsm);
+
+        /// <summary>True if Bannerlord Living Economy (BetterEconomy) is loaded.</summary>
+        public static bool BetterEconomy
+            => IsLoaded(BetterEconomyId, BetterEconomyAsm);
 
         /// <summary>True if the Realm of Thrones total-conversion module is loaded.</summary>
         public static bool RealmOfThrones

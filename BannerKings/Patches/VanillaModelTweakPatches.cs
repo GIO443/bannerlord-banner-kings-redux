@@ -519,16 +519,22 @@ namespace BannerKings.Patches
         [HarmonyPatch(typeof(DefaultMapVisibilityModel))]
         internal static class BKMapVisibilityTweakPatches
         {
+            // Bannerlord 1.4 removed MapVisibilityModel.GetPartySpottingDifficulty.
+            // The per-party detectability hook is now GetPartySpottingRatioForMain
+            // PartySeeingRange — a *ratio* where a LOWER value means the party is
+            // harder to spot (vanilla itself subtracts 0.3 in forest). Outlaw
+            // NightPredator used to raise spotting *difficulty* 1.5×; on the
+            // inverse-sense ratio that is ×(1/1.5).
             [HarmonyPostfix]
-            [HarmonyPatch(nameof(DefaultMapVisibilityModel.GetPartySpottingDifficulty))]
-            private static void GetPartySpottingDifficultyPostfix(MobileParty spottingParty, MobileParty party, ref float __result)
+            [HarmonyPatch(nameof(DefaultMapVisibilityModel.GetPartySpottingRatioForMainPartySeeingRange))]
+            private static void GetPartySpottingRatioPostfix(MobileParty party, ref float __result)
             {
                 if (party is { LeaderHero: { } } &&
                     TaleWorlds.CampaignSystem.Campaign.Current.MapSceneWrapper.GetFaceTerrainType(party.CurrentNavigationFace) == TerrainType.Forest)
                 {
                     var education = BannerKingsConfig.Instance.EducationManager.GetHeroEducation(party.LeaderHero);
                     if (education.HasPerk(BKPerks.Instance.OutlawNightPredator))
-                        __result *= 1.5f;
+                        __result *= 0.667f;
                 }
             }
 
@@ -1511,9 +1517,20 @@ namespace BannerKings.Patches
                 __result *= 1f + BannerKingsSettings.Instance.RaidIncentive;
             }
 
+            // Bannerlord 1.4 split CalculatePatrollingScoreForSettlement into
+            // Defensive and Offensive variants — patch both with the same
+            // own-clan patrol incentive.
             [HarmonyPostfix]
-            [HarmonyPatch(nameof(DefaultTargetScoreCalculatingModel.CalculatePatrollingScoreForSettlement))]
-            private static void CalculatePatrollingScoreForSettlementPostfix(Settlement settlement, bool isFromPort, MobileParty mobileParty, ref float __result)
+            [HarmonyPatch(nameof(DefaultTargetScoreCalculatingModel.CalculateDefensivePatrollingScoreForSettlement))]
+            private static void CalculateDefensivePatrollingScorePostfix(Settlement settlement, MobileParty mobileParty, ref float __result)
+                => ApplyPatrolIncentive(settlement, mobileParty, ref __result);
+
+            [HarmonyPostfix]
+            [HarmonyPatch(nameof(DefaultTargetScoreCalculatingModel.CalculateOffensivePatrollingScoreForSettlement))]
+            private static void CalculateOffensivePatrollingScorePostfix(Settlement settlement, MobileParty mobileParty, ref float __result)
+                => ApplyPatrolIncentive(settlement, mobileParty, ref __result);
+
+            private static void ApplyPatrolIncentive(Settlement settlement, MobileParty mobileParty, ref float __result)
             {
                 if (__result <= 0f || BannerKingsSettings.Instance.PatrolIncentive <= 0f) return;
                 if (settlement.MapFaction != mobileParty.MapFaction) return;

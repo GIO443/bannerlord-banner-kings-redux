@@ -85,9 +85,16 @@ namespace BannerKings.Models.Vanilla
             return false;
         }
 
-        public override List<MobileParty> GetMobilePartiesToCallToArmy(MobileParty leaderParty)
+        // Bannerlord 1.4 removed ArmyManagementCalculationModel.
+        // GetMobilePartiesToCallToArmy; the call-to-army candidate list is now
+        // the out-parameter of CanLordCreateArmy. BK only filters that
+        // candidate list (it does not change whether the lord may create an
+        // army), so the base bool is returned unchanged.
+        public override bool CanLordCreateArmy(MobileParty leaderParty, out TaleWorlds.Library.MBList<MobileParty> possibleArmyMembers)
         {
-            List<MobileParty> results = base.GetMobilePartiesToCallToArmy(leaderParty);
+            bool canCreate = base.CanLordCreateArmy(leaderParty, out possibleArmyMembers);
+            if (possibleArmyMembers == null) return canCreate;
+
             List<MobileParty> toRemove = new List<MobileParty>();
             var kingdom = leaderParty.LeaderHero?.Clan?.Kingdom;
             if (kingdom != null)
@@ -95,22 +102,22 @@ namespace BannerKings.Models.Vanilla
                 FeudalTitle kingdomTitle = BannerKingsConfig.Instance.TitleManager.GetSovereignTitle(kingdom);
                 if (kingdomTitle != null && kingdomTitle.Contract.IsLawEnacted(DefaultDemesneLaws.Instance.ArmyLegion))
                 {
-                    foreach (MobileParty p in results)
+                    foreach (MobileParty p in possibleArmyMembers)
                         if (p != leaderParty && p.LeaderHero != null && CanCreateArmy(p.LeaderHero))
                             toRemove.Add(p);
                 }
 
                 foreach (var party in leaderParty.LeaderHero.Clan.WarPartyComponents)
                 {
-                    if (!results.Contains(party.MobileParty) && 
-                        party.MobileParty != leaderParty && 
+                    if (!possibleArmyMembers.Contains(party.MobileParty) &&
+                        party.MobileParty != leaderParty &&
                         party.MobileParty.IsAvailableForArmies())
                     {
-                        results.Add(party.MobileParty);
+                        possibleArmyMembers.Add(party.MobileParty);
                     }
                 }
 
-                foreach (MobileParty p in results)
+                foreach (MobileParty p in possibleArmyMembers)
                 {
                     if (p.LeaderHero.Clan.IsUnderMercenaryService && !CanHeroRecruitMercs(leaderParty.LeaderHero, p.LeaderHero))
                         toRemove.Add(p);
@@ -121,9 +128,9 @@ namespace BannerKings.Models.Vanilla
             }
 
             foreach (MobileParty p in toRemove)
-                results.Remove(p);
+                possibleArmyMembers.Remove(p);
 
-            return results;
+            return canCreate;
         }
 
         // CalculateDailyCohesionChange and DailyBeingAtArmyInfluenceAward moved to

@@ -191,7 +191,7 @@ namespace BannerKings.Models.Vanilla
         {
             int commanders = 0;
             foreach (Clan clan in kingdom.Clans)
-                commanders += clan.CommanderLimit;
+                commanders += clan.WarPartyLimit;
 
             float baseResult = (kingdom.Fiefs.Count * 4f) - (kingdom.Fiefs.Count * commanders) * 12f;
             ExplainedNumber result = new ExplainedNumber(MathF.Max(baseResult, 0f), 
@@ -1009,8 +1009,11 @@ namespace BannerKings.Models.Vanilla
             War war = TaleWorlds.CampaignSystem.Campaign.Current.GetCampaignBehavior<BKDiplomacyBehavior>().GetWar(factionDeclaredWar, factionDeclaresWar);
             if (war != null)
             {
-                if (war.StartDate.ElapsedYearsUntilNow < 1f) result.Add(50000f, new TextObject("{=UaofTriA}Recently started war"));
-
+                // BK used to add a flat +50000 "Recently started war" here.
+                // GetScoreOfDeclaringPeace negates this score, so the term
+                // pinned peace at ~-500000 for any war under a year old — no
+                // game-start war could ever end. Removed: vanilla war scoring
+                // decides when a war is ripe for peace.
                 float totalWarScore = war.TotalWarScore.ResultNumber;
                 float score = totalWarScore != 0f ? MathF.Clamp(war.CalculateWarScore(war.Attacker, false).ResultNumber /
                     totalWarScore, -1f, 1f) * 2f : 0f;
@@ -1036,8 +1039,8 @@ namespace BannerKings.Models.Vanilla
                         if (allyWar != null)
                         {
                             isInAllyWar = true;
-                            if (allyWar.StartDate.ElapsedYearsUntilNow < 1f) result.Add(50000f, new TextObject("{=UaofTriA}Recently started war"));
-
+                            // No +50000 "Recently started war" lock — see the
+                            // direct-war branch above.
                             float totalAlly = allyWar.TotalWarScore.ResultNumber;
                             float score = totalAlly != 0f
                                 ? MathF.Clamp(allyWar.CalculateWarScore(allyWar.Attacker, false).ResultNumber / totalAlly, -1f, 1f) * 2f

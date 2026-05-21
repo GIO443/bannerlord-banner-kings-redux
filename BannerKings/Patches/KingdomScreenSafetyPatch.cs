@@ -3,12 +3,84 @@ using HarmonyLib;
 using TaleWorlds.CampaignSystem;
 using TaleWorlds.CampaignSystem.ViewModelCollection;
 using TaleWorlds.CampaignSystem.ViewModelCollection.KingdomManagement;
+using TaleWorlds.CampaignSystem.ViewModelCollection.KingdomManagement.Armies;
+using TaleWorlds.CampaignSystem.ViewModelCollection.KingdomManagement.Clans;
+using TaleWorlds.CampaignSystem.ViewModelCollection.KingdomManagement.Diplomacy;
+using TaleWorlds.CampaignSystem.ViewModelCollection.KingdomManagement.Policies;
+using TaleWorlds.CampaignSystem.ViewModelCollection.KingdomManagement.Settlements;
 using TaleWorlds.Core;
 using TaleWorlds.Core.ViewModelCollection.ImageIdentifiers;
 using TaleWorlds.Localization;
 
 namespace BannerKings.Patches
 {
+    // Freeze-trace instrumentation on the 5 sub-VM RefreshValues calls fired
+    // by KingdomManagementVM.RefreshValues. Each writes ENTER/EXIT to
+    // BK_freeze_trace.txt so a kingdom-screen hang pinpoints which sub-VM is
+    // looping. Cheap; trace file is flushed every line so kill-process is
+    // safe. Temporary diagnostic — remove once the freeze cause is fixed.
+    [HarmonyPatch(typeof(KingdomArmyVM), "RefreshValues")]
+    internal static class KingdomArmyVMRefreshTrace
+    {
+        private static void Prefix() => BannerKings.Utils.BKFreezeTrace.Enter("KingdomArmyVM.RefreshValues");
+        private static void Postfix() => BannerKings.Utils.BKFreezeTrace.Exit("KingdomArmyVM.RefreshValues");
+    }
+    [HarmonyPatch(typeof(KingdomPoliciesVM), "RefreshValues")]
+    internal static class KingdomPoliciesVMRefreshTrace
+    {
+        private static void Prefix() => BannerKings.Utils.BKFreezeTrace.Enter("KingdomPoliciesVM.RefreshValues");
+        private static void Postfix() => BannerKings.Utils.BKFreezeTrace.Exit("KingdomPoliciesVM.RefreshValues");
+    }
+    [HarmonyPatch(typeof(KingdomClanVM), "RefreshValues")]
+    internal static class KingdomClanVMRefreshTrace
+    {
+        private static void Prefix() => BannerKings.Utils.BKFreezeTrace.Enter("KingdomClanVM.RefreshValues");
+        private static void Postfix() => BannerKings.Utils.BKFreezeTrace.Exit("KingdomClanVM.RefreshValues");
+    }
+    [HarmonyPatch(typeof(KingdomSettlementVM), "RefreshValues")]
+    internal static class KingdomSettlementVMRefreshTrace
+    {
+        private static void Prefix() => BannerKings.Utils.BKFreezeTrace.Enter("KingdomSettlementVM.RefreshValues");
+        private static void Postfix() => BannerKings.Utils.BKFreezeTrace.Exit("KingdomSettlementVM.RefreshValues");
+    }
+    [HarmonyPatch(typeof(KingdomDiplomacyVM), "RefreshValues")]
+    internal static class KingdomDiplomacyVMRefreshTrace
+    {
+        private static void Prefix() => BannerKings.Utils.BKFreezeTrace.Enter("KingdomDiplomacyVM.RefreshValues");
+        private static void Postfix() => BannerKings.Utils.BKFreezeTrace.Exit("KingdomDiplomacyVM.RefreshValues");
+    }
+    [HarmonyPatch(typeof(KingdomDiplomacyVM), "RefreshDiplomacyList")]
+    internal static class KingdomDiplomacyVMRefreshListTrace
+    {
+        private static void Prefix() => BannerKings.Utils.BKFreezeTrace.Enter("KingdomDiplomacyVM.RefreshDiplomacyList");
+        private static void Postfix() => BannerKings.Utils.BKFreezeTrace.Exit("KingdomDiplomacyVM.RefreshDiplomacyList");
+    }
+    [HarmonyPatch(typeof(KingdomTruceItemVM), "RefreshValues")]
+    internal static class KingdomTruceItemVMRefreshTrace
+    {
+        private static void Prefix(KingdomTruceItemVM __instance)
+            => BannerKings.Utils.BKFreezeTrace.Enter("  KingdomTruceItemVM.RefreshValues " + (__instance?.Faction2?.Name?.ToString() ?? "<null>"));
+        private static void Postfix(KingdomTruceItemVM __instance)
+            => BannerKings.Utils.BKFreezeTrace.Exit("  KingdomTruceItemVM.RefreshValues " + (__instance?.Faction2?.Name?.ToString() ?? "<null>"));
+    }
+    [HarmonyPatch(typeof(KingdomWarItemVM), "RefreshValues")]
+    internal static class KingdomWarItemVMRefreshTrace
+    {
+        private static void Prefix(KingdomWarItemVM __instance)
+            => BannerKings.Utils.BKFreezeTrace.Enter("  KingdomWarItemVM.RefreshValues " + (__instance?.Faction2?.Name?.ToString() ?? "<null>"));
+        private static void Postfix(KingdomWarItemVM __instance)
+            => BannerKings.Utils.BKFreezeTrace.Exit("  KingdomWarItemVM.RefreshValues " + (__instance?.Faction2?.Name?.ToString() ?? "<null>"));
+    }
+    // The BK KingdomDiplomacyMixin's OnRefresh fires via base.RefreshValues() at
+    // the top of KingdomDiplomacyVM.RefreshValues — instrument it explicitly so
+    // we can tell whether the mixin or the per-item refresh path dominates.
+    [HarmonyPatch(typeof(BannerKings.UI.Extensions.KingdomDiplomacyMixin), "OnRefresh")]
+    internal static class KingdomDiplomacyMixinOnRefreshTrace
+    {
+        private static void Prefix() => BannerKings.Utils.BKFreezeTrace.Enter("KingdomDiplomacyMixin.OnRefresh");
+        private static void Postfix() => BannerKings.Utils.BKFreezeTrace.Exit("KingdomDiplomacyMixin.OnRefresh");
+    }
+
     /// <summary>
     /// Vanilla 1.3.x KingdomManagementVM.RefreshDynamicKingdomProperties()
     /// can NRE during the kingdom screen open — observed when the player has
@@ -47,11 +119,13 @@ namespace BannerKings.Patches
 
         private static bool Prefix(KingdomManagementVM __instance)
         {
+            BannerKings.Utils.BKFreezeTrace.Enter("KingdomManagementVMRefreshPrefix");
             try
             {
                 var hero = Hero.MainHero;
-                if (hero == null) return false;
+                if (hero == null) { BannerKings.Utils.BKFreezeTrace.Exit("KingdomManagementVMRefreshPrefix (no hero)"); return false; }
                 var faction = hero.MapFaction;
+                BannerKings.Utils.BKFreezeTrace.Log("  faction=" + (faction?.Name?.ToString() ?? "<null>"));
 
                 if (faction != null)
                 {
@@ -126,10 +200,12 @@ namespace BannerKings.Patches
                     return sb.ToString();
                 });
 
+                BannerKings.Utils.BKFreezeTrace.Exit("KingdomManagementVMRefreshPrefix");
                 return false; // skip vanilla (we just replaced it safely)
             }
-            catch
+            catch (System.Exception ex)
             {
+                BannerKings.Utils.BKFreezeTrace.Exit("KingdomManagementVMRefreshPrefix (threw " + ex.GetType().Name + ": " + ex.Message + ")");
                 // Last-ditch: if even our safe path fails, skip vanilla so the
                 // screen still opens. Sub-VMs will populate independently.
                 return false;
