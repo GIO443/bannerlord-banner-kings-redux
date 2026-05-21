@@ -174,6 +174,23 @@ namespace BannerKings.Behaviours
                     {
                         data.Settlement.Culture = dominant;
                     }
+
+                    // BetterEconomy save migration: a pre-integration save has
+                    // BK population but BetterEconomy has never seen this
+                    // settlement. Carry BK's class counts into its authoritative
+                    // SettlementClassState so the player's population doesn't
+                    // reset to a fresh seed on first load. A BLE-native save
+                    // already has a class state for the settlement — skipped,
+                    // so this is one-time and idempotent.
+                    if ((settlement.IsTown || settlement.IsVillage)
+                        && BannerKings.Utils.BetterEconomyBridge.GetClassState(settlement) == null)
+                    {
+                        BannerKings.Utils.BetterEconomyBridge.SetClassCount(settlement, PopulationManager.PopType.Nobles, data.GetTypeCount(PopulationManager.PopType.Nobles));
+                        BannerKings.Utils.BetterEconomyBridge.SetClassCount(settlement, PopulationManager.PopType.Craftsmen, data.GetTypeCount(PopulationManager.PopType.Craftsmen));
+                        BannerKings.Utils.BetterEconomyBridge.SetClassCount(settlement, PopulationManager.PopType.Serfs, data.GetTypeCount(PopulationManager.PopType.Serfs));
+                        BannerKings.Utils.BetterEconomyBridge.SetClassCount(settlement, PopulationManager.PopType.Tenants, data.GetTypeCount(PopulationManager.PopType.Tenants));
+                        BannerKings.Utils.BetterEconomyBridge.SetClassCount(settlement, PopulationManager.PopType.Slaves, data.GetTypeCount(PopulationManager.PopType.Slaves));
+                    }
                 }
             }
 

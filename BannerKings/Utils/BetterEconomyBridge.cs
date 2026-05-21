@@ -109,6 +109,41 @@ namespace BannerKings.Utils
             }
         }
 
+        /// <summary>
+        /// Overwrites one BK pop type's count in a settlement's authoritative
+        /// SettlementClassState, creating the state if needed. Used by the
+        /// one-time save migration that carries a pre-integration save's BK
+        /// population into BetterEconomy so it doesn't reset on first load.
+        /// </summary>
+        public static void SetClassCount(Settlement settlement, PopulationManager.PopType bkType, float count)
+        {
+            var feudal = FeudalEconomyCampaignBehavior.Instance;
+            if (feudal == null || settlement == null)
+            {
+                return;
+            }
+
+            var state = feudal.GetOrCreateClassState(settlement);
+            if (state == null)
+            {
+                return;
+            }
+
+            if (count < 0f)
+            {
+                count = 0f;
+            }
+
+            switch (bkType)
+            {
+                case PopulationManager.PopType.Nobles:    state.Nobles = count; break;
+                case PopulationManager.PopType.Craftsmen: state.Craftsmen = count; break;
+                case PopulationManager.PopType.Serfs:     state.Serfs = count; break;
+                case PopulationManager.PopType.Tenants:   state.Tenants = count; break;
+                case PopulationManager.PopType.Slaves:    state.BondedLaborers = count; break;
+            }
+        }
+
         /// <summary>The BetterEconomy estates bound to a settlement (empty when none).</summary>
         public static IEnumerable<EstateRecord> GetEstates(Settlement settlement)
         {
