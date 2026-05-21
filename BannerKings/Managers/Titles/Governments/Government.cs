@@ -81,8 +81,6 @@ namespace BannerKings.Managers.Titles.Governments
         public CouncilControlType CouncilControl { get; private set; }
         public PoliticalLayerType PoliticalLayer { get; private set; }
 
-        public ValueTuple<bool, TextObject> IsAdequate(Kingdom kingdom) => IsAdequate(kingdom);
-
         public bool IsKingdomAdequate(Kingdom kingdom)
         {
             if (isAdequate != null) isAdequate(kingdom);

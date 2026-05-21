@@ -226,6 +226,7 @@ namespace BannerKings
             AddClassDefinition(typeof(SocietyRank), 163);
             AddClassDefinition(typeof(SecessionDemand), 164);
             AddClassDefinition(typeof(CrownAuthorityDecision), 165);
+            AddClassDefinition(typeof(CrownAuthorityDecision.CrownAuthorityDecisionOutcome), 166);
 
             AddClassDefinition(typeof(MercenaryCareer), 1000);
             AddClassDefinition(typeof(MercenaryPrivilege), 1001);
