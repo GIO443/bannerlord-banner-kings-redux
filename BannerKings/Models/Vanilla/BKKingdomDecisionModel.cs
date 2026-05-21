@@ -252,5 +252,46 @@ namespace BannerKings.Models.Vanilla
             }
             return count > 0 ? total / count : 0f;
         }
+
+        // ---- Government tier structures (politics rework Phase 3) ---------
+        // A clan's rank within its realm's internal structure (0..3):
+        //  - Feudal:   by the clan's highest de jure title (Sworn Lord ->
+        //              Crown Vassal -> Magnate).
+        //  - Republic: senate seniority, by clan tier.
+        //  - Imperial: administrative / governor rank, by clan tier.
+        //  - Tribal & Dictatorship: flat — no internal tiering, always 0.
+        // A higher tier both empowers the clan and improves the province it
+        // governs for the crown — mutual gain, and a bigger faction threat.
+        public int GetRealmTier(Kingdom kingdom, Clan clan)
+        {
+            if (kingdom == null || clan == null) return 0;
+            var government = kingdom.GetKingdomDiplomacy()?.Government;
+            var layer = government != null ? government.PoliticalLayer : PoliticalLayerType.Vassals;
+
+            switch (layer)
+            {
+                case PoliticalLayerType.Vassals:
+                {
+                    float rank = 0f;
+                    foreach (var title in BannerKingsConfig.Instance.TitleManager.GetAllDeJure(clan))
+                    {
+                        float r = TitleRankWeight(title.TitleType);
+                        if (r > rank) rank = r;
+                    }
+                    if (rank >= 3f) return 3;   // Dukedom or higher — Magnate
+                    if (rank >= 1.8f) return 2; // County — Crown Vassal
+                    if (rank >= 1f) return 1;   // Barony — Sworn Lord
+                    return 0;                   // Lordship / landless
+                }
+                case PoliticalLayerType.Parliament:
+                case PoliticalLayerType.Governors:
+                    if (clan.Tier >= 5) return 3;
+                    if (clan.Tier >= 3) return 2;
+                    if (clan.Tier >= 1) return 1;
+                    return 0;
+                default: // Chiefs (Tribal), Dictatorship — flat
+                    return 0;
+            }
+        }
     }
 }

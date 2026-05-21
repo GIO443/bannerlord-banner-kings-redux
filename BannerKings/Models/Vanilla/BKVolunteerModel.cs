@@ -391,6 +391,18 @@ namespace BannerKings.Models.Vanilla
                         explainedNumber.AddFactor(0.15f, new TextObject("{=BKrepMandate}Republic mandate"));
                     }
                 }
+
+                // Government tier structures (Phase 3) — a clan of higher
+                // realm standing governs its province better; its fiefs
+                // field more men for the crown.
+                if (settlement.OwnerClan != null && realm != null)
+                {
+                    int realmTier = BannerKingsConfig.Instance.KingdomDecisionModel.GetRealmTier(realm, settlement.OwnerClan);
+                    if (realmTier > 0)
+                    {
+                        explainedNumber.AddFactor(0.06f * realmTier, new TextObject("{=BKrealmTierGov}Realm standing"));
+                    }
+                }
             }
 
             // settlement.Owner is OwnerClan?.Leader; null for rebel /

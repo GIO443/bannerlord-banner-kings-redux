@@ -846,12 +846,15 @@ namespace BannerKings.Behaviours.Diplomacy
                 }
             }
 
-            var desc = new TextObject("{=BKrealmDesc3}Government: {GOV}\nCrown Authority: {CA} (permitted {FLOOR}-{CEIL}){LOYALTY}\nTransition pressure: {PRESSURE}%\n{PENDING}\n\n{TENSIONS}")
+            int realmStanding = BannerKingsConfig.Instance.KingdomDecisionModel.GetRealmTier(kingdom, Clan.PlayerClan);
+
+            var desc = new TextObject("{=BKrealmDesc4}Government: {GOV}\nCrown Authority: {CA} (permitted {FLOOR}-{CEIL}){LOYALTY}\nYour clan's realm standing: tier {STANDING}\nTransition pressure: {PRESSURE}%\n{PENDING}\n\n{TENSIONS}")
                 .SetTextVariable("GOV", gov.Name)
                 .SetTextVariable("CA", diplomacy.CrownAuthority)
                 .SetTextVariable("FLOOR", gov.CrownAuthorityFloor)
                 .SetTextVariable("CEIL", gov.CrownAuthorityCeiling)
                 .SetTextVariable("LOYALTY", loyaltyText)
+                .SetTextVariable("STANDING", realmStanding)
                 .SetTextVariable("PRESSURE", diplomacy.GovernmentTransitionPressure)
                 .SetTextVariable("PENDING", pending.Apply != null
                     ? new TextObject("{=BKrealmBrewing}A change of government is brewing.")
