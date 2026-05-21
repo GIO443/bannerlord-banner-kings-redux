@@ -159,6 +159,7 @@ namespace BannerKings
             campaignStarter.AddBehavior(new BKGentryBehavior());
             campaignStarter.AddBehavior(new BKBanditBehavior());
             campaignStarter.AddBehavior(new BKDiplomacyBehavior());
+            campaignStarter.AddBehavior(new BKImperialLoyaltyBehavior());
             campaignStarter.AddBehavior(new BKCriminalityBehavior());
             campaignStarter.AddBehavior(new BKTraitBehavior());
             campaignStarter.AddBehavior(new BKPartyNeedsBehavior());
