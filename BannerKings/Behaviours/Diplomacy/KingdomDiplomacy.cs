@@ -26,6 +26,7 @@ namespace BannerKings.Behaviours.Diplomacy
         [SaveableProperty(7)] public float Legitimacy { get; private set; }
         [SaveableProperty(8)] public List<RadicalGroup> RadicalGroups { get; private set; }
         [SaveableProperty(9)] public int CrownAuthority { get; private set; }
+        [SaveableProperty(10)] public int GovernmentTransitionPressure { get; private set; }
         public float LegitimacyChange
         {
             get
@@ -115,6 +116,36 @@ namespace BannerKings.Behaviours.Diplomacy
             if (level < floor) level = floor;
             if (level > ceiling) level = ceiling;
             CrownAuthority = level;
+        }
+
+        // Influence a clan spends per pull of a government-transition lever.
+        public const int TransitionLeverCost = 50;
+
+        public void AddTransitionPressure(int delta)
+        {
+            int v = GovernmentTransitionPressure + delta;
+            if (v < 0) v = 0;
+            if (v > 100) v = 100;
+            GovernmentTransitionPressure = v;
+        }
+
+        // A clan spends influence to drag the realm's pending government
+        // transition down (resist) or drive it up (accelerate). The pressure
+        // shift scales with the clan's unified vote weight — the constitution
+        // decides how much sway each actor, ruler or vassal at any peerage
+        // level, carries. A clan with no vote (mercenary, no peerage) has no
+        // lever.
+        public bool ApplyTransitionLever(Clan clan, bool accelerate)
+        {
+            if (clan == null || clan.Leader == null || clan.Kingdom != Kingdom) return false;
+            if (clan.Influence < TransitionLeverCost) return false;
+            float weight = BannerKingsConfig.Instance.KingdomDecisionModel.GetVoteWeight(Kingdom, clan);
+            if (weight <= 0f) return false;
+
+            ChangeClanInfluenceAction.Apply(clan, -TransitionLeverCost);
+            int shift = (int) MathF.Max(1f, weight * 8f);
+            AddTransitionPressure(accelerate ? shift : -shift);
+            return true;
         }
 
         // Natural post-peace truce duration. After any MakePeaceAction.Apply

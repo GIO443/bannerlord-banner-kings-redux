@@ -650,85 +650,146 @@ namespace BannerKings.Behaviours.Diplomacy
 
         private enum AscendantForce { None, Centralist, Populist }
 
+        private struct PendingTransition
+        {
+            public Action Apply;        // executes the transition
+            public Government Target;   // destination government; null for a usurpation
+            public bool IsUsurpation;
+        }
+
         // Politics rework — the Republic / Dictatorship / Imperial government
-        // cycle. Mechanical conditions open the door; the ascendant political
-        // force (interest groups, or a dominant rival general) decides which
-        // way the realm tips. Reforms and collapses both resolve here.
+        // cycle. A conditioned transition builds pressure (the faction push)
+        // day by day; clans spend influence on levers to drag it down or
+        // drive it up; at full pressure the transition fires. The ascendant
+        // political force (interest groups, or a dominant rival general)
+        // decides which way the realm tips.
         private void ConsiderGovernmentTransition(Kingdom kingdom)
         {
             if (!BannerKings.Settings.BannerKingsSettings.Instance.EnablePoliticsRework) return;
             if (kingdom == null || kingdom.IsEliminated || kingdom.RulingClan == null) return;
 
             var diplomacy = GetKingdomDiplomacy(kingdom);
-            if (diplomacy == null) return;
-            var government = diplomacy.Government;
-            if (government == null) return;
+            if (diplomacy == null || diplomacy.Government == null) return;
 
+            PendingTransition pending = GetPendingTransition(kingdom, diplomacy);
+            if (pending.Apply == null)
+            {
+                // No crisis conditioned — the realm settles, pressure eases.
+                diplomacy.AddTransitionPressure(-4);
+                return;
+            }
+
+            // The faction push builds pressure toward the conditioned change.
+            diplomacy.AddTransitionPressure(3);
+
+            // AI levers — clans spend influence to drag or drive, by their
+            // lean. A usurpation is settled by armies, not politicking.
+            if (!pending.IsUsurpation && pending.Target != null)
+            {
+                ConsiderAITransitionLevers(kingdom, diplomacy, pending.Target);
+            }
+
+            if (diplomacy.GovernmentTransitionPressure >= 100)
+            {
+                diplomacy.AddTransitionPressure(-100);
+                pending.Apply();
+            }
+        }
+
+        // What transition, if any, the realm's situation currently conditions.
+        private PendingTransition GetPendingTransition(Kingdom kingdom, KingdomDiplomacy diplomacy)
+        {
+            var government = diplomacy.Government;
             var defaults = DefaultGovernments.Instance;
             int ca = diplomacy.CrownAuthority;
             bool atWar = FactionHelper.GetEnemyKingdoms(kingdom).Any();
+            var result = new PendingTransition();
 
             if (government == defaults.Republic)
             {
-                // A Republic at war with Crown Authority maxed out is a
-                // republic in the grip of emergency — a Diktator is raised.
-                if (atWar && ca >= government.CrownAuthorityCeiling && MBRandom.RandomFloat < 0.02f)
+                // A Republic at war with Crown Authority maxed is a republic
+                // in the grip of emergency — a Diktator is raised.
+                if (atWar && ca >= government.CrownAuthorityCeiling)
                 {
-                    ChangeRealmGovernment(kingdom, diplomacy, defaults.Dictatorship,
+                    result.Target = defaults.Dictatorship;
+                    result.Apply = () => ChangeRealmGovernment(kingdom, diplomacy, defaults.Dictatorship,
                         new TextObject("{=BKgovToDict}With {KINGDOM} beset by war, the senate yields extraordinary power - a Diktator now rules.")
                         .SetTextVariable("KINGDOM", kingdom.Name));
                 }
-                return;
+                return result;
             }
 
             if (government == defaults.Dictatorship)
             {
                 Clan rival = GetDominantRival(kingdom);
-                if (rival != null && MBRandom.RandomFloat < 0.02f)
+                if (rival != null)
                 {
-                    UsurpRealm(kingdom, rival,
+                    result.IsUsurpation = true;
+                    result.Apply = () => UsurpRealm(kingdom, rival,
                         new TextObject("{=BKgovUsurpDict}{RIVAL} has the army to seize {KINGDOM} - the Diktator is cast down.")
                         .SetTextVariable("RIVAL", rival.Name).SetTextVariable("KINGDOM", kingdom.Name));
-                    return;
+                    return result;
                 }
 
                 var force = GetAscendantForce(diplomacy);
                 if (force == AscendantForce.Centralist && ca >= government.CrownAuthorityCeiling
-                    && diplomacy.Legitimacy >= 0.5f && MBRandom.RandomFloat < 0.02f)
+                    && diplomacy.Legitimacy >= 0.5f)
                 {
-                    ChangeRealmGovernment(kingdom, diplomacy, defaults.Imperial,
+                    result.Target = defaults.Imperial;
+                    result.Apply = () => ChangeRealmGovernment(kingdom, diplomacy, defaults.Imperial,
                         new TextObject("{=BKgovToEmpire}The Diktator of {KINGDOM} sets aside the senate and crowns an Empire.")
                         .SetTextVariable("KINGDOM", kingdom.Name));
                 }
-                else if ((force == AscendantForce.Populist || (ca <= government.CrownAuthorityFloor && !atWar))
-                         && MBRandom.RandomFloat < 0.02f)
+                else if (force == AscendantForce.Populist || (ca <= government.CrownAuthorityFloor && !atWar))
                 {
-                    ChangeRealmGovernment(kingdom, diplomacy, defaults.Republic,
+                    result.Target = defaults.Republic;
+                    result.Apply = () => ChangeRealmGovernment(kingdom, diplomacy, defaults.Republic,
                         new TextObject("{=BKgovToRepublic}The dictatorship over {KINGDOM} lapses - the senate is restored.")
                         .SetTextVariable("KINGDOM", kingdom.Name));
                 }
-                return;
+                return result;
             }
 
             if (government == defaults.Imperial)
             {
                 Clan rival = GetDominantRival(kingdom);
-                if (rival != null && MBRandom.RandomFloat < 0.015f)
+                if (rival != null)
                 {
-                    UsurpRealm(kingdom, rival,
+                    result.IsUsurpation = true;
+                    result.Apply = () => UsurpRealm(kingdom, rival,
                         new TextObject("{=BKgovUsurpEmpire}{RIVAL} seizes the throne of {KINGDOM} by force of arms.")
                         .SetTextVariable("RIVAL", rival.Name).SetTextVariable("KINGDOM", kingdom.Name));
-                    return;
+                    return result;
                 }
 
                 var force = GetAscendantForce(diplomacy);
-                if (force == AscendantForce.Populist && ca <= government.CrownAuthorityFloor
-                    && MBRandom.RandomFloat < 0.015f)
+                if (force == AscendantForce.Populist && ca <= government.CrownAuthorityFloor)
                 {
-                    ChangeRealmGovernment(kingdom, diplomacy, defaults.Republic,
+                    result.Target = defaults.Republic;
+                    result.Apply = () => ChangeRealmGovernment(kingdom, diplomacy, defaults.Republic,
                         new TextObject("{=BKgovEmpireFalls}The Empire of {KINGDOM} collapses - a Republic rises from its ruin.")
                         .SetTextVariable("KINGDOM", kingdom.Name));
                 }
+            }
+            return result;
+        }
+
+        // AI clans pull the transition lever by their lean: a centralist clan
+        // drives a march toward Empire and drags against a slide to Republic.
+        private void ConsiderAITransitionLevers(Kingdom kingdom, KingdomDiplomacy diplomacy, Government target)
+        {
+            bool centralizing = target.Authoritarian > diplomacy.Government.Authoritarian;
+            foreach (var clan in kingdom.Clans)
+            {
+                if (clan == Clan.PlayerClan) continue;        // player pulls their own lever
+                if (clan.Leader == null || clan.IsUnderMercenaryService) continue;
+                if (MBRandom.RandomFloat > 0.04f) continue;
+
+                float lean = clan.Leader.GetTraitLevel(DefaultTraits.Authoritarian)
+                           - clan.Leader.GetTraitLevel(DefaultTraits.Egalitarian);
+                if (lean == 0f) continue;
+                bool favoursTransition = centralizing ? lean > 0f : lean < 0f;
+                diplomacy.ApplyTransitionLever(clan, favoursTransition);
             }
         }
 
