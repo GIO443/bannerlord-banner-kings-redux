@@ -123,8 +123,10 @@ namespace BannerKings.Behaviours.Diplomacy.Groups
             if (reworkOn)
             {
                 // Faction tension: a group with a grievance it could push
-                // builds toward forcing it; a content group's tension eases.
-                AddTensionPressure(agitated ? 2f : -3f);
+                // builds toward forcing it (at the MCM-scaled rate); a
+                // content group's tension eases.
+                float pressureScale = BannerKings.Settings.BannerKingsSettings.Instance.PoliticalPressure;
+                AddTensionPressure(agitated ? 2f * pressureScale : -3f);
 
                 // Escalation — a tension at full pressure forces the demand.
                 // CanPushDemand then reports false (a demand is now active),

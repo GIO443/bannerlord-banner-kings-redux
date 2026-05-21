@@ -679,8 +679,10 @@ namespace BannerKings.Behaviours.Diplomacy
                 return;
             }
 
-            // The faction push builds pressure toward the conditioned change.
-            diplomacy.AddTransitionPressure(3);
+            // The faction push builds pressure toward the conditioned change,
+            // at the MCM-scaled political-pressure rate.
+            float pressureScale = BannerKings.Settings.BannerKingsSettings.Instance.PoliticalPressure;
+            diplomacy.AddTransitionPressure((int) MathF.Max(1f, 3f * pressureScale));
 
             // AI levers — clans spend influence to drag or drive, by their
             // lean. A usurpation is settled by armies, not politicking.

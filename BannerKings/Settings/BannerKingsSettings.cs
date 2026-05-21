@@ -286,6 +286,11 @@ namespace BannerKings.Settings
         [SettingPropertyGroup("{=!}Politics")]
         public bool EnablePoliticsRework { get; set; } = false;
 
+        [SettingPropertyFloatingInteger("{=!}Political Pressure", minValue: 0.5f, maxValue: 2f, "#0%", RequireRestart = false,
+            HintText = "{=!}Scales how fast inside-kingdom political pressure mounts while the politics rework is on — faction tension and government-transition pressure build at this rate. 50% is a slow, forgiving political game; 200% is volatile and punishing. Only matters with the rework enabled. Default: 100%.")]
+        [SettingPropertyGroup("{=!}Politics")]
+        public float PoliticalPressure { get; set; } = 1f;
+
         [SettingProperty("{=!}Raid Capture System", RequireRestart = false,
             HintText = "{=!}Enable the new raid capture system: village raids produce captives that ship to the nearest friendly fief and arrive as Slaves (slaver realms) or Serfs (resettlement). Captives keep their original culture. Source village damage is unchanged. When OFF, only the existing BK slavery system runs (Enslavement criminal policy + slave caravans). Default: true.")]
         [SettingPropertyGroup("{=!}Slavery")]
