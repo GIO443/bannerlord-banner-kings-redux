@@ -333,6 +333,19 @@ namespace BannerKings.Behaviours
             campaignGameStarter.AddGameMenuOption("bannerkings_actions", "action_hunt", "{=PQSzdrkg}Go hunting",
                 MenuHuntingActionCondition, delegate { GameMenu.SwitchToMenu("bannerkings_wait_hunt"); });
 
+            campaignGameStarter.AddGameMenuOption("bannerkings_actions", "action_realm_politics", "{=BKrealmMenuOption}Realm politics",
+                delegate (MenuCallbackArgs args)
+                {
+                    args.optionLeaveType = GameMenuOption.LeaveType.Manage;
+                    return BannerKings.Settings.BannerKingsSettings.Instance.EnablePoliticsRework
+                        && Clan.PlayerClan.Kingdom != null;
+                },
+                delegate
+                {
+                    Campaign.Current.GetCampaignBehavior<BannerKings.Behaviours.Diplomacy.BKDiplomacyBehavior>()
+                        ?.ShowRealmPoliticsScreen();
+                });
+
             campaignGameStarter.AddGameMenuOption("bannerkings_actions", "bannerkings_leave", "{=1kJ3hNWg}Leave",
                 delegate (MenuCallbackArgs x)
                 {

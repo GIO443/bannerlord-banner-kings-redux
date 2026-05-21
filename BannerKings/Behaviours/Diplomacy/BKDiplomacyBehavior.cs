@@ -793,6 +793,109 @@ namespace BannerKings.Behaviours.Diplomacy
             }
         }
 
+        // Player-facing Realm Politics screen, opened from the BK actions
+        // game menu. Inquiry-driven rather than a Gauntlet prefab — robust,
+        // no silent-binding failure. Works for the ruler and any vassal.
+        public void ShowRealmPoliticsScreen()
+        {
+            var kingdom = Clan.PlayerClan != null ? Clan.PlayerClan.Kingdom : null;
+            if (kingdom == null)
+            {
+                InformationManager.DisplayMessage(new InformationMessage(
+                    new TextObject("{=BKrealmNoKingdom}Your clan belongs to no realm.").ToString()));
+                return;
+            }
+
+            var diplomacy = GetKingdomDiplomacy(kingdom);
+            if (diplomacy == null || diplomacy.Government == null) return;
+            var gov = diplomacy.Government;
+            PendingTransition pending = GetPendingTransition(kingdom, diplomacy);
+
+            var desc = new TextObject("{=BKrealmDesc}Government: {GOV}\nCrown Authority: {CA} (permitted {FLOOR}-{CEIL})\nTransition pressure: {PRESSURE}%\n{PENDING}")
+                .SetTextVariable("GOV", gov.Name)
+                .SetTextVariable("CA", diplomacy.CrownAuthority)
+                .SetTextVariable("FLOOR", gov.CrownAuthorityFloor)
+                .SetTextVariable("CEIL", gov.CrownAuthorityCeiling)
+                .SetTextVariable("PRESSURE", diplomacy.GovernmentTransitionPressure)
+                .SetTextVariable("PENDING", pending.Apply != null
+                    ? new TextObject("{=BKrealmBrewing}A change of government is brewing.")
+                    : new TextObject("{=BKrealmStable}The realm's constitution is stable."));
+
+            var options = new List<InquiryElement>();
+            if (diplomacy.CrownAuthority < gov.CrownAuthorityCeiling)
+            {
+                options.Add(new InquiryElement("ca_raise",
+                    new TextObject("{=BKrealmRaiseCA}Propose: raise Crown Authority").ToString(), null));
+            }
+            if (diplomacy.CrownAuthority > gov.CrownAuthorityFloor)
+            {
+                options.Add(new InquiryElement("ca_lower",
+                    new TextObject("{=BKrealmLowerCA}Propose: lower Crown Authority").ToString(), null));
+            }
+            if (pending.Apply != null)
+            {
+                options.Add(new InquiryElement("resist",
+                    new TextObject("{=BKrealmResist}Resist the pending change ({COST} influence)")
+                    .SetTextVariable("COST", KingdomDiplomacy.TransitionLeverCost).ToString(), null));
+                options.Add(new InquiryElement("accelerate",
+                    new TextObject("{=BKrealmAccel}Accelerate the pending change ({COST} influence)")
+                    .SetTextVariable("COST", KingdomDiplomacy.TransitionLeverCost).ToString(), null));
+            }
+
+            var title = new TextObject("{=BKrealmTitle}Realm Politics").ToString();
+            if (options.Count == 0)
+            {
+                InformationManager.ShowInquiry(new InquiryData(title, desc.ToString(),
+                    true, false, GameTexts.FindText("str_ok").ToString(), null, null, null), true, true);
+                return;
+            }
+
+            MBInformationManager.ShowMultiSelectionInquiry(new MultiSelectionInquiryData(
+                title, desc.ToString(), options, true, 1, 1,
+                GameTexts.FindText("str_done").ToString(),
+                GameTexts.FindText("str_cancel").ToString(),
+                delegate (List<InquiryElement> selected)
+                {
+                    if (selected.Count > 0)
+                        ApplyRealmPoliticsChoice(kingdom, diplomacy, (string) selected[0].Identifier);
+                },
+                null));
+        }
+
+        private void ApplyRealmPoliticsChoice(Kingdom kingdom, KingdomDiplomacy diplomacy, string choice)
+        {
+            switch (choice)
+            {
+                case "ca_raise":
+                case "ca_lower":
+                {
+                    int target = diplomacy.CrownAuthority + (choice == "ca_raise" ? 1 : -1);
+                    var decision = new CrownAuthorityDecision(Clan.PlayerClan, target);
+                    if (decision.IsAllowed())
+                    {
+                        kingdom.AddDecision(decision);
+                    }
+                    else
+                    {
+                        InformationManager.DisplayMessage(new InformationMessage(
+                            new TextObject("{=BKrealmCantPropose}That change cannot be proposed right now.").ToString()));
+                    }
+                    break;
+                }
+                case "resist":
+                    if (!diplomacy.ApplyTransitionLever(Clan.PlayerClan, false))
+                        InformationManager.DisplayMessage(new InformationMessage(
+                            new TextObject("{=BKrealmNoLever}You lack the influence or standing to sway the realm.").ToString()));
+                    break;
+
+                case "accelerate":
+                    if (!diplomacy.ApplyTransitionLever(Clan.PlayerClan, true))
+                        InformationManager.DisplayMessage(new InformationMessage(
+                            new TextObject("{=BKrealmNoLever}You lack the influence or standing to sway the realm.").ToString()));
+                    break;
+            }
+        }
+
         // The realm's dominant ideological push, read from its interest
         // groups — only a genuinely dominant group counts as an ascendant
         // force capable of bending the constitution.
