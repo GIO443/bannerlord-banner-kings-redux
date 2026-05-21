@@ -227,6 +227,7 @@ namespace BannerKings
             AddClassDefinition(typeof(SecessionDemand), 164);
             AddClassDefinition(typeof(CrownAuthorityDecision), 165);
             AddClassDefinition(typeof(CrownAuthorityDecision.CrownAuthorityDecisionOutcome), 166);
+            AddEnumDefinition(typeof(RepublicMandate), 167);
 
             AddClassDefinition(typeof(MercenaryCareer), 1000);
             AddClassDefinition(typeof(MercenaryPrivilege), 1001);
@@ -299,6 +300,7 @@ namespace BannerKings
             ConstructContainerDefinition(typeof(List<Demand>));
             ConstructContainerDefinition(typeof(List<DemandOutcome>));
             ConstructContainerDefinition(typeof(Dictionary<Kingdom, KingdomDiplomacy>));
+            ConstructContainerDefinition(typeof(Dictionary<Kingdom, RepublicMandate>));
             ConstructContainerDefinition(typeof(List<War>));
             ConstructContainerDefinition(typeof(List<Crime>));
             ConstructContainerDefinition(typeof(Dictionary<Hero, List<Crime>>));

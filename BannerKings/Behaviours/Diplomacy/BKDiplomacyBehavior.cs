@@ -752,7 +752,11 @@ namespace BannerKings.Behaviours.Diplomacy
 
             if (government == defaults.Imperial)
             {
-                Clan rival = GetDominantRival(kingdom);
+                // A disloyal army follows a lesser man — low legion loyalty
+                // (the Imperial donative economy) lowers the bar a usurper
+                // must clear.
+                float loyalty = GetImperialLoyalty(kingdom);
+                Clan rival = GetDominantRival(kingdom, loyalty < 25f ? 0.8f : 1.6f);
                 if (rival != null)
                 {
                     result.IsUsurpation = true;
@@ -763,7 +767,10 @@ namespace BannerKings.Behaviours.Diplomacy
                 }
 
                 var force = GetAscendantForce(diplomacy);
-                if (force == AscendantForce.Populist && ca <= government.CrownAuthorityFloor)
+                // The Empire crumbles to a Republic when the crown's grip
+                // fails: a populist ascendancy at rock-bottom Crown Authority,
+                // or an outright collapse of legionary loyalty.
+                if ((force == AscendantForce.Populist && ca <= government.CrownAuthorityFloor) || loyalty < 12f)
                 {
                     result.Target = defaults.Republic;
                     result.Apply = () => ChangeRealmGovernment(kingdom, diplomacy, defaults.Republic,
@@ -826,11 +833,25 @@ namespace BannerKings.Behaviours.Diplomacy
                 }
             }
 
-            var desc = new TextObject("{=BKrealmDesc2}Government: {GOV}\nCrown Authority: {CA} (permitted {FLOOR}-{CEIL})\nTransition pressure: {PRESSURE}%\n{PENDING}\n\n{TENSIONS}")
+            string loyaltyText = "";
+            if (gov == DefaultGovernments.Instance.Imperial)
+            {
+                var loyaltyBehavior = Campaign.Current.GetCampaignBehavior<BKImperialLoyaltyBehavior>();
+                if (loyaltyBehavior != null)
+                {
+                    loyaltyText = "\n" + new TextObject("{=BKrealmLoyalty}Legion loyalty: {LOY}% (weekly donative {DON} denars)")
+                        .SetTextVariable("LOY", (int) loyaltyBehavior.GetLoyalty(kingdom))
+                        .SetTextVariable("DON", loyaltyBehavior.GetWeeklyDonative(kingdom))
+                        .ToString();
+                }
+            }
+
+            var desc = new TextObject("{=BKrealmDesc3}Government: {GOV}\nCrown Authority: {CA} (permitted {FLOOR}-{CEIL}){LOYALTY}\nTransition pressure: {PRESSURE}%\n{PENDING}\n\n{TENSIONS}")
                 .SetTextVariable("GOV", gov.Name)
                 .SetTextVariable("CA", diplomacy.CrownAuthority)
                 .SetTextVariable("FLOOR", gov.CrownAuthorityFloor)
                 .SetTextVariable("CEIL", gov.CrownAuthorityCeiling)
+                .SetTextVariable("LOYALTY", loyaltyText)
                 .SetTextVariable("PRESSURE", diplomacy.GovernmentTransitionPressure)
                 .SetTextVariable("PENDING", pending.Apply != null
                     ? new TextObject("{=BKrealmBrewing}A change of government is brewing.")
@@ -856,6 +877,12 @@ namespace BannerKings.Behaviours.Diplomacy
                 options.Add(new InquiryElement("accelerate",
                     new TextObject("{=BKrealmAccel}Accelerate the pending change ({COST} influence)")
                     .SetTextVariable("COST", KingdomDiplomacy.TransitionLeverCost).ToString(), null));
+            }
+            if (gov == DefaultGovernments.Instance.Republic)
+            {
+                options.Add(new InquiryElement("mandate",
+                    new TextObject("{=BKrealmMandate}Propose a realm mandate ({COST} influence)")
+                    .SetTextVariable("COST", BKRepublicLegislationBehavior.MandateInfluenceCost).ToString(), null));
             }
 
             var title = new TextObject("{=BKrealmTitle}Realm Politics").ToString();
@@ -909,7 +936,52 @@ namespace BannerKings.Behaviours.Diplomacy
                         InformationManager.DisplayMessage(new InformationMessage(
                             new TextObject("{=BKrealmNoLever}You lack the influence or standing to sway the realm.").ToString()));
                     break;
+
+                case "mandate":
+                    ShowRepublicMandatePicker(kingdom);
+                    break;
             }
+        }
+
+        private void ShowRepublicMandatePicker(Kingdom kingdom)
+        {
+            var legislation = Campaign.Current.GetCampaignBehavior<BKRepublicLegislationBehavior>();
+            if (legislation == null) return;
+
+            var options = new List<InquiryElement>
+            {
+                new InquiryElement(RepublicMandate.Balanced,
+                    new TextObject("{=BKmandateBalanced}Balanced - no special tuning").ToString(), null),
+                new InquiryElement(RepublicMandate.LevyQuantity,
+                    new TextObject("{=BKmandateQuantity}Mass conscription - more troops, lower quality").ToString(), null),
+                new InquiryElement(RepublicMandate.LevyQuality,
+                    new TextObject("{=BKmandateQuality}Select levies - fewer but better troops").ToString(), null),
+                new InquiryElement(RepublicMandate.Prosperity,
+                    new TextObject("{=BKmandateProsperity}Public works - settlement prosperity").ToString(), null),
+            };
+
+            MBInformationManager.ShowMultiSelectionInquiry(new MultiSelectionInquiryData(
+                new TextObject("{=BKrealmMandateTitle}Realm Mandate").ToString(),
+                new TextObject("{=BKrealmMandateDesc}The parliament adopts the mandate you whip through the chamber.").ToString(),
+                options, true, 1, 1,
+                GameTexts.FindText("str_done").ToString(),
+                GameTexts.FindText("str_cancel").ToString(),
+                delegate (List<InquiryElement> selected)
+                {
+                    if (selected.Count == 0) return;
+                    var mandate = (RepublicMandate) selected[0].Identifier;
+                    if (legislation.ProposeMandate(kingdom, Clan.PlayerClan, mandate))
+                    {
+                        InformationManager.DisplayMessage(new InformationMessage(
+                            new TextObject("{=BKmandatePassed}The parliament has adopted the new mandate.").ToString()));
+                    }
+                    else
+                    {
+                        InformationManager.DisplayMessage(new InformationMessage(
+                            new TextObject("{=BKmandateFail}You lack the influence to whip this through the chamber.").ToString()));
+                    }
+                },
+                null));
         }
 
         // The realm's dominant ideological push, read from its interest
@@ -943,7 +1015,7 @@ namespace BannerKings.Behaviours.Diplomacy
 
         // A non-ruling clan with the military muscle to seize the realm:
         // markedly stronger than the crown, and the strongest of the rest.
-        private Clan GetDominantRival(Kingdom kingdom)
+        private Clan GetDominantRival(Kingdom kingdom, float multiplier = 1.6f)
         {
             Clan ruler = kingdom.RulingClan;
             if (ruler == null) return null;
@@ -962,8 +1034,16 @@ namespace BannerKings.Behaviours.Diplomacy
                 }
             }
 
-            if (best != null && bestStrength > 0f && bestStrength > rulerStrength * 1.6f) return best;
+            if (best != null && bestStrength > 0f && bestStrength > rulerStrength * multiplier) return best;
             return null;
+        }
+
+        // Imperial legion loyalty (0..100) from the Phase-4 loyalty economy;
+        // 100 when that behavior or record is absent.
+        private float GetImperialLoyalty(Kingdom kingdom)
+        {
+            var behavior = Campaign.Current.GetCampaignBehavior<BKImperialLoyaltyBehavior>();
+            return behavior != null ? behavior.GetLoyalty(kingdom) : 100f;
         }
 
         private void ChangeRealmGovernment(Kingdom kingdom, KingdomDiplomacy diplomacy,

@@ -10,6 +10,7 @@ using TaleWorlds.Localization;
 using static BannerKings.Managers.PopulationManager;
 using static BannerKings.Managers.Policies.BKDraftPolicy;
 using BannerKings.Managers.Institutions.Religions.Doctrines;
+using BannerKings.Behaviours.Diplomacy;
 using BannerKings.Extensions;
 using BannerKings.Managers.Titles.Laws;
 using BannerKings.Settings;
@@ -380,6 +381,16 @@ namespace BannerKings.Models.Vanilla
                             new TextObject("{=BKcaLevy}Crown Authority"));
                     }
                 }
+
+                // Republic — a LevyQuantity mandate (Phase 4) mass-conscripts.
+                if (government == DefaultGovernments.Instance.Republic && realm != null)
+                {
+                    var legislation = Campaign.Current.GetCampaignBehavior<BKRepublicLegislationBehavior>();
+                    if (legislation != null && legislation.GetMandate(realm) == RepublicMandate.LevyQuantity)
+                    {
+                        explainedNumber.AddFactor(0.15f, new TextObject("{=BKrepMandate}Republic mandate"));
+                    }
+                }
             }
 
             // settlement.Owner is OwnerClan?.Leader; null for rebel /
@@ -490,6 +501,25 @@ namespace BannerKings.Models.Vanilla
                 {
                     nobleFactor *= 0.6f;
                     serfFactor *= 1.2f;
+                }
+                else if (government == DefaultGovernments.Instance.Republic)
+                {
+                    // Republic — levy quality follows the voted mandate.
+                    var legislation = Campaign.Current.GetCampaignBehavior<BKRepublicLegislationBehavior>();
+                    var realm = settlement.OwnerClan != null ? settlement.OwnerClan.Kingdom : null;
+                    if (legislation != null && realm != null)
+                    {
+                        var mandate = legislation.GetMandate(realm);
+                        if (mandate == RepublicMandate.LevyQuality)
+                        {
+                            nobleFactor *= 1.3f;
+                        }
+                        else if (mandate == RepublicMandate.LevyQuantity)
+                        {
+                            nobleFactor *= 0.75f;
+                            serfFactor *= 1.2f;
+                        }
+                    }
                 }
             }
 
