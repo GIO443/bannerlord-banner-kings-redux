@@ -88,11 +88,13 @@ namespace BannerKings.Managers.Kingdoms.Contract
             }
             
             
-            float support = outcome.Law.EgalitarianWeight * egalitatian + 
-                outcome.Law.OligarchicWeight * oligarchic + 
+            float support = outcome.Law.EgalitarianWeight * egalitatian +
+                outcome.Law.OligarchicWeight * oligarchic +
                 outcome.Law.AuthoritarianWeight * authoritarian;
 
-            return support * 100;
+            // Unified voting — government weights the vote (GetVoteWeight is
+            // 1.0 when the politics rework is off, so this stays a no-op).
+            return support * 100 * BannerKingsConfig.Instance.KingdomDecisionModel.GetVoteWeight(Kingdom, clan);
         }
 
         public override TextObject GetChooseDescription()

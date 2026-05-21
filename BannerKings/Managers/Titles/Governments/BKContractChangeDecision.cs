@@ -93,7 +93,8 @@ namespace BannerKings.Managers.Titles.Governments
 
             if (!outcome.ShouldDecisionBeEnforced) result *= -1f;
 
-            return result * 100f;
+            // Unified voting — government weights the vote (1.0 when off).
+            return result * 100f * BannerKingsConfig.Instance.KingdomDecisionModel.GetVoteWeight(Kingdom, clan);
         }
 
         public override TextObject GetChooseDescription()

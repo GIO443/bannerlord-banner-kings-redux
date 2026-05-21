@@ -155,7 +155,8 @@ namespace BannerKings.Managers.Kingdoms.Council
             result.Add(authoritarian);
 
             result.AddFactor(clan.Leader.GetRelation(candidate) * 0.02f);
-            return result.ResultNumber;
+            // Unified voting — government weights the vote (1.0 when off).
+            return result.ResultNumber * BannerKingsConfig.Instance.KingdomDecisionModel.GetVoteWeight(Kingdom, clan);
         }
 
         public override TextObject GetChooseDescription()

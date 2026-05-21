@@ -70,7 +70,11 @@ namespace BannerKings.Managers.Kingdoms.Contract
             // Signed distance: a pro-crown clan backs the higher-authority
             // outcome, an autonomy-minded clan the lower one. The "keep
             // current" outcome scores 0 for everyone — neutral baseline.
-            return lean * (outcome.Authority - CurrentAuthority) * 50f;
+            float support = lean * (outcome.Authority - CurrentAuthority) * 50f;
+
+            // Route through the unified voting mechanic — government type
+            // weights each clan's vote and zeroes non-voters.
+            return support * BannerKingsConfig.Instance.KingdomDecisionModel.GetVoteWeight(Kingdom, clan);
         }
 
         public override TextObject GetChooseDescription()

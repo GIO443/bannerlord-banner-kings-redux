@@ -1,6 +1,11 @@
 using BannerKings.Behaviours.Diplomacy;
+using BannerKings.Extensions;
+using BannerKings.Managers.Court;
+using BannerKings.Managers.Titles;
+using BannerKings.Managers.Titles.Governments;
 using TaleWorlds.CampaignSystem;
 using TaleWorlds.CampaignSystem.GameComponents;
+using TaleWorlds.Library;
 using TaleWorlds.Localization;
 
 namespace BannerKings.Models.Vanilla
@@ -147,6 +152,93 @@ namespace BannerKings.Models.Vanilla
             }
 
             return true;
+        }
+
+        // ---- Unified voting mechanic (politics rework) -------------------
+        // One place that answers "who votes on a kingdom decision, and how
+        // much does their vote weigh" — parameterised by government type via
+        // the government's PoliticalLayer. BK kingdom decisions route their
+        // per-clan support through GetVoteWeight so the electorate's shape
+        // follows the realm's constitution.
+
+        // Whether a clan participates in the realm's internal decisions.
+        // The peerage gate is the base; government overlays come later.
+        public bool CanVote(Kingdom kingdom, Clan clan)
+        {
+            if (kingdom == null || clan == null) return false;
+            return Peerage.GetAdequatePeerage(clan).CanVote;
+        }
+
+        // A clan's vote weight on a BK kingdom decision, by government:
+        //  - Parliament (Republic): broad and flat — ruler first among equals.
+        //  - Chiefs (Tribal): might makes right — weight tracks war strength.
+        //  - Governors (Imperial): the crown dominates; others count little.
+        //  - Vassals (Feudal): weight by standing, i.e. clan tier.
+        // Returns 0 for a clan with no vote, so multiplying support by this
+        // also removes non-voters from the tally.
+        public float GetVoteWeight(Kingdom kingdom, Clan clan)
+        {
+            // Neutral (1.0) when the rework is off — existing BK decisions
+            // can multiply their support by this unconditionally and stay
+            // byte-identical to pre-rework behaviour.
+            if (!BannerKings.Settings.BannerKingsSettings.Instance.EnablePoliticsRework) return 1f;
+            if (!CanVote(kingdom, clan)) return 0f;
+
+            var government = kingdom.GetKingdomDiplomacy()?.Government;
+            var layer = government != null ? government.PoliticalLayer : PoliticalLayerType.Vassals;
+            bool isRuler = clan == kingdom.RulingClan;
+
+            switch (layer)
+            {
+                case PoliticalLayerType.Parliament:
+                    return isRuler ? 1.5f : 1f;
+
+                case PoliticalLayerType.Chiefs:
+                    float average = AverageClanStrength(kingdom);
+                    float strengthWeight = average > 0f ? clan.CurrentTotalStrength / average : 1f;
+                    return MathF.Clamp(strengthWeight, 0.25f, 4f);
+
+                case PoliticalLayerType.Governors:
+                    return isRuler ? 5f : 0.5f;
+
+                default: // Vassals — Feudal: weight by the clan's highest
+                {        // de jure title; a duke far outranks a mere lord.
+                    float rank = 0.5f;
+                    foreach (var title in BannerKingsConfig.Instance.TitleManager.GetAllDeJure(clan))
+                    {
+                        float r = TitleRankWeight(title.TitleType);
+                        if (r > rank) rank = r;
+                    }
+                    return (isRuler ? 1f : 0f) + rank;
+                }
+            }
+        }
+
+        // Feudal vote weight by title rank — explicit per-type mapping so it
+        // doesn't depend on the TitleType enum's declaration order.
+        private static float TitleRankWeight(TitleType type)
+        {
+            switch (type)
+            {
+                case TitleType.Empire: return 6f;
+                case TitleType.Kingdom: return 5f;
+                case TitleType.Dukedom: return 3f;
+                case TitleType.County: return 1.8f;
+                case TitleType.Barony: return 1f;
+                default: return 0.6f; // Lordship
+            }
+        }
+
+        private static float AverageClanStrength(Kingdom kingdom)
+        {
+            float total = 0f;
+            int count = 0;
+            foreach (var clan in kingdom.Clans)
+            {
+                total += clan.CurrentTotalStrength;
+                count++;
+            }
+            return count > 0 ? total / count : 0f;
         }
     }
 }
