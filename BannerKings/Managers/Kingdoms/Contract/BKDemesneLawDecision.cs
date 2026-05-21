@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using System.Linq;
+using BannerKings.Extensions;
 using BannerKings.Managers.Titles;
 using BannerKings.Managers.Titles.Laws;
 using TaleWorlds.CampaignSystem;
@@ -36,6 +37,31 @@ namespace BannerKings.Managers.Kingdoms.Contract
         {
             var outcome = chosenOutcome as DemesneLawDecisionOutcome;
             Title.EnactLaw(outcome.Law);
+
+            // Politics rework — a new law lands on the realm's factions: a
+            // group that shuns it grows restless, one that backed it eases.
+            if (BannerKings.Settings.BannerKingsSettings.Instance.EnablePoliticsRework
+                && Kingdom != null && outcome.Law != null)
+            {
+                var diplomacy = Kingdom.GetKingdomDiplomacy();
+                if (diplomacy != null && diplomacy.Groups != null)
+                {
+                    foreach (var group in diplomacy.Groups)
+                    {
+                        if (group == null) continue;
+                        if (group.ShunnedLaws != null
+                            && group.ShunnedLaws.Any(l => l != null && l.StringId == outcome.Law.StringId))
+                        {
+                            group.AddTensionPressure(25f);
+                        }
+                        else if (group.SupportedLaws != null
+                            && group.SupportedLaws.Any(l => l != null && l.StringId == outcome.Law.StringId))
+                        {
+                            group.AddTensionPressure(-15f);
+                        }
+                    }
+                }
+            }
         }
 
         public override Clan DetermineChooser() => Kingdom.RulingClan;
@@ -130,7 +156,31 @@ namespace BannerKings.Managers.Kingdoms.Contract
         public override TextObject GetSupportTitle() => new TextObject("{=c7niULaT}Vote for the next {LAW} demesne law")
             .SetTextVariable("LAW", GameTexts.FindText("str_bk_demesne_law", CurrentLaw.LawType.ToString()));
 
-        public override bool IsAllowed() => Title.Contract != null && !ProposedLaw.Equals(CurrentLaw);
+        public override bool IsAllowed()
+        {
+            if (Title.Contract == null || ProposedLaw.Equals(CurrentLaw)) return false;
+
+            // Politics rework — the realm's Crown Authority gates which way
+            // its law code can lean. A markedly authoritarian law needs a
+            // centralised realm; a markedly egalitarian one a decentralised
+            // one. The threshold is the midpoint of the government's CA band,
+            // so each government type naturally favours different laws.
+            if (BannerKings.Settings.BannerKingsSettings.Instance.EnablePoliticsRework && ProposedLaw != null)
+            {
+                var diplomacy = Kingdom != null ? Kingdom.GetKingdomDiplomacy() : null;
+                var government = diplomacy != null ? diplomacy.Government : null;
+                if (diplomacy != null && government != null)
+                {
+                    int mid = (government.CrownAuthorityFloor + government.CrownAuthorityCeiling) / 2;
+                    float auth = ProposedLaw.AuthoritarianWeight;
+                    float egal = ProposedLaw.EgalitarianWeight;
+                    if (auth > egal + 0.1f && diplomacy.CrownAuthority < mid) return false;
+                    if (egal > auth + 0.1f && diplomacy.CrownAuthority > mid) return false;
+                }
+            }
+
+            return true;
+        }
 
         public override void DetermineSponsors(MBReadOnlyList<DecisionOutcome> possibleOutcomes)
         {
