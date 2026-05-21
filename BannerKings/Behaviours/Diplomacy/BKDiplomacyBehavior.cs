@@ -3,12 +3,14 @@ using BannerKings.Behaviours.Diplomacy.Groups;
 using BannerKings.Behaviours.Diplomacy.Groups.Demands;
 using BannerKings.Behaviours.Diplomacy.Wars;
 using BannerKings.Extensions;
+using BannerKings.Managers.Kingdoms.Contract;
 using BannerKings.Utils;
 using BannerKings.Utils.Models;
 using System.Collections.Generic;
 using System.Linq;
 using TaleWorlds.CampaignSystem;
 using TaleWorlds.CampaignSystem.Actions;
+using TaleWorlds.CampaignSystem.CharacterDevelopment;
 using TaleWorlds.CampaignSystem.ComponentInterfaces;
 using TaleWorlds.CampaignSystem.Election;
 using TaleWorlds.CampaignSystem.Party;
@@ -586,6 +588,8 @@ namespace BannerKings.Behaviours.Diplomacy
                     party.MobileParty.SetPartyObjective(objective);
                 }
 
+                ConsiderCrownAuthority(kingdom);
+
                 // Phase G: BK no longer drives weekly war proposals via
                 // its own ConsiderWars. Vanilla's KingdomDecisionProposal
                 // Behavior owns proposal cadence + scoring; BK extends
@@ -597,6 +601,40 @@ namespace BannerKings.Behaviours.Diplomacy
                 // Single source of truth: vanilla decides WHEN to propose,
                 // BK decides WITH WHAT JUSTIFICATION.
             }
+        }
+
+        // Politics rework — AI rulers occasionally push their realm's
+        // kingdom-wide Crown Authority up or down through a voted decision.
+        // Gated on the master MCM toggle; rare (a few rolls a year per realm).
+        private void ConsiderCrownAuthority(Kingdom kingdom)
+        {
+            if (!BannerKings.Settings.BannerKingsSettings.Instance.EnablePoliticsRework) return;
+            if (kingdom.RulingClan == null || kingdom.RulingClan.Leader == null) return;
+            if (kingdom.UnresolvedDecisions.Any(x => x is CrownAuthorityDecision)) return;
+
+            var diplomacy = GetKingdomDiplomacy(kingdom);
+            if (diplomacy == null) return;
+            var government = diplomacy.Government;
+            if (government == null) return;
+
+            Clan ruler = kingdom.RulingClan;
+            if (ruler.Influence < 225f) return;
+            if (MBRandom.RandomFloat > 0.015f) return;
+
+            int current = diplomacy.CrownAuthority;
+            // Authoritarian, legitimate, secure rulers centralise; egalitarian
+            // or shaky ones devolve power to keep the peers content.
+            float lean = 0.6f * ruler.Leader.GetTraitLevel(DefaultTraits.Authoritarian)
+                       - 0.5f * ruler.Leader.GetTraitLevel(DefaultTraits.Egalitarian)
+                       + (diplomacy.Legitimacy - 0.5f);
+
+            int proposed;
+            if (lean > 0.25f && current < government.CrownAuthorityCeiling) proposed = current + 1;
+            else if (lean < -0.25f && current > government.CrownAuthorityFloor) proposed = current - 1;
+            else return;
+
+            var decision = new CrownAuthorityDecision(ruler, proposed);
+            if (decision.IsAllowed()) kingdom.AddDecision(decision);
         }
 
         private void ConsiderAIDiplomacy()

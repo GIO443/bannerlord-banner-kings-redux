@@ -281,6 +281,11 @@ namespace BannerKings.Settings
         [SettingPropertyGroup("{=!}Diplomacy")]
         public float CharmXpMultiplier { get; set; } = 0.5f;
 
+        [SettingProperty("{=!}Enable Politics Rework", RequireRestart = false,
+            HintText = "{=!}Master toggle for the inside-kingdom politics rework. Phase 1: Crown Authority — a kingdom-wide centralisation track (0 Decentralised .. 4 Absolute) bounded by each government type, raised or lowered through a voted kingdom decision. When OFF, BK kingdom politics behaves exactly as before. Behind a toggle while the rework is built and playtested. Default: false.")]
+        [SettingPropertyGroup("{=!}Politics")]
+        public bool EnablePoliticsRework { get; set; } = false;
+
         [SettingProperty("{=!}Raid Capture System", RequireRestart = false,
             HintText = "{=!}Enable the new raid capture system: village raids produce captives that ship to the nearest friendly fief and arrive as Slaves (slaver realms) or Serfs (resettlement). Captives keep their original culture. Source village damage is unchanged. When OFF, only the existing BK slavery system runs (Enslavement criminal policy + slave caravans). Default: true.")]
         [SettingPropertyGroup("{=!}Slavery")]

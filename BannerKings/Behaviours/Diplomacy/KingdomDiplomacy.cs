@@ -2,6 +2,7 @@ using BannerKings.Behaviours.Diplomacy.Groups;
 using BannerKings.Behaviours.Diplomacy.Wars;
 using BannerKings.Managers.Institutions.Religions;
 using BannerKings.Managers.Titles;
+using BannerKings.Managers.Titles.Governments;
 using BannerKings.Utils.Models;
 using System.Collections.Generic;
 using System.Linq;
@@ -24,6 +25,7 @@ namespace BannerKings.Behaviours.Diplomacy
         [SaveableProperty(6)] public float Fatigue { get; private set; }
         [SaveableProperty(7)] public float Legitimacy { get; private set; }
         [SaveableProperty(8)] public List<RadicalGroup> RadicalGroups { get; private set; }
+        [SaveableProperty(9)] public int CrownAuthority { get; private set; }
         public float LegitimacyChange
         {
             get
@@ -82,6 +84,12 @@ namespace BannerKings.Behaviours.Diplomacy
             {
                 group.PostInitialize();
             }
+
+            // Best-effort clamp on load: pull a saved (or default-0) Crown
+            // Authority into the government's legal band. If the sovereign
+            // title isn't resolved yet here, Government is null and the value
+            // stays within the universal bound; a later change re-clamps it.
+            SetCrownAuthority(CrownAuthority);
         }
 
         public void AddFatigue(float fatigue)
@@ -89,6 +97,24 @@ namespace BannerKings.Behaviours.Diplomacy
             Fatigue += fatigue;
             if (Fatigue > 1f) Fatigue = 1f;
             else if (Fatigue < 0f) Fatigue = 0f;
+        }
+
+        // The realm's constitutional form, read from its sovereign title's
+        // contract. Null when the kingdom has no sovereign BK title yet.
+        public Government Government => BannerKingsConfig.Instance.TitleManager?
+            .GetSovereignTitle(Kingdom)?.Contract?.Government;
+
+        // Crown Authority (0 Decentralised .. 4 Absolute) is clamped to the
+        // legal range the kingdom's government permits. With no government
+        // resolved yet, fall back to the universal 0..4 bound.
+        public void SetCrownAuthority(int level)
+        {
+            var gov = Government;
+            int floor = gov != null ? gov.CrownAuthorityFloor : 0;
+            int ceiling = gov != null ? gov.CrownAuthorityCeiling : 4;
+            if (level < floor) level = floor;
+            if (level > ceiling) level = ceiling;
+            CrownAuthority = level;
         }
 
         // Natural post-peace truce duration. After any MakePeaceAction.Apply

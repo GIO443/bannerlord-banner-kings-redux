@@ -7,7 +7,10 @@
   Schema:
     <government id="..."
                 mercantilism="N"
-                authoritarian="N" oligarchic="N" egalitarian="N">
+                authoritarian="N" oligarchic="N" egalitarian="N"
+                crown_authority_floor="N" crown_authority_ceiling="N"
+                council_control="Appointed|Elected|Might"
+                political_layer="Chiefs|Vassals|Governors|Parliament">
       <name>...</name>
       <description>...</description>
       <effects>...</effects>
@@ -23,9 +26,17 @@
   (policy_war_tax, policy_sacred_majesty, …) and BK (policy_limited_army_privilege).
   succession refs resolve against bk_successions.xml ids. Unknown refs are
   skipped with a diagnostic.
+
+  crown_authority_floor / _ceiling bound the kingdom-wide Crown Authority
+  track (0 Decentralised .. 4 Absolute) a realm under this government may
+  legally hold. council_control sets how council seats are staffed.
+  political_layer marks which political layer the player chiefly contends
+  with. All four have safe defaults (0 / 2 / Appointed / Vassals).
 -->
 <governments>
-  <government id="Republic" mercantilism="0.5" authoritarian="-1" oligarchic="0.6" egalitarian="1">
+  <government id="Republic" mercantilism="0.5" authoritarian="-1" oligarchic="0.6" egalitarian="1"
+              crown_authority_floor="0" crown_authority_ceiling="1"
+              council_control="Elected" political_layer="Parliament">
     <name>Republic</name>
     <description>Republics are a Calradoi government with the purpose of preventing authoritarian regimes of power. Before the Calradoi organized themselves into the empire, they were a republic, government by a body of peers called the Senate. They were traditionally quite resistant to any attempts of power concentration at the hands of one or another senator, lest they turn into a monarchical regime... Yet, at times of war, strong, unquestioned leadership was needed, wich could be granted to a temporary senator holding all the power - the Diktator. History teaches that one Diktator too influential is all it takes to topple a republic.</description>
     <effects>- Every year, an election for ruler takes place (Republican succession){newline}- Settlement production quality +10%{newline}- Settlement loyalty +1{newline}- Settlement mercantilism +50%</effects>
@@ -49,7 +60,9 @@
     </successions>
   </government>
 
-  <government id="Imperial" mercantilism="0.2" authoritarian="1" oligarchic="-0.2" egalitarian="-0.5">
+  <government id="Imperial" mercantilism="0.2" authoritarian="1" oligarchic="-0.2" egalitarian="-0.5"
+              crown_authority_floor="2" crown_authority_ceiling="4"
+              council_control="Appointed" political_layer="Governors">
     <name>Imperial</name>
     <description>The Calradoi Imperial government was created after its original Republic. Unlike feudal monarchies, the empire, though often hereditary, is built on a different ethos. Though a Senate may exist, it is more often than not a formality than an effective political force. All property is considered ultimately the emperor's, and thus their vassals are mere administrators, rather than owners of their domains. In theory, ruling families only inherit their properties by the emperor's grace, who temporarily holds them in the family head's death, before granting it back to them. In truth, many emperors cannot afford to not concede to such influential families. Imperial fiefs are highly integrated, with security and assimilation as priorities.</description>
     <effects>- Settlement cultural weight +40%{newline}- Settlement security +1{newline}- Settlement mercantilism +20%</effects>
@@ -73,7 +86,9 @@
     </successions>
   </government>
 
-  <government id="Tribal" mercantilism="0.3" authoritarian="-0.7" oligarchic="0.5" egalitarian="0.4">
+  <government id="Tribal" mercantilism="0.3" authoritarian="-0.7" oligarchic="0.5" egalitarian="0.4"
+              crown_authority_floor="0" crown_authority_ceiling="1"
+              council_control="Might" political_layer="Chiefs">
     <name>Tribal</name>
     <description>Most non-Imperial societies are organized in the 'tribal' manner, for example: the Battanians who united under a High-Kingdom to fight their common enemy, the Nahasawi as a tribe confederation with the purpose of protecting trade and prosperity. Tribal administrations are often more descentralized and autonomous than otherwise, and legal arguments often have no place against military force and cultural tradition.</description>
     <effects>- Settlement militia +1{newline}- Settlement draft efficiency +20%{newline}- Settlement mercantilism +30%</effects>
@@ -100,7 +115,9 @@
     </successions>
   </government>
 
-  <government id="Feudal" mercantilism="0.15" authoritarian="-0.4" oligarchic="0.7" egalitarian="-0.2">
+  <government id="Feudal" mercantilism="0.15" authoritarian="-0.4" oligarchic="0.7" egalitarian="-0.2"
+              crown_authority_floor="1" crown_authority_ceiling="3"
+              council_control="Appointed" political_layer="Vassals">
     <name>Feudal</name>
     <description>Feudal governments stablish the authority of a life-serving ruler, while keeping a relatively degree of autonomy to their vassals. Unlike in empires, feudal societies have a strong sense of property, and legal claims and technicalities often take precedence over other factors. While the king or queen draw great influence, their subordinate peers are guaranteed certain securities that the ruler is bound by law to follow.</description>
     <effects>- Petitioning rights yields no relation loss{newline}- Settlement stability +5%{newline}- Settlement prod. efficiency +10%{newline}- Settlement mercantilism +15%</effects>

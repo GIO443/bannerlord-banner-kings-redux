@@ -358,6 +358,30 @@ namespace BannerKings.Models.Vanilla
                 explainedNumber.AddFactor(0.2f, new TextObject("{=PSrEtF5L}Government"));
             }
 
+            if (BannerKingsSettings.Instance.EnablePoliticsRework)
+            {
+                // Politics rework — levy quantity by government. Tribal's
+                // high turnout is already credited above; Imperial fields
+                // more besides its elite bias. Crown Authority amplifies
+                // mobilisation for any realm — a centralised state musters
+                // more men.
+                if (government == DefaultGovernments.Instance.Imperial)
+                {
+                    explainedNumber.AddFactor(0.12f, new TextObject("{=PSrEtF5L}Government"));
+                }
+
+                var realm = settlement.OwnerClan != null ? settlement.OwnerClan.Kingdom : null;
+                if (realm != null)
+                {
+                    var diplomacy = realm.GetKingdomDiplomacy();
+                    if (diplomacy != null && diplomacy.CrownAuthority > 0)
+                    {
+                        explainedNumber.AddFactor(0.05f * diplomacy.CrownAuthority,
+                            new TextObject("{=BKcaLevy}Crown Authority"));
+                    }
+                }
+            }
+
             // settlement.Owner is OwnerClan?.Leader; null for rebel /
             // unowned settlements. Without the guard, daily draft-efficiency
             // ticks NRE on the first encountered abandoned settlement.
@@ -447,6 +471,25 @@ namespace BannerKings.Models.Vanilla
                     {
                         serfFactor -= 0.015f;
                     }
+                }
+            }
+
+            if (BannerKingsSettings.Instance.EnablePoliticsRework)
+            {
+                // Politics rework — levy quality by government. Imperial
+                // realms field a higher share of elite (noble) volunteers;
+                // Tribal realms lean on cheap, plentiful serf levies. Noble
+                // recruits resolve to elite troop spawns downstream, serfs
+                // to basic ones, so shifting the pop-type mix shifts quality.
+                var government = BannerKingsConfig.Instance.TitleManager.GetSettlementGovernment(settlement);
+                if (government == DefaultGovernments.Instance.Imperial)
+                {
+                    nobleFactor *= 1.4f;
+                }
+                else if (government == DefaultGovernments.Instance.Tribal)
+                {
+                    nobleFactor *= 0.6f;
+                    serfFactor *= 1.2f;
                 }
             }
 

@@ -107,7 +107,11 @@ namespace BannerKings.Managers.Titles.Governments
                     BKXml.Float(row, "oligarchic", 0f),
                     BKXml.Float(row, "egalitarian", 0f),
                     prohibitedPolicies,
-                    governmentSuccessions);
+                    governmentSuccessions,
+                    BKXml.Int(row, "crown_authority_floor", 0),
+                    BKXml.Int(row, "crown_authority_ceiling", 2),
+                    BKXml.Enum(row, "council_control", CouncilControlType.Appointed),
+                    BKXml.Enum(row, "political_layer", PoliticalLayerType.Vassals));
                 _loaded.Add(government);
             }
         }
