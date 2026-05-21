@@ -105,23 +105,42 @@ namespace BannerKings.Behaviours.Diplomacy.Groups
             if (Leader == Hero.MainHero || Leader == null || FactionLeader == null) return;
 
             var influence = BannerKingsConfig.Instance.InterestGroupsModel.CalculateGroupInfluence(this);
+            bool reworkOn = BannerKings.Settings.BannerKingsSettings.Instance.EnablePoliticsRework;
             bool agitated = false;
             foreach (Demand demand in PossibleDemands)
             {
                 bool canPush = CanPushDemand(demand, influence.ResultNumber).Item1;
                 if (canPush) agitated = true;
-                if (canPush && MBRandom.RandomFloat < MBRandom.RandomFloat)
+                // Legacy path: a per-tick random roll fires demands out of
+                // nowhere. With the politics rework on, demands instead
+                // escalate from built-up tension (below) — no nag-spam.
+                if (!reworkOn && canPush && MBRandom.RandomFloat < MBRandom.RandomFloat)
                 {
                     demand.SetUp();
                 }
             }
 
-            // Politics rework — faction tension: a group with a grievance it
-            // could push builds toward forcing it; a content group's tension
-            // eases. Display-only in this increment; escalation comes next.
-            if (BannerKings.Settings.BannerKingsSettings.Instance.EnablePoliticsRework)
+            if (reworkOn)
             {
+                // Faction tension: a group with a grievance it could push
+                // builds toward forcing it; a content group's tension eases.
                 AddTensionPressure(agitated ? 2f : -3f);
+
+                // Escalation — a tension at full pressure forces the demand.
+                // CanPushDemand then reports false (a demand is now active),
+                // so tension decays until this demand resolves.
+                if (agitated && TensionPressure >= 100f)
+                {
+                    foreach (Demand demand in PossibleDemands)
+                    {
+                        if (CanPushDemand(demand, influence.ResultNumber).Item1)
+                        {
+                            demand.SetUp();
+                            break;
+                        }
+                    }
+                    AddTensionPressure(-100f);
+                }
             }
 
             foreach (DemandOutcome outcome in RecentOucomes)
