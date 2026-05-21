@@ -811,7 +811,22 @@ namespace BannerKings.Behaviours.Diplomacy
             var gov = diplomacy.Government;
             PendingTransition pending = GetPendingTransition(kingdom, diplomacy);
 
-            var desc = new TextObject("{=BKrealmDesc}Government: {GOV}\nCrown Authority: {CA} (permitted {FLOOR}-{CEIL})\nTransition pressure: {PRESSURE}%\n{PENDING}")
+            string tensionsText;
+            if (diplomacy.Groups == null || !diplomacy.Groups.Any(g => g != null && g.TensionPressure > 0f))
+            {
+                tensionsText = new TextObject("{=BKrealmNoTension}No faction is restless.").ToString();
+            }
+            else
+            {
+                tensionsText = new TextObject("{=BKrealmTensions}Faction tensions:").ToString();
+                foreach (var g in diplomacy.Groups)
+                {
+                    if (g != null && g.TensionPressure > 0f)
+                        tensionsText += "\n  " + g.Name.ToString() + " - " + (int) g.TensionPressure + "%";
+                }
+            }
+
+            var desc = new TextObject("{=BKrealmDesc2}Government: {GOV}\nCrown Authority: {CA} (permitted {FLOOR}-{CEIL})\nTransition pressure: {PRESSURE}%\n{PENDING}\n\n{TENSIONS}")
                 .SetTextVariable("GOV", gov.Name)
                 .SetTextVariable("CA", diplomacy.CrownAuthority)
                 .SetTextVariable("FLOOR", gov.CrownAuthorityFloor)
@@ -819,7 +834,8 @@ namespace BannerKings.Behaviours.Diplomacy
                 .SetTextVariable("PRESSURE", diplomacy.GovernmentTransitionPressure)
                 .SetTextVariable("PENDING", pending.Apply != null
                     ? new TextObject("{=BKrealmBrewing}A change of government is brewing.")
-                    : new TextObject("{=BKrealmStable}The realm's constitution is stable."));
+                    : new TextObject("{=BKrealmStable}The realm's constitution is stable."))
+                .SetTextVariable("TENSIONS", tensionsText);
 
             var options = new List<InquiryElement>();
             if (diplomacy.CrownAuthority < gov.CrownAuthorityCeiling)
@@ -1230,33 +1246,12 @@ namespace BannerKings.Behaviours.Diplomacy
         {
             BannerKings.Utils.Logs.Kingdom(() => $"peace: {faction1?.Name} ↔ {faction2?.Name} ({detail})");
 
-            // Vanilla MakePeaceAction.Apply already handles tribute and
-            // sets StanceLink.PeaceDeclarationDate. The post-peace truce
-            // window is now derived from PeaceDeclarationDate via
-            // KingdomDiplomacy.IsInTruce (see KingdomDiplomacy.cs:94).
-            //
-            // Previously this handler called MakeTruce(faction1, faction2,
-            // 1f) which silently transferred BK-computed truce-cost denars
-            // between rulers on every vanilla peace event — a double-charge
-            // on top of vanilla's tribute. Removed entirely; the natural
-            // post-peace truce is free, paid extensions go through
-            // ConsiderTruce/MakeTruce explicitly.
-            //
-            // Player-facing notification only when the player's faction is
-            // involved (was firing for every AI-AI peace, spam).
-            if (faction1.IsKingdomFaction && faction2.IsKingdomFaction
-                && Hero.MainHero != null
-                && (faction1 == Hero.MainHero.MapFaction || faction2 == Hero.MainHero.MapFaction))
-            {
-                InformationManager.DisplayMessage(new InformationMessage(
-                    new TextObject("{=4S5vs7AB}The lords of {KINGDOM1} and {KINGDOM2} have settled on a truce until {DATE}.")
-                    .SetTextVariable("KINGDOM1", faction1.Name)
-                    .SetTextVariable("KINGDOM2", faction2.Name)
-                    .SetTextVariable("DATE", CampaignTime.YearsFromNow(KingdomDiplomacy.NaturalTruceYears).ToString())
-                    .ToString(),
-                    Color.FromUint(Utils.TextHelper.COLOR_LIGHT_BLUE)));
-            }
-
+            // Vanilla MakePeaceAction.Apply already handles tribute, sets
+            // StanceLink.PeaceDeclarationDate, and shows its own peace
+            // notification. BK no longer layers a natural post-peace truce
+            // on top (IsInTruce is paid-truce-only now), so there is no BK
+            // "truce until ..." message here — vanilla owns the post-peace
+            // cooldown and its display.
             War war = GetWar(faction1, faction2);
             if (war != null)
             {

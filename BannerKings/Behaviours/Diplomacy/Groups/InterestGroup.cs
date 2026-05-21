@@ -105,12 +105,23 @@ namespace BannerKings.Behaviours.Diplomacy.Groups
             if (Leader == Hero.MainHero || Leader == null || FactionLeader == null) return;
 
             var influence = BannerKingsConfig.Instance.InterestGroupsModel.CalculateGroupInfluence(this);
+            bool agitated = false;
             foreach (Demand demand in PossibleDemands)
             {
-                if (CanPushDemand(demand, influence.ResultNumber).Item1 && MBRandom.RandomFloat < MBRandom.RandomFloat)
+                bool canPush = CanPushDemand(demand, influence.ResultNumber).Item1;
+                if (canPush) agitated = true;
+                if (canPush && MBRandom.RandomFloat < MBRandom.RandomFloat)
                 {
                     demand.SetUp();
                 }
+            }
+
+            // Politics rework — faction tension: a group with a grievance it
+            // could push builds toward forcing it; a content group's tension
+            // eases. Display-only in this increment; escalation comes next.
+            if (BannerKings.Settings.BannerKingsSettings.Instance.EnablePoliticsRework)
+            {
+                AddTensionPressure(agitated ? 2f : -3f);
             }
 
             foreach (DemandOutcome outcome in RecentOucomes)
@@ -124,6 +135,7 @@ namespace BannerKings.Behaviours.Diplomacy.Groups
         
         [SaveableProperty(13)] public List<Demand> PossibleDemands { get; private set; }
         [SaveableProperty(14)] public List<DemandOutcome> RecentOucomes { get; private set; }
+        [SaveableProperty(15)] public float TensionPressure { get; private set; }
 
         public CouncilMember FavoredPosition { get; private set; }
         public TraitObject MainTrait { get; private set; }
@@ -238,6 +250,16 @@ namespace BannerKings.Behaviours.Diplomacy.Groups
                 Hero hero = dictionary.FirstOrDefault(x => x.Value == dictionary.Values.Max()).Key;
                 Leader = hero;
             }
+        }
+
+        // Politics rework — faction tension, how close this group is to
+        // forcing a demand. Clamped 0..100.
+        public void AddTensionPressure(float delta)
+        {
+            float v = TensionPressure + delta;
+            if (v < 0f) v = 0f;
+            if (v > 100f) v = 100f;
+            TensionPressure = v;
         }
 
         public void AddOutcome(Demand demand, DemandResponse response, bool success)
