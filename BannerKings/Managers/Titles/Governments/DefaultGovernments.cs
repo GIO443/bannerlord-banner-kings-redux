@@ -25,6 +25,7 @@ namespace BannerKings.Managers.Titles.Governments
         public Government Imperial => GetById("Imperial");
         public Government Feudal => GetById("Feudal");
         public Government Tribal => GetById("Tribal");
+        public Government Dictatorship => GetById("Dictatorship");
 
         public override IEnumerable<Government> All
         {

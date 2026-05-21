@@ -18,10 +18,11 @@ namespace BannerKings.Managers.Titles.Governments
     // government — individual magnates, or blocs.
     public enum PoliticalLayerType
     {
-        Chiefs,     // near-equal clan chiefs, might-based (Tribal)
-        Vassals,    // a hierarchy of landed vassals who govern (Feudal)
-        Governors,  // appointed administrators of themes (Imperial)
-        Parliament, // parliamentary blocs, no land-magnates (Republic)
+        Chiefs,       // near-equal clan chiefs, might-based (Tribal)
+        Vassals,      // a hierarchy of landed vassals who govern (Feudal)
+        Governors,    // appointed administrators of themes (Imperial)
+        Parliament,   // parliamentary blocs, no land-magnates (Republic)
+        Dictatorship, // a senate that still sits, cowed under a strongman
     }
 
     public class Government : ContractAspect

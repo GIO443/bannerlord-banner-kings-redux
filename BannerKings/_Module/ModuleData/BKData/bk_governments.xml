@@ -86,6 +86,23 @@
     </successions>
   </government>
 
+  <government id="Dictatorship" mercantilism="0.35" authoritarian="0.3" oligarchic="0.2" egalitarian="0.2"
+              crown_authority_floor="1" crown_authority_ceiling="3"
+              council_control="Appointed" political_layer="Dictatorship">
+    <name>Dictatorship</name>
+    <description>A Dictatorship arises when a Republic, beset by crisis, grants one figure - the Diktator - extraordinary and unquestioned authority that the Senate would never tolerate in peaceful times. It is, by design, a temporary office: a single hand on the realm for as long as the emergency lasts. But power, once concentrated, does not always wish to be returned. A Dictatorship is the hinge of the Calradoi political cycle - it may be relinquished back to the Senate as a Republic once more, or its holder may make the office permanent and crown an Empire.</description>
+    <effects>- The Diktator dominates the realm's votes{newline}- Settlement security +1{newline}- Settlement mercantilism +35%</effects>
+    <prohibited_policies>
+      <policy ref="policy_feudal_inheritance"/>
+      <policy ref="policy_castle_charters"/>
+      <policy ref="policy_lords_privy_council"/>
+    </prohibited_policies>
+    <successions>
+      <succession ref="Dictatorship"/>
+      <succession ref="Imperial"/>
+    </successions>
+  </government>
+
   <government id="Tribal" mercantilism="0.3" authoritarian="-0.7" oligarchic="0.5" egalitarian="0.4"
               crown_authority_floor="0" crown_authority_ceiling="1"
               council_control="Might" political_layer="Chiefs">

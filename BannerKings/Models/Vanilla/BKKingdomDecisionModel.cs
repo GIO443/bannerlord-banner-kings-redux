@@ -201,6 +201,18 @@ namespace BannerKings.Models.Vanilla
                 case PoliticalLayerType.Governors:
                     return isRuler ? 5f : 0.5f;
 
+                case PoliticalLayerType.Dictatorship:
+                {
+                    // A strongman regime — a clan's sway tracks the army it
+                    // can put behind it, and the dictator's office doubles
+                    // their own. A dictator whose host has withered becomes
+                    // contestable: weak armies, weak grip.
+                    float dictAverage = AverageClanStrength(kingdom);
+                    float dictWeight = dictAverage > 0f ? clan.CurrentTotalStrength / dictAverage : 1f;
+                    dictWeight = MathF.Clamp(dictWeight, 0.25f, 4f);
+                    return isRuler ? dictWeight * 2f : dictWeight;
+                }
+
                 default: // Vassals — Feudal: weight by the clan's highest
                 {        // de jure title; a duke far outranks a mere lord.
                     float rank = 0.5f;
