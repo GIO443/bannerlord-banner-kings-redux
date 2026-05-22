@@ -196,14 +196,8 @@ namespace BannerKings.UI.Estates
                 TownManagementDescriptionItemVM.DescriptionType.Gold,
                 new BasicTooltipViewModel(() => value.GetExplanations())));
 
-            var acreage = Estate.AcreageGrowth;
-            MainInfo.Add(new TownManagementDescriptionItemVM(
-                new TextObject("{=FT5kL9k5}Acreage:"),
-                (int)Estate.Acreage,
-                (int)acreage.ResultNumber,
-                TownManagementDescriptionItemVM.DescriptionType.Prosperity,
-                new BasicTooltipViewModel(BuildAcreageTooltip)));
-
+            // Acreage row removed — BK's acreage model is no longer the land
+            // basis (see BuildLandInfo; the bound Living Economy parcel is).
         }
 
         private string BuildIncomeTooltip()
@@ -394,25 +388,36 @@ namespace BannerKings.UI.Estates
         // ---------------------------------------------------------------
         private void BuildLandInfo()
         {
-            var ld = LandData();
-            float capFarm = ld != null ? ld.Farmland * 0.2f : 0f;
-            float capPas = ld != null ? ld.Pastureland * 0.2f : 0f;
-            float capWood = ld != null ? ld.Woodland * 0.2f : 0f;
+            // Phase 4 weave — the estate's land is a Bannerlord Living Economy
+            // parcel now, not BK's old Farmland/Pastureland/Woodland acreage
+            // split. Surface the bound parcel: type, size, quality.
+            var record = !string.IsNullOrEmpty(Estate.BoundEstateId) && Estate.EstatesData?.Settlement != null
+                ? BannerKings.Utils.BetterEconomyBridge.GetEstateById(Estate.EstatesData.Settlement, Estate.BoundEstateId)
+                : null;
+
+            if (record == null)
+            {
+                LandInfo.Add(new InformationElement(
+                    new TextObject("{=BKEstate_ParcelPending}Estate parcel:").ToString(),
+                    new TextObject("{=BKEstate_ParcelUnbound}Not yet anchored").ToString(),
+                    new TextObject("{=BKEstate_ParcelPendingTip}This estate has not yet been bound to a Living Economy estate parcel; it anchors on the next settlement tick.").ToString()));
+                return;
+            }
 
             LandInfo.Add(new InformationElement(
-                new TextObject("{=56YOTTBC}Farmland:").ToString(),
-                $"{Estate.Farmland:0.0} / {capFarm:0.0}",
-                new TextObject("{=ABrCGWep}Acres in this region used as farmland, the main source of food in most places").ToString()));
+                new TextObject("{=BKEstate_LandType}Land type:").ToString(),
+                record.EstateType.ToString(),
+                new TextObject("{=BKEstate_LandTypeTip}The kind of land this estate works, set by its Living Economy parcel.").ToString()));
 
             LandInfo.Add(new InformationElement(
-                new TextObject("{=RsRkc9dF}Pastureland:").ToString(),
-                $"{Estate.Pastureland:0.0} / {capPas:0.0}",
-                new TextObject("{=864UHkZw}Acres in this region used as pastureland, to raise cattle and other animals.").ToString()));
+                new TextObject("{=BKEstate_ParcelSize}Parcel size:").ToString(),
+                $"{record.Size:0.00}",
+                new TextObject("{=BKEstate_ParcelSizeTip}The relative size of the estate's land parcel; larger parcels raise estate output.").ToString()));
 
             LandInfo.Add(new InformationElement(
-                new TextObject("{=bwEtOiYF}Woodland:").ToString(),
-                $"{Estate.Woodland:0.0} / {capWood:0.0}",
-                new TextObject("{=MJYam3iu}Acres in this region used as woodland, kept for hunting, foraging, and timber.").ToString()));
+                new TextObject("{=BKEstate_LandQuality}Land quality:").ToString(),
+                $"{record.Quality:0.00}",
+                new TextObject("{=BKEstate_LandQualityTip}The quality of the estate's land. Higher quality raises estate production.").ToString()));
         }
 
         private void BuildWorkforceInfo()

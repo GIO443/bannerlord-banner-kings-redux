@@ -12,12 +12,20 @@ using TaleWorlds.Localization;
 
 namespace BannerKings.UI.Extensions
 {
+    // Kingdom-UI rebuild: the "BannerKings" parent tab now carries FIVE
+    // sub-tabs — Realm / Laws / Court / Groups / Career. Realm and Laws are
+    // the split of the old single "Demesne" tab: Realm is the politics
+    // dashboard (government, Crown Authority, Legitimacy, War Fatigue,
+    // transition pressure, succession + heir); Laws is the editable legal
+    // code (contract aspects + demesne laws). Both panels are backed by the
+    // one KingdomDemesneVM — RealmSelected / LawsSelected on that VM gate
+    // which prefab shows — so the Change* action methods stay on one VM.
     [ViewModelMixin("RefreshValues")]
     internal class KingdomManagementMixin : BaseViewModelMixin<KingdomManagementVM>
     {
         private readonly KingdomManagementVM kingdomManagement;
-        private bool courtSelected, courtEnabled, demesneSelected, demesneEnabled, groupsEnabled,
-            groupsSelected, showCareer, careerSelected, bannerKingsSelected;
+        private bool courtSelected, courtEnabled, realmSelected, realmEnabled, lawsSelected, lawsEnabled,
+            groupsEnabled, groupsSelected, showCareer, careerSelected, bannerKingsSelected;
         private CourtVM courtVM;
         private KingdomDemesneVM demesneVM;
         private KingdomGroupsVM groupsVM;
@@ -29,12 +37,13 @@ namespace BannerKings.UI.Extensions
             kingdomManagement = vm;
 
             // Set the visibility flags FIRST so that even if any sub-VM
-            // construction below throws, the tab buttons (Court / Demesne /
-            // Groups) still appear (or hide) according to their intended
-            // visibility, instead of all defaulting to false and disappearing
-            // from the tab bar entirely.
+            // construction below throws, the tab buttons (Realm / Laws /
+            // Court / Groups) still appear (or hide) according to their
+            // intended visibility, instead of all defaulting to false and
+            // disappearing from the tab bar entirely.
             CourtEnabled = true;
-            DemesneEnabled = false;
+            RealmEnabled = false;
+            LawsEnabled = false;
             GroupsEnabled = false;
             ShowCareer = false;
 
@@ -47,14 +56,15 @@ namespace BannerKings.UI.Extensions
             try
             {
                 var title = BannerKingsConfig.Instance.TitleManager?.GetSovereignTitle(vm.Kingdom);
-                DemesneEnabled = title != null;
+                RealmEnabled = title != null;
+                LawsEnabled = title != null;
                 demesneVM = new KingdomDemesneVM(title, vm.Kingdom);
-                if (demesneVM != null) demesneVM.IsSelected = DemesneEnabled;
             }
             catch
             {
                 demesneVM = null;
-                DemesneEnabled = false;
+                RealmEnabled = false;
+                LawsEnabled = false;
             }
             BannerKings.Utils.BKFreezeTrace.Exit("  DemesneVM");
 
@@ -63,8 +73,8 @@ namespace BannerKings.UI.Extensions
             // construction (that's the wiring of [ViewModelMixin("RefreshValues")]).
             // A redundant call mid-ctor doubled the kingdom-screen open time
             // because each RefreshValues cascades through OnRefresh →
-            // Court/Demesne/Groups/Career sub-VM refreshes. The first auto-
-            // refresh (after this ctor completes) now does the work alone.
+            // sub-VM refreshes. The first auto-refresh (after this ctor
+            // completes) now does the work alone.
 
             BannerKings.Utils.BKFreezeTrace.Enter("  GroupsVM");
             try
@@ -111,11 +121,11 @@ namespace BannerKings.UI.Extensions
             }
         }
 
-        [DataSourceProperty] public string DemesneText => new TextObject("{=6QMDGRSt}Demesne").ToString();
+        [DataSourceProperty] public string RealmText => new TextObject("{=BKrealmTab}Realm").ToString();
+        [DataSourceProperty] public string LawsText => new TextObject("{=fE6RYz1k}Laws").ToString();
         [DataSourceProperty] public string CourtText => new TextObject("{=2QGyA46m}Court").ToString();
         [DataSourceProperty] public string CareerText => new TextObject("{=WmzEL8hL}Career").ToString();
         [DataSourceProperty] public string GroupsText => new TextObject("{=F4Vv8Lc8}Groups").ToString();
-        
 
         [DataSourceProperty]
         public bool ShowCareer
@@ -160,28 +170,56 @@ namespace BannerKings.UI.Extensions
         }
 
         [DataSourceProperty]
-        public bool DemesneSelected
+        public bool RealmSelected
         {
-            get => demesneSelected;
+            get => realmSelected;
             set
             {
-                if (value != demesneSelected)
+                if (value != realmSelected)
                 {
-                    demesneSelected = value;
+                    realmSelected = value;
                     ViewModel!.OnPropertyChangedWithValue(value);
                 }
             }
         }
 
         [DataSourceProperty]
-        public bool DemesneEnabled
+        public bool RealmEnabled
         {
-            get => demesneEnabled;
+            get => realmEnabled;
             set
             {
-                if (value != demesneEnabled)
+                if (value != realmEnabled)
                 {
-                    demesneEnabled = value;
+                    realmEnabled = value;
+                    ViewModel!.OnPropertyChangedWithValue(value);
+                }
+            }
+        }
+
+        [DataSourceProperty]
+        public bool LawsSelected
+        {
+            get => lawsSelected;
+            set
+            {
+                if (value != lawsSelected)
+                {
+                    lawsSelected = value;
+                    ViewModel!.OnPropertyChangedWithValue(value);
+                }
+            }
+        }
+
+        [DataSourceProperty]
+        public bool LawsEnabled
+        {
+            get => lawsEnabled;
+            set
+            {
+                if (value != lawsEnabled)
+                {
+                    lawsEnabled = value;
                     ViewModel!.OnPropertyChangedWithValue(value);
                 }
             }
@@ -257,6 +295,9 @@ namespace BannerKings.UI.Extensions
             }
         }
 
+        // One KingdomDemesneVM backs both the Realm and Laws panels; the
+        // extension binds DataSource="{Demesne}" on each, and the panels
+        // gate their own visibility on the VM's RealmSelected / LawsSelected.
         [DataSourceProperty]
         public KingdomDemesneVM Demesne
         {
@@ -305,15 +346,15 @@ namespace BannerKings.UI.Extensions
                         policy.DoneHint.HintText = text;
                         policy.CanProposeOrDisavowPolicy = false;
                     }
-                   
+
                     // IsActionEnabled/ActionHint removed from KingdomDiplomacyVM in 1.3.x
-                    
+
                     if (clans.CanExpelCurrentClan)
                     {
                         clans.ExpelHint.HintText = text;
                         clans.CanExpelCurrentClan = false;
                     }
-                    
+
                     if (fiefs.CanAnnexCurrentSettlement)
                     {
                         fiefs.AnnexHint.HintText = text;
@@ -339,11 +380,16 @@ namespace BannerKings.UI.Extensions
         private void ClearSubSelection()
         {
             CourtSelected = false;
-            DemesneSelected = false;
+            RealmSelected = false;
+            LawsSelected = false;
             GroupsSelected = false;
             CareerSelected = false;
             if (Court != null) Court.IsSelected = false;
-            if (Demesne != null) Demesne.IsSelected = false;
+            if (Demesne != null)
+            {
+                Demesne.RealmSelected = false;
+                Demesne.LawsSelected = false;
+            }
             if (Groups != null) Groups.IsSelected = false;
             if (Career != null) Career.IsSelected = false;
         }
@@ -364,10 +410,14 @@ namespace BannerKings.UI.Extensions
             BannerKingsSelected = true;
 
             // Pick the first enabled sub-tab if nothing is currently selected.
-            if (!CourtSelected && !DemesneSelected && !GroupsSelected && !CareerSelected)
+            if (!CourtSelected && !RealmSelected && !LawsSelected && !GroupsSelected && !CareerSelected)
             {
-                if (CourtEnabled) SelectCourt();
-                else if (DemesneEnabled) SelectDemesne();
+                // Land on Realm (the flagship politics tab) when it's available;
+                // fall through the strip order otherwise. Realm/Laws need a
+                // sovereign BK title, so a title-less kingdom opens on Court.
+                if (RealmEnabled) SelectRealm();
+                else if (LawsEnabled) SelectLaws();
+                else if (CourtEnabled) SelectCourt();
                 else if (GroupsEnabled) SelectGroups();
                 else if (ShowCareer) SelectCareer();
             }
@@ -387,14 +437,26 @@ namespace BannerKings.UI.Extensions
         }
 
         [DataSourceMethod]
-        public void SelectDemesne()
+        public void SelectRealm()
         {
             if (Demesne == null) return;
             HideVanillaTabs();
             BannerKingsSelected = true;
             ClearSubSelection();
-            DemesneSelected = true;
-            Demesne.IsSelected = true;
+            RealmSelected = true;
+            Demesne.RealmSelected = true;
+            kingdomManagement.RefreshValues();
+        }
+
+        [DataSourceMethod]
+        public void SelectLaws()
+        {
+            if (Demesne == null) return;
+            HideVanillaTabs();
+            BannerKingsSelected = true;
+            ClearSubSelection();
+            LawsSelected = true;
+            Demesne.LawsSelected = true;
             kingdomManagement.RefreshValues();
         }
 

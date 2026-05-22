@@ -214,13 +214,41 @@ namespace BannerKings.Patches
         [HarmonyPatch(typeof(KingdomDiplomacyVM))]
         internal class DeclareWarVMPatch
         {
+            // War support is a displayed approval %. RefreshDiplomacyList calls
+            // CalculateWarSupport once per kingdom, and the kingdom screen
+            // refreshes many times per open — uncached, BK's full KingdomElection
+            // simulation ran thousands of times per screen open (a 30-90s stall).
+            // Cache per faction, rebuilt once per in-game day. CalculateWarSupport
+            // is a UI-thread VM method, so a plain dictionary is race-free here.
+            private static readonly Dictionary<IFaction, int> _warSupportCache = new Dictionary<IFaction, int>();
+            private static int _warSupportCacheDay = -1;
+
             [HarmonyPrefix]
             [HarmonyPatch("CalculateWarSupport")]
             private static bool CalculateWarSupportText(KingdomDiplomacyVM __instance, IFaction faction, ref int __result)
             {
                 if (ModCompat.DiplomacyMod) return true;
-                __result = MathF.Round(new KingdomElection(
-                    new BKDeclareWarDecision(null, Clan.PlayerClan, faction)).GetLikelihoodForSponsor(Clan.PlayerClan) * 100f);
+                if (faction == null)
+                {
+                    __result = 0;
+                    return false;
+                }
+
+                int today = (int)CampaignTime.Now.ToDays;
+                if (today != _warSupportCacheDay)
+                {
+                    _warSupportCache.Clear();
+                    _warSupportCacheDay = today;
+                }
+
+                if (!_warSupportCache.TryGetValue(faction, out var support))
+                {
+                    support = MathF.Round(new KingdomElection(
+                        new BKDeclareWarDecision(null, Clan.PlayerClan, faction)).GetLikelihoodForSponsor(Clan.PlayerClan) * 100f);
+                    _warSupportCache[faction] = support;
+                }
+
+                __result = support;
                 return false;
             }
 

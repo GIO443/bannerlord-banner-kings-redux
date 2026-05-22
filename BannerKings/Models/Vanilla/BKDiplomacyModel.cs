@@ -32,6 +32,23 @@ namespace BannerKings.Models.Vanilla
         public override int MaxNeutralRelationLimit => BannerKingsSettings.Instance.FriendlyThreshold;
         public override int MinNeutralRelationLimit => BannerKingsSettings.Instance.HostileThreshold;
 
+        // ── Kingdom-screen freeze fix ───────────────────────────────────────
+        // GetScoreOfDeclaringWar is the diplomacy-screen chokepoint:
+        // KingdomDiplomacyVM.RefreshDiplomacyList funnels truce / alliance /
+        // pact-cost queries plus GetScoreOfDeclaringPeace through it for every
+        // kingdom pair, and each call runs O(fiefs²) MapDistanceModel
+        // pathfinding inside GetBorder. The plain numeric score is
+        // deterministic for a campaign-day, so memoise it keyed by the faction
+        // triple + casus belli and flush the table on day rollover. The
+        // explanations path (live tooltips, warReason breakdown) bypasses this.
+        // Touched from both the UI thread and the campaign AI thread, so every
+        // access is serialised under _warScoreCacheLock; the heavy computation
+        // runs outside the lock.
+        private static readonly object _warScoreCacheLock = new object();
+        private static readonly Dictionary<ValueTuple<IFaction, IFaction, IFaction, CasusBelli>, float> _warScoreCache
+            = new Dictionary<ValueTuple<IFaction, IFaction, IFaction, CasusBelli>, float>();
+        private static int _warScoreCacheDay = -1;
+
         public override int GetCharmExperienceFromRelationGain(Hero hero, float relationChange, ChangeRelationAction.ChangeRelationDetail detail)
         {
             int xp = base.GetCharmExperienceFromRelationGain(hero, relationChange, detail);
@@ -833,6 +850,30 @@ namespace BannerKings.Models.Vanilla
            out TextObject warReason, CasusBelli casusBelli = null, bool explanations = false)
         {
             warReason = TextObject.GetEmpty();
+
+            // Serve the memoised score for the non-explanations path. See
+            // _warScoreCache above — this is the kingdom-screen freeze fix.
+            ValueTuple<IFaction, IFaction, IFaction, CasusBelli> scoreKey = default;
+            bool useCache = !explanations;
+            if (useCache)
+            {
+                scoreKey = (factionDeclaresWar, factionDeclaredWar, evaluatingClan, casusBelli);
+                lock (_warScoreCacheLock)
+                {
+                    int day = (int)CampaignTime.Now.ToDays;
+                    if (day != _warScoreCacheDay)
+                    {
+                        _warScoreCache.Clear();
+                        _warScoreCacheDay = day;
+                    }
+
+                    if (_warScoreCache.TryGetValue(scoreKey, out float cachedScore))
+                    {
+                        return new ExplainedNumber(cachedScore, false);
+                    }
+                }
+            }
+
             var result = new ExplainedNumber(0f, explanations);
             result.LimitMin(-50000f);
             result.LimitMax(50000f);
@@ -1098,6 +1139,14 @@ namespace BannerKings.Models.Vanilla
             float defenderScore = defenderStats.Strength + defenderStats.ValueOfSettlements - (defenderStats.TotalStrengthOfEnemies * 1.25f);
             float scoreProportion = (attackerScore / defenderScore) - 1f;
             result.AddFactor(scoreProportion);*/
+
+            if (useCache)
+            {
+                lock (_warScoreCacheLock)
+                {
+                    _warScoreCache[scoreKey] = result.ResultNumber;
+                }
+            }
 
             return result;
         }

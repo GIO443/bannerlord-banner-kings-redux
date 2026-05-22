@@ -57,7 +57,9 @@ namespace BannerKings.UI.VanillaTabs.Kingdoms.Groups
 
             foreach (var member in Group.GetSortedMembers(KingdomDiplomacy).Take(5))
             {
-                if (member != Leader.Hero)
+                // Leader is only assigned when Group.Leader != null; a group
+                // with members but no resolved leader would NRE on Leader.Hero.
+                if (member != Leader?.Hero)
                 {
                     Members.Add(new GroupMemberVM(member, true));
                 }
@@ -86,7 +88,10 @@ namespace BannerKings.UI.VanillaTabs.Kingdoms.Groups
                 ChanceHint = new HintViewModel(new TextObject("{=oVr1RVY0}{EXPLANATION}")
                     .SetTextVariable("EXPLANATION", result.GetFormattedPercentage()));
 
-                EmptyGroupText = new TextObject("{=Bfkjk1o0}There is no {GROUP} currently active in the {REALM}. At any time, non-ruling clan leaders may start a radical group according to their interests, political leverage, relationships and support of the ruler.").ToString();
+                EmptyGroupText = new TextObject("{=Bfkjk1o0}There is no {GROUP} currently active in {REALM}. At any time, non-ruling clan leaders may start a radical group according to their interests, political leverage, relationships and support of the ruler.")
+                    .SetTextVariable("GROUP", Group.Name)
+                    .SetTextVariable("REALM", KingdomDiplomacy.Kingdom.Name)
+                    .ToString();
 
                 ActionName = new TextObject("{=bLwFU6mw}Create Group").ToString();
                 IsActionEnabled = BannerKingsConfig.Instance.InterestGroupsModel.CanHeroCreateAGroup(Hero.MainHero, KingdomDiplomacy);

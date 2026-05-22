@@ -48,7 +48,9 @@ namespace BannerKings.UI.VanillaTabs.Kingdoms.Groups
 
             foreach (var member in InterestGroup.GetSortedMembers(KingdomDiplomacy).Take(5))
             {
-                if (member != Leader.Hero)
+                // Leader is only assigned when Group.Leader != null; a group
+                // with members but no resolved leader would NRE on Leader.Hero.
+                if (member != Leader?.Hero)
                 {
                     Members.Add(new GroupMemberVM(member, true));
                 }

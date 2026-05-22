@@ -156,36 +156,43 @@ namespace BannerKings.UI.VanillaTabs.Clans
                     "= 100% = full production, no surplus.\n" +
                     "> 100% = surplus auto-clears new land on the Production task.")));
 
-            // Acreage growth — only show when actually growing.
-            ExplainedNumber growth = Estate.AcreageGrowth;
-            if (growth.ResultNumber > 0f)
+            // Phase 4 weave — the estate's land is a Bannerlord Living Economy
+            // parcel now, not BK's old Farmland/Pastureland/Woodland acreage
+            // split. Surface the bound parcel (type / size / quality), mirroring
+            // EstateVM.BuildLandInfo so the clan-finance panel and the
+            // settlement estate window show the same land basis.
+            var parcel = !string.IsNullOrEmpty(Estate.BoundEstateId) && Estate.EstatesData?.Settlement != null
+                ? BannerKings.Utils.BetterEconomyBridge.GetEstateById(Estate.EstatesData.Settlement, Estate.BoundEstateId)
+                : null;
+            if (parcel == null)
             {
-                string source = Estate.Task == EstateTask.Land_Expansion
-                    ? "Land Expansion task"
-                    : "Production task surplus";
-                ItemProperties.Add(new SelectableItemPropertyVM(new TextObject("{=BKEstate_GrowthProp}Acreage Growth").ToString(),
-                    "+" + growth.ResultNumber.ToString("0.00") + " ac/day",
+                ItemProperties.Add(new SelectableItemPropertyVM(
+                    new TextObject("{=BKEstate_ParcelPending}Estate parcel:").ToString(),
+                    new TextObject("{=BKEstate_ParcelUnbound}Not yet anchored").ToString(),
                     false,
-                    new BasicTooltipViewModel(() => $"Growing from: {source}\n+{growth.ResultNumber:0.00} acres/day, distributed by village land mix.")));
+                    new BasicTooltipViewModel(() => new TextObject("{=BKEstate_ParcelPendingTip}This estate has not yet been bound to a Living Economy estate parcel; it anchors on the next settlement tick.").ToString())));
+            }
+            else
+            {
+                ItemProperties.Add(new SelectableItemPropertyVM(
+                    new TextObject("{=BKEstate_LandType}Land type:").ToString(),
+                    parcel.EstateType.ToString(),
+                    false,
+                    new BasicTooltipViewModel(() => new TextObject("{=BKEstate_LandTypeTip}The kind of land this estate works, set by its Living Economy parcel.").ToString())));
+
+                ItemProperties.Add(new SelectableItemPropertyVM(
+                    new TextObject("{=BKEstate_ParcelSize}Parcel size:").ToString(),
+                    $"{parcel.Size:0.00}",
+                    false,
+                    new BasicTooltipViewModel(() => new TextObject("{=BKEstate_ParcelSizeTip}The relative size of the estate's land parcel; larger parcels raise estate output.").ToString())));
+
+                ItemProperties.Add(new SelectableItemPropertyVM(
+                    new TextObject("{=BKEstate_LandQuality}Land quality:").ToString(),
+                    $"{parcel.Quality:0.00}",
+                    false,
+                    new BasicTooltipViewModel(() => new TextObject("{=BKEstate_LandQualityTip}The quality of the estate's land. Higher quality raises estate production.").ToString())));
             }
 
-            ItemProperties.Add(new SelectableItemPropertyVM(new TextObject("{=NZTEBOw6}Acreage", null).ToString(),
-               Estate.Acreage.ToString("0.00"),
-               false,
-               null));
-
-            ExplainedNumber price = Estate.AcrePriceExplained;
-            TextObject priceT = new TextObject("{=HojX6KBq}Acre Value");
-            ItemProperties.Add(new SelectableItemPropertyVM(priceT.ToString(),
-               price.ResultNumber.ToString("0"),
-               false,
-               new BasicTooltipViewModel(() => UIHelper.GetAccumulatingWithDescription(priceT,
-                new TextObject("{=HojX6KBq}Acre Value represents the monetary value of each acre, variable according to the local economy."),
-                price.ResultNumber,
-                false,
-                ref price))
-               ));
-            
 
             ItemProperties.Add(new SelectableItemPropertyVM(new TextObject("Workforce", null).ToString(),
                (Estate.Population + Estate.Slaves).ToString(),

@@ -57,5 +57,10 @@ namespace BannerKings.Behaviours.Diplomacy
         public const float VassalTreacheryAmbition = 0.25f;
         // Rivalry score above which a realm peer is treated as a true rival.
         public const float VassalRivalryThreshold = 0.60f;
+        // Transition pressure a single treacherous coup-positioning lever
+        // adds. Small by design: a realm collapses fast only when MANY
+        // vassals scheme at once, not when one does — and it stays in step
+        // with the government cycle's own per-day build.
+        public const int VassalSchemeTransitionPressure = 1;
     }
 }

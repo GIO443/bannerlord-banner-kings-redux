@@ -1,3 +1,4 @@
+using BannerKings.Behaviours.Diplomacy;
 using BannerKings.Managers.Titles;
 using BannerKings.Managers.Titles.Governments;
 using BannerKings.Managers.Titles.Laws;
@@ -23,11 +24,15 @@ namespace BannerKings.UI.VanillaTabs.Kingdoms
         private HeirVM mainHeir;
         private string successionDescription;
         private SelectorVM<BKItemVM> kingdomSelector;
+        private KingdomDiplomacy diplomacy;
+        private bool realmSelected, lawsSelected;
 
         public KingdomDemesneVM(FeudalTitle title, Kingdom kingdom) : base(null, false)
         {
             Title = title;
             Kingdom = kingdom;
+            diplomacy = TaleWorlds.CampaignSystem.Campaign.Current
+                .GetCampaignBehavior<BKDiplomacyBehavior>()?.GetKingdomDiplomacy(kingdom);
             laws = new MBBindingList<DemesneLawVM>();
             Heirs = new MBBindingList<HeirVM>();
             Aspects = new MBBindingList<TripleStringItemVM>();
@@ -469,6 +474,137 @@ namespace BannerKings.UI.VanillaTabs.Kingdoms
 
         [DataSourceProperty]
         public string LawsDescriptionText => new TextObject("{=MbSsFJNY}Demesne Laws may be changed a year after they are issued. Changes are made by the sovereign or through voting by the Peers.").ToString();
+
+        // ── Politics-rework dashboard (Realm tab) ───────────────────────────
+        // Crown Authority / Legitimacy / War Fatigue / Government Transition
+        // live on KingdomDiplomacy. The old Demesne tab never surfaced them;
+        // the rebuilt Realm tab does. Every value degrades to "—" when the
+        // kingdom has no BK diplomacy record yet (early load, custom battle).
+        private static readonly string[] CrownAuthorityNames =
+            { "Decentralised", "Limited", "Moderate", "Strong", "Absolute" };
+
+        // A 10-segment ASCII proportion bar — '=' filled, '-' empty. Plain
+        // ASCII so it renders in any font; a graphical fill bar can replace
+        // it in a later visual pass.
+        private const int BarSegments = 10;
+        private static string Bar(float fraction)
+        {
+            fraction = MathF.Clamp(fraction, 0f, 1f);
+            int filled = (int)MathF.Round(fraction * BarSegments);
+            if (filled < 0) filled = 0;
+            if (filled > BarSegments) filled = BarSegments;
+            return "[" + new string('=', filled) + new string('-', BarSegments - filled) + "]";
+        }
+
+        // RealmSelected / LawsSelected gate the two prefabs that share this VM
+        // (KingdomRealm.xml / KingdomLaws.xml). The mixin's SelectRealm /
+        // SelectLaws drive them; one VM still backs both panels so the Change*
+        // action methods don't have to be split across two view models.
+        [DataSourceProperty]
+        public bool RealmSelected
+        {
+            get => realmSelected;
+            set { if (value != realmSelected) { realmSelected = value; OnPropertyChangedWithValue(value, "RealmSelected"); } }
+        }
+
+        [DataSourceProperty]
+        public bool LawsSelected
+        {
+            get => lawsSelected;
+            set { if (value != lawsSelected) { lawsSelected = value; OnPropertyChangedWithValue(value, "LawsSelected"); } }
+        }
+
+        [DataSourceProperty]
+        public bool HasDiplomacy => diplomacy != null;
+
+        [DataSourceProperty]
+        public string GovernmentLayerText => Title?.Contract?.Government != null
+            ? new TextObject("{=BKrealmLayer}Political layer: {LAYER}")
+                .SetTextVariable("LAYER", Title.Contract.Government.PoliticalLayer.ToString()).ToString()
+            : string.Empty;
+
+        [DataSourceProperty]
+        public string CrownAuthorityLabel => new TextObject("{=BKcaTitle}Crown Authority").ToString();
+
+        // Each *Value carries an inline proportion bar; each *Hint is a live
+        // BasicTooltipViewModel so the breakdown ("why the number is what it
+        // is") can be assembled from the model on hover. Legitimacy's hint
+        // surfaces the real CalculateKingdomLegitimacy explanation.
+        [DataSourceProperty]
+        public string CrownAuthorityValue
+        {
+            get
+            {
+                if (diplomacy == null) return "—";
+                int lvl = diplomacy.CrownAuthority;
+                string name = (lvl >= 0 && lvl < CrownAuthorityNames.Length) ? CrownAuthorityNames[lvl] : lvl.ToString();
+                return $"{Bar(lvl / 4f)}  {name} {lvl}/4";
+            }
+        }
+
+        [DataSourceProperty]
+        public BasicTooltipViewModel CrownAuthorityHint => new BasicTooltipViewModel(() =>
+        {
+            var gov = Title?.Contract?.Government;
+            var sb = new System.Text.StringBuilder();
+            sb.AppendLine("Crown Authority — the realm's kingdom-wide centralisation, from 0 (Decentralised) to 4 (Absolute).");
+            if (gov != null)
+                sb.AppendLine($"The {gov.Name} government permits levels {gov.CrownAuthorityFloor}-{gov.CrownAuthorityCeiling}.");
+            sb.AppendLine();
+            sb.Append("Raised or lowered only through a voted kingdom decision. Higher authority strengthens crown levies and council control; lower favours vassal autonomy.");
+            return sb.ToString();
+        });
+
+        [DataSourceProperty]
+        public string LegitimacyLabel => new TextObject("{=BKlegitLabel}Ruler Legitimacy").ToString();
+
+        [DataSourceProperty]
+        public string LegitimacyValue => diplomacy != null
+            ? $"{Bar(diplomacy.Legitimacy)}  {diplomacy.Legitimacy:P0}"
+            : "—";
+
+        [DataSourceProperty]
+        public BasicTooltipViewModel LegitimacyHint => new BasicTooltipViewModel(() =>
+        {
+            if (diplomacy == null)
+                return "How rightful the realm regards its current ruler.";
+            var sb = new System.Text.StringBuilder();
+            sb.AppendLine($"Current {diplomacy.Legitimacy:P0}, drifting toward a target of {diplomacy.LegitimacyTarget.ResultNumber:P0}.");
+            sb.AppendLine("Low legitimacy invites radical groups and weakens the crown.");
+            sb.AppendLine();
+            sb.AppendLine("Why the target is what it is:");
+            sb.Append(diplomacy.LegitimacyTargetExplained.GetExplanations());
+            return sb.ToString();
+        });
+
+        [DataSourceProperty]
+        public string FatigueLabel => new TextObject("{=BKfatigueLabel}War Fatigue").ToString();
+
+        [DataSourceProperty]
+        public string FatigueValue => diplomacy != null
+            ? $"{Bar(diplomacy.Fatigue)}  {diplomacy.Fatigue:P0}"
+            : "—";
+
+        [DataSourceProperty]
+        public BasicTooltipViewModel FatigueHint => new BasicTooltipViewModel(() =>
+            "War Fatigue — the realm's accumulated weariness of war.\n\n" +
+            "It rises while the realm fights and decays during peace. High fatigue makes the realm's lords more willing to accept peace and less eager to declare new wars.");
+
+        [DataSourceProperty]
+        public string TransitionLabel => new TextObject("{=BKtransLabel}Government Transition").ToString();
+
+        [DataSourceProperty]
+        public string TransitionValue => diplomacy != null
+            ? $"{Bar(diplomacy.GovernmentTransitionPressure / 100f)}  {diplomacy.GovernmentTransitionPressure}/100"
+            : "—";
+
+        [DataSourceProperty]
+        public BasicTooltipViewModel TransitionHint => new BasicTooltipViewModel(() =>
+            "Government Transition — pressure building toward a change in the realm's form of government.\n\n" +
+            "Ambitious vassals scheming, a weak or contested crown, and political strife all push it up. When it peaks, the realm's government may transition to a new form.");
+
+        [DataSourceProperty]
+        public string GovernmentSectionText => new TextObject("{=BKrealmGovSection}The Crown").ToString();
 
         [DataSourceProperty]
         public SelectorVM<BKItemVM> KingdomSelector

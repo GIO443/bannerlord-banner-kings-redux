@@ -40,15 +40,23 @@ behind the default-off `EnablePoliticsRework` MCM toggle). Left to do:
         proposal; realm proposal cooldown (~3-6 wk, one `CampaignTime` on
         `KingdomDiplomacy`) so the player isn't spammed. Per-kingdom
         evaluation staggered by day-of-week; nothing added to the daily tick.
-  - [ ] **7c — `BKVassalPoliticsBehavior` + government-typed levers.**
+  - [x] **7c — `BKVassalPoliticsBehavior` + government-typed levers.**
         Vassal-to-vassal politics: derived rivalries, sensing weakness,
-        power-grabs, climbing the realm hierarchy via existing BK systems
-        (claims, council seats, marriage, usurpation). Each government
-        exposes a lever set (loyal climb / treacherous climb) declared in
-        `bk_governments.xml`; a generic evaluator scores levers by
-        disposition + sensed strength of the superior. Player Realm Politics
-        screen options become government-dependent. AI-vs-AI resolves
-        without popups — surfaces to the player only as notifications.
+        government-typed climbing (loyal vs treacherous, keyed on
+        `PoliticalLayer`). Routes through vanilla relation/renown/transition-
+        pressure primitives — council appointment and the usurpation cycle
+        consume those, so the climb emerges; no claim/council/succession
+        reimplementation. AI-vs-AI, surfaces to the player only as a
+        notification when a treacherous move targets them.
+  - [ ] **7c-follow — player-facing levers.** The Realm Politics screen's
+        options become government-dependent so the *player* can pull the
+        same loyal/treacherous climbing levers their AI rivals use.
+        Deferred from 7c (separable inquiry-UI work).
+  - [ ] **7d (proposed) — Crown-Authority vassal limit.** Lower Crown
+        Authority raises a realm's direct-vassal capacity, higher CA lowers
+        it (`limit = governmentBase + (ceiling - CA) * N`); over the limit
+        feeds faction tension. Forces the wide-vs-centralised dilemma.
+        Awaiting go-ahead; grep first for any existing BK vassal cap.
 - [ ] **Before the politics rework ships (version bump):** run a full cold
       critic pass over the whole rework, and an in-game playtest with the
       toggle on. It is a large body of code now (~14 commits), all behind the

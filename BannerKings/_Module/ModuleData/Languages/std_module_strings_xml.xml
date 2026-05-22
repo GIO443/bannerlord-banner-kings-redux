@@ -3157,7 +3157,7 @@
     <string id="2xWSvbVc" text="Invite Members" />
     <string id="Un7UY83V" text="Creation Chance" />
     <string id="oVr1RVY0" text="{EXPLANATION}" />
-    <string id="Bfkjk1o0" text="There is no {GROUP} currently active in the {REALM}. At any time, non-ruling clan leaders may start a radical group according to their interests, political leverage, relationships and support of the ruler." />
+    <string id="Bfkjk1o0" text="There is no {GROUP} currently active in {REALM}. At any time, non-ruling clan leaders may start a radical group according to their interests, political leverage, relationships and support of the ruler." />
     <string id="ds1KP4Qc" text="Leave Group" />
     <string id="9SnWS77u" text="Join Group" />
     <string id="znEakOmv" text="Radicalism" />
