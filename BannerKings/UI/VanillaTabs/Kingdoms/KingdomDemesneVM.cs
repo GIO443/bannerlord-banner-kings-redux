@@ -483,19 +483,6 @@ namespace BannerKings.UI.VanillaTabs.Kingdoms
         private static readonly string[] CrownAuthorityNames =
             { "Decentralised", "Limited", "Moderate", "Strong", "Absolute" };
 
-        // A 10-segment ASCII proportion bar — '=' filled, '-' empty. Plain
-        // ASCII so it renders in any font; a graphical fill bar can replace
-        // it in a later visual pass.
-        private const int BarSegments = 10;
-        private static string Bar(float fraction)
-        {
-            fraction = MathF.Clamp(fraction, 0f, 1f);
-            int filled = (int)MathF.Round(fraction * BarSegments);
-            if (filled < 0) filled = 0;
-            if (filled > BarSegments) filled = BarSegments;
-            return "[" + new string('=', filled) + new string('-', BarSegments - filled) + "]";
-        }
-
         // RealmSelected / LawsSelected gate the two prefabs that share this VM
         // (KingdomRealm.xml / KingdomLaws.xml). The mixin's SelectRealm /
         // SelectLaws drive them; one VM still backs both panels so the Change*
@@ -523,22 +510,23 @@ namespace BannerKings.UI.VanillaTabs.Kingdoms
                 .SetTextVariable("LAYER", Title.Contract.Government.PoliticalLayer.ToString()).ToString()
             : string.Empty;
 
+        // Each politics stat is a BKFillBar kit component — label + value +
+        // proportion fill + tooltip. The *Hint tooltips below are live
+        // BasicTooltipViewModels: qualitative (what it is / why it matters)
+        // and quantitative (the value, and for Legitimacy the full
+        // CalculateKingdomLegitimacy breakdown).
         [DataSourceProperty]
-        public string CrownAuthorityLabel => new TextObject("{=BKcaTitle}Crown Authority").ToString();
-
-        // Each *Value carries an inline proportion bar; each *Hint is a live
-        // BasicTooltipViewModel so the breakdown ("why the number is what it
-        // is") can be assembled from the model on hover. Legitimacy's hint
-        // surfaces the real CalculateKingdomLegitimacy explanation.
-        [DataSourceProperty]
-        public string CrownAuthorityValue
+        public BKFillBarVM CrownAuthorityBar
         {
             get
             {
-                if (diplomacy == null) return "—";
-                int lvl = diplomacy.CrownAuthority;
+                int lvl = diplomacy != null ? diplomacy.CrownAuthority : 0;
                 string name = (lvl >= 0 && lvl < CrownAuthorityNames.Length) ? CrownAuthorityNames[lvl] : lvl.ToString();
-                return $"{Bar(lvl / 4f)}  {name} {lvl}/4";
+                return new BKFillBarVM(
+                    new TextObject("{=BKcaTitle}Crown Authority").ToString(),
+                    diplomacy != null ? $"{name} {lvl}/4" : "—",
+                    lvl / 4f,
+                    CrownAuthorityHint);
             }
         }
 
@@ -556,12 +544,11 @@ namespace BannerKings.UI.VanillaTabs.Kingdoms
         });
 
         [DataSourceProperty]
-        public string LegitimacyLabel => new TextObject("{=BKlegitLabel}Ruler Legitimacy").ToString();
-
-        [DataSourceProperty]
-        public string LegitimacyValue => diplomacy != null
-            ? $"{Bar(diplomacy.Legitimacy)}  {diplomacy.Legitimacy:P0}"
-            : "—";
+        public BKFillBarVM LegitimacyBar => new BKFillBarVM(
+            new TextObject("{=BKlegitLabel}Ruler Legitimacy").ToString(),
+            diplomacy != null ? diplomacy.Legitimacy.ToString("P0") : "—",
+            diplomacy != null ? diplomacy.Legitimacy : 0f,
+            LegitimacyHint);
 
         [DataSourceProperty]
         public BasicTooltipViewModel LegitimacyHint => new BasicTooltipViewModel(() =>
@@ -578,12 +565,11 @@ namespace BannerKings.UI.VanillaTabs.Kingdoms
         });
 
         [DataSourceProperty]
-        public string FatigueLabel => new TextObject("{=BKfatigueLabel}War Fatigue").ToString();
-
-        [DataSourceProperty]
-        public string FatigueValue => diplomacy != null
-            ? $"{Bar(diplomacy.Fatigue)}  {diplomacy.Fatigue:P0}"
-            : "—";
+        public BKFillBarVM FatigueBar => new BKFillBarVM(
+            new TextObject("{=BKfatigueLabel}War Fatigue").ToString(),
+            diplomacy != null ? diplomacy.Fatigue.ToString("P0") : "—",
+            diplomacy != null ? diplomacy.Fatigue : 0f,
+            FatigueHint);
 
         [DataSourceProperty]
         public BasicTooltipViewModel FatigueHint => new BasicTooltipViewModel(() =>
@@ -591,12 +577,11 @@ namespace BannerKings.UI.VanillaTabs.Kingdoms
             "It rises while the realm fights and decays during peace. High fatigue makes the realm's lords more willing to accept peace and less eager to declare new wars.");
 
         [DataSourceProperty]
-        public string TransitionLabel => new TextObject("{=BKtransLabel}Government Transition").ToString();
-
-        [DataSourceProperty]
-        public string TransitionValue => diplomacy != null
-            ? $"{Bar(diplomacy.GovernmentTransitionPressure / 100f)}  {diplomacy.GovernmentTransitionPressure}/100"
-            : "—";
+        public BKFillBarVM TransitionBar => new BKFillBarVM(
+            new TextObject("{=BKtransLabel}Government Transition").ToString(),
+            diplomacy != null ? $"{diplomacy.GovernmentTransitionPressure}/100" : "—",
+            diplomacy != null ? diplomacy.GovernmentTransitionPressure / 100f : 0f,
+            TransitionHint);
 
         [DataSourceProperty]
         public BasicTooltipViewModel TransitionHint => new BasicTooltipViewModel(() =>
