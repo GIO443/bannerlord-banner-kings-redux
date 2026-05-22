@@ -282,9 +282,9 @@ namespace BannerKings.Settings
         public float CharmXpMultiplier { get; set; } = 0.5f;
 
         [SettingProperty("{=!}Enable Politics Rework", RequireRestart = false,
-            HintText = "{=!}Master toggle for the inside-kingdom politics rework. Phase 1: Crown Authority — a kingdom-wide centralisation track (0 Decentralised .. 4 Absolute) bounded by each government type, raised or lowered through a voted kingdom decision. When OFF, BK kingdom politics behaves exactly as before. Behind a toggle while the rework is built and playtested. Default: false.")]
+            HintText = "{=!}Master toggle for the inside-kingdom politics rework: Crown Authority (a kingdom-wide centralisation track, 0 Decentralised .. 4 Absolute, bounded by each government type and changed through a voted kingdom decision), ruler legitimacy, government-transition pressure, and vassal politics. When OFF, BK kingdom politics behaves exactly as before. Default: true.")]
         [SettingPropertyGroup("{=!}Politics")]
-        public bool EnablePoliticsRework { get; set; } = false;
+        public bool EnablePoliticsRework { get; set; } = true;
 
         [SettingPropertyFloatingInteger("{=!}Political Pressure", minValue: 0.5f, maxValue: 2f, "#0%", RequireRestart = false,
             HintText = "{=!}Scales how fast inside-kingdom political pressure mounts while the politics rework is on — faction tension and government-transition pressure build at this rate. 50% is a slow, forgiving political game; 200% is volatile and punishing. Only matters with the rework enabled. Default: 100%.")]
