@@ -1,0 +1,41 @@
+<Prefab>
+	<Window>
+
+		<!-- Generic UI-kit component: a labelled proportion bar.
+		     DataSource is a BannerKings.UI.Items.BKFillBarVM.
+		     Track width (300) must match BKFillBarVM.TrackWidth so the
+		     bound FillWidth maps 1:1 onto the track. -->
+		<ListPanel WidthSizePolicy="Fixed" HeightSizePolicy="CoverChildren" SuggestedWidth="300"
+		           StackLayout.LayoutMethod="VerticalTopToBottom">
+			<Children>
+
+				<!-- Label (left) + value (right) -->
+				<ListPanel WidthSizePolicy="StretchToParent" HeightSizePolicy="CoverChildren"
+				           StackLayout.LayoutMethod="HorizontalLeftToRight" MarginBottom="3">
+					<Children>
+						<RichTextWidget WidthSizePolicy="CoverChildren" HeightSizePolicy="CoverChildren"
+						                HorizontalAlignment="Left" VerticalAlignment="Bottom"
+						                Brush="Clan.Leader.Text" Brush.FontSize="18" Text="@Label" />
+						<RichTextWidget WidthSizePolicy="StretchToParent" HeightSizePolicy="CoverChildren"
+						                VerticalAlignment="Bottom" Brush="ArmyManagement.Army.Tuple.Name"
+						                Brush.FontSize="18" Brush.TextHorizontalAlignment="Right" Text="@ValueText" />
+					</Children>
+				</ListPanel>
+
+				<!-- Track (dark) + fill (gold) + full-width hover target -->
+				<Widget WidthSizePolicy="Fixed" HeightSizePolicy="Fixed" SuggestedWidth="300" SuggestedHeight="8">
+					<Children>
+						<Widget WidthSizePolicy="StretchToParent" HeightSizePolicy="StretchToParent"
+						        Sprite="BlankWhiteSquare_9" Color="#15100AFF" />
+						<Widget WidthSizePolicy="Fixed" HeightSizePolicy="StretchToParent" SuggestedWidth="@FillWidth"
+						        HorizontalAlignment="Left" Sprite="BlankWhiteSquare_9" Color="#C8A24EFF" />
+						<HintWidget DataSource="{BarHint}" WidthSizePolicy="StretchToParent" HeightSizePolicy="StretchToParent"
+						            Command.HoverBegin="ExecuteBeginHint" Command.HoverEnd="ExecuteEndHint" />
+					</Children>
+				</Widget>
+
+			</Children>
+		</ListPanel>
+
+	</Window>
+</Prefab>
