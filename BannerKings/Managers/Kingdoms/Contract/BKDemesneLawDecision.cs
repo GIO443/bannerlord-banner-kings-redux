@@ -227,6 +227,13 @@ namespace BannerKings.Managers.Kingdoms.Contract
             public DemesneLawDecisionOutcome(DemesneLaw law, bool current = false)
             {
                 Law = law;
+                // Bug fix: the `current` flag was accepted but never stored, so
+                // both the "proposed" and "keep current" outcomes rendered the
+                // "We support the enactment" copy in the vote screen and no
+                // outcome ever showed "We support the continuation". Now the
+                // "keep" candidate (constructed with current=true in
+                // DetermineInitialCandidates) reads correctly.
+                Current = current;
             }
 
             [SaveableProperty(200)] public DemesneLaw Law { get; set; }

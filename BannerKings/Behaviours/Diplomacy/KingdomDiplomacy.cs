@@ -43,7 +43,10 @@ namespace BannerKings.Behaviours.Diplomacy
 
         public void AddLegitimacy(float legitimacy)
         {
-            Legitimacy = MathF.Min(1f, Legitimacy + legitimacy);
+            // Clamp both ends. Upper-only let a large negative delta drag the
+            // value below 0; downstream consumers (UI fill bars, SenseWeakness,
+            // ConsiderCrownAuthority lean) all assume Legitimacy ∈ [0,1].
+            Legitimacy = MathF.Clamp(Legitimacy + legitimacy, 0f, 1f);
         }
 
         public BKExplainedNumber LegitimacyTarget => BannerKingsConfig.Instance.LegitimacyModel.CalculateKingdomLegitimacy(this, false);
