@@ -1271,7 +1271,15 @@ namespace BannerKings.Behaviours.Diplomacy
 
         private void OnKingdomCreated(Kingdom kingdom)
         {
-            kingdomDiplomacies.Add(kingdom, new KingdomDiplomacy(kingdom));
+            if (kingdom == null) return;
+            if (kingdomDiplomacies == null)
+            {
+                kingdomDiplomacies = new Dictionary<Kingdom, KingdomDiplomacy>();
+            }
+            if (!kingdomDiplomacies.ContainsKey(kingdom))
+            {
+                kingdomDiplomacies.Add(kingdom, new KingdomDiplomacy(kingdom));
+            }
         }
       
         private void OnMakePeace(IFaction faction1, IFaction faction2, MakePeaceAction.MakePeaceDetail detail)

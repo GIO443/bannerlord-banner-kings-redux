@@ -174,6 +174,18 @@ namespace BannerKings.Behaviours
             float num13 = Campaign.Current.GetAverageDistanceBetweenClosestTwoTownsWithNavigationType(MobileParty.NavigationType.Default) * 0.4f;
             float num14 = (84f + Campaign.Current.GetAverageDistanceBetweenClosestTwoTownsWithNavigationType(MobileParty.NavigationType.Default) * 1.5f) * 0.5f;
             float num15 = (424f + 7.57f * Campaign.Current.GetAverageDistanceBetweenClosestTwoTownsWithNavigationType(MobileParty.NavigationType.Default)) * 0.5f;
+            // Precompute lord-party target counts once per call. This replaces
+            // a per-candidate-settlement MobileParty.All scan inside the loop
+            // below, which was O(parties × settlements) every AI tick.
+            var lordPartyTargetCounts = new Dictionary<Settlement, int>();
+            foreach (MobileParty lp in MobileParty.All)
+            {
+                if (!lp.IsLordParty) continue;
+                Settlement lpTarget = lp.TargetSettlement;
+                if (lpTarget == null) continue;
+                lordPartyTargetCounts.TryGetValue(lpTarget, out int lpc);
+                lordPartyTargetCounts[lpTarget] = lpc + 1;
+            }
             foreach (KeyValuePair<ValueTuple<float, int>, Settlement> keyValuePair2 in sortedList)
             {
                 Settlement value2 = keyValuePair2.Value;
@@ -243,7 +255,7 @@ namespace BannerKings.Behaviours
                     {
                         // 1.4 removed Settlement.NumberOfLordPartiesAt/Targeting — compute directly.
                         num32 = value2.Parties.Count(p => p.IsLordParty);
-                        num33 = MobileParty.All.Count(p => p.IsLordParty && p.TargetSettlement == value2);
+                        lordPartyTargetCounts.TryGetValue(value2, out num33);
                         if (currentSettlementOfMobilePartyForAICalculation == value2)
                         {
                             int num34 = num32;

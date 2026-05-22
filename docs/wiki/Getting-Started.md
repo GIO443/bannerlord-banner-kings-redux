@@ -32,8 +32,8 @@ county under one duke and a barony under another.
 ### Education
 
 Each hero has a language pool, a book they're currently reading, and a chosen
-lifestyle. Lifestyles are paired-skill specializations (Bow + Athletics for
-Fian, Riding + Polearm for Cataphract, etc.) that grant escalating perks at
+lifestyle. Lifestyles are paired-skill specializations (Bow + Two-Handed for
+Fian, Polearm + Riding for Cataphract, etc.) that grant escalating perks at
 progress thresholds. Books grant skill XP and minor passive effects.
 
 ### Estates
@@ -141,10 +141,7 @@ These are the terms most likely to trip up new players.
 - **Gender law** — Agnatic (male only), Cognatic (eldest regardless of
   gender), Agnatic-Cognatic (male-preferred), Enatic (female only).
 - **Lifestyle** — paired-skill specialization gating perks (Cataphract =
-  Riding+Polearm, Outlaw = Roguery+Crossbow, etc.).
-- **Scholarship** — flag set when a hero has any of four research perks
-  (ScholarshipMechanic / Accountant / NaturalScientist / Treasurer). Required
-  to enter the Scholar lifestyle.
+  Polearm+Riding, Outlaw = Roguery+Scouting, etc.).
 - **Notable** — a non-noble settlement personality (Rural Notable, Headman,
   Gang Leader, Merchant). Drives recruitment, quests, and prosperity.
 - **Gentry** — minor landed family, below clan tier 1. Often a notable's

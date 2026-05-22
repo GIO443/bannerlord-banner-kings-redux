@@ -325,6 +325,7 @@ namespace BannerKings
             ConstructContainerDefinition(typeof(Dictionary<MobileParty, BKCaravansBehavior.PlayerInteraction>));
             ConstructContainerDefinition(typeof(List<BKCaravansBehavior.TradeActionLog>));
             ConstructContainerDefinition(typeof(Dictionary<MobileParty, List<BKCaravansBehavior.TradeActionLog>>));
+            ConstructContainerDefinition(typeof(Dictionary<MobileParty, List<Settlement>>));
 
             ConstructContainerDefinition(typeof(Dictionary<Clan, RaidCapturePolicy>));
             ConstructContainerDefinition(typeof(Dictionary<Hero, CaravanOrder>));

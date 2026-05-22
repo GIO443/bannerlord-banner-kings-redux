@@ -32,8 +32,13 @@ namespace BannerKings.Behaviours.Diplomacy
         {
             get
             {
-                var target = LegitimacyTarget.ResultNumber;
-                float change = target * 0.01f;
+                // Target is a [0..1] proportion; the model can return
+                // out-of-range raw values, so clamp it. The step must be a
+                // fixed magnitude — deriving it from the target (the old
+                // target * 0.01f) froze legitimacy whenever the target was
+                // 0 or negative, since the step then evaluated to 0.
+                var target = MathF.Clamp(LegitimacyTarget.ResultNumber, 0f, 1f);
+                float change = 0.01f;
                 float diff = target - Legitimacy;
                 if (Legitimacy < target) return MathF.Clamp(change, 0f, diff);
                 else if (Legitimacy > target) return MathF.Clamp(-change, diff, 0f);

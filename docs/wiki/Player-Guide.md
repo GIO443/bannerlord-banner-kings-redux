@@ -407,8 +407,9 @@ Empire-tier titles unlock through the Empire foundation goal.
 
 **Q: How do I pick a lifestyle?**
 Character → BK Education tab → Lifestyle dropdown. Locked once chosen until
-that lifestyle is fully completed (5 perk tiers) or a respec is performed
-(rare and very expensive).
+that lifestyle is fully completed (all its perk tiers — three or four,
+depending on the lifestyle) or a respec is performed (rare and very
+expensive).
 
 **Q: Why is my lifestyle progress so slow?**
 Both linked skills must be exercised — only the *lower* of the two

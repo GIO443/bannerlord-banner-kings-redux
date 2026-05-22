@@ -2,8 +2,9 @@ name: Sync wiki from docs/wiki/
 
 # Pushes docs/wiki/*.md → the GitHub Wiki on every change. The wiki is
 # a multi-page handbook split across topic groups (Home, Installing,
-# Getting-Started, Systems-Reference, Player-Guide, Shipping-and-Trade,
-# Slavery-and-Raiding, Troubleshooting). Each .md file in docs/wiki/
+# Getting-Started, Systems-Reference, Player-Guide, Economy,
+# Shipping-and-Trade, Slavery-and-Raiding, Troubleshooting). Each .md file
+# in docs/wiki/
 # becomes a wiki page of the same name (Home.md → Home, etc.).
 #
 # The wiki is itself a git repo at <repo>.wiki.git; this job clones it,

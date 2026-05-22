@@ -42,19 +42,19 @@ at least 15 in both to adopt it. Both skills must be exercised — only the
 
 | Lifestyle | Skills | Theme |
 |---|---|---|
-| Fian | Bow + Athletics | Battanian woodland skirmisher |
-| Cataphract | Riding + Polearm | Heavy lancer cavalry |
-| August | Charm + Leadership | Imperial statesman |
-| SiegeEngineer | Engineering + Crossbow | Siege specialist |
-| CivilAdministrator | Steward + Trade | Realm bureaucrat |
+| Fian | Bow + Two-Handed | Battanian woodland skirmisher |
+| Cataphract | Polearm + Riding | Heavy lancer cavalry |
+| August | Leadership + Lordship | Imperial statesman |
+| SiegeEngineer | Engineering + Tactics | Siege specialist |
+| CivilAdministrator | Engineering + Steward | Realm bureaucrat |
 | Caravaneer | Trade + Scouting | Long-distance trader |
-| Artisan | Crafting + Smithing | Master crafter |
-| Outlaw | Roguery + Crossbow | Bandit chief |
-| Mercenary | Two-Handed + Tactics | Sellsword captain |
-| Kheshig | Bow + Riding | Khuzait elite horse-archer |
-| Varyag | One-Handed + Two-Handed | Sturgian raider |
-| Gladiator | Athletics + One-Handed | Arena fighter |
-| Ritter | Polearm + Athletics | Vlandian heavy knight |
+| Artisan | Smithing + Trade | Master crafter |
+| Outlaw | Roguery + Scouting | Bandit chief |
+| Mercenary | Leadership + Roguery | Sellsword captain |
+| Kheshig | Riding + Bow | Khuzait elite horse-archer |
+| Varyag | Athletics + One-Handed | Sturgian raider |
+| Gladiator | Athletics + Riding | Arena fighter |
+| Ritter | Lordship + Riding | Vlandian heavy knight |
 | Jawwal | Throwing + Riding | Aserai light cavalry |
 | Commander | Leadership + Tactics | Battlefield commander |
 

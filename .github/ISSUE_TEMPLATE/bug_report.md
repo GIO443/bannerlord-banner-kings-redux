@@ -11,8 +11,7 @@ assignees: ''
 A clear and concise description of what the bug is.
 
 **Mod Version**
-- Standard or CEK version
-- Numeric Version: 1.2.5.x
+- Banner Kings — Redux version (shown on the main menu, e.g. v1.9.0.1)
 
 **Evidence**
 - [ ] The mod is present in the callstack;
