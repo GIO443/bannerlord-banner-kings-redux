@@ -10,7 +10,7 @@ mod. This page documents the design philosophy you should follow when:
   nicely with its systems.
 
 If you're a player, you can ignore this page — see
-[Getting started](Getting-Started) instead.
+[Getting started](../wiki/Getting-Started.md) instead.
 
 ## On this page
 
