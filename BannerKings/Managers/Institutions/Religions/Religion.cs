@@ -61,7 +61,13 @@ namespace BannerKings.Managers.Institutions.Religions
         public ExplainedNumber Fervor => BannerKingsConfig.Instance.ReligionModel.CalculateFervor(this);
         public List<CultureObject> FavoredCultures { get; private set; }
         public MBReadOnlyList<Rite> Rites => new MBReadOnlyList<Rite>(Faith.Rites);
-        public CultureObject MainCulture => FavoredCultures[0];
+        // FavoredCultures can legitimately be empty — PostInitialize falls a
+        // saved religion whose id no longer resolves in DefaultReligions (e.g.
+        // a War Sails faith on a save without War Sails) back to an empty
+        // list. Return null instead of indexing [0] and throwing.
+        public CultureObject MainCulture => (FavoredCultures != null && FavoredCultures.Count > 0)
+            ? FavoredCultures[0]
+            : null;
         public Hero FaithLeader => Faith.FaithGroup.Leader;
 
         public bool HasDoctrine(Doctrine doctrine)

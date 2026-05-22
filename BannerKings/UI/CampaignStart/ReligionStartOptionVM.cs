@@ -68,7 +68,8 @@ namespace BannerKings.UI.CampaignStart
             list.Add(new TooltipProperty(GameTexts.FindText("str_LEFT_ONLY").ToString(), Piety, 0));
 
             MBTextManager.SetTextVariable("LEFT", new TextObject("{=OcaF5fMN}Natural Culture").ToString());
-            list.Add(new TooltipProperty(GameTexts.FindText("str_LEFT_ONLY").ToString(), Religion.MainCulture.Name.ToString(), 0));
+            list.Add(new TooltipProperty(GameTexts.FindText("str_LEFT_ONLY").ToString(),
+                Religion.MainCulture != null ? Religion.MainCulture.Name.ToString() : new TextObject("{=!}None").ToString(), 0));
 
             if (Religion.FavoredCultures.Count > 1)
             {
