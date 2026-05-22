@@ -25,7 +25,7 @@
 										<Widget WidthSizePolicy="StretchToParent" HeightSizePolicy="Fixed" SuggestedHeight="300" Sprite="StdAssets\Popup\canvas_gradient" IsEnabled="false" MarginTop="700" />
 
 										<ListPanel WidthSizePolicy="Fixed" HeightSizePolicy="StretchToParent" SuggestedWidth="400" MarginTop="10" 
-												   HorizontalAlignment="Center"	StackLayout.LayoutMethod="VerticalBottomToTop">
+												   HorizontalAlignment="Center"	StackLayout.LayoutMethod="VerticalTopToBottom">
 											<Children>
 											
 												<Standard.DropdownWithHorizontalControl Parameter.SelectorDataSource="{Selector}" MarginTop="10" 

@@ -17,7 +17,7 @@
 			<Children>
 
 				<ListPanel WidthSizePolicy="StretchToParent" HeightSizePolicy="StretchToParent"
-				           StackLayout.LayoutMethod="VerticalBottomToTop" MarginLeft="25" MarginRight="25" DoNotAcceptEvents="true">
+				           StackLayout.LayoutMethod="VerticalTopToBottom" MarginLeft="25" MarginRight="25" DoNotAcceptEvents="true">
 					<Children>
 
 						<EncyclopediaDivider MarginTop="50" Parameter.Title="@Title" Parameter.ItemList="..\ElementsGrid" />
