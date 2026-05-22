@@ -3,8 +3,34 @@
 ← [Home](Home)
 
 Reference tables for the structured systems you look up while playing —
-lifestyles, demesne laws, per-settlement policies. For procedural how-to,
-see [Player guide](Player-Guide).
+the kingdom screen, lifestyles, demesne laws, per-settlement policies. For
+procedural how-to, see [Player guide](Player-Guide).
+
+## The BannerKings kingdom screen
+
+Open any kingdom screen and click the **BannerKings** tab. It carries five
+sub-tabs:
+
+- **Realm** — the realm's political state. The government form and its
+  political layer, then four live metrics each drawn as a proportion bar:
+  **Crown Authority** (the realm's centralisation, 0 Decentralised → 4
+  Absolute), **Ruler Legitimacy**, **War Fatigue**, and **Government
+  Transition** pressure. Hover any of them for a breakdown of *why* the
+  number sits where it does — Legitimacy in particular lists every factor
+  pushing it toward its target. Below the metrics: the succession law and
+  the current heir, with the other candidates ranked beside them.
+- **Laws** — the realm's editable legal code: the demesne-law grid plus the
+  Inheritance, Gender Law, Tax, and Conquest contract aspects.
+- **Court** — the kingdom council (Marshal, Steward, Chancellor, Spymaster,
+  Court Physician), the current holders, and their competence.
+- **Groups** — interest groups and radical groups (claimant, secession, and
+  the rest). Join one, lead it, or push its demands.
+- **Career** — your mercenary career. Shown only while your clan is serving
+  under a mercenary contract.
+
+> Changing a government, succession law, demesne law, or contract aspect is
+> a **proposal** — the realm's peers vote on it. The button tooltip shows
+> the current support percentage and the influence cost before you commit.
 
 ## Lifestyles
 
@@ -46,7 +72,9 @@ lifestyles you don't yet qualify for.
 
 ## Demesne laws
 
-Toggleable on a title's contract. The slavery laws are illustrative:
+Set on the **Laws** sub-tab of the BannerKings kingdom screen (above). Each
+is an aspect of a title's contract, and changing one is a peer-voted
+proposal. The slavery laws are illustrative:
 
 | Slavery law | Effect |
 |---|---|
