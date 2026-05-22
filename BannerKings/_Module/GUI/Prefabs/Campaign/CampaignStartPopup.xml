@@ -56,10 +56,10 @@
 																				<Widget WidthSizePolicy="StretchToParent" HeightSizePolicy="StretchToParent"
 																					Sprite="StdAssets\Popup\scrollable_field_gradient" />
 
-																				<ListPanel Id="Content" WidthSizePolicy="StretchToParent" HeightSizePolicy="StretchToParent"
+																				<ListPanel Id="Content" WidthSizePolicy="StretchToParent" HeightSizePolicy="CoverChildren" VerticalAlignment="Top"
 																					MarginTop="!Card.Inner.Vertical.Margin" MarginBottom="!Card.Inner.Vertical.Margin"
 																					MarginLeft="!Card.Inner.Horizontal.Margin" MarginRight="!Card.Inner.Horizontal.Margin"
-																					StackLayout.LayoutMethod="VerticalBottomToTop" UpdateChildrenStates="true">
+																					StackLayout.LayoutMethod="VerticalTopToBottom" UpdateChildrenStates="true">
 																					<Children>
 
 																						<TextWidget WidthSizePolicy="StretchToParent" HeightSizePolicy="Fixed" SuggestedHeight="48"
