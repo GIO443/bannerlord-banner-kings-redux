@@ -2974,6 +2974,11 @@ namespace BannerKings.Behaviours.Shipping
                 if (candidates.Count == 0)
                 {
                     LogRedirect(party, "no valid entry node (all hostile/sieged?)", target);
+                    // Transient failure — every graph node is hostile or under
+                    // siege. Drop the cache entry so the next hourly tick
+                    // re-evaluates once a war/siege clears, rather than staying
+                    // locked out for RedirectCacheLifetimeHours.
+                    if (redirectCache.ContainsKey(party)) redirectCache.Remove(party);
                     return;
                 }
                 candidates.Sort((a, b) => a.dist.CompareTo(b.dist));
