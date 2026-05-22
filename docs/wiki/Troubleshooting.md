@@ -178,13 +178,13 @@ A useful crash/issue report includes:
 **Don't bother reporting** these — they're known and harmless:
 
 - "BUTR Harmony analyzer warnings" in the build log — false positives
-  against the live 1.3.x DLLs.
-- Compile warnings about obsolete types — 1.3.x deprecations not yet
+  against the live 1.4 DLLs.
+- Compile warnings about obsolete types — 1.4 deprecations not yet
   fully removed. They don't affect runtime.
 - "GovernorsHandleIssues crashed" — that's a different mod failing to
   patch a method. Disable it.
 
-Issues for this fork specifically (1.3.x compatibility, War Sails / Nord
+Issues for this fork specifically (1.4 compatibility, War Sails / Nord
 integration, seafaring lifestyles, Nordic Thrall Law) belong on the GitHub
 repo:
 
@@ -247,8 +247,8 @@ Redux** was put together as a community maintenance fork.
 
 This fork's contributions on top of the original BK:
 
-- **Bannerlord 1.3.x compatibility port** — fixing all TaleWorlds API
-  breakage from the 1.3.x updates so the mod builds and runs again.
+- **Bannerlord 1.4 compatibility port** — fixing all TaleWorlds API
+  breakage from the 1.4 updates so the mod builds and runs again.
 - **Native War Sails (NavalDLC) integration** — Nord titles, succession,
   language, three Nord seafaring lifestyles, naval-side perk effects,
   and the Nordic Thrall Law.

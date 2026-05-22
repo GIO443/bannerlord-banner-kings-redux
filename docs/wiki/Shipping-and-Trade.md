@@ -414,7 +414,7 @@ Toggle this off via **MCM → Banner Kings → Economy → Adaptive Shipping
 Risk** (default: on, no restart required). With the toggle off,
 caravans still use the shipping graph for cross-continent routing but
 ignore war / siege / banditry — freight prices fall back to raw
-straight-line distance, matching v1.5.x flavour. Useful if a long
+straight-line distance, a simpler estimate. Useful if a long
 campaign-wide war makes shipping feel too disrupted.
 
 ## Console diagnostics
@@ -529,11 +529,11 @@ The route stabilises once the war ends or the bandit hideouts clear.
 You shouldn't be on Redux. See [Quest-mandated overloaded fleets](#quest-mandated-overloaded-fleets) above.
 
 **Q: I defeated an enemy caravan but got nothing — bug?**
-*Was* a bug. The 1.3.x port broke the caravan loot dialog — it was
+*Was* a bug. The 1.4 port broke the caravan loot dialog — it was
 deleting the cargo instead of giving you a loot screen. Surrendering
 or captured caravans now open a real loot screen for cargo and a
 separate prisoner screen for their troops, the way they did before
-the 1.3.x port landed.
+the 1.4 port landed.
 
 ---
 

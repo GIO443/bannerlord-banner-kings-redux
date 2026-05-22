@@ -6,15 +6,13 @@ The Banner Kings layered economy adds three classification layers on top of vani
 
 This page is the player handbook for the system. For "what does cheat X do" see [Systems Reference](Systems-Reference). For caravan / shipping mechanics see [Shipping & trade](Shipping-and-Trade).
 
-> **If you're running Economy Overhaul Framework (EOF):** EOF owns the
-> village/town economy when installed — its prosperity, loyalty, food, and
-> workshop systems replace the equivalent BK layers, and the BK estate
-> gameplay loop is paused (data persists; UI and daily income are
-> dormant). The class/industry/cluster machinery described below still
-> drives BK's price-factor and tax decorators that EOF wraps, but the
-> estate-spec headline numbers and the AI estate-policy ladder don't run.
-> See [Player Guide → Economy: Hearth and Population](Player-Guide#economy-hearth-and-population)
-> for what the EOF layer actually does.
+> **Bannerlord Living Economy** — a required dependency — owns the
+> settlement economy: prosperity, production, and workshops. The
+> class / industry / cluster machinery described on this page is BK's
+> feudal layer *on top of* it: it drives estate yields, the AI
+> estate-policy ladder, and BK's tax and price decorators. BK estates are
+> woven onto Living Economy's estate parcels. See [Installing](Installing)
+> for the dependency.
 
 ---
 

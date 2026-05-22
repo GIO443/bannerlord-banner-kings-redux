@@ -232,245 +232,25 @@ runs on a fixed term:
 
 # Per-system FAQ
 
-## Economy: Hearth and Population
+## Economy and population
 
-If you're running **Economy Overhaul Framework** (Nexus #9558) alongside
-Banner Kings, the two systems hand off cleanly because they answer
-different questions about a village.
+Banner Kings runs its economy on top of **Bannerlord Living Economy** — a
+required dependency (see [Installing](Installing)). Living Economy owns
+prosperity, production, workshops, and the settlement economy. BK adds the
+feudal layer — titles, taxes, militia, retainers, estates — on top of it.
 
-**Hearth is village development / capital.** The vanilla `Hearths` number
-on a village info card (typically 30–1200) represents settled households,
-workshops, ploughs, market stalls — the *means of production*. Raids
-destroy infrastructure, dropping Hearth fast (vanilla raid penalty plus
-EOF's −50 on looted state). Peace and villager activity rebuild it slowly.
-Under EOF, Hearth is the primary driver of how much trade goods a village
-produces per day. **As of v1.8.10.5, BK overlays a population-workforce
-factor on EOF's per-item output** so a well-populated village isn't stuck
-at EOF's hearth-only baseline — labour saturation between 0.75× and 2.25×
-multiplies EOF's number (1.0× when population matches expected labour need,
-0.75× when severely understaffed, 2.25× clipped when significantly
-overstaffed). The wider ceiling lets labor-rich villages meaningfully
-recover EOF's compounded animal/civilian penalties. Hover the production
-tooltip for a "BK population workforce" line when the factor is non-trivial.
+The **population** of every settlement is Living Economy's seven social
+classes: Nobles, Landowners, Tenants, Serfs, Craftsmen, Merchants, and
+Bonded Laborers (BK's "slaves" are Bonded Laborers). BK mirrors those
+counts each day and shows the breakdown — with growth, food, and per-class
+tax differentials — in the BK settlement panel. Population drives BK's
+rent, tax-by-class, militia composition, retainer recruitment, and food
+modelling.
 
-**Sheep and fur villages also get a small recovery factor.** EOF cuts
-animal production by ×0.3 across the board, then applies an *additional*
-×0.3 to sheep and fur specifically (stacking to 0.09× of raw). BK
-multiplies the sheep/fur result by ~1.67× to lift the effective penalty
-to ×0.50 instead of ×0.30 — primary-sheep pastoral villages no longer
-produce less than one unit per day. Look for "BK animal recovery" in
-the production tooltip.
-
-**BK Population is labor / demographics.** The serfs / slaves / freemen /
-nobles class breakdown shown in the BK settlement panel is the actual
-*people who live there*. It drives BK's rent, tax-by-class, militia
-composition, retainer recruitment, and food consumption modelling. It
-grows on a separate clock from Hearth — recovers slowly from raids but
-doesn't crater the way Hearth does.
-
-The two numbers can legitimately diverge. A village with **high BK
-Population, low Hearth** is "lots of mouths, recently raided, infrastructure
-burned" — production is tanked, food is still consumed, and labor will
-slowly rebuild the capital. A village with **low Population, high Hearth**
-is "depopulated but well-developed" — capacity is there, no one to work it.
-
-**EOF's town population panel now shows BK numbers.** EOF originally
-displayed `prosperity / 3` divided by policy-driven percentages. As of
-v1.8.3.0, BK rewrites the three buckets from its real demographic data:
-
-- **Poor** = BK Serfs + Slaves
-- **Affluent** = BK Craftsmen + Tenants
-- **Noble** = BK Nobles
-
-The panel UI is unchanged and EOF's policy switcher (Oligarchic /
-Popular / Martial) still drives EOF's loyalty / security / prosperity
-bonuses — only the displayed numbers are BK's now. BK's own settlement
-panel still shows the full breakdown (serfs / slaves / craftsmen /
-tenants / nobles) with growth, food, tax differentials. One source of
-truth, two views.
-
-**Conscript slaves to the lands' labor force.** Quick one-shot for
-villages where you already hold BK slaves in the general population:
-walk into the village → Banner Kings submenu → **Conscript slaves to
-lands ({N} available)**. One click moves the maximum eligible amount
-(capped by EOF's prison size = lord-lands × 10) from BK's slave count
-into EOF's roster. No gold cost — they're already in the village,
-just being reassigned to land work.
-
-**Or set quotas and let BK's slave caravans handle it.** BK already runs
-visible slave caravans daily — when a town has surplus BK slaves and a
-bound village has a deficit, it dispatches a real `PopulationPartyComponent`
-party that travels the map (raidable, blockable, vulnerable to bandits)
-and delivers its cargo to the destination village's BK slave pop on
-arrival.
-
-The lands integration hooks that arrival. Walk into a village where you
-hold lord-lands → Banner Kings submenu → **Configure lands quotas
-(slaves: X / guards: Y)**:
-
-- **Slave quota** — when a slave caravan arrives, you (the land owner)
-  buy a slice off the cargo at 200g per slave, paid to the bound town's
-  owner. The diverted slaves go into the village's PrisonRoster (the
-  lands' labor pool); the remainder flows into the village's BK slave
-  pop as it always did. Diversion stops at your quota or EOF's prison
-  cap (lord-lands × 10), whichever comes first. No quota set or no
-  caravan arriving = no purchase.
-- **Guard quota** — daily tick auto-hires volunteers from the village's
-  notables into the lands garrison, paid at vanilla recruitment cost,
-  drip-rate 1/day. Capped by EOF at half the prison count (so guards
-  scale with slaves you've imported). This stays on a daily drip
-  because notable volunteers don't have a caravan equivalent.
-
-Set 0 to disable either. Both default off.
-
-**Old BK estates are paused under EOF.** The legacy estate loop (daily
-income, AI estate decisions, management UI, clan-finance entries,
-visit-panel "Manage Estate" option) is dormant when EOF is loaded.
-Old estate ownership records persist in saves — nothing is deleted — but
-the gameplay surface is hidden pending redesign.
-
-**New: vassal land grants and purchases.** As of v1.8.1.0, lands within
-EOF's "lord lands" pool can be subdivided to other heroes — either as
-free grants from the bound-town lord, or as purchases by would-be
-vassals. The shape of who can hold land, who pays whom, and whether
-holding land implies knighthood is determined by your kingdom's **Estate
-Tenure** demesne law.
-
-| Estate Tenure | Land = knighthood? | Who can hold | Tax to liege | Lord can grant freely |
-|---|---|---|---|---|
-| **Allodial** | No (pure ownership) | Anyone with gold | None (0%) | Yes (gift, no oath) |
-| **Quia Emptores** | Yes (vassal knight) | Same kingdom | Tenancy-rate skim | Yes (same kingdom) |
-
-(Fee Tail was removed in v1.8.7.0 — its blood-kin-only restriction was
-too punishing for player gameplay. Old saves with Fee Tail enacted
-behave like Quia Emptores at runtime.)
-
-Under feudal tenure (Quia Emptores), the liege's daily income tax is
-driven by the **Tenancy** law:
-
-| Tenancy law | Liege's daily skim |
-|---|---|
-| Tenancy Full | 25% |
-| Tenancy Mixed | 15% |
-| Tenancy None | 5% |
-| (no law set) | 10% |
-
-### Buy land in someone else's village (become a vassal)
-
-1. Walk into a village whose bound-town lord isn't you.
-2. **Banner Kings** submenu → **Buy land here ({COST}g)**.
-3. Pay the cost (50 × hearth) directly to the lord. You now hold 1 land
-   in their fief.
-
-The land produces daily income via EOF's lord-land formula. Under
-feudal tenure you pay daily tax to the lord, are a knight under their
-banner, and your party self-funds from the income. Under Allodial the
-land is yours free and clear with no oath or daily tax.
-
-To divest: **Sell my land here back to the lord** in the same submenu.
-You receive 1/3 of the purchase price; the lord pays from their pocket.
-
-### Grant land in your own village
-
-If you own the village's bound town, you can grant lands as a favor
-(gold-free) to candidates the law permits:
-
-1. Walk into one of your villages → **Banner Kings** submenu →
-   **Grant lands to vassal knight**.
-2. Pick a candidate (under Allodial: any same-kingdom hero;
-   Quia Emptores: any same-kingdom hero with a clan).
-3. **Grant +1** or **Revoke -1**.
-
-Daily income flows to the grantee just like a purchased land, with the
-liege's tenancy tax skim applied (or 0 under Allodial).
-
-### AI lieges granting land
-
-> **Requires Economy Overhaul Framework (EOF).** This system grants
-> EOF lord-lands; without EOF the behaviour isn't even registered.
-> If you're playing without EOF, AI clans will not grant you (or each
-> other) anything — knighthoods are player-driven only via the
-> dialogue path under "How do I become a vassal?".
-
-AI vassal clans (tier ≥ 2, kingdom-bound, with un-granted lord-lands in
-their bound villages) periodically grant a land to either a clan member
-or, with player consent, the player. Roll happens on the daily clan
-tick at ~0.6% per day per eligible clan (≈ once a week per clan when
-conditions hold).
-
-Recipients:
-- **Clan companion / kin** (most grants). Goes through silently and
-  appears in the BK grant table; the recipient becomes a vassal knight
-  of the grantor's fief.
-- **The player** (~20% of grants when eligible). Triggers an inquiry —
-  *"{Lord} of {Clan} offers you a parcel of land in {Village} as a
-  sworn-vassal grant. Accepting binds you to {Lord} as your liege for
-  that fief. Refusing has no cost. Accept?"* — decline is free, accept
-  records the grant. Player must be in the same kingdom as the
-  grantor and have at least +25 relation.
-
-Eligibility for the recipient is checked against the village's Estate
-Tenure law via the same `CanHoldLand` rule as player-driven grants:
-Allodial accepts anyone, Quia Emptores requires the candidate to be in
-the same kingdom.
-
-A kingdom-wide notification fires when a grant occurs in the player's
-kingdom or involves the player directly.
-
-### Auto-supply toggle (delegate the tools/horses run)
-
-EOF drains every village warehouse weekly: ~1 tool plus ~5 draft animals
-at base rate, more when project mali stack. Letting it run dry triggers
-production maluses, so without this BK feature you'd ferry crates of
-tools and packs of horses to every village you own, on a schedule.
-
-To turn that off: walk into any village where you've bought at least
-one EOF land (warehouse unlocked) → **Banner Kings** submenu → **Toggle
-land auto-supply**. While ON, BK tops the warehouse up daily to 25
-horses and 2 tools (the first daily-bonus tier — higher tiers are
-diminishing returns you can chase manually if you want), with a
-2-week buffer above that for project-malus spikes.
-
-The refill is a **real market transaction**: BK buys from the
-village's bound town inventory at `town.GetItemPrice(item) × 1.1`
-(transport surcharge), draining the town's stock and crediting its
-merchant pool. If the town doesn't have enough stock that day, you
-get a partial refill; EOF's maluses kick in proportionally. If you're
-broke, the refill silently skips that day. Either way the local
-trade economy actually feels the demand — caravans noticing tools or
-horses moving out of the bound town will route in to replenish.
-
-Toggle is per-village, off by default, and saved.
-
-### Cheat commands for testing
-
-```
-bannerkings.land_list <village_name>             # show grants + EOF lord-lands count
-bannerkings.land_buy_as_vassal <village_name>    # MainHero buys 1 land
-bannerkings.land_grant <village_name> | <hero>   # MainHero grants 1 land to hero
-bannerkings.land_set_auto_supply <village> on    # enable auto-supply
-bannerkings.land_set_auto_supply <village> off   # disable auto-supply
-bannerkings.land_conscript_slaves <village>      # transfer max BK slaves to EOF lands roster
-bannerkings.land_set_slave_quota <village> <n>   # set daily slave-import quota
-bannerkings.land_set_guard_quota <village> <n>   # set daily guard-hire quota
-```
-
-Plus vanilla `campaign.cheat_mode 1`,
-`campaign.give_gold_to_main_hero <amt>`, and the in-game Council screen
-to enact the Estate Tenure / Tenancy laws (BK already exposes these).
-
-### Deferred to a follow-up release
-
-- Knight party AI bias toward their granted village's region.
-- Periodic cleanup of stale grants (dead heroes, cross-kingdom transfers).
-
-**What changes vs. BK alone:** under EOF, BK's class-weighted town food
-consumption, BK's prosperity model, BK's loyalty model, BK's workshop
-model, and BK's estate gameplay loop all defer to EOF or pause. Workshops
-in particular are entirely EOF's domain — its Lv1–5 upgrades, auto-buy/sell,
-and warehouse management replace the BK upgrade button. All other BK
-systems (titles, religion, education, militia, caravans, shipping,
-retainer, tax-by-class, marriage, kingdom decisions) keep running unchanged.
+**Estates** are woven onto Living Economy's estate parcels: a BK estate's
+land type, size, and quality come from the bound parcel. Manage them from
+the clan's estate window — see [Economy](Economy) for estate
+specializations, cluster fit, stagnation, and the income model.
 
 ## Population
 
@@ -598,7 +378,7 @@ income panel; an extra "Income Blocked" entry appears at the top of
 that row when the blocker is active.
 
 **Q: The Slaves button on the estate panel does nothing.**
-*Was* broken in the 1.3.x port — `PartyScreenHelper.OpenScreenAsLoot`
+*Was* broken in the 1.4 port — `PartyScreenHelper.OpenScreenAsLoot`
 was removed from vanilla and the original BK transfer screen depended
 on it. Replaced with a multi-choice inquiry that shows your
 party-prisoner count and the estate's slave count, then offers
