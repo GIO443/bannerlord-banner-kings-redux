@@ -119,6 +119,31 @@ In practice this means: an estate planted on a high-quality parcel pays more tha
 
 Workforce saturation and tax-ratio keep-rate work exactly as before. The "Last Income" line is still authoritative.
 
+## Where the buy/sell price comes from
+
+As of v1.9.5.0, the **estate price** shown when you buy a vacant estate or look at its value in the Clan → Finance panel is also sourced from the bound BetterEconomy parcel. The price equals:
+
+```
+parcel.Quality × parcel.Size × 30,000   (land value)
++ TaxAccumulated                          (any balance the estate is holding)
++ LastIncome × 84                         (one in-game year of recent yield)
++ 500                                     (base / paperwork cost)
+```
+
+A baseline parcel (quality ≈ 1, size ≈ 1) prices around **30,000 denars**, matching the legacy 250-acre price ballpark. With Phase 3's daily gross around 110 denars on the same baseline parcel, the **payback window is roughly 3.5 in-game years** — fast for a high-quality parcel in a Granary-aligned cluster, slower for a mid-quality or off-mission one.
+
+If a price ever looks wildly off compared to the income line, that's the parcel quality talking — open the estate's Production tooltip and you'll see the **Estate quality** and **Estate size** factor lines that drive both numbers.
+
+## How acreage growth feeds parcel size
+
+The **Growth** spec still grows your estate's Farmland / Pastureland / Woodland axes on the estate panel exactly as before, with the same caps (each axis ≤ village `LandData × 0.2`). What changed: every daily tick, the bound BE parcel's **Size** is now recomputed from those BK axes:
+
+```
+parcel.Size = (Farmland + Pastureland × 0.5 + Woodland × 0.15) / 250
+```
+
+So when Growth-spec progress raises Farmland, parcel.Size goes up on the next tick, and **income (Phase 3) responds the same day**. A baseline 250-acre estate sits at parcel.Size ≈ 1.0; once Growth has filled all three axes to their caps, parcel.Size lands around `LandData × 0.6 / 250` — typically 2-5× the baseline, capped by the village's own land budget. There's no monotonic creep: if a raid or famine ever clips the axes (or the cap clamp shrinks them), parcel.Size shrinks with them on the next tick.
+
 ---
 
 ## How estate income flows
