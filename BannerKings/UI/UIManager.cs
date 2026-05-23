@@ -502,6 +502,72 @@ namespace BannerKings.UI
         //
         // Each swallowed failure is logged once via Logs.MajorEvent so the
         // user can see which RBM patches dropped via grep on major_events.
+        // Crash-htm 2026-05-22 22:53: RBM-on-1.4 RUNTIME failure inside an
+        // RBMAI MissionBehavior. v1.9.1.8 swallowed install-time PatchAll
+        // failures so battle entry succeeded; now a different RBMAI surface
+        // throws AT RUNTIME during the mission tick:
+        //
+        //   Source: RBMAI
+        //   Type:   MissingMethodException
+        //   Method not found: 'TaleWorlds.Engine.GameEntity
+        //     TaleWorlds.Engine.GameEntity.Instantiate(Scene, String,
+        //     MatrixFrame, Boolean, String)'
+        //
+        //   at SiegeArcherPoints.OnMissionTick(float dt)
+        //      RealisticBattleProject/RealisticBattleAiModule/AiModule/
+        //      SiegeArcherPoints/SiegeArcherPoints.cs:line 273
+        //   at Mission.OnTick(...)
+        //
+        // RBMAI was compiled against 1.3 reference assemblies which had this
+        // GameEntity.Instantiate overload; 1.4 dropped/renamed it. The call
+        // site throws MissingMethodException every mission frame, ending the
+        // battle.
+        //
+        // Surgical fix: install a HarmonyFinalizer on
+        // RBMAI.SiegeArcherPoints.OnMissionTick(float). Swallows the
+        // exception, logs the first occurrence per mission session
+        // (suppresses spam — the method is called every frame). RBM's
+        // siege-archer formation logic stops working; other RBM mission
+        // behaviours keep running.
+        //
+        // TargetMethod() resolves reflectively so the patch only installs
+        // when RBMAI is actually loaded; Prepare() returns false otherwise
+        // and Harmony skips this entire class.
+        [HarmonyPatch]
+        internal static class RBMSiegeArcherPointsRuntimeFinalizer
+        {
+            // Toggled to true on the first swallow per process. Stops log
+            // spam — the mission tick fires every frame and would otherwise
+            // spew the same exception line indefinitely.
+            private static bool _loggedOnce;
+
+            private static bool Prepare()
+            {
+                return AccessTools.TypeByName("RBMAI.SiegeArcherPoints") != null;
+            }
+
+            private static System.Reflection.MethodBase TargetMethod()
+            {
+                var t = AccessTools.TypeByName("RBMAI.SiegeArcherPoints");
+                if (t == null) return null;
+                // OnMissionTick on a MissionBehavior is virtual: (float dt).
+                return AccessTools.Method(t, "OnMissionTick", new[] { typeof(float) });
+            }
+
+            [HarmonyFinalizer]
+            private static System.Exception Finalizer(System.Exception __exception)
+            {
+                if (__exception == null) return null;
+                if (!_loggedOnce)
+                {
+                    _loggedOnce = true;
+                    BannerKings.Utils.Logs.MajorEvent(() =>
+                        $"[BK] Swallowed RBM SiegeArcherPoints.OnMissionTick: {__exception.GetType().Name}: {__exception.Message}");
+                }
+                return null; // swallow — the mission tick continues
+            }
+        }
+
         [HarmonyPatch(typeof(HarmonyLib.PatchClassProcessor))]
         [HarmonyPatch("Patch")]
         internal static class RBMHarmonyPatchFinalizer
