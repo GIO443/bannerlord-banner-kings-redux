@@ -418,6 +418,10 @@ namespace BannerKings.Managers.Populations.Estates
         {
             TroopRoster roster = TroopRoster.CreateDummyTroopRoster();
             CultureObject culture = EstatesData.Settlement.Culture;
+            // Modded / minor cultures occasionally ship without BasicTroop; a
+            // null AddToCounts would write a Character=null roster slot which
+            // vanilla daily training NREs on later.
+            if (culture?.BasicTroop == null) return roster;
             roster.AddToCounts(culture.BasicTroop, (int)(limit / 2f));
 
             var upgrades = culture.BasicTroop.UpgradeTargets;
@@ -425,8 +429,10 @@ namespace BannerKings.Managers.Populations.Estates
             {
                 for (int i = 0; i < upgrades.Count(); i++)
                 {
+                    var upgrade = upgrades[i];
+                    if (upgrade == null) continue;
                     int toAdd = (int)(limit * 0.5f / upgrades.Count());
-                    roster.AddToCounts(upgrades[i], toAdd);
+                    roster.AddToCounts(upgrade, toAdd);
                 }
             }
 
@@ -444,6 +450,10 @@ namespace BannerKings.Managers.Populations.Estates
                 float serfProportion = data.GetCurrentTypeFraction(PopType.Serfs);
                 foreach (var spawn in DefaultRecruitSpawns.Instance.GetPossibleSpawns(data.Settlement.Culture, data.Settlement))
                 {
+                    // Skip malformed spawn entries — a null Troop here would
+                    // write a Character=null retinue slot and trip the daily
+                    // training tick later.
+                    if (spawn?.Troop == null) continue;
                     float random = MBRandom.RandomFloat;
                     if (random * tenantProportion < spawn.GetChance(PopType.Tenants))
                     {

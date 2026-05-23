@@ -137,11 +137,17 @@ namespace BannerKings.Behaviours
                 partyTemplate = party.ActualClan.DefaultPartyTemplate;
             }
 
-            if (partyTemplate != null)
+            if (partyTemplate?.Stacks != null && partyTemplate.Stacks.Count > 0)
             {
                 int stacks = partyTemplate.Stacks.Count - 1;
                 var template = partyTemplate.Stacks[MBRandom.RandomInt(0, stacks)];
-                party.MemberRoster.AddToCounts(template.Character, MBRandom.RandomInt(2, 6));
+                // PartyTemplateStack is a struct; check the Character field
+                // directly. A null Character here writes a corrupt roster
+                // slot that vanilla training NREs on later.
+                if (template.Character != null)
+                {
+                    party.MemberRoster.AddToCounts(template.Character, MBRandom.RandomInt(2, 6));
+                }
             }
         }
 

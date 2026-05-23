@@ -625,7 +625,14 @@ namespace BannerKings.Behaviours
 
                     if (current < max)
                     {
-                        garrison.MemberRoster.AddToCounts(settlement.Culture.EliteBasicTroop, 1);
+                        // Null-guard: settlement.Culture is normally populated,
+                        // but its EliteBasicTroop can be null on minor / modded
+                        // cultures that didn't author one. AddToCounts(null, 1)
+                        // would write a TroopRosterElement with null Character,
+                        // which vanilla PartyBase.OnXpChanged then NREs on
+                        // during the daily training tick.
+                        var elite = settlement.Culture?.EliteBasicTroop;
+                        if (elite != null) garrison.MemberRoster.AddToCounts(elite, 1);
                     }
                 }
                 if (settlement.Town.FoodStocks <= settlement.Town.FoodStocksUpperLimit() * 0.05f &&

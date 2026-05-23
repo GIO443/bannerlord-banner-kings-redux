@@ -693,9 +693,25 @@ namespace BannerKings.Behaviours
         {
             if (!clan.IsClanTypeMercenary) return;
 
-            List<CharacterObject> troops = new List<CharacterObject>(); 
+            // Guard against malformed party templates (null, no stacks, or
+            // stacks with null Character). Without this, the non-kingdom
+            // branch below does troops.GetRandomElement() on an empty list
+            // (returns null) and AddToCounts(null, count) writes a roster
+            // slot whose Character is null — the exact corrupt state that
+            // causes vanilla PartyBase.OnXpChanged to NRE on next daily
+            // training tick.
             PartyTemplateObject template = clan.DefaultPartyTemplate;
-            foreach (var stack in template.Stacks) troops.Add(stack.Character);
+            if (template?.Stacks == null) return;
+
+            // PartyTemplateStack is a struct, can't ?.. Skip stacks whose
+            // Character field is null.
+            List<CharacterObject> troops = new List<CharacterObject>();
+            foreach (var stack in template.Stacks)
+            {
+                if (stack.Character == null) continue;
+                troops.Add(stack.Character);
+            }
+            if (troops.Count == 0) return;
 
             if (clan.Kingdom != null)
             {
@@ -734,6 +750,7 @@ namespace BannerKings.Behaviours
                     if (count > 0)
                     {
                         var troop = troops.GetRandomElement();
+                        if (troop == null) continue; // defensive — guarded at top, but never write a null roster row
                         party.MobileParty.MemberRoster.AddToCounts(troop, count);
                     }
                 }
