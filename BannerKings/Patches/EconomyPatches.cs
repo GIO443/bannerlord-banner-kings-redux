@@ -1244,6 +1244,127 @@ namespace BannerKings.Patches
                 CampaignEventDispatcher.Instance.OnItemProduced(outputItem.Item, town.Owner.Settlement, count);
                 return false;
             }
+
+            // Vanilla bug surfaced by BK's village-production modifier path:
+            // BK applies an ItemModifier (crude_goods / fine_goods / etc.) to
+            // village output, so a town can end up with roster entries like
+            // (silver, crude_goods) and (silver, fine_goods) and NO unmodified
+            // (silver, null) entry.
+            //
+            // Vanilla's ConsumeInputFromTownMarket then does:
+            //   var item = roster.GetItemAtIndex(roster.FindIndex(x => x.ItemCategory == ...));
+            //   roster.AddToCounts(item, -count);              // ← ItemObject overload
+            // ...which internally constructs new EquipmentElement(item) with
+            // NULL modifier and calls FindIndexOfElement(EquipmentElement) —
+            // a strict equality including the modifier. That find returns -1
+            // and the inner Debug.FailedAssert fires (silent in Release):
+            //   "Trying to delete an element from Item Roster that does not exist!"
+            // Net effect: the workshop logically "buys" the input (gold moves)
+            // but the modifier-tagged stock never actually deducts. Goods
+            // accumulate without being consumed and the production loop is
+            // gated by sufficiency that already passes against a stale roster.
+            //
+            // Same shape on ConsumeInputFromWarehouse (also patched below).
+            //
+            // Fix: replace both consumers with a modifier-aware version that
+            //   1. Iterates the roster
+            //   2. For every entry whose ItemObject.ItemCategory matches the
+            //      input, consume up to the remaining required count via the
+            //      EquipmentElement overload (so the actual modifier-tagged
+            //      stack decrements)
+            //   3. Charges the workshop the price of each consumed stack
+            //   4. Fires OnItemConsumed per consumed count
+            // Prefer unmodified entries first so an unmodified-supply town
+            // behaves byte-identically to vanilla.
+            [HarmonyPrefix]
+            [HarmonyPatch("ConsumeInputFromTownMarket")]
+            private static bool ConsumeInputFromTownMarketPrefix(
+                ItemCategory productionInput, int productionInputCount,
+                Town town, Workshop workshop, bool effectCapital)
+            {
+                ItemRoster itemRoster = town.Owner.ItemRoster;
+                ConsumeAcrossRoster(itemRoster, productionInput, productionInputCount,
+                    onConsumed: (element, consumed) =>
+                    {
+                        if (TaleWorlds.CampaignSystem.Campaign.Current.GameStarted && effectCapital)
+                        {
+                            int price = town.GetItemPrice(element);
+                            int total = price * consumed;
+                            workshop.ChangeGold(-total);
+                            town.ChangeGold(total);
+                        }
+                        CampaignEventDispatcher.Instance.OnItemConsumed(element.Item, town.Owner.Settlement, consumed);
+                    });
+                return false;
+            }
+
+            // The warehouse path. Same vanilla shape, same fix. No price
+            // movement on warehouse consumption (the workshop owns its
+            // warehouse inventory) so the callback only fires the event.
+            [HarmonyPrefix]
+            [HarmonyPatch("ConsumeInputFromWarehouse")]
+            private static bool ConsumeInputFromWarehousePrefix(
+                ItemCategory productionInput, int inputCount, Workshop workshop,
+                WorkshopsCampaignBehavior __instance)
+            {
+                // The warehouse roster getter is private; grab it reflectively.
+                // Cached at type-init by _getWarehouseRoster.
+                ItemRoster warehouseRoster = _getWarehouseRoster?.Invoke(__instance,
+                    new object[] { workshop.Settlement }) as ItemRoster;
+                if (warehouseRoster == null) return true; // fall through to vanilla on reflection miss
+
+                ConsumeAcrossRoster(warehouseRoster, productionInput, inputCount,
+                    onConsumed: (element, consumed) =>
+                    {
+                        CampaignEventDispatcher.Instance.OnItemConsumed(element.Item, workshop.Settlement, consumed);
+                    });
+                return false;
+            }
+
+            // Cached reflection of the private getter once at type load.
+            private static readonly System.Reflection.MethodInfo _getWarehouseRoster =
+                AccessTools.Method(typeof(WorkshopsCampaignBehavior), "GetWarehouseRoster");
+
+            // Walk the roster, consume up to `remaining` units across any
+            // EquipmentElement whose ItemObject.ItemCategory matches the
+            // requested input. Tries unmodified entries first so an
+            // unmodified-supply town reads byte-identical to vanilla.
+            // Iterates indices in reverse where modifier-tagged so a
+            // mid-loop removal of a stack doesn't shift indices we haven't
+            // seen yet.
+            private static void ConsumeAcrossRoster(ItemRoster roster, ItemCategory category,
+                int needed, Action<EquipmentElement, int> onConsumed)
+            {
+                if (roster == null || needed <= 0) return;
+
+                // Pass 1: unmodified entries (modifier == null).
+                for (int i = roster.Count - 1; i >= 0 && needed > 0; i--)
+                {
+                    var element = roster.GetElementCopyAtIndex(i).EquipmentElement;
+                    if (element.Item?.ItemCategory != category) continue;
+                    if (element.ItemModifier != null) continue;
+                    int have = roster.GetElementNumber(i);
+                    if (have <= 0) continue;
+                    int take = TaleWorlds.Library.MathF.Min(needed, have);
+                    roster.AddToCounts(element, -take);
+                    needed -= take;
+                    onConsumed?.Invoke(element, take);
+                }
+
+                // Pass 2: modifier-tagged entries (whatever modifier).
+                for (int i = roster.Count - 1; i >= 0 && needed > 0; i--)
+                {
+                    var element = roster.GetElementCopyAtIndex(i).EquipmentElement;
+                    if (element.Item?.ItemCategory != category) continue;
+                    if (element.ItemModifier == null) continue;
+                    int have = roster.GetElementNumber(i);
+                    if (have <= 0) continue;
+                    int take = TaleWorlds.Library.MathF.Min(needed, have);
+                    roster.AddToCounts(element, -take);
+                    needed -= take;
+                    onConsumed?.Invoke(element, take);
+                }
+            }
         }
 
         [HarmonyPatch(typeof(SellGoodsForTradeAction), "ApplyInternal")]
