@@ -640,17 +640,25 @@ namespace BannerKings.Behaviours
             private static readonly System.Reflection.MethodInfo OnAddPointMethod =
                 AccessTools.Method(typeof(TaleWorlds.CampaignSystem.ViewModelCollection.CharacterDeveloper.CharacterDeveloperHeroItemVM), "OnAddAttributePoint");
 
-            // Hero.SetAttributeValueInternal is the same canonical setter
-            // the BK seeder uses (BKSkillBehavior.SeedBKAttributesAndSkills)
-            // — goes through PropertyOwner.SetPropertyValue with the
-            // CharacterDevelopmentModel.MaxAttribute clamp built in. Need
-            // it here because vanilla's OnAddAttributePoint -> HeroDeveloper
-            // .AddAttribute path doesn't persist for BK's PresumedObject-
-            // registered Wisdom attribute: the visible value increments but
-            // Hero.GetAttributeValue reads 0 on next refresh, producing the
-            // "puts points in, clicks away, shows 0 again" symptom.
-            private static readonly System.Reflection.MethodInfo Hero_SetAttributeValueInternal =
-                AccessTools.Method(typeof(Hero), "SetAttributeValueInternal");
+            // Previously used Hero.SetAttributeValueInternal as the write
+            // path. That successfully updated the hero's stored value AND was
+            // visible to GetAttributeValue — but it did NOT fire the internal
+            // notification the CharacterDeveloper VM listens to, so the
+            // displayed AttributeLevel never refreshed. Symptom: clicking +
+            // on the Wisdom tile decremented UnspentAttributePoints (because
+            // our closure did it manually) but the Wisdom number on the tile
+            // stayed at its previous value. Replaced by going through
+            // HeroDeveloper.AddAttribute(attr, 1, false) — the same engine
+            // path BKSkillBehavior uses for the OnComesOfAge / perk-grant
+            // flow on Wisdom, and the path vanilla's OnAddAttributePoint
+            // itself goes through. This raises the VM's attribute-changed
+            // event and the tile updates on the next bind tick.
+            //
+            // The Hero_SetAttributeValueInternal reflection stays imported
+            // (referenced from BKSkillBehavior.SeedBKAttributesAndSkills,
+            // which is still the right path for engine-time seeding — that
+            // runs before any VM exists, so the notification side-effect
+            // is moot there).
 
             [HarmonyPostfix]
             [HarmonyPatch("InitializeCharacter")]
@@ -700,18 +708,21 @@ namespace BannerKings.Behaviours
                                     ?.CharacterDevelopmentModel?.MaxAttribute ?? 10;
                                 if (current >= max) return;
 
-                                if (Hero_SetAttributeValueInternal != null)
-                                {
-                                    Hero_SetAttributeValueInternal.Invoke(heroForClosure,
-                                        new object[] { wisdomForClosure, current + 1 });
-                                }
+                                // Canonical grant path. The third arg is the
+                                // "isInitial" flag — false means this is a
+                                // gameplay-time grant (raise the attribute,
+                                // fire the notification), not a save-load
+                                // restoration. Matches the OnComesOfAge
+                                // perk-grant call site for Wisdom.
+                                heroForClosure.HeroDeveloper.AddAttribute(
+                                    wisdomForClosure, 1, false);
                                 heroForClosure.HeroDeveloper.UnspentAttributePoints -= 1;
 
-                                // Refresh the tile so AttributeLevel reflects
-                                // the new value immediately. Calling
-                                // RefreshValues on the item VM is enough;
-                                // the parent VM's own counters update next
-                                // tick via vanilla bindings.
+                                // The HeroDeveloper notification fired by
+                                // AddAttribute updates the tile on the next
+                                // bind tick automatically; force a refresh
+                                // now so the new value is visible without
+                                // waiting for the next paint.
                                 item?.RefreshValues();
                             }
                             catch
