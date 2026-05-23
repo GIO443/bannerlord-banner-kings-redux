@@ -111,6 +111,16 @@ When the estate is at cap (population and acreage both ≥85% of their ceilings)
 
 ---
 
+## Where estate income comes from
+
+As of v1.9.4.0 (Phase 3 of the BetterEconomy integration), an estate's gross daily yield is sourced directly from the **parcel quality × parcel size** of its bound BetterEconomy estate record, rather than from BK's own Farmland / Pastureland / Woodland acreage split. The acreage values are still displayed on the estate panel and still grow under the **Growth** spec, but they no longer drive the income number.
+
+In practice this means: an estate planted on a high-quality parcel pays more than one on a low-quality parcel of the same size, even with identical workforce. If you see income shift after upgrading to v1.9.4.0, that's the new source of truth talking — BetterEconomy's parcel sim. The legacy acre formula is still used as a fallback for estates that haven't finished binding to a BE parcel yet (rare; usually catches up on the next daily tick).
+
+Workforce saturation and tax-ratio keep-rate work exactly as before. The "Last Income" line is still authoritative.
+
+---
+
 ## How estate income flows
 
 Each in-game day:
