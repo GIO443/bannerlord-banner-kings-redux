@@ -136,6 +136,31 @@ Effective workforce vs the labor required to work all your acres:
 
 The **Population vs Cap** line in the Workforce section tells you whether you have headroom for natural growth or whether you're already at the village ceiling. Buying slaves or recruiting tenants raises population; the cap is set by the village's land and your estate's PopulationCapacity ExplainedNumber (hover for breakdown).
 
+### Auto-buy slaves (Yield / Sustained estates)
+
+If your estate is on the **Yield** or **Sustained** spec, you don't have to manually keep its slave workforce filled. Once per in-game day BK looks at every estate you own; for each Yield-spec estate it sets a target of `MaxManpower × 0.5`, for each Sustained-spec estate `MaxManpower × 0.25`, and if the current slave count is below target it debits the village's slave price from your clan gold and adds one slave to the estate — up to **3 slaves per estate per day**.
+
+What you'll see in-game: your clan gold ticks down a few hundred denars a day per estate that's still filling, until each estate hits its target. A typical Yield estate with ~30 slave target finishes filling in roughly 10 in-game days. Then nothing happens until you lose slaves (raids, manual transfers, decay).
+
+Conditions that pause the auto-buy:
+- Estate is **Quality / Levy / Growth** spec — those rely on serfs / craftsmen, not bonded laborers.
+- Estate is **income-blocked** (at war with the village's faction).
+- **You own the village** — gold would round-trip to your own clan's coffers, so allocate manually via the estate UI instead.
+- You're out of gold (the buy just stops; nothing breaks).
+
+The behaviour can be turned off entirely in MCM → **Banner Kings → Economy → Estate Auto-buy Slaves** if you want fully manual control.
+
+### MCM toggles for estate population
+
+Two new switches under **Banner Kings → Economy**:
+
+| Toggle | Default | Effect when OFF |
+|---|---|---|
+| **BE-derived Estate Population** | ON | Your estate's Population/Slaves stop tracking BetterEconomy's village class state daily; the numbers stay frozen at whatever they were when you flipped the toggle. Useful as a rollback if BE-driven population swings ever look wrong on your save. |
+| **Estate Auto-buy Slaves** | ON | The auto-buy loop described above never runs. You allocate slaves yourself from the estate UI. |
+
+Leave both ON for the default Phase 2 behaviour.
+
 ---
 
 ## Cluster food and stagnation
