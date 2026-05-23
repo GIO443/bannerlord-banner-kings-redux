@@ -95,17 +95,26 @@ namespace BannerKings.Models.Vanilla
 
         private void VanillaCalculatePerkEffects(MobileParty party, ref ExplainedNumber result)
         {
+            // Null-guarded ports of the vanilla bandit-counting loops. Vanilla
+            // assumes every roster slot in [0, Count) returns a non-null
+            // CharacterObject with a non-null Culture; mod interactions and
+            // odd save states can surface a null somewhere mid-iteration, NRE-
+            // ing out of the hourly FoodChange tick and disconnecting every
+            // party's food calc until restart (crash 2026-05-22 19:17 hit
+            // here through BKPartyBehavior.GoBuyFood -> MobileParty.FoodChange).
             int num = 0;
             for (int i = 0; i < party.MemberRoster.Count; i++)
             {
-                if (party.MemberRoster.GetCharacterAtIndex(i).Culture.IsBandit)
+                var ch = party.MemberRoster.GetCharacterAtIndex(i);
+                if (ch?.Culture != null && ch.Culture.IsBandit)
                 {
                     num += party.MemberRoster.GetElementNumber(i);
                 }
             }
             for (int j = 0; j < party.PrisonRoster.Count; j++)
             {
-                if (party.PrisonRoster.GetCharacterAtIndex(j).Culture.IsBandit)
+                var ch = party.PrisonRoster.GetCharacterAtIndex(j);
+                if (ch?.Culture != null && ch.Culture.IsBandit)
                 {
                     num += party.PrisonRoster.GetElementNumber(j);
                 }
