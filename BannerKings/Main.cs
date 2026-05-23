@@ -296,6 +296,37 @@ namespace BannerKings
             base.OnSubModuleLoad();
             BKDiagnostics.Install();
 
+            // One-line startup audit of compat-detected mods. Lets the user
+            // confirm "yes BK sees that RBM is loaded" from a single grep of
+            // major_events.txt without launching a save. Pre-cached via the
+            // ModCompat property reads.
+            try
+            {
+                var detected = new System.Collections.Generic.List<string>();
+                if (BannerKings.Utils.ModCompat.DiplomacyMod) detected.Add("Diplomacy");
+                if (BannerKings.Utils.ModCompat.ImprovedGarrisons) detected.Add("ImprovedGarrisons");
+                if (BannerKings.Utils.ModCompat.RecruitEverywhere) detected.Add("RecruitEverywhere");
+                if (BannerKings.Utils.ModCompat.MarryAnyone) detected.Add("MarryAnyone");
+                if (BannerKings.Utils.ModCompat.BuyLandAtVillages) detected.Add("BuyLandAtVillages");
+                if (BannerKings.Utils.ModCompat.RealisticBattleMod) detected.Add("RBM");
+                if (BannerKings.Utils.ModCompat.RealisticBattleWarSails) detected.Add("RBM_WS");
+                if (BannerKings.Utils.ModCompat.RTSCamera) detected.Add("RTSCamera");
+                if (BannerKings.Utils.ModCompat.RTSCameraCommandSystem) detected.Add("RTSCamera.CommandSystem");
+                if (BannerKings.Utils.ModCompat.WarSails) detected.Add("NavalDLC");
+                if (BannerKings.Utils.ModCompat.AIInfluence) detected.Add("AIInfluence");
+                if (BannerKings.Utils.ModCompat.EconomyOverhaul) detected.Add("EconomyOverhaul");
+                if (BannerKings.Utils.ModCompat.BetterEconomy) detected.Add("BetterEconomy");
+                if (BannerKings.Utils.ModCompat.RealmOfThrones) detected.Add("RealmOfThrones");
+                BannerKings.Utils.Logs.MajorEvent(() =>
+                    detected.Count == 0
+                        ? "[BK] ModCompat: no compat-tracked mods detected"
+                        : "[BK] ModCompat detected: " + string.Join(", ", detected));
+            }
+            catch
+            {
+                // Detection logging is informational only — never block init.
+            }
+
             // Bannerlord Living Economy owns population + economy in this build.
             // Flip its BannerKings-compatibility mode to 0 so it runs its full
             // simulation (its own population, prosperity, village production,

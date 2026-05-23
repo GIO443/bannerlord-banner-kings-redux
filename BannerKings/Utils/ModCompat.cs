@@ -32,8 +32,32 @@ namespace BannerKings.Utils
         public const string BuyLandAtVillagesId = "BuyLandAtVillages";
         public const string BuyLandAtVillagesAsm = "BuyLandAtVillages";
 
-        public const string RealisticBattleModId = "RBMCombat";
-        public const string RealisticBattleModAsm = "RealisticBattleCombatModule";
+        // Realistic Battle Mod (RBM) — combat overhaul.
+        // Workshop ID 2859251492. Modern RBM (v4.2.x) uses module Id "RBM" and
+        // ships RBM.dll, RBMCombat.dll, RBMAI.dll, RBMConfig.dll. The legacy
+        // identifier "RBMCombat" / "RealisticBattleCombatModule" was the
+        // pre-v4 naming; kept here as a secondary check so old installs are
+        // still recognised.
+        public const string RealisticBattleModId = "RBM";
+        public const string RealisticBattleModAsm = "RBM";
+        public const string RealisticBattleModLegacyId = "RBMCombat";
+        public const string RealisticBattleModLegacyAsm = "RealisticBattleCombatModule";
+
+        // RBM War Sails Submod — naval-combat data layered on top of RBM
+        // for the NavalDLC. XML-only (no DLL); detection is module-id only.
+        public const string RealisticBattleWarSailsId = "RBM_WS";
+
+        // RTS Camera — battle-scope RTS-style control. Mission scope only;
+        // doesn't intersect BK campaign systems but BK declares LoadAfterThis
+        // so any Mission-scope BK hook (BKTournamentBehavior, NavalPerk
+        // patches) runs after RTSCamera's Mission patches install.
+        public const string RTSCameraId = "RTSCamera";
+        public const string RTSCameraAsm = "RTSCamera";
+
+        // RTS Camera Command System — the order-issuing UI submod. Same
+        // Mission-scope-only profile as RTSCamera proper.
+        public const string RTSCameraCommandSystemId = "RTSCamera.CommandSystem";
+        public const string RTSCameraCommandSystemAsm = "RTSCamera.CommandSystem";
 
         public const string WarSailsId = "NavalDLC";
         public const string WarSailsAsm = "NavalDLC";
@@ -104,7 +128,20 @@ namespace BannerKings.Utils
             => IsLoaded(BuyLandAtVillagesId, BuyLandAtVillagesAsm);
 
         public static bool RealisticBattleMod
-            => IsLoaded(RealisticBattleModId, RealisticBattleModAsm);
+            => IsLoaded(RealisticBattleModId, RealisticBattleModAsm)
+            || IsLoaded(RealisticBattleModLegacyId, RealisticBattleModLegacyAsm);
+
+        /// <summary>True if the RBM War Sails naval-combat submod is loaded.</summary>
+        public static bool RealisticBattleWarSails
+            => IsLoaded(RealisticBattleWarSailsId);
+
+        /// <summary>True if RTS Camera is loaded (battle scope only).</summary>
+        public static bool RTSCamera
+            => IsLoaded(RTSCameraId, RTSCameraAsm);
+
+        /// <summary>True if RTS Camera Command System is loaded.</summary>
+        public static bool RTSCameraCommandSystem
+            => IsLoaded(RTSCameraCommandSystemId, RTSCameraCommandSystemAsm);
 
         /// <summary>True if the War Sails (NavalDLC) module is loaded.</summary>
         public static bool WarSails

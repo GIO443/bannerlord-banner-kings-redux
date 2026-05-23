@@ -57,6 +57,17 @@ namespace BannerKings.Patches
     internal static class VanillaModelTweakPatches
     {
         // --- BKAgentDamageModel ----------------------------------------------------------
+        //
+        // RBM-stack note. RBM also Harmony-patches SandboxAgentApplyDamageModel
+        // (RBMCombat.DamageRework — RegisterBlow, GetAttackCollisionResults,
+        // OnAgentHit, HandleBlow, CreateMeleeBlow). With BK's SubModule.xml
+        // declaring LoadAfterThis on RBM/RBM_WS, the Harmony stack order is
+        // RBM first then BK; any in-flight state RBM sets is what BK's postfix
+        // sees. If RBM's 1.4 surface throws or leaves Agent in a partially-
+        // mutated state, the postfix body below shouldn't compound the
+        // failure — wrap in try/catch and swallow defensively, since these
+        // BK postfixes are flavour perks (JawwalDuneRider dismount-chance),
+        // not gameplay-essential.
         [HarmonyPatch(typeof(SandboxAgentApplyDamageModel))]
         internal static class BKAgentDamageTweakPatches
         {
@@ -65,16 +76,26 @@ namespace BannerKings.Patches
             private static void CanWeaponDismountPostfix(Agent attackerAgent, WeaponComponentData attackerWeapon,
                 in Blow blow, in AttackCollisionData collisionData, ref bool __result)
             {
-                if (!__result && attackerAgent.Formation != null && attackerAgent.Formation.Captain != null &&
-                    attackerWeapon.WeaponClass == WeaponClass.Javelin)
+                try
                 {
-                    var aggressorCaptain = (attackerAgent.Formation.Captain.Character as CharacterObject)?.HeroObject;
-                    if (aggressorCaptain == null) return;
-                    var education = BannerKingsConfig.Instance.EducationManager.GetHeroEducation(aggressorCaptain);
-                    if (education.HasPerk(BKPerks.Instance.JawwalDuneRider) && MBRandom.RandomFloat < 0.05f)
+                    if (!__result && attackerAgent?.Formation != null && attackerAgent.Formation.Captain != null &&
+                        attackerWeapon.WeaponClass == WeaponClass.Javelin)
                     {
-                        __result = true;
+                        var aggressorCaptain = (attackerAgent.Formation.Captain.Character as CharacterObject)?.HeroObject;
+                        if (aggressorCaptain == null) return;
+                        var education = BannerKingsConfig.Instance.EducationManager?.GetHeroEducation(aggressorCaptain);
+                        if (education != null && education.HasPerk(BKPerks.Instance.JawwalDuneRider) && MBRandom.RandomFloat < 0.05f)
+                        {
+                            __result = true;
+                        }
                     }
+                }
+                catch
+                {
+                    // Defensive — never break the agent damage pipeline on
+                    // a flavour-perk postfix. Especially relevant under the
+                    // RBM stack where the agent/weapon/blow surface is
+                    // heavily transformed.
                 }
             }
 
@@ -94,25 +115,38 @@ namespace BannerKings.Patches
         [HarmonyPatch(typeof(SandboxAgentStatCalculateModel))]
         internal static class BKAgentStatsTweakPatches
         {
+            // Same RBM-stack rationale as BKAgentDamageTweakPatches above:
+            // these postfixes are flavour perks (JawwalGhazw, RitterIronHorses,
+            // CataphractEquites/AdaptiveTactics, JawwalCamelMaster, KheshigOutrider,
+            // FianFennid). Wrap in defensive try/catch so a misaligned
+            // RBM-stack state can't crash the stats pipeline.
             [HarmonyPostfix]
             [HarmonyPatch(nameof(SandboxAgentStatCalculateModel.GetEffectiveMaxHealth))]
             private static void GetEffectiveMaxHealthPostfix(Agent agent, ref float __result)
             {
-                if (agent.IsHuman) return;
-                var riderAgent = agent.RiderAgent;
-                var origin = riderAgent?.Origin;
-                if (origin == null) return;
-                var partyBase = origin.BattleCombatant as PartyBase;
-                var party = partyBase?.MobileParty;
-                if (party?.LeaderHero == null) return;
-                var education = BannerKingsConfig.Instance.EducationManager.GetHeroEducation(party.LeaderHero);
-                if (riderAgent.Monster != null && riderAgent.Monster.StringId == "camel")
+                try
                 {
-                    if (education.HasPerk(BKPerks.Instance.JawwalGhazw)) __result *= 1.1f;
+                    if (agent == null || agent.IsHuman) return;
+                    var riderAgent = agent.RiderAgent;
+                    var origin = riderAgent?.Origin;
+                    if (origin == null) return;
+                    var partyBase = origin.BattleCombatant as PartyBase;
+                    var party = partyBase?.MobileParty;
+                    if (party?.LeaderHero == null) return;
+                    var education = BannerKingsConfig.Instance.EducationManager?.GetHeroEducation(party.LeaderHero);
+                    if (education == null) return;
+                    if (riderAgent.Monster != null && riderAgent.Monster.StringId == "camel")
+                    {
+                        if (education.HasPerk(BKPerks.Instance.JawwalGhazw)) __result *= 1.1f;
+                    }
+                    else
+                    {
+                        if (education.HasPerk(BKPerks.Instance.RitterIronHorses)) __result *= 1.1f;
+                    }
                 }
-                else
+                catch
                 {
-                    if (education.HasPerk(BKPerks.Instance.RitterIronHorses)) __result *= 1.1f;
+                    // Defensive — see class-level RBM note.
                 }
             }
 
@@ -120,23 +154,33 @@ namespace BannerKings.Patches
             [HarmonyPatch(nameof(SandboxAgentStatCalculateModel.UpdateAgentStats))]
             private static void UpdateAgentStatsPostfix(Agent agent, AgentDrivenProperties agentDrivenProperties)
             {
-                if (agent.Character == null) return;
-                if (agent.Formation is not { Captain: { IsHero: true } }) return;
-                var captain = (agent.Formation.Captain.Character as CharacterObject)?.HeroObject;
-                if (captain == null) return;
-                var data = BannerKingsConfig.Instance.EducationManager.GetHeroEducation(captain);
-                if (agent.HasMount)
+                try
                 {
-                    if (data.HasPerk(BKPerks.Instance.CataphractEquites)) agentDrivenProperties.MountChargeDamage *= 1.1f;
-                    if (data.HasPerk(BKPerks.Instance.CataphractAdaptiveTactics)) agentDrivenProperties.MountManeuver *= 1.08f;
-                    if (agent.MountAgent.Monster.StringId == "camel" && data.HasPerk(BKPerks.Instance.JawwalCamelMaster))
-                        agentDrivenProperties.MountSpeed *= 1.08f;
-                    if (data.HasPerk(BKPerks.Instance.KheshigOutrider))
-                        agentDrivenProperties.MountSpeed *= 1.05f;
+                    if (agent?.Character == null) return;
+                    if (agent.Formation is not { Captain: { IsHero: true } }) return;
+                    var captain = (agent.Formation.Captain.Character as CharacterObject)?.HeroObject;
+                    if (captain == null) return;
+                    var data = BannerKingsConfig.Instance.EducationManager?.GetHeroEducation(captain);
+                    if (data == null) return;
+                    if (agent.HasMount)
+                    {
+                        if (data.HasPerk(BKPerks.Instance.CataphractEquites)) agentDrivenProperties.MountChargeDamage *= 1.1f;
+                        if (data.HasPerk(BKPerks.Instance.CataphractAdaptiveTactics)) agentDrivenProperties.MountManeuver *= 1.08f;
+                        if (agent.MountAgent?.Monster?.StringId == "camel" && data.HasPerk(BKPerks.Instance.JawwalCamelMaster))
+                            agentDrivenProperties.MountSpeed *= 1.08f;
+                        if (data.HasPerk(BKPerks.Instance.KheshigOutrider))
+                            agentDrivenProperties.MountSpeed *= 1.05f;
+                    }
+                    else if (data.HasPerk(BKPerks.Instance.FianFennid))
+                    {
+                        agentDrivenProperties.ThrustOrRangedReadySpeedMultiplier *= 1.1f;
+                    }
                 }
-                else if (data.HasPerk(BKPerks.Instance.FianFennid))
+                catch
                 {
-                    agentDrivenProperties.ThrustOrRangedReadySpeedMultiplier *= 1.1f;
+                    // Defensive — see class-level RBM note. RBM heavily
+                    // transforms agent driven properties; a stale read here
+                    // shouldn't crash the agent stats refresh.
                 }
             }
         }

@@ -4,7 +4,7 @@
         xsi:noNamespaceSchemaLocation="https://raw.githubusercontent.com/BUTR/Bannerlord.XmlSchemas/master/SubModule.xsd">
 	<Id value="BannerKings.Redux" />
 	<Name value="Banner Kings — Redux" />
-	<Version value="v1.9.1.2" />
+	<Version value="v1.9.1.3" />
 	<Official value="false" />
 	<DefaultModule value="true" />
 	<ModuleCategory value="Singleplayer" />
@@ -42,7 +42,16 @@
 		<DependedModuleMetadata id="RecruitEverywhere" order="LoadAfterThis" optional="true" />
 		<DependedModuleMetadata id="MarryAnyone" order="LoadAfterThis" optional="true" />
 		<DependedModuleMetadata id="BuyLandAtVillages" order="LoadAfterThis" optional="true" />
+		<!-- RBM v4.2.x renamed its module from "RBMCombat" (pre-v4) to "RBM";
+		     declared both so the launcher orders BK after either install. RBM_WS
+		     is the NavalDLC submod, also load-after. The RTS Camera pair are
+		     Mission-scope but BK has a few Mission-scope hooks (NavalPerkPatches,
+		     BKTournamentBehavior); load-after keeps the Harmony stack stable. -->
 		<DependedModuleMetadata id="RBMCombat" order="LoadAfterThis" optional="true" />
+		<DependedModuleMetadata id="RBM" order="LoadAfterThis" optional="true" />
+		<DependedModuleMetadata id="RBM_WS" order="LoadAfterThis" optional="true" />
+		<DependedModuleMetadata id="RTSCamera" order="LoadAfterThis" optional="true" />
+		<DependedModuleMetadata id="RTSCamera.CommandSystem" order="LoadAfterThis" optional="true" />
 		<DependedModuleMetadata id="AIInfluence" order="LoadAfterThis" optional="true" />
 		<DependedModuleMetadata id="realmofthrones.core" order="LoadAfterThis" optional="true" />
 	</DependedModuleMetadatas>
