@@ -108,6 +108,27 @@ namespace BannerKings.Settings
         [SettingPropertyGroup("{=2oJQ4Snn}Economy")]
         public bool LayeredEconomyYields { get; set; } = false;
 
+        // Phase 2 of the BK ↔ BetterEconomy estate-management transition.
+        // When enabled, the daily estate-data tick pulls Population / Slaves
+        // from BE's authoritative SettlementClassState (Serfs+Tenants and
+        // BondedLaborers, scaled by the per-estate WorkforceShare / SlaveShare).
+        // When disabled, the absolute BK counts stay frozen — Phase 1
+        // behaviour. Default ON; flip OFF to roll back if the BE-derived
+        // numbers misbehave on your save.
+        [SettingProperty("{=BKEstateBEDerivedPop}BE-derived Estate Population", RequireRestart = false, HintText = "{=BKEstateBEDerivedPopHint}When enabled, an estate's Population and Slaves counts are pulled from Bannerlord Living Economy's village class state every day (scaled by the estate's WorkforceShare / SlaveShare). When disabled, BK's absolute counts stay frozen at their last-written value. Default: true.")]
+        [SettingPropertyGroup("{=2oJQ4Snn}Economy")]
+        public bool EnableBEDerivedEstatePopulation { get; set; } = true;
+
+        // Auto-buy slaves daily behaviour for Yield / Sustained estates.
+        // When enabled, the daily clan tick checks each owned estate; if
+        // its spec is slave-leaning and its slave count is below target,
+        // debits gold from the owner and bumps the estate's slave pool via
+        // BetterEconomyBridge. Default ON; flip OFF if you want manual
+        // control over slave acquisition.
+        [SettingProperty("{=BKEstateAutoBuySlaves}Estate Auto-buy Slaves", RequireRestart = false, HintText = "{=BKEstateAutoBuySlavesHint}When enabled, Yield-spec and Sustained-spec estates automatically buy slaves daily from the village pool up to a target (50% of MaxManpower for Yield, 25% for Sustained), debited from the owner's gold at the settlement's slave price. Caps at 3 slaves per estate per day. Default: true.")]
+        [SettingPropertyGroup("{=2oJQ4Snn}Economy")]
+        public bool EnableEstateAutoSlavePurchase { get; set; } = true;
+
         [SettingPropertyFloatingInteger("{=!}Population Sizes", minValue: 0.5f, maxValue: 2f, "#0%", RequireRestart = false, HintText = "{=!}Change the max size for fief populations. Populations are the very core of fiefs, impacting the economy very significantly, military volunteers, construction, and all else. Default: 100%.")]
         [SettingPropertyGroup("{=P8UecnYf}Balancing")]
         public float Populations { get; set; } = 1f;

@@ -188,7 +188,14 @@ namespace BannerKings
             campaignStarter.AddBehavior(new BKAIVisitSettlementBehavior());
             campaignStarter.AddBehavior(new BKRaidCaptureBehavior());
             if (BannerKings.Utils.BKFeatureGates.EstatesEnabled)
+            {
                 campaignStarter.AddBehavior(new BKEstateIncomeBehavior());
+                // Phase 2 BE-transition: auto-buy slaves from the village's BE
+                // slave pool for Yield/Sustained-spec estates that are below
+                // their workforce target. Gated by an MCM toggle inside the
+                // behavior itself; registered only with the estates system.
+                campaignStarter.AddBehavior(new BKEstateAutoSlavePurchaseBehavior());
+            }
             // Vassal-knight land grants on top of EOF's lord-lands system.
             // Only registered when EOF is loaded; without EOF the behavior has
             // no income source to redirect and the grant table sits unused.

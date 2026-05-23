@@ -397,7 +397,42 @@ namespace BannerKings.Managers.Populations.Estates
         // log spam.
         private bool _driftLogged;
 
-        public void AddSlaves(int slaves) => Slaves += slaves;
+        // Phase 2 BE-transition: AddSlaves / AddPopulation now drive both
+        // BE's village class pool AND this estate's share. Old behavior was
+        // just Slaves += n / Population += n on the BK-local absolute count.
+        //
+        // Semantic:
+        //   +n  → n new slaves/workers enter the village (raid haul brought
+        //         home, immigration, etc). Bump BE pool by +n, bump share
+        //         so derived count reflects the +n net change on this
+        //         estate, refresh absolute mirror.
+        //   -n  → n leave the village (player takes them, death, escape).
+        //         Mirror change in reverse.
+        //
+        // The absolute Slaves/Population SaveableProperty field is still
+        // written (legacy consumers read it directly), but it's now a
+        // cached mirror of the derived count rather than the canonical
+        // store. Phase 3 will retire the absolute field once all consumers
+        // route through the derived path or the cached mirror reliably.
+        public void AddSlaves(int slaves)
+        {
+            if (slaves == 0) return;
+            Slaves += slaves; // keep legacy consumers reading the right number this tick
+
+            var s = EstatesData?.Settlement;
+            if (s == null) return;
+
+            // Mirror the change into BE's BondedLaborers pool and recompute
+            // SlaveShare against the new pool size so derived count tracks.
+            BannerKings.Utils.BetterEconomyBridge.UpdateClassCount(s, PopType.Slaves, slaves);
+            float bonded = BannerKings.Utils.BetterEconomyBridge.GetClassCount(s, PopType.Slaves);
+            if (bonded > 0f)
+            {
+                // share = absolute / pool — recompute against the just-bumped
+                // pool so the derived getter agrees with the absolute count.
+                SlaveShare = MathF.Clamp(Slaves / bonded, 0f, 1f);
+            }
+        }
 
         // Vacancy-claim cost in clan influence. Surfaced via BKEstatesModel
         // (gating) and EstateAction.TakeAction (deduction) — single source.
@@ -638,7 +673,54 @@ namespace BannerKings.Managers.Populations.Estates
 
         public void AddPopulation(int toAdd)
         {
+            if (toAdd == 0) return;
             Population += toAdd;
+
+            var s = EstatesData?.Settlement;
+            if (s == null) return;
+
+            // Distribute the population change across Serfs + Tenants in the
+            // BE pool. Default split: 70% Serfs, 30% Tenants — mirrors the
+            // class-distribution BetterEconomy's settlement growth tends
+            // toward. Tiny ints favor the larger bucket via the +0.5 rounding.
+            int serfDelta   = (int)System.Math.Floor(toAdd * 0.7f + 0.5f);
+            int tenantDelta = toAdd - serfDelta;
+            if (serfDelta != 0)
+                BannerKings.Utils.BetterEconomyBridge.UpdateClassCount(s, PopType.Serfs, serfDelta);
+            if (tenantDelta != 0)
+                BannerKings.Utils.BetterEconomyBridge.UpdateClassCount(s, PopType.Tenants, tenantDelta);
+
+            // Recompute share against the new pool size so derived agrees.
+            float serfs   = BannerKings.Utils.BetterEconomyBridge.GetClassCount(s, PopType.Serfs);
+            float tenants = BannerKings.Utils.BetterEconomyBridge.GetClassCount(s, PopType.Tenants);
+            float pool = serfs + tenants;
+            if (pool > 0f)
+            {
+                WorkforceShare = MathF.Clamp(Population / pool, 0f, 1f);
+            }
+        }
+
+        // Phase 2 BE-transition: daily refresh. Called from EstateData.Update.
+        // When BE's class state has moved (village pop grew / decayed / got
+        // raided), this pulls the new derived count into the cached absolute
+        // mirror so legacy consumers reading estate.Population see the
+        // up-to-date number.
+        //
+        // Gated on the MCM toggle (default ON). With the toggle OFF, behavior
+        // falls back to Phase 1: shares still exist but the absolute fields
+        // are not refreshed from BE.
+        public void RefreshFromBEPool()
+        {
+            if (BannerKings.Settings.BannerKingsSettings.Instance?.EnableBEDerivedEstatePopulation == false)
+                return;
+
+            int derivedPop = DerivedPopulation;
+            int derivedSl  = DerivedSlaves;
+
+            // -1 = BE not populated for this settlement; skip rather than
+            // overwrite the legacy value with garbage.
+            if (derivedPop >= 0) Population = derivedPop;
+            if (derivedSl  >= 0) Slaves     = derivedSl;
         }
 
         // Used by the Growth EstateSpec daily-tick handler. Splits the

@@ -286,6 +286,14 @@ namespace BannerKings.Managers.Populations.Estates
                     // this process. Major-event log only — non-spammy.
                     estate.LogBEDriftOnce();
 
+                    // Phase 2 BE-transition: pull the latest derived pop /
+                    // slaves from BE into the cached absolute fields, so
+                    // every consumer downstream reads up-to-date numbers
+                    // (income formula, UI, retinue caps). Gated on the
+                    // EnableBEDerivedEstatePopulation MCM toggle for safe
+                    // rollback to Phase 1 behaviour.
+                    estate.RefreshFromBEPool();
+
                     estate.Tick(data);
                     if (estate.Owner.IsDead)
                     {
