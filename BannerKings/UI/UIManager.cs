@@ -483,6 +483,97 @@ namespace BannerKings.UI
             }
         }
 
+        // Crash-htm 2026-05-22 20:29 caught a NullReferenceException deep
+        // inside the vanilla CharacterCreationCultureVM(CultureObject, Action)
+        // ctor during new-game culture-stage activation. No BK frames in the
+        // inner stack — NRE comes from one of the ctor's three null-risk
+        // sites:
+        //   1. (GameStateManager.Current.ActiveState as CharacterCreationState)
+        //      can short-circuit to null via ?., then the next line calls
+        //      characterCreationContent.GetFocusToAddByCulture(culture)
+        //      without a null check.
+        //   2. The CultureObject argument or its _cultureFeats backing field
+        //      can be null on an incompletely-loaded culture, NRE-ing the
+        //      foreach in GetCulturalFeats.
+        //   3. A null FeatObject in _cultureFeats NREs the
+        //      x => x.IsPositive predicate.
+        //
+        // BK doesn't add cultures, but the user's loadout includes RBM,
+        // RBM_WS, AdonnaysTroopChanger, NavalDLC, and BetterEconomy — any of
+        // which could leave a culture partly populated. Defensive Prefix:
+        // skip the VM construction (return false) when any of the three
+        // failure modes are present, with a one-line log so the offending
+        // culture is identifiable. The user sees one fewer card in the
+        // picker — better than the new-game flow exploding.
+        [HarmonyPatch(typeof(CharacterCreationCultureVM), MethodType.Constructor,
+                      typeof(CultureObject), typeof(Action<CharacterCreationCultureVM>))]
+        internal class CharacterCreationCultureVMCtorGuard
+        {
+            // Reflect the private _cultureFeats backing field once at type
+            // load — cheap, avoids repeated AccessTools calls per culture.
+            private static readonly System.Reflection.FieldInfo CultureFeatsField =
+                AccessTools.Field(typeof(CultureObject), "_cultureFeats");
+
+            [HarmonyPrefix]
+            private static bool Prefix(CultureObject culture)
+            {
+                try
+                {
+                    if (culture == null)
+                    {
+                        BannerKings.Utils.Logs.MajorEvent(() =>
+                            "[BK] CharacterCreationCultureVM: skipping null CultureObject");
+                        return false;
+                    }
+
+                    // Are we actually inside the CharacterCreationState? If the
+                    // active state is something else, the ctor's ?.-chain will
+                    // null and the next line will NRE. Skip cleanly.
+                    var activeState = TaleWorlds.Core.GameStateManager.Current?.ActiveState;
+                    if (!(activeState is TaleWorlds.CampaignSystem.CharacterCreationContent.CharacterCreationState))
+                    {
+                        BannerKings.Utils.Logs.MajorEvent(() =>
+                            $"[BK] CharacterCreationCultureVM: skipping '{culture.StringId}' — active state is not CharacterCreationState");
+                        return false;
+                    }
+
+                    // Reflect _cultureFeats; if null or contains a null entry,
+                    // the foreach inside GetCulturalFeats NREs. We can't easily
+                    // mutate the list back to non-null here without affecting
+                    // other gameplay, so just skip this culture.
+                    if (CultureFeatsField != null)
+                    {
+                        var feats = CultureFeatsField.GetValue(culture)
+                            as System.Collections.Generic.List<TaleWorlds.CampaignSystem.CharacterDevelopment.FeatObject>;
+                        if (feats == null)
+                        {
+                            BannerKings.Utils.Logs.MajorEvent(() =>
+                                $"[BK] CharacterCreationCultureVM: skipping '{culture.StringId}' — _cultureFeats is null");
+                            return false;
+                        }
+                        for (int i = 0; i < feats.Count; i++)
+                        {
+                            if (feats[i] == null)
+                            {
+                                BannerKings.Utils.Logs.MajorEvent(() =>
+                                    $"[BK] CharacterCreationCultureVM: skipping '{culture.StringId}' — null feat at index {i}");
+                                return false;
+                            }
+                        }
+                    }
+
+                    return true;
+                }
+                catch
+                {
+                    // Reflection / state lookup failures are themselves
+                    // diagnostic noise we don't want to escalate into a
+                    // crash. If we can't verify safety, skip.
+                    return false;
+                }
+            }
+        }
+
         [HarmonyPatch(typeof(CharacterCreationGainedPropertiesVM))]
         internal class CharacterCreationGainedPropertiesVMPatches
         {
