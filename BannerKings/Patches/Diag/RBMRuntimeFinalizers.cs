@@ -73,17 +73,40 @@ namespace BannerKings.Patches.Diag
             TryInstallSiegeArcherPointsFinalizer();
         }
 
-        // RBMAI.SiegeArcherPoints.OnMissionTick(float) — crash-htm
-        // 2026-05-22 22:53 and 2026-05-23 08:51 hit this. Calls
-        // GameEntity.Instantiate with a 1.3 overload that 1.4 dropped.
+        // SiegeArcherPoints (global namespace, NO "RBMAI." prefix — verified
+        // by ilspy on the user's RBMAI.dll: "public class SiegeArcherPoints :
+        // MissionLogic"). Crash-htm 2026-05-22 22:53 / 23 08:51 / 23 09:02
+        // all hit this — calls GameEntity.Instantiate with a 1.3 overload
+        // that 1.4 dropped. v1.9.1.11 used the wrong type FQN
+        // ("RBMAI.SiegeArcherPoints") so TypeByName returned null and the
+        // install always bailed.
+        //
+        // Diagnostic logging via TaleWorlds.Library.Debug.Print so the
+        // install attempt shows up in rgl_log_*.txt unconditionally —
+        // Logs.MajorEvent only writes when the MCM toggle is on, and the
+        // user hasn't enabled it, so previous releases gave us no signal
+        // about why the install was failing.
         private static void TryInstallSiegeArcherPointsFinalizer()
         {
             if (_siegeArcherPointsInstalled) return;
 
-            Type t = AccessTools.TypeByName("RBMAI.SiegeArcherPoints");
-            if (t == null) return;
+            Type t = AccessTools.TypeByName("SiegeArcherPoints");
+            if (t == null)
+            {
+                // The most common reason for being here is that RBMAI.dll
+                // is loaded but ilspy / our string is wrong, OR the type
+                // hasn't reached the AppDomain's loaded-type table yet
+                // (lazy CLR resolve). Either way — no-op, retry on next
+                // AssemblyLoad event.
+                return;
+            }
             MethodInfo m = AccessTools.Method(t, "OnMissionTick", new[] { typeof(float) });
-            if (m == null) return;
+            if (m == null)
+            {
+                TaleWorlds.Library.Debug.Print(
+                    $"[BK] RBMRuntimeFinalizers: found type {t.FullName} but no OnMissionTick(float) method — finalizer not installed");
+                return;
+            }
 
             try
             {
@@ -92,11 +115,15 @@ namespace BannerKings.Patches.Diag
                     typeof(RBMRuntimeFinalizers), nameof(SiegeArcherPointsFinalizer));
                 harmony.Patch(m, finalizer: new HarmonyMethod(finalizerMethod));
                 _siegeArcherPointsInstalled = true;
+                TaleWorlds.Library.Debug.Print(
+                    $"[BK] RBMRuntimeFinalizers: installed finalizer on {t.FullName}.OnMissionTick(float)");
                 BannerKings.Utils.Logs.MajorEvent(() =>
-                    "[BK] RBMRuntimeFinalizers: installed finalizer on RBMAI.SiegeArcherPoints.OnMissionTick(float)");
+                    $"[BK] RBMRuntimeFinalizers: installed finalizer on {t.FullName}.OnMissionTick(float)");
             }
             catch (Exception ex)
             {
+                TaleWorlds.Library.Debug.Print(
+                    $"[BK] RBMRuntimeFinalizers: failed to install SiegeArcherPoints finalizer: {ex.GetType().Name}: {ex.Message}");
                 BannerKings.Utils.Logs.MajorEvent(() =>
                     $"[BK] RBMRuntimeFinalizers: failed to install SiegeArcherPoints finalizer: {ex.GetType().Name}: {ex.Message}");
             }
