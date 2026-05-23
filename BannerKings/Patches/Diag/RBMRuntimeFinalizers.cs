@@ -41,6 +41,8 @@ namespace BannerKings.Patches.Diag
         private static bool _wired;
         private static bool _siegeArcherPointsInstalled;
         private static bool _siegeArcherPointsLogged;
+        private static bool _doPatchingFinalizerInstalled;
+        private static bool _doPatchingFinalizerLogged;
 
         // Idempotent global wire-up; safe to call from Main.OnSubModuleLoad.
         // Subscribes once per AppDomain.
@@ -86,6 +88,98 @@ namespace BannerKings.Patches.Diag
         public static void TryInstallAll()
         {
             TryInstallSiegeArcherPointsSkip();
+            TryInstallDoPatchingFinalizer();
+        }
+
+        // Crash htm 2026-05-23 22:39: RBM 4.3 on game v1.4.5 throws during
+        // mission start. Stack:
+        //   Mission.AfterStart()
+        //   → RBM.RBMAIPatchLogic.EarlyStart()
+        //   → RBMAI.RBMAiPatcher.DoPatching()
+        //   → Harmony.PatchAll(RBMAI.dll)
+        //   → PatchClassProcessor.Patch() throws HarmonyException
+        //     "Parameter 'forceDismounted' not found in method Mission::
+        //     SpawnTroop(...)" — RBMAI's prefix declares a parameter that
+        //     was removed from vanilla SpawnTroop in 1.4.
+        //
+        // BK has an existing [HarmonyFinalizer] on PatchClassProcessor.Patch
+        // (UIManager.RBMHarmonyPatchFinalizer, v1.9.1.8) that filters by
+        // container-type assembly name. That finalizer either doesn't fire
+        // on this build of Harmony or doesn't match the failing patch's
+        // owner — there is no "[BK] Swallowed RBM..." line in the user's
+        // log around the crash, only the HarmonyException propagating.
+        //
+        // This patch installs an additional Finalizer one level higher in
+        // the stack — directly on RBMAI.RBMAiPatcher.DoPatching. When
+        // DoPatching throws, we swallow. Any RBM patch classes that were
+        // already installed by the time of the throw stay installed; the
+        // specific patch class that's broken (and any after it in the
+        // iteration) silently fail. RBM loses partial functionality,
+        // Mission.AfterStart succeeds, battle entry survives.
+        //
+        // Trade-off relative to the existing finalizer: this is bluntly
+        // catches ANYTHING DoPatching throws, not just the specific
+        // SpawnTroop case. If RBM has unrelated patches that throw for
+        // unrelated reasons, those are swallowed too. Acceptable — the
+        // alternative is the game crash dialog, and the user can read the
+        // major_events.txt log to see what was swallowed.
+        private static void TryInstallDoPatchingFinalizer()
+        {
+            if (_doPatchingFinalizerInstalled) return;
+
+            // Type might be in namespace "RBMAI" or global. Try the FQN
+            // first, then fall back to name-only resolution.
+            Type t = AccessTools.TypeByName("RBMAI.RBMAiPatcher")
+                  ?? AccessTools.TypeByName("RBMAiPatcher");
+            if (t == null) return; // RBMAI not loaded yet — AssemblyLoad retry will catch it.
+
+            MethodInfo m = AccessTools.Method(t, "DoPatching");
+            if (m == null)
+            {
+                TaleWorlds.Library.Debug.Print(
+                    $"[BK] RBMRuntimeFinalizers: found type {t.FullName} but no DoPatching method — not installing PatchAll-swallow finalizer");
+                return;
+            }
+
+            try
+            {
+                var harmony = new Harmony("BannerKings.RBM.RuntimeFinalizers");
+                var finalizerMethod = AccessTools.Method(
+                    typeof(RBMRuntimeFinalizers), nameof(DoPatchingFinalizer));
+                harmony.Patch(m, finalizer: new HarmonyMethod(finalizerMethod));
+                _doPatchingFinalizerInstalled = true;
+                TaleWorlds.Library.Debug.Print(
+                    $"[BK] RBMRuntimeFinalizers: installed swallow-finalizer on {t.FullName}.DoPatching");
+                BannerKings.Utils.Logs.MajorEvent(() =>
+                    $"[BK] RBMRuntimeFinalizers: installed swallow-finalizer on {t.FullName}.DoPatching");
+            }
+            catch (Exception ex)
+            {
+                TaleWorlds.Library.Debug.Print(
+                    $"[BK] RBMRuntimeFinalizers: failed to install DoPatching swallow-finalizer: {ex.GetType().Name}: {ex.Message}");
+                BannerKings.Utils.Logs.MajorEvent(() =>
+                    $"[BK] RBMRuntimeFinalizers: failed to install DoPatching swallow-finalizer: {ex.GetType().Name}: {ex.Message}");
+            }
+        }
+
+        // Harmony Finalizer body. Returning null suppresses the exception.
+        // Logs once on first swallow so the user can see what dropped.
+        public static Exception DoPatchingFinalizer(Exception __exception)
+        {
+            if (__exception == null) return null;
+            try
+            {
+                if (!_doPatchingFinalizerLogged)
+                {
+                    _doPatchingFinalizerLogged = true;
+                    TaleWorlds.Library.Debug.Print(
+                        $"[BK] RBMRuntimeFinalizers: swallowed RBMAiPatcher.DoPatching exception ({__exception.GetType().Name}: {__exception.Message}). Some RBM patches may have failed to install — battle entry preserved.");
+                    BannerKings.Utils.Logs.MajorEvent(() =>
+                        $"[BK] RBMRuntimeFinalizers: swallowed RBMAiPatcher.DoPatching exception ({__exception.GetType().Name}: {__exception.Message})");
+                }
+            }
+            catch { /* never throw out of a finalizer */ }
+            return null; // suppress
         }
 
         // Install a Prefix returning false on SiegeArcherPoints.OnMissionTick.
