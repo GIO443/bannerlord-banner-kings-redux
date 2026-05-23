@@ -65,7 +65,14 @@
 	</ItemGroup>
 
 	<ItemGroup>
-		<PackageReference Include="Bannerlord.MCM" Version="5.5.5">
+		<!-- MCMv5 — same strict-version story as ButterLib + UIExtenderEx
+		     below. v5.5.5 NuGet stamps AssemblyVersion=5.5.5.0, which v1.9.1.6
+		     BK.dll references. Current ecosystem ships MCMv5 5.11.x; the user's
+		     crash report module list confirmed MCMv5 v5.11.4.0 installed.
+		     Without this bump, CLR refuses to bind v5.5.5.0 against the
+		     installed v5.11.4.0 — ReflectionTypeLoadException at OnSubModuleLoad,
+		     same shape as the UIExtenderEx issue v1.9.1.6 fixed. -->
+		<PackageReference Include="Bannerlord.MCM" Version="5.11.4">
 		  <IncludeAssets>compile</IncludeAssets>
 		</PackageReference>
 		<PackageReference Include="Nullable" Version="1.3.1" PrivateAssets="all" IncludeAssets="runtime; build; native; contentfiles; analyzers; buildtransitive" />
