@@ -296,6 +296,18 @@ namespace BannerKings
             base.OnSubModuleLoad();
             BKDiagnostics.Install();
 
+            // Lazy AppDomain.AssemblyLoad hook that installs RBM 1.4-compat
+            // runtime finalizers the moment RBMAI / RBMCombat surfaces.
+            // Subscribing here (not at OnGameStart) catches the load even
+            // when RBM lazy-loads its sub-assemblies after BK's patch sweep.
+            try { BannerKings.Patches.Diag.RBMRuntimeFinalizers.Install(); }
+            catch (System.Exception ex)
+            {
+                TaleWorlds.Library.Debug.Print(
+                    $"[BK] RBMRuntimeFinalizers.Install failed: {ex.GetType().Name}: {ex.Message}",
+                    color: TaleWorlds.Library.Debug.DebugColor.Yellow);
+            }
+
             // One-line startup audit of compat-detected mods. Lets the user
             // confirm "yes BK sees that RBM is loaded" from a single grep of
             // major_events.txt without launching a save. Pre-cached via the
