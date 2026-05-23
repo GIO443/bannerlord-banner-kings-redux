@@ -16,7 +16,7 @@
 					<Children>
 						<Widget WidthSizePolicy="StretchToParent" HeightSizePolicy="StretchToParent"  DoNotAcceptEvents="true">
 							<Children>
-								<ListPanel WidthSizePolicy="StretchToParent" HeightSizePolicy="StretchToParent" StackLayout.LayoutMethod="VerticalBottomToTop" DoNotAcceptEvents="true">
+								<ListPanel WidthSizePolicy="StretchToParent" HeightSizePolicy="StretchToParent" StackLayout.LayoutMethod="VerticalTopToBottom" DoNotAcceptEvents="true">
 									<Children>
 
 

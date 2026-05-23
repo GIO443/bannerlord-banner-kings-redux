@@ -1,5 +1,6 @@
 ﻿using BannerKings.Behaviours.Diplomacy;
 using BannerKings.Behaviours.Diplomacy.Groups;
+using BannerKings.UI.Items;
 using BannerKings.Utils.Models;
 using Bannerlord.UIExtenderEx.Attributes;
 using System.Collections.Generic;
@@ -23,6 +24,8 @@ namespace BannerKings.UI.VanillaTabs.Kingdoms.Groups
         private string demandName, createChance;
         private HintViewModel demandHint, inviteHint;
         private HintViewModel chanceHint;
+        private BKFillBarVM pushScoreBar, radicalismBar;
+        private string targetGovernmentText;
 
         public RadicalGroup RadicalGroup => (RadicalGroup)Group;
 
@@ -39,6 +42,38 @@ namespace BannerKings.UI.VanillaTabs.Kingdoms.Groups
         [DataSourceProperty] public string ChanceHeader => new TextObject("{=Un7UY83V}Creation Chance").ToString();
         [DataSourceProperty] public HintViewModel Hint => new HintViewModel(Group.Description);
 
+        // Politics-rework — PushScore is the headline: how strongly the realm
+        // currently conditions this group's target (low legitimacy, war,
+        // ceiling-pinned Crown Authority, etc). It is independent of whether
+        // the group currently has members — a radical group with a high
+        // push score in an empty realm is the warning sign that the faction
+        // is about to crystallise. Radicalism is the in-group readiness;
+        // both bars together tell the player "the realm is ripe for this"
+        // (push score) and "the group is ready to act" (radicalism).
+        [DataSourceProperty]
+        public BKFillBarVM PushScoreBar
+        {
+            get => pushScoreBar;
+            set { if (value != pushScoreBar) { pushScoreBar = value; OnPropertyChangedWithValue(value); } }
+        }
+
+        [DataSourceProperty]
+        public BKFillBarVM RadicalismBar
+        {
+            get => radicalismBar;
+            set { if (value != radicalismBar) { radicalismBar = value; OnPropertyChangedWithValue(value); } }
+        }
+
+        [DataSourceProperty]
+        public string TargetGovernmentText
+        {
+            get => targetGovernmentText;
+            set { if (value != targetGovernmentText) { targetGovernmentText = value; OnPropertyChangedWithValue(value); } }
+        }
+
+        [DataSourceProperty]
+        public bool HasTargetGovernment => !string.IsNullOrEmpty(targetGovernmentText);
+
         public override void RefreshValues()
         {
             base.RefreshValues();
@@ -46,6 +81,43 @@ namespace BannerKings.UI.VanillaTabs.Kingdoms.Groups
             Headers.Clear();
             IsEmpty = Group.Members.Count == 0;
             HasLeader = Group.Leader != null;
+
+            // Headline push score — derived live from the realm's conditions
+            // (legitimacy, fatigue, Crown Authority, legion loyalty, at-war
+            // state). 0 when no push-score fn is registered (legacy groups).
+            float push = RadicalGroup.PushScore;
+            PushScoreBar = new BKFillBarVM(
+                new TextObject("{=BKradPushScore}Push Score").ToString(),
+                push.ToString("0.00"),
+                push,
+                new BasicTooltipViewModel(() => PushScoreHint()));
+
+            // Radicalism is the in-group readiness — 1.0 fires an ultimatum.
+            RadicalismBar = new BKFillBarVM(
+                new TextObject("{=znEakOmv}Radicalism").ToString(),
+                new TextObject("{=BKradRadicalismVal}{NUM} / {CAP}")
+                    .SetTextVariable("NUM", RadicalGroup.Radicalism.ToString("0.00"))
+                    .SetTextVariable("CAP", Group.CurrentDemand != null ? Group.CurrentDemand.MinimumGroupInfluence.ToString("0.00") : "1.00")
+                    .ToString(),
+                RadicalGroup.Radicalism,
+                new BasicTooltipViewModel(() =>
+                    new TextObject("{=BKradRadicalismHint}Radicalism rises while the group's combined strength is 50% or more of the loyalist host, and decays otherwise. At 100% it triggers an ultimatum to the ruler.")
+                        .ToString()));
+
+            // Target government — only shown for the politics-rework groups
+            // (RepublicanMovement, ImperialRestoration). Pretender/Secession
+            // leave it null.
+            if (RadicalGroup.TargetGovernment != null)
+            {
+                TargetGovernmentText = new TextObject("{=BKradTarget}Pushes toward: {GOV}")
+                    .SetTextVariable("GOV", RadicalGroup.TargetGovernment.Name)
+                    .ToString();
+            }
+            else
+            {
+                TargetGovernmentText = string.Empty;
+            }
+
             if (Group.Leader != null)
             {
                 Leader = new GroupMemberVM(Group.Leader, true);
@@ -109,6 +181,27 @@ namespace BannerKings.UI.VanillaTabs.Kingdoms.Groups
                     IsActionEnabled = BannerKingsConfig.Instance.InterestGroupsModel.CanHeroJoinARadicalGroup(Hero.MainHero, KingdomDiplomacy);
                     ActionName = new TextObject("{=!}Join Group").ToString();
                 }
+
+                // Same lords/notables split as InterestGroupVM. Especially
+                // meaningful for the constitutional radicals (Republican /
+                // Imperial), which accept urban-notable members and read very
+                // differently when seeded in the cities vs in the magnate
+                // class.
+                int lordCount = 0, notableCount = 0;
+                foreach (var member in Group.Members)
+                {
+                    if (member == null) continue;
+                    if (member.IsNotable) notableCount++;
+                    else if (member.IsLord) lordCount++;
+                }
+
+                Headers.Add(new StringPairItemVM(new TextObject("{=BKgrpLords}Lords").ToString(),
+                    lordCount.ToString(),
+                    new BasicTooltipViewModel(() => new TextObject("{=BKgrpLordsHint}Clan-leader and noble members. Their political weight (vote, influence, military strength) feeds the group's headline numbers at full weight.").ToString())));
+
+                Headers.Add(new StringPairItemVM(new TextObject("{=BKgrpNotables}Notables").ToString(),
+                    notableCount.ToString(),
+                    new BasicTooltipViewModel(() => new TextObject("{=BKgrpRadNotablesHint}City notables (merchants, artisans, preachers, gang leaders) accept membership in the Republican Movement and Imperial Restoration factions. Their Power feeds the group's military strength at roughly a quarter of a lord's, but they shift the political face of the faction — a city-led Republican movement reads very differently from a magnate-led one.").ToString())));
 
                 Headers.Add(new StringPairItemVM(new TextObject("{=znEakOmv}Radicalism").ToString(),
                 new TextObject("{=8YCJrv0F}{NUMBER} / {CAPACITY}")
@@ -407,6 +500,42 @@ namespace BannerKings.UI.VanillaTabs.Kingdoms.Groups
                     OnPropertyChangedWithValue(value, "InviteHint");
                 }
             }
+        }
+
+        // Push-score qualitative + quantitative breakdown: name the realm
+        // conditions feeding the score so the player understands what they
+        // would have to change to weaken the faction.
+        private string PushScoreHint()
+        {
+            var diplo = RadicalGroup.KingdomDiplomacy;
+            if (diplo == null)
+                return new TextObject("{=BKradPushNoData}No realm data.").ToString();
+
+            var lines = new List<string>();
+            float legit = MathF.Clamp(diplo.Legitimacy, 0f, 1f);
+            float fatigue = MathF.Clamp(diplo.Fatigue, 0f, 1f);
+            lines.Add(new TextObject("{=BKradPushLegit}Crown legitimacy: {VAL}")
+                .SetTextVariable("VAL", $"{legit * 100f:0.0}%").ToString());
+            lines.Add(new TextObject("{=BKradPushFatigue}War fatigue: {VAL}")
+                .SetTextVariable("VAL", $"{fatigue * 100f:0.0}%").ToString());
+            if (diplo.Government != null)
+            {
+                lines.Add(new TextObject("{=BKradPushCA}Crown Authority: {CUR} (band {FLOOR}-{CEIL})")
+                    .SetTextVariable("CUR", diplo.CrownAuthority)
+                    .SetTextVariable("FLOOR", diplo.Government.CrownAuthorityFloor)
+                    .SetTextVariable("CEIL", diplo.Government.CrownAuthorityCeiling)
+                    .ToString());
+            }
+            if (RadicalGroup.TargetGovernment != null)
+            {
+                lines.Add(new TextObject("{=BKradPushTargetGov}Target: {GOV}")
+                    .SetTextVariable("GOV", RadicalGroup.TargetGovernment.Name)
+                    .ToString());
+            }
+            lines.Add(string.Empty);
+            lines.Add(new TextObject("{=BKradPushDesc}Push score is derived live from the conditions above. A score of 1.0 means the realm is fully ripe for this faction; a score near 0 means the conditions strongly disfavour it. A high push score in an empty radical group is the warning sign that the faction is about to crystallise.")
+                .ToString());
+            return string.Join("\n", lines);
         }
     }
 }

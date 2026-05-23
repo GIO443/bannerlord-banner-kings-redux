@@ -1,6 +1,7 @@
 using BannerKings.Behaviours.Diplomacy;
 using BannerKings.Behaviours.Diplomacy.Groups;
 using BannerKings.Behaviours.Diplomacy.Groups.Demands;
+using BannerKings.UI.Items;
 using BannerKings.Utils.Models;
 using Bannerlord.UIExtenderEx.Attributes;
 using System.Collections.Generic;
@@ -20,6 +21,7 @@ namespace BannerKings.UI.VanillaTabs.Kingdoms.Groups
         private bool isDemandEnabled;
         private string demandName;
         private HintViewModel demandHint;
+        private BKFillBarVM centralismBar, ideologyBar, tensionBar;
 
         public InterestGroup InterestGroup => (InterestGroup)Group;
 
@@ -35,6 +37,44 @@ namespace BannerKings.UI.VanillaTabs.Kingdoms.Groups
         [DataSourceProperty] public string GroupName => InterestGroup.Name.ToString();
         [DataSourceProperty] public string GroupText => InterestGroup.Description.ToString();
         [DataSourceProperty] public HintViewModel Hint => new HintViewModel(InterestGroup.Description);
+
+        // Politics-rework — 2-D ideological position bars. The group's signed
+        // pulls (-1..+1) render as a directional label + magnitude fraction,
+        // so the player can read both axis at a glance: "+1.0 Centralist" on
+        // a full bar reads stronger than "-0.5 Autonomist" on a half bar.
+        // Tension is the existing 0..100 group-tension pressure, surfaced as
+        // a third bar for the readiness-to-demand signal.
+        [DataSourceProperty]
+        public BKFillBarVM CentralismBar
+        {
+            get => centralismBar;
+            set { if (value != centralismBar) { centralismBar = value; OnPropertyChangedWithValue(value); } }
+        }
+
+        [DataSourceProperty]
+        public BKFillBarVM IdeologyBar
+        {
+            get => ideologyBar;
+            set { if (value != ideologyBar) { ideologyBar = value; OnPropertyChangedWithValue(value); } }
+        }
+
+        [DataSourceProperty]
+        public BKFillBarVM TensionBar
+        {
+            get => tensionBar;
+            set { if (value != tensionBar) { tensionBar = value; OnPropertyChangedWithValue(value); } }
+        }
+
+        // Format a signed pull as "<Label> {±0.NN}", picking the directional
+        // label by sign. centralist/autonomist for centralism, modernist/
+        // traditionalist for ideology. Zero reads as "Neutral".
+        private static string FormatSignedPull(float pull, string positiveLabel, string negativeLabel)
+        {
+            if (MathF.Abs(pull) < 0.01f) return new TextObject("{=BKgrpNeutral}Neutral").ToString();
+            string label = pull > 0f ? positiveLabel : negativeLabel;
+            string sign = pull > 0f ? "+" : "−";
+            return $"{label} {sign}{MathF.Abs(pull):0.00}";
+        }
 
         public override void RefreshValues()
         {
@@ -56,6 +96,42 @@ namespace BannerKings.UI.VanillaTabs.Kingdoms.Groups
                 }
             }
 
+            // Politics-rework bars: centralism + ideology axes and live tension.
+            string centralistLabel = new TextObject("{=BKgrpCentralist}Centralist").ToString();
+            string autonomistLabel = new TextObject("{=BKgrpAutonomist}Autonomist").ToString();
+            string modernistLabel = new TextObject("{=BKgrpModernist}Modernist").ToString();
+            string traditionalistLabel = new TextObject("{=BKgrpTraditionalist}Traditionalist").ToString();
+
+            CentralismBar = new BKFillBarVM(
+                new TextObject("{=BKgrpCentralismAxis}Centralism").ToString(),
+                FormatSignedPull(InterestGroup.CentralismPull, centralistLabel, autonomistLabel),
+                MathF.Abs(InterestGroup.CentralismPull),
+                new BasicTooltipViewModel(() =>
+                    new TextObject("{=BKgrpCentralismHint}The group's constitutional lean — a positive value pushes the realm toward a strong, central crown; a negative value pushes it toward devolved power for the magnates. The strongest pull in the realm (above the +0.15 / −0.15 threshold) is read as the ascendant political force when the realm's government is in transition.{newline}{newline}Group pull: {VAL}")
+                        .SetTextVariable("VAL", InterestGroup.CentralismPull.ToString("0.00"))
+                        .ToString()));
+
+            IdeologyBar = new BKFillBarVM(
+                new TextObject("{=BKgrpIdeologyAxis}Ideology").ToString(),
+                FormatSignedPull(InterestGroup.IdeologyPull, modernistLabel, traditionalistLabel),
+                MathF.Abs(InterestGroup.IdeologyPull),
+                new BasicTooltipViewModel(() =>
+                    new TextObject("{=BKgrpIdeologyHint}Where Centralism is about WHO holds the reins, Ideology is about HOW the state treats people. Modernist groups press the realm to put down older customs — lax duties on commoners and craftsmen, citizenship, jury trial — that they argue no longer fit. Traditionalist groups resist further restructuring of a society rooted in older forms; they never seek reversion to a tribal past, only oppose further change away from it.{newline}{newline}Group pull: {VAL}")
+                        .SetTextVariable("VAL", InterestGroup.IdeologyPull.ToString("0.00"))
+                        .ToString()));
+
+            float tensionFrac = InterestGroup.TensionPressure / 100f;
+            TensionBar = new BKFillBarVM(
+                new TextObject("{=BKgrpTension}Tension").ToString(),
+                new TextObject("{=BKgrpTensionVal}{VAL} / 100")
+                    .SetTextVariable("VAL", ((int)InterestGroup.TensionPressure).ToString())
+                    .ToString(),
+                tensionFrac,
+                new BasicTooltipViewModel(() =>
+                    new TextObject("{=BKgrpTensionHint}Tension rises slowly while the group has a grievance it could push (a supported policy that is not enacted, a shunned policy that is) and eases when its concerns are addressed. At 100 the group escalates and pushes a demand on its own. The rise rate scales with the MCM Political Pressure setting.{newline}{newline}Current: {VAL} / 100")
+                        .SetTextVariable("VAL", ((int)InterestGroup.TensionPressure).ToString())
+                        .ToString()));
+
             BKExplainedNumber influence = InterestGroup.InfluenceExplained;
 
             Headers.Add(new StringPairItemVM(new TextObject("{=EkFaisgP}Influence").ToString(),
@@ -68,9 +144,26 @@ namespace BannerKings.UI.VanillaTabs.Kingdoms.Groups
                 FormatValue(support.ResultNumber),
                 new BasicTooltipViewModel(() => support.GetFormattedPercentage())));
 
-            Headers.Add(new StringPairItemVM(new TextObject("{=eZEhpmxY}Members").ToString(),
-                InterestGroup.Members.Count.ToString(),
-                new BasicTooltipViewModel(() => new TextObject("{=Bm7Nc90U}The amount of members in this group.").ToString())));
+            // Split member count into lords + notables so a player reads at
+            // a glance whether a group is a magnates' faction or a city /
+            // village faction. Notable-only groups (Commoners with Headmen,
+            // Mercantile with Merchants/Artisans, etc.) read very differently
+            // from a Royalist faction.
+            int lordCount = 0, notableCount = 0;
+            foreach (var member in InterestGroup.Members)
+            {
+                if (member == null) continue;
+                if (member.IsNotable) notableCount++;
+                else if (member.IsLord) lordCount++;
+            }
+
+            Headers.Add(new StringPairItemVM(new TextObject("{=BKgrpLords}Lords").ToString(),
+                lordCount.ToString(),
+                new BasicTooltipViewModel(() => new TextObject("{=BKgrpLordsHint}Clan-leader and noble members. Their political weight (vote, influence, military strength) feeds the group's headline numbers at full weight.").ToString())));
+
+            Headers.Add(new StringPairItemVM(new TextObject("{=BKgrpNotables}Notables").ToString(),
+                notableCount.ToString(),
+                new BasicTooltipViewModel(() => new TextObject("{=BKgrpNotablesHint}Headmen, merchants, artisans, preachers, and gang leaders. Their political weight is roughly a quarter of a lord's, but each notable also contributes a daily tension delta from their settlement's mood and from how badly the realm's slavery + economic laws clash with their occupation profile.").ToString())));
 
             SecondaryHeaders.Add(new StringPairItemVM(new TextObject("{=OA58FJuM}Endorsed Trait").ToString(),
                 InterestGroup.MainTrait.Name.ToString(),
@@ -87,16 +180,27 @@ namespace BannerKings.UI.VanillaTabs.Kingdoms.Groups
             int lords = InterestGroup.Members.FindAll(x => x.IsLord).Count;
             int notables = InterestGroup.Members.FindAll(x => x.IsNotable).Count;
 
+            // Counts surface "what this group cares about" at a glance —
+            // the named list still appears in the hover, matching the project
+            // tooltip standard (quantitative + qualitative). Empty buckets
+            // collapse to "—" rather than "0" so a player can tell at a
+            // glance which axes the group has no stance on.
+            int supportedCount = (InterestGroup.SupportedPolicies?.Count ?? 0)
+                               + (InterestGroup.SupportedLaws?.Count ?? 0);
+            int shunnedCount = (InterestGroup.ShunnedPolicies?.Count ?? 0)
+                             + (InterestGroup.ShunnedLaws?.Count ?? 0);
+            int demandCount = InterestGroup.PossibleDemands?.Count ?? 0;
+
             TertiaryHeaders.Add(new StringPairItemVM(new TextObject("{=LwfduROT}Endorsed Acts").ToString(),
-                string.Empty,
+                supportedCount > 0 ? supportedCount.ToString() : "—",
                 new BasicTooltipViewModel(() => UIHelper.GetGroupEndorsed(InterestGroup))));
 
             TertiaryHeaders.Add(new StringPairItemVM(new TextObject("{=F5nvf0YA}Demands").ToString(),
-                string.Empty,
+                demandCount > 0 ? demandCount.ToString() : "—",
                 new BasicTooltipViewModel(() => UIHelper.GetGroupDemands(InterestGroup))));
 
             TertiaryHeaders.Add(new StringPairItemVM(new TextObject("{=r3H9r011}Shunned Acts").ToString(),
-                string.Empty,
+                shunnedCount > 0 ? shunnedCount.ToString() : "—",
                 new BasicTooltipViewModel(() => UIHelper.GetGroupShunned(InterestGroup))));
 
             DemandName = new TextObject("{=zVboRONd}Push Demand").ToString();

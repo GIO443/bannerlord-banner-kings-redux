@@ -640,17 +640,45 @@ namespace BannerKings.Behaviours
             private static readonly System.Reflection.MethodInfo OnAddPointMethod =
                 AccessTools.Method(typeof(TaleWorlds.CampaignSystem.ViewModelCollection.CharacterDeveloper.CharacterDeveloperHeroItemVM), "OnAddAttributePoint");
 
-            // Hero.SetAttributeValueInternal is the same canonical setter
-            // the BK seeder uses (BKSkillBehavior.SeedBKAttributesAndSkills)
-            // — goes through PropertyOwner.SetPropertyValue with the
-            // CharacterDevelopmentModel.MaxAttribute clamp built in. Need
-            // it here because vanilla's OnAddAttributePoint -> HeroDeveloper
-            // .AddAttribute path doesn't persist for BK's PresumedObject-
-            // registered Wisdom attribute: the visible value increments but
-            // Hero.GetAttributeValue reads 0 on next refresh, producing the
-            // "puts points in, clicks away, shows 0 again" symptom.
-            private static readonly System.Reflection.MethodInfo Hero_SetAttributeValueInternal =
-                AccessTools.Method(typeof(Hero), "SetAttributeValueInternal");
+            // CharacterDeveloperHeroItemVM uses a PENDING-allocation model
+            // that's invisible from the outside: the parent VM holds a
+            // PropertyOwner<CharacterAttribute> field _characterAttributes
+            // that mirrors the hero's attributes but accumulates pending
+            // changes inside the developer screen. The displayed attribute
+            // value, the +-button gating, and the OnAddAttributePoint logic
+            // all read from THAT field, not from the hero. Only on Done
+            // (ApplyChanges -> CharacterAttributeItemVM.Commit) does the
+            // pending diff actually propagate to the hero via
+            // HeroDeveloper.AddAttribute.
+            //
+            // Vanilla's InitializeCharacter only seeds _characterAttributes
+            // for the 6 attributes in Attributes.All. BK's Wisdom is
+            // intentionally NOT in Attributes.All (see comment further up),
+            // so _characterAttributes[Wisdom] starts at 0 — meaning the tile
+            // shows 0 instead of the hero's actual Wisdom, AND any click on
+            // + raises the pending state from a wrong baseline. Earlier BK
+            // closures wrote SetAttributeValueInternal / HeroDeveloper.
+            // AddAttribute directly on the hero, which is the canonical
+            // path for ENGINE-time seeding but is invisible to the VM's
+            // pending dict — symptom: button consumes a point but visible
+            // value stays, or button does nothing at all if our manual
+            // UnspentAttributePoints decrement no-ops against a VM that
+            // tracks its own UnspentAttributePoints separately.
+            //
+            // The right fix: (a) seed the parent VM's _characterAttributes
+            // for Wisdom from the hero before constructing the tile, so
+            // _initialAttValue captures the true starting point; (b) make
+            // the addPoint closure a thin wrapper around vanilla's
+            // OnAddAttributePoint (already reflected as OnAddPointMethod) —
+            // that does the pending-state increment, the
+            // UnspentAttributePoints decrement, and the display refresh in
+            // one call, exactly like the six vanilla attribute tiles.
+            // Hero state is updated on Done via the existing Commit flow.
+            private static readonly System.Reflection.FieldInfo Parent_CharacterAttributesField =
+                AccessTools.Field(typeof(TaleWorlds.CampaignSystem.ViewModelCollection.CharacterDeveloper.CharacterDeveloperHeroItemVM),
+                                  "_characterAttributes");
+            private static readonly System.Reflection.MethodInfo PropertyOwner_SetPropertyValueMethod =
+                Parent_CharacterAttributesField?.FieldType?.GetMethod("SetPropertyValue");
 
             [HarmonyPostfix]
             [HarmonyPatch("InitializeCharacter")]
@@ -679,40 +707,45 @@ namespace BannerKings.Behaviours
                             typeof(Action<TaleWorlds.CampaignSystem.ViewModelCollection.CharacterDeveloper.CharacterAttributeItemVM>),
                             __instance, OnInspectMethod);
 
-                    // BK-managed addPoint that writes through the canonical
-                    // setter and refreshes the tile. Vanilla's path silently
-                    // drops the write for BK's Wisdom; this routes around
-                    // that. Closure captures hero + parent VM so the
-                    // callback stays valid for the tile's lifetime.
-                    var heroForClosure = hero;
+                    // (a) Seed the parent VM's _characterAttributes for Wisdom
+                    //     from the hero before the tile is constructed. Vanilla
+                    //     InitializeCharacter never iterates Wisdom (it isn't
+                    //     in Attributes.All), so without this seeding the
+                    //     tile's _initialAttValue reads 0 instead of the hero's
+                    //     actual Wisdom — and Commit later would treat the
+                    //     user's "no clicks" as "remove all points to bring
+                    //     hero down to 0", which is the opposite of what we
+                    //     want.
+                    if (Parent_CharacterAttributesField != null && PropertyOwner_SetPropertyValueMethod != null)
+                    {
+                        var pendingAttrs = Parent_CharacterAttributesField.GetValue(__instance);
+                        if (pendingAttrs != null)
+                        {
+                            PropertyOwner_SetPropertyValueMethod.Invoke(pendingAttrs,
+                                new object[] { wisdom, hero.GetAttributeValue(wisdom) });
+                        }
+                    }
+
+                    // (b) addPoint just delegates to vanilla's
+                    //     OnAddAttributePoint on the parent VM. That does
+                    //     exactly what the six vanilla tiles do: decrements
+                    //     the VM's UnspentAttributePoints, increments
+                    //     _characterAttributes[wisdom] by 1, refreshes the
+                    //     character-screen counters. The tile's own
+                    //     ExecuteAddAttributePoint then auto-rereads its
+                    //     UnspentAttributePoints and calls RefreshWithCurrentValues
+                    //     so the visible AttributeValue updates immediately.
+                    //     On Done, CharacterAttributeItemVM.Commit walks the
+                    //     diff (AttributeValue - _initialAttValue) and calls
+                    //     HeroDeveloper.AddAttribute, which writes the hero's
+                    //     real Wisdom via Hero.SetAttributeValueInternal.
                     var parentForClosure = __instance;
-                    var wisdomForClosure = wisdom;
                     Action<TaleWorlds.CampaignSystem.ViewModelCollection.CharacterDeveloper.CharacterAttributeItemVM> addPoint =
                         (item) =>
                         {
                             try
                             {
-                                if (heroForClosure == null || heroForClosure.HeroDeveloper == null) return;
-                                if (heroForClosure.HeroDeveloper.UnspentAttributePoints <= 0) return;
-
-                                int current = heroForClosure.GetAttributeValue(wisdomForClosure);
-                                int max = TaleWorlds.CampaignSystem.Campaign.Current?.Models
-                                    ?.CharacterDevelopmentModel?.MaxAttribute ?? 10;
-                                if (current >= max) return;
-
-                                if (Hero_SetAttributeValueInternal != null)
-                                {
-                                    Hero_SetAttributeValueInternal.Invoke(heroForClosure,
-                                        new object[] { wisdomForClosure, current + 1 });
-                                }
-                                heroForClosure.HeroDeveloper.UnspentAttributePoints -= 1;
-
-                                // Refresh the tile so AttributeLevel reflects
-                                // the new value immediately. Calling
-                                // RefreshValues on the item VM is enough;
-                                // the parent VM's own counters update next
-                                // tick via vanilla bindings.
-                                item?.RefreshValues();
+                                OnAddPointMethod?.Invoke(parentForClosure, new object[] { item });
                             }
                             catch
                             {

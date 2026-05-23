@@ -32,8 +32,13 @@ namespace BannerKings.Behaviours.Diplomacy
         {
             get
             {
-                var target = LegitimacyTarget.ResultNumber;
-                float change = target * 0.01f;
+                // Target is a [0..1] proportion; the model can return
+                // out-of-range raw values, so clamp it. The step must be a
+                // fixed magnitude — deriving it from the target (the old
+                // target * 0.01f) froze legitimacy whenever the target was
+                // 0 or negative, since the step then evaluated to 0.
+                var target = MathF.Clamp(LegitimacyTarget.ResultNumber, 0f, 1f);
+                float change = 0.01f;
                 float diff = target - Legitimacy;
                 if (Legitimacy < target) return MathF.Clamp(change, 0f, diff);
                 else if (Legitimacy > target) return MathF.Clamp(-change, diff, 0f);
@@ -43,7 +48,10 @@ namespace BannerKings.Behaviours.Diplomacy
 
         public void AddLegitimacy(float legitimacy)
         {
-            Legitimacy = MathF.Min(1f, Legitimacy + legitimacy);
+            // Clamp both ends. Upper-only let a large negative delta drag the
+            // value below 0; downstream consumers (UI fill bars, SenseWeakness,
+            // ConsiderCrownAuthority lean) all assume Legitimacy ∈ [0,1].
+            Legitimacy = MathF.Clamp(Legitimacy + legitimacy, 0f, 1f);
         }
 
         public BKExplainedNumber LegitimacyTarget => BannerKingsConfig.Instance.LegitimacyModel.CalculateKingdomLegitimacy(this, false);
@@ -435,9 +443,21 @@ namespace BannerKings.Behaviours.Diplomacy
                 if (!adequate && Groups.Contains(group)) Groups.Remove(group);
             }
 
+            // Politics rework — radical groups now hard-gate on government
+            // type. A group with no SourceGovernments declared (Pretender,
+            // Secession) appears universally; a government-keyed group
+            // (Republican Movement, Imperial Restoration) only appears under
+            // its declared source government. Pre-existing groups already in
+            // RadicalGroups are not removed here even if the realm has since
+            // changed government — Update() handles drift through normal
+            // decay; the gate only prevents new spawns into the wrong context.
+            var currentGov = Government;
             foreach (var group in DefaultRadicalGroups.Instance.All)
-                if (!RadicalGroups.Any(x => group.StringId == x.StringId))
-                    RadicalGroups.Add((RadicalGroup)group.GetCopy(this));
+            {
+                if (RadicalGroups.Any(x => group.StringId == x.StringId)) continue;
+                if (!group.MatchesGovernment(currentGov)) continue;
+                RadicalGroups.Add((RadicalGroup)group.GetCopy(this));
+            }
 
             foreach (var clan in Kingdom.Clans)
             {

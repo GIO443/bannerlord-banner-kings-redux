@@ -38,7 +38,7 @@
 								</GridWidget>
 
 								<ListPanel DataSource="{Projects}" WidthSizePolicy="StretchToParent" HeightSizePolicy="StretchToParent"
-								           StackLayout.LayoutMethod="VerticalBottomToTop" MarginTop="200">
+								           StackLayout.LayoutMethod="VerticalTopToBottom" MarginTop="200">
 									<Children>
 
 										<ListPanel WidthSizePolicy="StretchToParent" HeightSizePolicy="Fixed"
@@ -148,7 +148,7 @@
 												
 
 												<ListPanel DataSource="{CurrentSelectedProject}" WidthSizePolicy="Fixed" HeightSizePolicy="StretchToParent"
-												           SuggestedWidth="390" HorizontalAlignment="Right" StackLayout.LayoutMethod="VerticalBottomToTop">
+												           SuggestedWidth="390" HorizontalAlignment="Right" StackLayout.LayoutMethod="VerticalTopToBottom">
 													<Children>
 
 														<TextWidget WidthSizePolicy="StretchToParent" HeightSizePolicy="CoverChildren"

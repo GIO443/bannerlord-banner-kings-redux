@@ -364,9 +364,248 @@ namespace BannerKings.Models.BKModels
             return result;
         }
 
-        public bool CanHeroJoinARadicalGroup(Hero hero, KingdomDiplomacy diplomacy) => CanHeroJoinAGroup(hero, diplomacy) && 
+        public bool CanHeroJoinARadicalGroup(Hero hero, KingdomDiplomacy diplomacy) => CanHeroJoinAGroup(hero, diplomacy) &&
             hero.IsClanLeader() &&
             diplomacy.GetHeroRadicalGroup(hero) == null;
+
+        // Per-group radical-membership gate. Pretender / Secession remain
+        // clan-only (those are dynastic-power factions; a notable's vote on
+        // who holds the crown is meaningless). The constitutional radicals —
+        // Republican Movement and Imperial Restoration — historically seed in
+        // the cities, so urban notables (merchants, artisans, preachers, gang
+        // leaders / rural-armoury types) qualify. A notable's Power feeds
+        // PowerProportion at the same ¼× weight already used by interest
+        // groups, so a city-led Republican faction reads as half as militarily
+        // potent as a clan-led one of equivalent count.
+        public bool CanHeroJoinARadicalGroup(Hero hero, RadicalGroup group, KingdomDiplomacy diplomacy)
+        {
+            if (group == null) return CanHeroJoinARadicalGroup(hero, diplomacy);
+            if (!CanHeroJoinAGroup(hero, diplomacy)) return false;
+            if (diplomacy.GetHeroRadicalGroup(hero) != null) return false;
+
+            // The constitutional radicals accept urban notables.
+            bool isConstitutional =
+                group.StringId == DefaultRadicalGroups.Instance.RepublicanMovement.StringId ||
+                group.StringId == DefaultRadicalGroups.Instance.ImperialRestoration.StringId;
+
+            if (isConstitutional && hero.IsNotable)
+                return IsUrbanProfessional(hero);
+
+            return hero.IsClanLeader();
+        }
+
+        // Urban-professional notable occupations — those whose interests live
+        // in the chartered city and would politically support / oppose a
+        // constitutional change. Headmen (rural commoners) and ordinary
+        // RuralNotables are pointedly excluded; they push civic demands
+        // through interest groups, not through constitutional radicals.
+        private static bool IsUrbanProfessional(Hero hero)
+        {
+            var occ = hero.Occupation;
+            return occ == Occupation.Merchant
+                || occ == Occupation.Artisan
+                || occ == Occupation.Preacher
+                || occ == Occupation.GangLeader;
+        }
+
+        // --- Notable politics integration ---------------------------------
+        //
+        // A notable contributes to their interest group's TensionPressure
+        // every tick based on the mood of the settlement they live in
+        // (loyalty / security / prosperity) PLUS how badly the realm's
+        // slavery + economic laws clash with their occupation profile. The
+        // result is signed: a content notable in a sympathetic realm eases
+        // tension; a restless notable in a hostile realm builds it. Caller
+        // clamps the per-tick total at the group level.
+        //
+        // Per-occupation law profiles are intentionally narrow — we only
+        // tilt notables on slavery + economic / civic legislation, since
+        // those are the laws a city-dwelling notable would actually feel.
+        // Higher-order constitutional questions (Crown Authority, government
+        // form) are the clan layer's concern, not the notable's.
+
+        // Daily mood contribution from a single notable, in the [-0.6..+0.6]
+        // range before any per-tick clamping at the caller.
+        public float CalculateNotableMood(Hero notable, KingdomDiplomacy diplomacy)
+        {
+            if (notable == null || !notable.IsNotable) return 0f;
+            var settlement = notable.CurrentSettlement ?? notable.HomeSettlement;
+            if (settlement == null || settlement.Town == null) return 0f;
+
+            // Base mood from the settlement's headline numbers. Centred so a
+            // mid-prosperity, mid-loyalty, mid-security town reads 0.
+            float loyaltyTerm = (settlement.Town.Loyalty - 50f) / 100f;     // -0.5..+0.5
+            float securityTerm = (settlement.Town.Security - 50f) / 100f;   // -0.5..+0.5
+            float prosperityTerm = (settlement.Town.Prosperity - 5000f) / 10000f; // -0.5..+0.5
+            float baseMood = (loyaltyTerm + securityTerm + prosperityTerm) / 3f;
+
+            // Per-notable amplifier from the realm's current slavery +
+            // economic laws clashing with the notable's occupation profile.
+            // mismatch ∈ [0..1]; we mix it as a mild signed bump.
+            float mismatch = GetNotableLawStanceMismatch(notable, diplomacy);
+            // A restless-law realm tips a notable AWAY from content (mood
+            // becomes more negative) by up to 0.3.
+            return MathF.Clamp(baseMood - mismatch * 0.3f, -0.6f, 0.6f);
+        }
+
+        // Share of the realm's slavery + economic / civic laws that the
+        // notable's occupation profile actively shuns, 0..1. The profile
+        // is occupation-keyed and intentionally narrow — see comment above.
+        public float GetNotableLawStanceMismatch(Hero notable, KingdomDiplomacy diplomacy)
+        {
+            if (notable == null || diplomacy?.Kingdom == null) return 0f;
+            var profile = GetOccupationProfile(notable.Occupation);
+            if (profile.ShunnedLawIds.Count == 0 && profile.ShunnedPolicyIds.Count == 0) return 0f;
+
+            // Active laws come from BK title contracts; active policies from
+            // vanilla Kingdom.ActivePolicies. We score the realm by counting
+            // shunned items that are currently in force.
+            int mismatches = 0;
+            int total = 0;
+
+            // Sovereign-title demesne laws
+            var sovereign = BannerKingsConfig.Instance.TitleManager?.GetSovereignTitle(diplomacy.Kingdom);
+            var activeLaws = sovereign?.Contract?.DemesneLaws;
+            if (activeLaws != null)
+            {
+                foreach (var law in activeLaws)
+                {
+                    if (law == null) continue;
+                    total++;
+                    if (profile.ShunnedLawIds.Contains(law.StringId)) mismatches++;
+                }
+            }
+
+            // Realm policies
+            foreach (var policy in diplomacy.Kingdom.ActivePolicies)
+            {
+                if (policy == null) continue;
+                total++;
+                if (profile.ShunnedPolicyIds.Contains(policy.StringId)) mismatches++;
+            }
+
+            return total > 0 ? (float)mismatches / total : 0f;
+        }
+
+        // Static occupation -> {shunned laws, shunned policies} table. Built
+        // once on first call. Authored against the existing BK demesne-law
+        // and vanilla-policy IDs — keep this list narrow (slavery + economic
+        // / civic) so notable politics doesn't quietly subsume the clan-layer
+        // policy debate.
+        private struct OccupationProfile
+        {
+            public HashSet<string> ShunnedLawIds;
+            public HashSet<string> ShunnedPolicyIds;
+            public static OccupationProfile Empty => new OccupationProfile
+            {
+                ShunnedLawIds = new HashSet<string>(),
+                ShunnedPolicyIds = new HashSet<string>(),
+            };
+        }
+
+        private static Dictionary<Occupation, OccupationProfile> _occupationProfiles;
+        private static OccupationProfile GetOccupationProfile(Occupation occupation)
+        {
+            if (_occupationProfiles == null) _occupationProfiles = BuildOccupationProfiles();
+            return _occupationProfiles.TryGetValue(occupation, out var p) ? p : OccupationProfile.Empty;
+        }
+
+        private static Dictionary<Occupation, OccupationProfile> BuildOccupationProfiles()
+        {
+            // Merchant — chartered trade interest. Slavery shunned (slaves
+            // undercut paid labour and depress trade volume); road tolls and
+            // war taxes shunned (they choke commerce). Serfdom shunned for
+            // the same reason — bound peasants don't move where the roads do.
+            var merchant = new OccupationProfile
+            {
+                ShunnedLawIds = new HashSet<string>
+                {
+                    "slavery_standard", "slavery_aserai", "slavery_vlandia",
+                    "serfs_agriculture_duties", "serfs_military_service_duties",
+                    "craftsmen_tax_duties", "craftsmen_military_service_duties",
+                },
+                ShunnedPolicyIds = new HashSet<string>
+                {
+                    "policy_road_tolls", "policy_war_tax", "policy_serfdom",
+                    "policy_state_monopolies",
+                },
+            };
+
+            // Artisan — guild and workshop interest. Slavery especially
+            // shunned (slave artisans undercut their trade outright). Heavy
+            // craftsmen duties hurt them directly.
+            var artisan = new OccupationProfile
+            {
+                ShunnedLawIds = new HashSet<string>
+                {
+                    "slavery_standard", "slavery_aserai", "slavery_vlandia",
+                    "craftsmen_tax_duties", "craftsmen_military_service_duties",
+                },
+                ShunnedPolicyIds = new HashSet<string>
+                {
+                    "policy_war_tax", "policy_serfdom",
+                },
+            };
+
+            // Preacher — religion-driven. Slavery uniformly shunned; heavy
+            // military-service duties on common people (drawing congregants
+            // into the host) shunned.
+            var preacher = new OccupationProfile
+            {
+                ShunnedLawIds = new HashSet<string>
+                {
+                    "slavery_standard", "slavery_aserai", "slavery_vlandia",
+                    "serfs_military_service_duties", "craftsmen_military_service_duties",
+                },
+                ShunnedPolicyIds = new HashSet<string>
+                {
+                    "policy_war_tax",
+                },
+            };
+
+            // Headman — rural commoner voice. Heavy serf duties + slavery
+            // both shunned. Note: headmen are deliberately NOT eligible for
+            // the constitutional radicals; this profile only feeds the
+            // interest-group tension path.
+            var headman = new OccupationProfile
+            {
+                ShunnedLawIds = new HashSet<string>
+                {
+                    "slavery_standard", "slavery_aserai", "slavery_vlandia",
+                    "serfs_agriculture_duties", "serfs_military_service_duties",
+                },
+                ShunnedPolicyIds = new HashSet<string>
+                {
+                    "policy_road_tolls", "policy_serfdom",
+                },
+            };
+
+            // GangLeader — the "armed urban" voice (city-armoury, militia
+            // captains). They shun policies that strengthen central state
+            // monopoly on force (royal guard, sacred majesty) and shun
+            // serfdom (their recruitment pool is the unbound poor).
+            var gang = new OccupationProfile
+            {
+                ShunnedLawIds = new HashSet<string>
+                {
+                    "serfs_agriculture_duties",
+                },
+                ShunnedPolicyIds = new HashSet<string>
+                {
+                    "policy_sacred_majesty", "policy_state_monopolies",
+                    "policy_royal_guard", "policy_serfdom",
+                },
+            };
+
+            return new Dictionary<Occupation, OccupationProfile>
+            {
+                { Occupation.Merchant, merchant },
+                { Occupation.Artisan, artisan },
+                { Occupation.Preacher, preacher },
+                { Occupation.Headman, headman },
+                { Occupation.GangLeader, gang },
+            };
+        }
         
         public bool CanHeroCreateAGroup(Hero hero, KingdomDiplomacy diplomacy)
         {
@@ -440,7 +679,7 @@ namespace BannerKings.Models.BKModels
             float ambition = hero.GetTraitLevel(BKTraits.Instance.Ambitious);
             result.AddFactor(ambition * 0.3f * (positiveResult ? 1 : -1), BKTraits.Instance.Ambitious.Name);
 
-            if (group.StringId == DefaultRadicalGroups.Instance.Claimant.StringId)
+            if (group.StringId == DefaultRadicalGroups.Instance.Pretender.StringId)
             {
                 ClaimantDemand demand = (ClaimantDemand)group.CurrentDemand;
                 if (demand.Claimant != null)

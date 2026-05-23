@@ -124,7 +124,7 @@
 						<!--Vertical Seperator-->
 						<Widget WidthSizePolicy="Fixed" HeightSizePolicy="StretchToParent" SuggestedWidth="!Top.VerticalDivider.Thin.Width" HorizontalAlignment="Right" VerticalAlignment="Top" PositionYOffset="-7" Sprite="SPGeneral\TownManagement\vertical_divider" AlphaFactor="0.7" VerticalFlip="true" />
 
-						<ListPanel DataSource="{CurrentSelectedProject}" WidthSizePolicy="Fixed" HeightSizePolicy="StretchToParent" SuggestedWidth="390" HorizontalAlignment="Right" StackLayout.LayoutMethod="VerticalBottomToTop">
+						<ListPanel DataSource="{CurrentSelectedProject}" WidthSizePolicy="Fixed" HeightSizePolicy="StretchToParent" SuggestedWidth="390" HorizontalAlignment="Right" StackLayout.LayoutMethod="VerticalTopToBottom">
 							<Children>
 
 								<TextWidget WidthSizePolicy="StretchToParent" HeightSizePolicy="CoverChildren" HorizontalAlignment="Center" MarginTop="15" Brush="TownManagement.ProjectPopup.Name.Text" Text="@Name" />

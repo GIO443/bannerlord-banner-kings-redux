@@ -9,6 +9,7 @@ using TaleWorlds.CampaignSystem;
 using TaleWorlds.CampaignSystem.Actions;
 using TaleWorlds.CampaignSystem.CharacterDevelopment;
 using TaleWorlds.Core;
+using TaleWorlds.Library;
 using TaleWorlds.Localization;
 using TaleWorlds.SaveSystem;
 using static BannerKings.Behaviours.Diplomacy.Groups.Demands.Demand;
@@ -23,10 +24,10 @@ namespace BannerKings.Behaviours.Diplomacy.Groups
         }
 
         public void Initialize(TextObject name, TextObject description, TraitObject mainTrait,
-            bool demandsCouncil, bool allowsCommoners, bool allowsNobles, List<Occupation> preferredOccupations, 
-            List<PolicyObject> supportedPolicy, List<PolicyObject> shunnedPolicies, List<DemesneLaw> supportedLaws, 
+            bool demandsCouncil, bool allowsCommoners, bool allowsNobles, List<Occupation> preferredOccupations,
+            List<PolicyObject> supportedPolicy, List<PolicyObject> shunnedPolicies, List<DemesneLaw> supportedLaws,
             List<DemesneLaw> shunnedLaws, List<CasusBelli> supportedCasusBelli, List<Demand> possibleDemands,
-            CouncilMember favoredPosition, float legitimacyFactor, float centralismPull = 0f)
+            CouncilMember favoredPosition, float legitimacyFactor, float centralismPull = 0f, float ideologyPull = 0f)
         {
             Initialize(name, description);
             MainTrait = mainTrait;
@@ -58,6 +59,7 @@ namespace BannerKings.Behaviours.Diplomacy.Groups
             FavoredPosition = favoredPosition;
             LegitimacyFactor = legitimacyFactor;
             CentralismPull = centralismPull;
+            IdeologyPull = ideologyPull;
         }
 
         public override DiplomacyGroup GetCopy(KingdomDiplomacy diplomacy)
@@ -66,7 +68,7 @@ namespace BannerKings.Behaviours.Diplomacy.Groups
             result.Initialize(Name, Description, MainTrait, DemandsCouncil, AllowsCommoners,
                 AllowsNobles, PreferredOccupations, SupportedPolicies, ShunnedPolicies, SupportedLaws,
                 ShunnedLaws, SupportedCasusBelli, PossibleDemands, FavoredPosition, LegitimacyFactor,
-                CentralismPull);
+                CentralismPull, IdeologyPull);
             result.KingdomDiplomacy = diplomacy;
             return result;
         }
@@ -77,7 +79,7 @@ namespace BannerKings.Behaviours.Diplomacy.Groups
             Initialize(i.Name, i.Description, i.MainTrait, i.DemandsCouncil, i.AllowsCommoners,
                 i.AllowsNobles, i.PreferredOccupations, i.SupportedPolicies, i.ShunnedPolicies, i.SupportedLaws,
                 i.ShunnedLaws, i.SupportedCasusBelli, i.PossibleDemands, i.FavoredPosition, i.LegitimacyFactor,
-                i.CentralismPull);
+                i.CentralismPull, i.IdeologyPull);
             foreach (var demand in PossibleDemands)
             {
                 demand.SetTexts();
@@ -131,6 +133,32 @@ namespace BannerKings.Behaviours.Diplomacy.Groups
                 float pressureScale = BannerKings.Settings.BannerKingsSettings.Instance.PoliticalPressure;
                 AddTensionPressure(agitated ? 2f * pressureScale : -3f);
 
+                // Notables-feed-politics: each notable member adds (or
+                // removes) tension based on their settlement's mood AND the
+                // realm's slavery + economic / civic laws clashing with
+                // their occupation profile. The sum is averaged over the
+                // notable count so a 20-notable group can't outrun the
+                // existing ±3/day baseline, and clamped per-tick at ±6.
+                int notableCount = 0;
+                float notableMoodSum = 0f;
+                foreach (var member in Members)
+                {
+                    if (member == null || !member.IsNotable) continue;
+                    notableMoodSum += BannerKingsConfig.Instance.InterestGroupsModel
+                        .CalculateNotableMood(member, KingdomDiplomacy);
+                    notableCount++;
+                }
+                if (notableCount > 0)
+                {
+                    float avgMood = notableMoodSum / notableCount;
+                    // mood ∈ [-0.6..+0.6]; we want a per-tick contribution
+                    // moderately sized. Negative mood (restless notables)
+                    // ADDS to tension — invert and scale.
+                    float notableDelta = -avgMood * 8f * pressureScale;
+                    notableDelta = MathF.Clamp(notableDelta, -6f, 6f);
+                    AddTensionPressure(notableDelta);
+                }
+
                 // Escalation — a tension at full pressure forces the demand.
                 // CanPushDemand then reports false (a demand is now active),
                 // so tension decays until this demand resolves.
@@ -172,6 +200,13 @@ namespace BannerKings.Behaviours.Diplomacy.Groups
         // Politics rework — the group's constitutional lean toward a strong
         // crown (+1) or devolved power (-1), declared in bk_interest_groups.xml.
         public float CentralismPull { get; private set; }
+        // Independent of CentralismPull. +1 modernist (push social-advance
+        // reform: lax-duties laws, jury, magistrates, citizenship, chartered
+        // institutions) .. -1 traditionalist (resist further restructuring of
+        // a tribal/feudal-rooted society — never seeks reversion, only opposes
+        // change). Together with CentralismPull these give a 2-D map a player
+        // can read against each interest group.
+        public float IdeologyPull { get; private set; }
         public List<Occupation> PreferredOccupations { get; private set; }
         public List<PolicyObject> SupportedPolicies { get; private set; }
         public List<PolicyObject> ShunnedPolicies { get; private set; }

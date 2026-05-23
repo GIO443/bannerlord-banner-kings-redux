@@ -30,9 +30,6 @@
   leader perks). The MCM "Army Cohesion Boost" slider now actually
   matches its tooltip: at 50% it halves daily cohesion loss; at 0% it
   matches vanilla.
-- **"My lifestyle locked at Scholar"** — Scholar requires the scholarship
-  gate (any of ScholarshipMechanic, Accountant, NaturalScientist, Treasurer).
-  Without it, progress doesn't tick.
 - **"Council Marshal didn't reduce wages"** — the reduction is
   multiplicative; other modifiers (custom troop, mercenary status) can
   dominate. Check the wage tooltip breakdown in the party UI.
@@ -58,8 +55,9 @@
   Per-tick fluency gain is now hard-capped at 5%, so even with the worst
   rate inputs a language can't finish in fewer than ~20 in-game days.
 - **"How do I use the Religion / Theology system?"** As of v1.8.9.0
-  the seven culture faiths (Darusosian, Canticles, Amra, Asera, Six
-  Winds, Treelore, Osfeyd) are seeded and functional — heroes get a
+  the seven culture faiths (Darusosian Path, Canticles of Caïon, Amra
+  Druidh, Path of Akhmar, Six Winds, Old Gods of the North, Osfeydian
+  Tradition) are seeded and functional — heroes get a
   faith automatically, preacher notables generate at settlements,
   and dialogue with a preacher of your faith gives blessings, rites
   and induction options. See [Player-Guide → Religion](Player-Guide#religion)

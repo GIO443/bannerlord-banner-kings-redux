@@ -42,55 +42,20 @@
 											</Children>
 										</ListPanel>
 
-										<!-- Politics dashboard: Crown Authority / Legitimacy / War Fatigue / Transition -->
+										<!-- Politics dashboard: Crown Authority / Legitimacy / War Fatigue / Transition.
+										     Each is a BKFillBar kit component bound to a BKFillBarVM on the VM. -->
 										<ListPanel WidthSizePolicy="CoverChildren" HeightSizePolicy="CoverChildren" HorizontalAlignment="Center"
 												   VerticalAlignment="Center" StackLayout.LayoutMethod="VerticalBottomToTop" MarginTop="15" MarginBottom="10"
 												   IsVisible="@HasDiplomacy">
 											<Children>
 
-												<Widget WidthSizePolicy="Fixed" HeightSizePolicy="Fixed" SuggestedWidth="660" SuggestedHeight="46" HorizontalAlignment="Center">
-													<Children>
-														<HintWidget DataSource="{CrownAuthorityHint}" WidthSizePolicy="StretchToParent" HeightSizePolicy="StretchToParent"
-																	Command.HoverBegin="ExecuteBeginHint" Command.HoverEnd="ExecuteEndHint" />
-														<RichTextWidget WidthSizePolicy="CoverChildren" HeightSizePolicy="CoverChildren" HorizontalAlignment="Left"
-																VerticalAlignment="Center" Brush="Clan.Leader.Text" Brush.FontSize="22" Text="@CrownAuthorityLabel" />
-														<RichTextWidget WidthSizePolicy="CoverChildren" HeightSizePolicy="CoverChildren" HorizontalAlignment="Right"
-																VerticalAlignment="Center" Brush="ArmyManagement.Army.Tuple.Name" Brush.FontSize="24" Text="@CrownAuthorityValue" />
-													</Children>
-												</Widget>
+												<BKFillBar DataSource="{CrownAuthorityBar}" HorizontalAlignment="Center" MarginTop="6" MarginBottom="6" />
 
-												<Widget WidthSizePolicy="Fixed" HeightSizePolicy="Fixed" SuggestedWidth="660" SuggestedHeight="46" HorizontalAlignment="Center">
-													<Children>
-														<HintWidget DataSource="{LegitimacyHint}" WidthSizePolicy="StretchToParent" HeightSizePolicy="StretchToParent"
-																	Command.HoverBegin="ExecuteBeginHint" Command.HoverEnd="ExecuteEndHint" />
-														<RichTextWidget WidthSizePolicy="CoverChildren" HeightSizePolicy="CoverChildren" HorizontalAlignment="Left"
-																VerticalAlignment="Center" Brush="Clan.Leader.Text" Brush.FontSize="22" Text="@LegitimacyLabel" />
-														<RichTextWidget WidthSizePolicy="CoverChildren" HeightSizePolicy="CoverChildren" HorizontalAlignment="Right"
-																VerticalAlignment="Center" Brush="ArmyManagement.Army.Tuple.Name" Brush.FontSize="24" Text="@LegitimacyValue" />
-													</Children>
-												</Widget>
+												<BKFillBar DataSource="{LegitimacyBar}" HorizontalAlignment="Center" MarginTop="6" MarginBottom="6" />
 
-												<Widget WidthSizePolicy="Fixed" HeightSizePolicy="Fixed" SuggestedWidth="660" SuggestedHeight="46" HorizontalAlignment="Center">
-													<Children>
-														<HintWidget DataSource="{FatigueHint}" WidthSizePolicy="StretchToParent" HeightSizePolicy="StretchToParent"
-																	Command.HoverBegin="ExecuteBeginHint" Command.HoverEnd="ExecuteEndHint" />
-														<RichTextWidget WidthSizePolicy="CoverChildren" HeightSizePolicy="CoverChildren" HorizontalAlignment="Left"
-																VerticalAlignment="Center" Brush="Clan.Leader.Text" Brush.FontSize="22" Text="@FatigueLabel" />
-														<RichTextWidget WidthSizePolicy="CoverChildren" HeightSizePolicy="CoverChildren" HorizontalAlignment="Right"
-																VerticalAlignment="Center" Brush="ArmyManagement.Army.Tuple.Name" Brush.FontSize="24" Text="@FatigueValue" />
-													</Children>
-												</Widget>
+												<BKFillBar DataSource="{FatigueBar}" HorizontalAlignment="Center" MarginTop="6" MarginBottom="6" />
 
-												<Widget WidthSizePolicy="Fixed" HeightSizePolicy="Fixed" SuggestedWidth="660" SuggestedHeight="46" HorizontalAlignment="Center">
-													<Children>
-														<HintWidget DataSource="{TransitionHint}" WidthSizePolicy="StretchToParent" HeightSizePolicy="StretchToParent"
-																	Command.HoverBegin="ExecuteBeginHint" Command.HoverEnd="ExecuteEndHint" />
-														<RichTextWidget WidthSizePolicy="CoverChildren" HeightSizePolicy="CoverChildren" HorizontalAlignment="Left"
-																VerticalAlignment="Center" Brush="Clan.Leader.Text" Brush.FontSize="22" Text="@TransitionLabel" />
-														<RichTextWidget WidthSizePolicy="CoverChildren" HeightSizePolicy="CoverChildren" HorizontalAlignment="Right"
-																VerticalAlignment="Center" Brush="ArmyManagement.Army.Tuple.Name" Brush.FontSize="24" Text="@TransitionValue" />
-													</Children>
-												</Widget>
+												<BKFillBar DataSource="{TransitionBar}" HorizontalAlignment="Center" MarginTop="6" MarginBottom="6" />
 
 											</Children>
 										</ListPanel>

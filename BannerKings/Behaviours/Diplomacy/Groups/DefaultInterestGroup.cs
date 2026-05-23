@@ -33,6 +33,8 @@ namespace BannerKings.Behaviours.Diplomacy.Groups
         public InterestGroup Oligarchists => GetById("oligarchists");
         public InterestGroup Zealots => GetById("zealots");
         public InterestGroup Commoners => GetById("commoners");
+        public InterestGroup Reformists => GetById("reformists");
+        public InterestGroup Mercantile => GetById("mercantile");
 
         public override IEnumerable<InterestGroup> All
         {
@@ -120,7 +122,8 @@ namespace BannerKings.Behaviours.Diplomacy.Groups
                     possibleDemands,
                     favoredPosition,
                     BKXml.Float(row, "legitimacy_factor", 0f),
-                    BKXml.Float(row, "centralism_pull", 0f));
+                    BKXml.Float(row, "centralism_pull", 0f),
+                    BKXml.Float(row, "ideology_pull", 0f));
                 _loaded.Add(group);
             }
         }
