@@ -48,20 +48,57 @@ namespace BannerKings.Behaviours
                 return;
             }
 
-            foreach (var element in roster)
+            // Pre-fix had two bugs that together made modifier-tagged trade
+            // goods miss out on bonus XP:
+            //
+            //   1. The bonus per element was capped at "max(0, value-base)",
+            //      which is zero by construction for negative-multiplier
+            //      modifiers (crude_goods 0.8x, cracked_goods 0.4x). Selling
+            //      a stack of Crude Silver gave the vanilla base XP and
+            //      nothing else.
+            //
+            //   2. The bonus fired once per STACK regardless of how many
+            //      units sold. Selling 1 of 50 stack and 50 of 50 stack
+            //      yielded identical bonus. Wrong dimensionality.
+            //
+            // Both fixed below. soldCount comes from snapshot minus current,
+            // so partial-stack sells contribute proportionally. The bonus has
+            // two terms:
+            //
+            //   markup    = max(0, value - baseValue) * soldCount   (positive
+            //               modifiers benefit; same intent as before, now
+            //               correctly scaled per unit sold)
+            //   consolation = value * 0.05 * soldCount              (always
+            //               positive; gives crude/cracked items a small but
+            //               non-zero bonus so they're worth trading)
+            //
+            // The consolation is intentionally small (5% of sale value vs the
+            // up-to-150%-of-base markup) so Crude << Fine even on items where
+            // the consolation is the only bonus.
+            foreach (var snapshot in roster)
             {
-                if (!mainRoster.Contains(element))
+                int snapshotAmount = snapshot.Amount;
+                int currentAmount = 0;
+                foreach (var current in mainRoster)
                 {
-                    var baseValue = element.EquipmentElement.GetBaseValue();
-                    var value = settlement.IsVillage ? settlement.Village.GetItemPrice(element.EquipmentElement, MobileParty.MainParty, true) : 
-                        settlement.Town.GetItemPrice(element.EquipmentElement, MobileParty.MainParty, true);
-                    if (value > baseValue)
+                    if (current.EquipmentElement.IsEqualTo(snapshot.EquipmentElement))
                     {
-                        profit += value - baseValue;
+                        currentAmount = current.Amount;
+                        break;
                     }
                 }
-            }
+                int soldCount = snapshotAmount - currentAmount;
+                if (soldCount <= 0) continue;
 
+                int baseValue = snapshot.EquipmentElement.GetBaseValue();
+                int value = settlement.IsVillage
+                    ? settlement.Village.GetItemPrice(snapshot.EquipmentElement, MobileParty.MainParty, true)
+                    : settlement.Town.GetItemPrice(snapshot.EquipmentElement, MobileParty.MainParty, true);
+
+                int markup = TaleWorlds.Library.MathF.Max(0, value - baseValue) * soldCount;
+                int consolation = (int)(value * 0.05f * soldCount);
+                profit += markup + consolation;
+            }
 
             if (profit > 0)
             {
