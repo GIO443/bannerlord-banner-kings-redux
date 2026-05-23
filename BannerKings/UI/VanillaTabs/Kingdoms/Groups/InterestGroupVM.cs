@@ -144,9 +144,26 @@ namespace BannerKings.UI.VanillaTabs.Kingdoms.Groups
                 FormatValue(support.ResultNumber),
                 new BasicTooltipViewModel(() => support.GetFormattedPercentage())));
 
-            Headers.Add(new StringPairItemVM(new TextObject("{=eZEhpmxY}Members").ToString(),
-                InterestGroup.Members.Count.ToString(),
-                new BasicTooltipViewModel(() => new TextObject("{=Bm7Nc90U}The amount of members in this group.").ToString())));
+            // Split member count into lords + notables so a player reads at
+            // a glance whether a group is a magnates' faction or a city /
+            // village faction. Notable-only groups (Commoners with Headmen,
+            // Mercantile with Merchants/Artisans, etc.) read very differently
+            // from a Royalist faction.
+            int lordCount = 0, notableCount = 0;
+            foreach (var member in InterestGroup.Members)
+            {
+                if (member == null) continue;
+                if (member.IsNotable) notableCount++;
+                else if (member.IsLord) lordCount++;
+            }
+
+            Headers.Add(new StringPairItemVM(new TextObject("{=BKgrpLords}Lords").ToString(),
+                lordCount.ToString(),
+                new BasicTooltipViewModel(() => new TextObject("{=BKgrpLordsHint}Clan-leader and noble members. Their political weight (vote, influence, military strength) feeds the group's headline numbers at full weight.").ToString())));
+
+            Headers.Add(new StringPairItemVM(new TextObject("{=BKgrpNotables}Notables").ToString(),
+                notableCount.ToString(),
+                new BasicTooltipViewModel(() => new TextObject("{=BKgrpNotablesHint}Headmen, merchants, artisans, preachers, and gang leaders. Their political weight is roughly a quarter of a lord's, but each notable also contributes a daily tension delta from their settlement's mood and from how badly the realm's slavery + economic laws clash with their occupation profile.").ToString())));
 
             SecondaryHeaders.Add(new StringPairItemVM(new TextObject("{=OA58FJuM}Endorsed Trait").ToString(),
                 InterestGroup.MainTrait.Name.ToString(),

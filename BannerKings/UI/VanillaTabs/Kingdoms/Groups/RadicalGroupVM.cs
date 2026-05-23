@@ -182,6 +182,27 @@ namespace BannerKings.UI.VanillaTabs.Kingdoms.Groups
                     ActionName = new TextObject("{=!}Join Group").ToString();
                 }
 
+                // Same lords/notables split as InterestGroupVM. Especially
+                // meaningful for the constitutional radicals (Republican /
+                // Imperial), which accept urban-notable members and read very
+                // differently when seeded in the cities vs in the magnate
+                // class.
+                int lordCount = 0, notableCount = 0;
+                foreach (var member in Group.Members)
+                {
+                    if (member == null) continue;
+                    if (member.IsNotable) notableCount++;
+                    else if (member.IsLord) lordCount++;
+                }
+
+                Headers.Add(new StringPairItemVM(new TextObject("{=BKgrpLords}Lords").ToString(),
+                    lordCount.ToString(),
+                    new BasicTooltipViewModel(() => new TextObject("{=BKgrpLordsHint}Clan-leader and noble members. Their political weight (vote, influence, military strength) feeds the group's headline numbers at full weight.").ToString())));
+
+                Headers.Add(new StringPairItemVM(new TextObject("{=BKgrpNotables}Notables").ToString(),
+                    notableCount.ToString(),
+                    new BasicTooltipViewModel(() => new TextObject("{=BKgrpRadNotablesHint}City notables (merchants, artisans, preachers, gang leaders) accept membership in the Republican Movement and Imperial Restoration factions. Their Power feeds the group's military strength at roughly a quarter of a lord's, but they shift the political face of the faction — a city-led Republican movement reads very differently from a magnate-led one.").ToString())));
+
                 Headers.Add(new StringPairItemVM(new TextObject("{=znEakOmv}Radicalism").ToString(),
                 new TextObject("{=8YCJrv0F}{NUMBER} / {CAPACITY}")
                 .SetTextVariable("NUMBER", FormatValue(RadicalGroup.Radicalism))

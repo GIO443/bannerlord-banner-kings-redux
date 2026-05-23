@@ -157,8 +157,8 @@ namespace BannerKings.Behaviours.Diplomacy.Groups
             }
         }
 
-        public override bool CanHeroJoin(Hero hero, KingdomDiplomacy diplomacy) => 
-            BannerKingsConfig.Instance.InterestGroupsModel.CanHeroJoinARadicalGroup(hero, KingdomDiplomacy);
+        public override bool CanHeroJoin(Hero hero, KingdomDiplomacy diplomacy) =>
+            BannerKingsConfig.Instance.InterestGroupsModel.CanHeroJoinARadicalGroup(hero, this, KingdomDiplomacy);
 
         public override bool CanHeroLeave(Hero hero, KingdomDiplomacy diplomacy)
         {

@@ -9,6 +9,7 @@ using TaleWorlds.CampaignSystem;
 using TaleWorlds.CampaignSystem.Actions;
 using TaleWorlds.CampaignSystem.CharacterDevelopment;
 using TaleWorlds.Core;
+using TaleWorlds.Library;
 using TaleWorlds.Localization;
 using TaleWorlds.SaveSystem;
 using static BannerKings.Behaviours.Diplomacy.Groups.Demands.Demand;
@@ -131,6 +132,32 @@ namespace BannerKings.Behaviours.Diplomacy.Groups
                 // content group's tension eases.
                 float pressureScale = BannerKings.Settings.BannerKingsSettings.Instance.PoliticalPressure;
                 AddTensionPressure(agitated ? 2f * pressureScale : -3f);
+
+                // Notables-feed-politics: each notable member adds (or
+                // removes) tension based on their settlement's mood AND the
+                // realm's slavery + economic / civic laws clashing with
+                // their occupation profile. The sum is averaged over the
+                // notable count so a 20-notable group can't outrun the
+                // existing ±3/day baseline, and clamped per-tick at ±6.
+                int notableCount = 0;
+                float notableMoodSum = 0f;
+                foreach (var member in Members)
+                {
+                    if (member == null || !member.IsNotable) continue;
+                    notableMoodSum += BannerKingsConfig.Instance.InterestGroupsModel
+                        .CalculateNotableMood(member, KingdomDiplomacy);
+                    notableCount++;
+                }
+                if (notableCount > 0)
+                {
+                    float avgMood = notableMoodSum / notableCount;
+                    // mood ∈ [-0.6..+0.6]; we want a per-tick contribution
+                    // moderately sized. Negative mood (restless notables)
+                    // ADDS to tension — invert and scale.
+                    float notableDelta = -avgMood * 8f * pressureScale;
+                    notableDelta = MathF.Clamp(notableDelta, -6f, 6f);
+                    AddTensionPressure(notableDelta);
+                }
 
                 // Escalation — a tension at full pressure forces the demand.
                 // CanPushDemand then reports false (a demand is now active),
