@@ -83,6 +83,18 @@ namespace BannerKings.Behaviours
             var settlement = estate.EstatesData?.Settlement;
             if (settlement == null) return;
 
+            // Skip the auto-buy when the estate owner's clan also owns the
+            // village. GiveGoldAction.ApplyForCharacterToSettlement credits
+            // the village's owner clan, so an owner-on-own-village buy
+            // round-trips the gold and the cap-of-3/day becomes "3 free
+            // slaves per estate per day". Force the player to allocate
+            // their own slaves in that case (via the estate UI button).
+            if (settlement.OwnerClan != null && estate.Owner.Clan != null
+                && settlement.OwnerClan == estate.Owner.Clan)
+            {
+                return;
+            }
+
             int slavePrice = (int) BannerKingsConfig.Instance.GrowthModel
                 .CalculateSlavePrice(settlement).ResultNumber;
             if (slavePrice <= 0) return;

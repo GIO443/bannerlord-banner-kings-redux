@@ -719,8 +719,17 @@ namespace BannerKings.Managers.Populations.Estates
 
             // -1 = BE not populated for this settlement; skip rather than
             // overwrite the legacy value with garbage.
-            if (derivedPop >= 0) Population = derivedPop;
-            if (derivedSl  >= 0) Slaves     = derivedSl;
+            //
+            // share <= 0 = the per-estate share hasn't been seeded yet —
+            // either a pre-Phase-1 save whose PostInitialize seed couldn't
+            // run (BE pool was empty at load time) or a freshly-created
+            // estate that hasn't recorded a share yet. Don't overwrite the
+            // legacy absolute count to 0 in that case; let the seed catch
+            // up on a later PostInitialize / AddPopulation / AddSlaves
+            // call. This is the "BE seeded the village AFTER load and our
+            // share is still 0" save-load race the critic flagged.
+            if (derivedPop >= 0 && WorkforceShare > 0f) Population = derivedPop;
+            if (derivedSl  >= 0 && SlaveShare      > 0f) Slaves     = derivedSl;
         }
 
         // Used by the Growth EstateSpec daily-tick handler. Splits the
