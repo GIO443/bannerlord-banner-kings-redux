@@ -266,17 +266,25 @@ namespace BannerKings.Managers.Populations.Estates
             {
                 AnchorEstatesToBetterEconomy();
 
-                float growthFactor = 0f;
-                if (Settlement.IsVillage)
-                {
-                    growthFactor = BannerKingsConfig.Instance.ProsperityModel.CalculateHearthChange(Settlement.Village).ResultNumber;
-                }
-                
+                // Phase 1 BE-transition: the per-estate population random-walk
+                // is GONE. BetterEconomy is now the authoritative source for
+                // village population growth via its SettlementClassState
+                // sim. BK estates inherit growth proportionally through the
+                // WorkforceShare-derived population (Estate.DerivedPopulation),
+                // so a village whose serf count grows in BE shows up in BK
+                // estates without any double-counting random walk on top.
+                // The growthFactor calculation above is removed; if a Phase 2
+                // consumer needs it, route through BE's class state directly.
+
                 var dead = new List<Estate>();
                 foreach (Estate estate in Estates)
                 {
                     if (estate.IsDisabled) continue;
-                    if (MBRandom.RandomFloat < growthFactor) estate.AddPopulation(1);
+
+                    // Phase 1 BE-transition diagnostic: log the BK-vs-BE
+                    // population drift the first time we observe each estate
+                    // this process. Major-event log only — non-spammy.
+                    estate.LogBEDriftOnce();
 
                     estate.Tick(data);
                     if (estate.Owner.IsDead)

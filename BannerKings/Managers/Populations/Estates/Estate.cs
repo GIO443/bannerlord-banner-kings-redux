@@ -337,6 +337,66 @@ namespace BannerKings.Managers.Populations.Estates
 
         [SaveableProperty(17)] public string BoundEstateId { get; private set; }
 
+        // Phase 1 of the BE-transition: estates take a PROPORTIONAL share of
+        // their village's class pool from BetterEconomy rather than tracking
+        // an absolute Population/Slaves count locally. These two floats are
+        // the new authoritative state.
+        //
+        // Population (Serfs+Tenants combined) and Slaves (BondedLaborers) are
+        // both modeled as a [0..1] share — the estate claims that fraction of
+        // the village-wide class headcount BE owns. Multiple estates' shares
+        // should sum to ≤ 1.0 of each class; the village pool covers the
+        // remainder (commoners not bound to an estate).
+        //
+        // Defaults are 0.0 until LayeredEconomyAssignmentBehavior or
+        // PostInitialize seeds them from existing absolute counts. New
+        // estates created via CreateNotableEstate / ResetToFreshClaim seed
+        // their share directly in those entry points.
+        //
+        // In Phase 1, the absolute Population/Slaves fields are STILL the
+        // canonical readers (every consumer in BK still reads them). These
+        // shares are computed and logged in parallel so we can validate
+        // drift before Phase 2 cuts over.
+        [SaveableProperty(18)] public float WorkforceShare { get; set; } = 0f;
+        [SaveableProperty(19)] public float SlaveShare { get; set; } = 0f;
+
+        // Phase 1 diagnostic: derived population from BetterEconomy's
+        // SettlementClassState, scaled by this estate's share. Reads the
+        // sum of Serfs + Tenants (the BK Population concept maps to both
+        // working-class types in BE's 7-class model). Returns -1 when BE
+        // isn't available so the diff logger can distinguish "BE down" from
+        // "in agreement".
+        public int DerivedPopulation
+        {
+            get
+            {
+                var s = EstatesData?.Settlement;
+                if (s == null) return -1;
+                float serfs   = BannerKings.Utils.BetterEconomyBridge.GetClassCount(s, PopType.Serfs);
+                float tenants = BannerKings.Utils.BetterEconomyBridge.GetClassCount(s, PopType.Tenants);
+                if (serfs <= 0f && tenants <= 0f) return -1; // BE not populated for this settlement
+                return (int)((serfs + tenants) * WorkforceShare);
+            }
+        }
+
+        public int DerivedSlaves
+        {
+            get
+            {
+                var s = EstatesData?.Settlement;
+                if (s == null) return -1;
+                float bonded = BannerKings.Utils.BetterEconomyBridge.GetClassCount(s, PopType.Slaves);
+                if (bonded <= 0f) return -1;
+                return (int)(bonded * SlaveShare);
+            }
+        }
+
+        // Once-per-process-per-settlement drift log. Daily ticks fire often;
+        // we don't want to spew the same drift line indefinitely. Logging
+        // the first time each estate is observed gives Phase 2 data without
+        // log spam.
+        private bool _driftLogged;
+
         public void AddSlaves(int slaves) => Slaves += slaves;
 
         // Vacancy-claim cost in clan influence. Surfaced via BKEstatesModel
@@ -359,6 +419,13 @@ namespace BannerKings.Managers.Populations.Estates
             Woodland = 2f;
             TaxAccumulated = 0;
             LastIncome = 0;
+            // Phase 1 BE-transition: a fresh vacancy starts with no claim
+            // on the village class pool — share is re-seeded from the
+            // starter population on the first PostInitialize / Tick after
+            // a save-reload, or stays 0 until then.
+            WorkforceShare = 0f;
+            SlaveShare = 0f;
+            _driftLogged = false;
         }
 
         public void SetParty(MobileParty party) => Retinue = party;
@@ -379,6 +446,61 @@ namespace BannerKings.Managers.Populations.Estates
             {
                 Population = 0;
                 Slaves = 0;
+            }
+
+            // Phase 1 BE-transition: seed WorkforceShare / SlaveShare from
+            // the absolute counts on pre-Phase-1 saves. WorkforceShare and
+            // SlaveShare both default to 0 from the SaveableProperty getter,
+            // so a non-zero absolute Population/Slaves + zero share is the
+            // signal that this estate hasn't been migrated yet.
+            //
+            // Compute share as estate.absoluteCount / villageClassPool from
+            // BE. If BE isn't populated yet at PostInitialize time, leave
+            // the share at 0 and let LayeredEconomyAssignmentBehavior or
+            // the first Tick try again — the migration is idempotent.
+            if (Population > 0 && WorkforceShare <= 0f)
+            {
+                var s = EstatesData?.Settlement;
+                if (s != null)
+                {
+                    float serfs   = BannerKings.Utils.BetterEconomyBridge.GetClassCount(s, PopType.Serfs);
+                    float tenants = BannerKings.Utils.BetterEconomyBridge.GetClassCount(s, PopType.Tenants);
+                    float pool = serfs + tenants;
+                    if (pool > 0f) WorkforceShare = MathF.Clamp(Population / pool, 0f, 1f);
+                }
+            }
+            if (Slaves > 0 && SlaveShare <= 0f)
+            {
+                var s = EstatesData?.Settlement;
+                if (s != null)
+                {
+                    float bonded = BannerKings.Utils.BetterEconomyBridge.GetClassCount(s, PopType.Slaves);
+                    if (bonded > 0f) SlaveShare = MathF.Clamp(Slaves / bonded, 0f, 1f);
+                }
+            }
+        }
+
+        // Phase 1 BE-transition diagnostic. Compares the absolute BK count
+        // to the share-derived count from BE. Fires once per estate per
+        // process. The drift number is the proof we need before Phase 2
+        // cuts absolute Population/Slaves over to derived-only.
+        public void LogBEDriftOnce()
+        {
+            if (_driftLogged) return;
+            _driftLogged = true;
+            try
+            {
+                int derivedPop = DerivedPopulation;
+                int derivedSl  = DerivedSlaves;
+                if (derivedPop < 0 && derivedSl < 0) return; // BE not populated; nothing to compare against
+                var s = EstatesData?.Settlement;
+                string sName = s != null ? s.Name?.ToString() : "?";
+                BannerKings.Utils.Logs.MajorEvent(() =>
+                    $"[BK] EstateBEDrift {sName} owner={Owner?.Name} | bkPop={Population} derivedPop={derivedPop} (share {WorkforceShare:0.000}) | bkSl={Slaves} derivedSl={derivedSl} (share {SlaveShare:0.000})");
+            }
+            catch
+            {
+                // Never throw from diagnostics into the estate tick path.
             }
         }
 
