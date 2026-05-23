@@ -74,8 +74,20 @@
 		<PackageReference Include="Lib.Harmony" Version="2.2.2" IncludeAssets="compile" />
 		<PackageReference Include="Harmony.Extensions" Version="3.2.0.75" PrivateAssets="all" IncludeAssets="runtime; build; native; contentfiles; analyzers; buildtransitive" />
 		<PackageReference Include="BUTR.Harmony.Analyzer" Version="1.0.1.44" PrivateAssets="all" IncludeAssets="runtime; build; native; contentfiles; analyzers; buildtransitive" />
-		<PackageReference Include="Bannerlord.ButterLib" Version="2.6.3" IncludeAssets="compile" />
-		<PackageReference Include="Bannerlord.UIExtenderEx" Version="2.6.0" IncludeAssets="compile" />
+		<!-- ButterLib + UIExtenderEx are the two community framework deps.
+		     BK was previously pinned to ButterLib 2.6.3 and UIExtenderEx 2.6.0
+		     (1.3.x-era). The current 1.4 ecosystem ships ButterLib 2.10.x and
+		     UIExtenderEx 2.13.x. CLR strict-version binding refused to load
+		     BK.dll because its assembly metadata referenced the old versions
+		     and the runtime only had the new ones installed — crash.htm 22:15
+		     showed ReflectionTypeLoadException "Could not load file or
+		     assembly 'Bannerlord.UIExtenderEx, Version=2.6.0.0'" at OnSubModuleLoad.
+		     Bumped both to match what users actually have installed (the user's
+		     own crash report module list reported ButterLib 2.10.4.0 and
+		     UIExtenderEx 2.13.2.0). IncludeAssets=compile so the packages
+		     aren't packed into the release zip; we only need the reference. -->
+		<PackageReference Include="Bannerlord.ButterLib" Version="2.10.4" IncludeAssets="compile" />
+		<PackageReference Include="Bannerlord.UIExtenderEx" Version="2.13.2" IncludeAssets="compile" />
 		<PackageReference Include="Newtonsoft.Json" Version="13.0.2" PrivateAssets="all" IncludeAssets="compile" />
 	</ItemGroup>
 
