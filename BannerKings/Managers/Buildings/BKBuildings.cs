@@ -100,8 +100,13 @@ namespace BannerKings.Managers.Buildings
                     new Tuple<BuildingEffectEnum, BuildingEffectIncrementType, float, float, float>(BuildingEffectEnum.ConstructionPerDay, BuildingEffectIncrementType.Add, 0.5f, 1f, 1.5f)
                 }, false, 0f);
 
+            // Distinct display name from the town Mines registered above:
+            // both share the StringId-keyed sprite lookup but appear in the
+            // same projects panel in a castle's "bound village(s)" view, so
+            // showing them as two "Mines" entries reads as a duplicate bug.
+            // Castle-tier mining gets its own label.
             CastleMines = Game.Current.ObjectManager.RegisterPresumedObject(new BuildingType("building_castle_mines"));
-            CastleMines.Initialize(new TextObject("{=iGYstgoo}Mines"),
+            CastleMines.Initialize(new TextObject("{=BKbuildingCastleMines}Castle Mines"),
                 new TextObject("{=q3PH022A}Dig mines for local exploration of mineral resources. Ores will be limited to the local resources available and richness of the ground. Output will be sold to market when possible, or stored in Stash otherwise. Levels increase output of ores."),
                 new[]
                 {

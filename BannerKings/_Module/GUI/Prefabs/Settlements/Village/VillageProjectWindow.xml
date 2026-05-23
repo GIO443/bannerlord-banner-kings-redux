@@ -203,11 +203,17 @@
 												        HorizontalAlignment="Right" Sprite="SPGeneral\TownManagement\vertical_divider" AlphaFactor="0.7"
 												        VerticalFlip="true" />
 
-												<Widget WidthSizePolicy="Fixed" HeightSizePolicy="Fixed" SuggestedWidth="75" SuggestedHeight="450"
+												<!-- Queue column. Was 75px wide which made the "Queue" header
+												     and the per-item hammer/index pile read like a stray "1"
+												     in the corner (screenshot 19:37 flagged the column as
+												     malformed). Widened to 130 and centred the header so the
+												     section reads as a proper column. -->
+												<Widget WidthSizePolicy="Fixed" HeightSizePolicy="Fixed" SuggestedWidth="130" SuggestedHeight="450"
 												        HorizontalAlignment="Right">
 													<Children>
 
 														<TextWidget WidthSizePolicy="StretchToParent" HeightSizePolicy="CoverChildren" MarginTop="10"
+														            HorizontalAlignment="Center"
 														            Brush="TownManagement.Description.Title.Text" Brush.FontSize="20" Text="@QueueText" />
 
 														<ScrollablePanel Id="ScrollablePanel" WidthSizePolicy="StretchToParent"
