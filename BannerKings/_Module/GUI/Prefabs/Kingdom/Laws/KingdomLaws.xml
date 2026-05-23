@@ -27,8 +27,14 @@
 												   VerticalAlignment="Center" StackLayout.LayoutMethod="HorizontalLeftToRight" MarginBottom="20" DoNotAcceptEvents="false">
 											<Children>
 
+												<!-- Inheritance card only renders on hereditary successions. With
+												     an elective succession (Republican / Feudal Elective / etc.) the
+												     intra-dynasty inheritance sub-rule is moot — peers pick from a
+												     broader field, not from a child queue. Bound to
+												     KingdomDemesneVM.IsInheritanceVisible. -->
 												<ListPanel WidthSizePolicy="CoverChildren" HeightSizePolicy="CoverChildren" HorizontalAlignment="Center" SuggestedHeight="150"
-														   VerticalAlignment="Bottom" StackLayout.LayoutMethod="VerticalBottomToTop" MarginRight="15" MarginLeft="15">
+														   VerticalAlignment="Bottom" StackLayout.LayoutMethod="VerticalBottomToTop" MarginRight="15" MarginLeft="15"
+														   IsVisible="@IsInheritanceVisible">
 													<Children>
 														<RichTextWidget WidthSizePolicy="CoverChildren" HeightSizePolicy="CoverChildren"
 																HorizontalAlignment="Center" Brush="Clan.Leader.Text" Brush.FontSize="22" Text="@InheritanceText"

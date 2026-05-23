@@ -412,6 +412,18 @@ namespace BannerKings.UI.VanillaTabs.Kingdoms
         [DataSourceProperty]
         public string InheritanceText => new TextObject("Inheritance").ToString();
 
+        // The Inheritance contract aspect (Primogeniture / Seniority /
+        // Ultimogeniture) is the intra-dynasty rule that picks WHICH child
+        // inherits — it only applies when the realm's succession is
+        // hereditary. With an elective succession (Republican, Feudal
+        // Elective, Tribal Elective, etc.) the peers pick the next ruler
+        // from a broader field, so the Inheritance card is moot. The Realm
+        // tab's Succession card stays visible regardless — it is the
+        // succession itself, not the inheritance sub-rule.
+        [DataSourceProperty]
+        public bool IsInheritanceVisible =>
+            Title?.Contract?.Succession != null && !Title.Contract.Succession.ElectedSuccession;
+
         [DataSourceProperty]
         public string GenderLawText => new TextObject("Gender Law").ToString();
 
