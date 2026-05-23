@@ -107,6 +107,12 @@ namespace BannerKings
             GameTexts.SetVariable("SPEED_ICON", BannerKings.Utils.TextHelper.SPEED_ICON);
 
             campaignStarter.AddBehavior(new BKManagerBehavior());
+            // Backup install path for RBM 1.4-compat runtime finalizers/prefixes.
+            // The AssemblyLoad listener in RBMRuntimeFinalizers should win in
+            // most cases, but this CampaignBehavior subscribes to
+            // OnMissionStartedEvent — RBMAI is definitely loaded by then —
+            // and calls TryInstallAll as a backstop. Idempotent.
+            campaignStarter.AddBehavior(new BannerKings.Patches.Diag.RBMRuntimeFinalizersBackupBehavior());
             // Layered village/estate/town economy rework — Phase 1+4+6+8.
             campaignStarter.AddBehavior(new LayeredEconomyAssignmentBehavior());
             campaignStarter.AddBehavior(new ClusterFoodTracker());

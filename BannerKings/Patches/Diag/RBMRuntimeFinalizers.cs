@@ -7,27 +7,35 @@ namespace BannerKings.Patches.Diag
     // RBM is compiled against 1.3 reference assemblies. Several call sites
     // inside RBMAI / RBMCombat hit MissingMethodException at runtime on 1.4
     // because the vanilla overload they were built against was dropped or
-    // renamed. The cleanest broadly-compatible fix without forking RBM is
-    // to wrap the offending methods in a Harmony Finalizer that swallows
-    // the exception and lets the mission tick continue.
+    // renamed.
     //
-    // The catch: RBMAI.dll is not in the AppDomain at BK's OnSubModuleLoad
-    // / OnGameStart time. RBM lazy-loads it from RBM's own SubModule entry
-    // points. A [HarmonyPatch]-decorated class with Prepare()/TargetMethod()
-    // runs during BK's PatchAll-loop at OnGameStart — by then RBMAI types
-    // are NOT yet discoverable, Prepare() returns false, and the finalizer
-    // is silently skipped.
+    // v1.9.1.9..v1.9.1.12 evolved the install strategy and finally got the
+    // type FQN right ("SiegeArcherPoints", no namespace) — but the user's
+    // v1.9.1.12 crash htm shows the exception STILL fires. Conclusion:
     //
-    // Install path: subscribe to AppDomain.AssemblyLoad at BK OnSubModuleLoad.
-    // The moment RBMAI / RBMCombat surfaces in the AppDomain (which the CLR
-    // fires synchronously when the assembly is loaded), we run the install.
-    // Idempotency flags ensure a single install per process even when the
-    // user exits to main menu and starts a new campaign (which re-runs
-    // OnGameStart and re-fires assembly loads in some scenarios).
+    //   (a) AssemblyLoad timing alone isn't enough. RBM lazy-loads RBMAI at
+    //       Mission.AfterStart; the load event may fire too close to the
+    //       first OnMissionTick to install reliably, OR our handler is
+    //       running but Harmony's finalizer wrap doesn't survive the JIT
+    //       MissingMethodException that fires at IL-compile time inside
+    //       the method body (Harmony's try/catch goes around the CALL to
+    //       the original — if the JIT throws while compiling the body, the
+    //       wrapper's catch may be set up in an order that doesn't catch
+    //       it).
+    //   (b) A Prefix returning false skips the original method body
+    //       entirely. The JIT never compiles the broken IL. There's no
+    //       window in which the MissingMethodException can fire.
     //
-    // Each finalizer logs the first occurrence per process via
-    // Logs.MajorEvent then suppresses further logs (the mission tick fires
-    // every frame; without the once-flag major_events.txt would spew).
+    // v1.9.1.13 switches to Prefix-skip and adds three install paths so at
+    // least one always wins:
+    //   1. AppDomain.AssemblyLoad listener (lazy, fires on first load).
+    //   2. Immediate try at Install() time (catches already-loaded case).
+    //   3. CampaignBehavior subscribed to OnMissionStartedEvent — RBMAI is
+    //      DEFINITELY loaded by then. Backup of last resort.
+    //
+    // All three call the same idempotent TryInstallAll. Diagnostic logging
+    // routes through TaleWorlds.Library.Debug.Print so it appears in
+    // rgl_log_*.txt regardless of MCM toggles.
     internal static class RBMRuntimeFinalizers
     {
         private static bool _wired;
@@ -41,6 +49,9 @@ namespace BannerKings.Patches.Diag
             if (_wired) return;
             _wired = true;
 
+            TaleWorlds.Library.Debug.Print(
+                "[BK] RBMRuntimeFinalizers.Install: subscribing AssemblyLoad");
+
             AppDomain.CurrentDomain.AssemblyLoad += (_, args) =>
             {
                 try
@@ -49,6 +60,8 @@ namespace BannerKings.Patches.Diag
                     if (string.IsNullOrEmpty(name)) return;
                     if (name == "RBMAI" || name == "RBM" || name == "RBMCombat")
                     {
+                        TaleWorlds.Library.Debug.Print(
+                            $"[BK] RBMRuntimeFinalizers: AssemblyLoad saw '{name}', retrying install");
                         TryInstallAll();
                     }
                 }
@@ -62,85 +75,100 @@ namespace BannerKings.Patches.Diag
             // Also try once now — RBMAI may have already loaded before BK
             // wired up (race against module init order).
             try { TryInstallAll(); }
-            catch { /* never propagate from OnSubModuleLoad */ }
+            catch (Exception ex)
+            {
+                TaleWorlds.Library.Debug.Print(
+                    $"[BK] RBMRuntimeFinalizers.Install: immediate try threw {ex.GetType().Name}: {ex.Message}");
+            }
         }
 
-        // Run every installer. Each one is idempotent and no-ops if the
-        // target type / method isn't reachable yet, so this is safe to
-        // call repeatedly.
-        private static void TryInstallAll()
+        // Public so the CampaignBehavior backup path can call it.
+        public static void TryInstallAll()
         {
-            TryInstallSiegeArcherPointsFinalizer();
+            TryInstallSiegeArcherPointsSkip();
         }
 
-        // SiegeArcherPoints (global namespace, NO "RBMAI." prefix — verified
-        // by ilspy on the user's RBMAI.dll: "public class SiegeArcherPoints :
-        // MissionLogic"). Crash-htm 2026-05-22 22:53 / 23 08:51 / 23 09:02
-        // all hit this — calls GameEntity.Instantiate with a 1.3 overload
-        // that 1.4 dropped. v1.9.1.11 used the wrong type FQN
-        // ("RBMAI.SiegeArcherPoints") so TypeByName returned null and the
-        // install always bailed.
-        //
-        // Diagnostic logging via TaleWorlds.Library.Debug.Print so the
-        // install attempt shows up in rgl_log_*.txt unconditionally —
-        // Logs.MajorEvent only writes when the MCM toggle is on, and the
-        // user hasn't enabled it, so previous releases gave us no signal
-        // about why the install was failing.
-        private static void TryInstallSiegeArcherPointsFinalizer()
+        // Install a Prefix returning false on SiegeArcherPoints.OnMissionTick.
+        // This SKIPS the original method body entirely, which means the JIT
+        // never has to compile the broken IL inside it. The mission tick
+        // simply has SiegeArcherPoints as a no-op MissionBehavior — RBM's
+        // siege-archer-formation logic doesn't run, but battle entry +
+        // tick + exit all proceed normally.
+        private static void TryInstallSiegeArcherPointsSkip()
         {
             if (_siegeArcherPointsInstalled) return;
 
             Type t = AccessTools.TypeByName("SiegeArcherPoints");
             if (t == null)
             {
-                // The most common reason for being here is that RBMAI.dll
-                // is loaded but ilspy / our string is wrong, OR the type
-                // hasn't reached the AppDomain's loaded-type table yet
-                // (lazy CLR resolve). Either way — no-op, retry on next
-                // AssemblyLoad event.
+                // Don't log every retry — too spammy. Only log on first
+                // successful install. AssemblyLoad will fire again when
+                // RBMAI eventually loads, retrying through this path.
                 return;
             }
             MethodInfo m = AccessTools.Method(t, "OnMissionTick", new[] { typeof(float) });
             if (m == null)
             {
                 TaleWorlds.Library.Debug.Print(
-                    $"[BK] RBMRuntimeFinalizers: found type {t.FullName} but no OnMissionTick(float) method — finalizer not installed");
+                    $"[BK] RBMRuntimeFinalizers: found type {t.FullName} but no OnMissionTick(float) — not installing skip");
                 return;
             }
 
             try
             {
                 var harmony = new Harmony("BannerKings.RBM.RuntimeFinalizers");
-                var finalizerMethod = AccessTools.Method(
-                    typeof(RBMRuntimeFinalizers), nameof(SiegeArcherPointsFinalizer));
-                harmony.Patch(m, finalizer: new HarmonyMethod(finalizerMethod));
+                var prefixMethod = AccessTools.Method(
+                    typeof(RBMRuntimeFinalizers), nameof(SiegeArcherPointsSkipPrefix));
+                harmony.Patch(m, prefix: new HarmonyMethod(prefixMethod));
                 _siegeArcherPointsInstalled = true;
                 TaleWorlds.Library.Debug.Print(
-                    $"[BK] RBMRuntimeFinalizers: installed finalizer on {t.FullName}.OnMissionTick(float)");
+                    $"[BK] RBMRuntimeFinalizers: installed skip-prefix on {t.FullName}.OnMissionTick(float)");
                 BannerKings.Utils.Logs.MajorEvent(() =>
-                    $"[BK] RBMRuntimeFinalizers: installed finalizer on {t.FullName}.OnMissionTick(float)");
+                    $"[BK] RBMRuntimeFinalizers: installed skip-prefix on {t.FullName}.OnMissionTick(float)");
             }
             catch (Exception ex)
             {
                 TaleWorlds.Library.Debug.Print(
-                    $"[BK] RBMRuntimeFinalizers: failed to install SiegeArcherPoints finalizer: {ex.GetType().Name}: {ex.Message}");
+                    $"[BK] RBMRuntimeFinalizers: failed to install SiegeArcherPoints skip-prefix: {ex.GetType().Name}: {ex.Message}");
                 BannerKings.Utils.Logs.MajorEvent(() =>
-                    $"[BK] RBMRuntimeFinalizers: failed to install SiegeArcherPoints finalizer: {ex.GetType().Name}: {ex.Message}");
+                    $"[BK] RBMRuntimeFinalizers: failed to install SiegeArcherPoints skip-prefix: {ex.GetType().Name}: {ex.Message}");
             }
         }
 
-        // Harmony finalizer body. Public so Harmony can find it via
-        // AccessTools.Method.
-        public static Exception SiegeArcherPointsFinalizer(Exception __exception)
+        // Harmony Prefix body. Returning false skips the original method.
+        // Public so Harmony can find it via AccessTools.Method.
+        public static bool SiegeArcherPointsSkipPrefix()
         {
-            if (__exception == null) return null;
             if (!_siegeArcherPointsLogged)
             {
                 _siegeArcherPointsLogged = true;
+                TaleWorlds.Library.Debug.Print(
+                    "[BK] RBMRuntimeFinalizers: skipping SiegeArcherPoints.OnMissionTick (1.4 compat — RBM's GameEntity.Instantiate(Scene,String,MatrixFrame,Boolean,String) overload doesn't exist)");
                 BannerKings.Utils.Logs.MajorEvent(() =>
-                    $"[BK] Swallowed RBM SiegeArcherPoints.OnMissionTick: {__exception.GetType().Name}: {__exception.Message}");
+                    "[BK] RBMRuntimeFinalizers: skipping SiegeArcherPoints.OnMissionTick (1.4 compat)");
             }
-            return null; // swallow — mission tick continues
+            return false; // skip original method body
+        }
+    }
+
+    // Backup install path: a CampaignBehavior subscribed to
+    // OnMissionStartedEvent. By the time a mission starts, RBM has loaded
+    // RBMAI and added all its MissionBehaviors. Calling TryInstallAll
+    // here as a backstop guarantees the install runs at least once per
+    // mission start, even if the AssemblyLoad listener missed.
+    internal class RBMRuntimeFinalizersBackupBehavior : TaleWorlds.CampaignSystem.CampaignBehaviorBase
+    {
+        public override void RegisterEvents()
+        {
+            TaleWorlds.CampaignSystem.CampaignEvents.OnMissionStartedEvent.AddNonSerializedListener(this, OnMissionStarted);
+        }
+
+        public override void SyncData(TaleWorlds.CampaignSystem.IDataStore dataStore) { }
+
+        private void OnMissionStarted(TaleWorlds.Core.IMission mission)
+        {
+            try { RBMRuntimeFinalizers.TryInstallAll(); }
+            catch { /* never break mission start */ }
         }
     }
 }
