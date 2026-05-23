@@ -440,7 +440,7 @@ namespace BannerKings.Models.BKModels
             float ambition = hero.GetTraitLevel(BKTraits.Instance.Ambitious);
             result.AddFactor(ambition * 0.3f * (positiveResult ? 1 : -1), BKTraits.Instance.Ambitious.Name);
 
-            if (group.StringId == DefaultRadicalGroups.Instance.Claimant.StringId)
+            if (group.StringId == DefaultRadicalGroups.Instance.Pretender.StringId)
             {
                 ClaimantDemand demand = (ClaimantDemand)group.CurrentDemand;
                 if (demand.Claimant != null)

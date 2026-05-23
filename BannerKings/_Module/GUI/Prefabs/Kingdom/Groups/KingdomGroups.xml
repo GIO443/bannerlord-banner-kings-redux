@@ -152,13 +152,26 @@
 											<RichTextWidget WidthSizePolicy="StretchToParent" HeightSizePolicy="CoverChildren" MarginTop="15" MarginRight="100" MarginLeft="100"
 															HorizontalAlignment="Center" Brush="ArmyManagement.Army.Tuple.Name" Brush.FontSize="24" Text="@GroupText"
 															MarginBottom="15" />
-											
+
+											<!-- Politics-rework — 2-axis ideological position + live tension.
+											     Each pull is signed (-1..+1); the VM formats the value text as a
+											     directional label + magnitude, with the bar fraction = |pull|, so
+											     the player reads direction (label) AND intensity (bar) at once. -->
+											<ListPanel WidthSizePolicy="CoverChildren" HeightSizePolicy="CoverChildren" HorizontalAlignment="Center"
+													   VerticalAlignment="Center" StackLayout.LayoutMethod="VerticalTopToBottom" MarginTop="15" MarginBottom="10">
+												<Children>
+													<BKFillBar DataSource="{CentralismBar}" HorizontalAlignment="Center" MarginTop="4" MarginBottom="4" />
+													<BKFillBar DataSource="{IdeologyBar}" HorizontalAlignment="Center" MarginTop="4" MarginBottom="4" />
+													<BKFillBar DataSource="{TensionBar}" HorizontalAlignment="Center" MarginTop="4" MarginBottom="4" />
+												</Children>
+											</ListPanel>
+
 											<RichTextWidget WidthSizePolicy="CoverChildren" HeightSizePolicy="CoverChildren" MarginTop="25" IsVisible="@IsEmpty"
 															HorizontalAlignment="Center" Brush="Clan.Leader.Text" Brush.FontSize="30" Text="@EmptyGroupText"
 															MarginBottom="15" />
-						
+
 											<ListPanel WidthSizePolicy="CoverChildren" HeightSizePolicy="Fixed" HorizontalAlignment="Center" SuggestedHeight="150"
-													   VerticalAlignment="Center" StackLayout.LayoutMethod="HorizontalLeftToRight" MarginTop="100" DoNotAcceptEvents="false">
+													   VerticalAlignment="Center" StackLayout.LayoutMethod="HorizontalLeftToRight" MarginTop="40" DoNotAcceptEvents="false">
 												<Children>
 												
 													<ListPanel WidthSizePolicy="CoverChildren" HeightSizePolicy="CoverChildren" HorizontalAlignment="Center" SuggestedHeight="150"
@@ -361,7 +374,25 @@
 											<RichTextWidget WidthSizePolicy="StretchToParent" HeightSizePolicy="CoverChildren" MarginTop="15" MarginRight="100" MarginLeft="100"
 															HorizontalAlignment="Center" Brush="ArmyManagement.Army.Tuple.Name" Brush.FontSize="24" Text="@GroupText"
 															MarginBottom="15" />
-											
+
+											<!-- Politics-rework — Push Score is the headline (realm-driven, live)
+											     and Radicalism is the in-group readiness. PushScore high in an
+											     EMPTY group is the leading indicator that the faction is about
+											     to crystallise. The target-government label is only shown for
+											     gov-keyed groups (Republican / Imperial); Pretender / Secession
+											     leave it blank. -->
+											<ListPanel WidthSizePolicy="CoverChildren" HeightSizePolicy="CoverChildren" HorizontalAlignment="Center"
+													   VerticalAlignment="Center" StackLayout.LayoutMethod="VerticalTopToBottom" MarginTop="10" MarginBottom="10">
+												<Children>
+													<BKFillBar DataSource="{PushScoreBar}" HorizontalAlignment="Center" MarginTop="4" MarginBottom="4" />
+													<BKFillBar DataSource="{RadicalismBar}" HorizontalAlignment="Center" MarginTop="4" MarginBottom="4" />
+												</Children>
+											</ListPanel>
+
+											<RichTextWidget WidthSizePolicy="CoverChildren" HeightSizePolicy="CoverChildren"
+															HorizontalAlignment="Center" Brush="Clan.Leader.Text" Brush.FontSize="20" Text="@TargetGovernmentText"
+															IsVisible="@HasTargetGovernment" MarginTop="5" MarginBottom="10" />
+
 											<RichTextWidget WidthSizePolicy="StretchToParent" HeightSizePolicy="CoverChildren" MarginTop="25" MarginRight="100" MarginLeft="100" IsVisible="@IsEmpty"
 															HorizontalAlignment="Center" Brush="Clan.Leader.Text" Brush.FontSize="20" Text="@EmptyGroupText"
 															MarginBottom="15" />

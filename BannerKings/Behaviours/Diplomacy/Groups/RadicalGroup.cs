@@ -1,5 +1,6 @@
 using BannerKings.Actions;
 using BannerKings.Behaviours.Diplomacy.Groups.Demands;
+using BannerKings.Managers.Titles.Governments;
 using System.Collections.Generic;
 using System.Linq;
 using TaleWorlds.CampaignSystem;
@@ -25,10 +26,28 @@ namespace BannerKings.Behaviours.Diplomacy.Groups
             Demand = demand;
         }
 
+        // Politics-rework overload — declares which government(s) a radical
+        // group spawns under (hard gate; null/empty = any) and which government
+        // the group is pushing toward. A pretender / secessionist faction
+        // doesn't change the government form, so TargetGovernment is null for
+        // those. The CalculatePushScore delegate scores how strongly the realm
+        // currently conditions the group's target; the UI reads it as the
+        // headline number.
+        public void Initialize(TextObject name, TextObject description, RadicalDemand demand,
+            IReadOnlyList<Government> sourceGovernments, Government targetGovernment,
+            System.Func<KingdomDiplomacy, float> calculatePushScore)
+        {
+            Initialize(name, description, demand);
+            SourceGovernments = sourceGovernments;
+            TargetGovernment = targetGovernment;
+            _pushScoreFn = calculatePushScore;
+        }
+
         public void PostInitialize()
         {
             RadicalGroup r = DefaultRadicalGroups.Instance.GetById(this);
-            Initialize(r.name, r.description, r.Demand);
+            Initialize(r.name, r.description, r.Demand,
+                r.SourceGovernments, r.TargetGovernment, r._pushScoreFn);
             CurrentDemand.SetTexts();
             CurrentDemand.Group = this;
         }
@@ -36,11 +55,38 @@ namespace BannerKings.Behaviours.Diplomacy.Groups
         public override DiplomacyGroup GetCopy(KingdomDiplomacy diplomacy)
         {
             RadicalGroup group = new RadicalGroup(StringId);
-            group.Initialize(Name, Description, CurrentDemand as RadicalDemand);
+            group.Initialize(Name, Description, CurrentDemand as RadicalDemand,
+                SourceGovernments, TargetGovernment, _pushScoreFn);
             group.KingdomDiplomacy = diplomacy;
             group.KingdomName = diplomacy.Kingdom.Name;
             return group;
         }
+
+        // Politics-rework gating data. SourceGovernments is null/empty for
+        // government-agnostic groups (Pretender, Secession) and a list for
+        // groups that only exist under specific government forms. Saving
+        // anything here is unnecessary — restored from the registry on load.
+        public IReadOnlyList<Government> SourceGovernments { get; private set; }
+        public Government TargetGovernment { get; private set; }
+        private System.Func<KingdomDiplomacy, float> _pushScoreFn;
+
+        // Does this radical group fit the realm's current government? A null
+        // / empty SourceGovernments means "any".
+        public bool MatchesGovernment(Government government)
+        {
+            if (SourceGovernments == null || SourceGovernments.Count == 0) return true;
+            if (government == null) return false;
+            for (int i = 0; i < SourceGovernments.Count; i++)
+                if (SourceGovernments[i] == government) return true;
+            return false;
+        }
+
+        // 0..1 score for how strongly the realm currently conditions this
+        // group's target. Drives the headline UI bar. 0 when no push-score
+        // function was registered or the diplomacy is null.
+        public float PushScore => _pushScoreFn != null && KingdomDiplomacy != null
+            ? MathF.Clamp(_pushScoreFn(KingdomDiplomacy), 0f, 1f)
+            : 0f;
 
         public void SetupRadicalGroup(Hero leader, ViewModel viewModel)
         {

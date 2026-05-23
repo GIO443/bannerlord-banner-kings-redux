@@ -443,9 +443,21 @@ namespace BannerKings.Behaviours.Diplomacy
                 if (!adequate && Groups.Contains(group)) Groups.Remove(group);
             }
 
+            // Politics rework — radical groups now hard-gate on government
+            // type. A group with no SourceGovernments declared (Pretender,
+            // Secession) appears universally; a government-keyed group
+            // (Republican Movement, Imperial Restoration) only appears under
+            // its declared source government. Pre-existing groups already in
+            // RadicalGroups are not removed here even if the realm has since
+            // changed government — Update() handles drift through normal
+            // decay; the gate only prevents new spawns into the wrong context.
+            var currentGov = Government;
             foreach (var group in DefaultRadicalGroups.Instance.All)
-                if (!RadicalGroups.Any(x => group.StringId == x.StringId))
-                    RadicalGroups.Add((RadicalGroup)group.GetCopy(this));
+            {
+                if (RadicalGroups.Any(x => group.StringId == x.StringId)) continue;
+                if (!group.MatchesGovernment(currentGov)) continue;
+                RadicalGroups.Add((RadicalGroup)group.GetCopy(this));
+            }
 
             foreach (var clan in Kingdom.Clans)
             {

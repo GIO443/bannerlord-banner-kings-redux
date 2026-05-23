@@ -14,6 +14,10 @@
                     allows_nobles="true|false"
                     favored_position="<council_member_id>"   optional
                     centralism_pull="N"                      optional, -1..1, default 0
+                    ideology_pull="N"                        optional, -1..1, default 0
+                                                             +1 modernist (push social-advance reform)
+                                                             -1 traditionalist (resist further restructuring;
+                                                             never seeks reversion)
                     legitimacy_factor="N">
       <name>...</name>
       <description>...</description>
@@ -34,7 +38,7 @@
 <interest_groups>
   <interest_group id="royalists" main_trait="Authoritarian"
                   demands_council="true" allows_commoners="true" allows_nobles="true"
-                  centralism_pull="1" legitimacy_factor="0.5">
+                  centralism_pull="1" ideology_pull="0" legitimacy_factor="0.5">
     <name>Royalists</name>
     <description>The royalists are those who support the royal administration. They favor the sovereign even over themselves, be for true loyalty or for the prospect of compensation. Royalists support everything that benefits the royal administration regardless of impacts on other groups.</description>
     <occupations/>
@@ -76,7 +80,7 @@
 
   <interest_group id="traditionalists" main_trait="Diligent"
                   demands_council="true" allows_commoners="true" allows_nobles="true"
-                  centralism_pull="0" legitimacy_factor="0.5">
+                  centralism_pull="0" ideology_pull="-1" legitimacy_factor="0.5">
     <name>Traditionalists</name>
     <description>Traditionalists support the way of the ancestors. More than anything, they believe in strength. While they recognize the necessity for a strong ruler, they also do the necessity of liberty for the noble classes. They aim for a balance of power between the sovereign and their vassals, a continuation of old traditions and exerting power through force.</description>
     <occupations>
@@ -127,7 +131,7 @@
 
   <interest_group id="oligarchists" main_trait="Oligarchic"
                   demands_council="true" allows_commoners="false" allows_nobles="true"
-                  centralism_pull="-1" legitimacy_factor="0.4">
+                  centralism_pull="-1" ideology_pull="-0.5" legitimacy_factor="0.4">
     <name>Oligarchists</name>
     <description>Oligarchists are noble people of influence that are concerned, first and foremost, with their own advantage. They continuously seek benefits for themselves or their peers, understanding they are part of the same class. Thus, their interests are often misaligned both with the ruler's, and with the common people.</description>
     <occupations>
@@ -174,7 +178,7 @@
 
   <interest_group id="zealots" main_trait="Zealous"
                   demands_council="true" allows_commoners="true" allows_nobles="true"
-                  favored_position="Spiritual" centralism_pull="0" legitimacy_factor="0.2">
+                  favored_position="Spiritual" centralism_pull="0" ideology_pull="-0.8" legitimacy_factor="0.2">
     <name>Zealots</name>
     <description>Zealots represent those of most religious fervor within the realm. As a group, they are most concerned with the strengthening of their faith and the upholding of its values. A ruler that does not follow the realm's traditional faith will have great difficulty gathering support from such zealots. Those that do follow it, still need to prove themselves by upholding the faith's virtues. Zealots, loyal first and foremost to their faith, gather members both within and withou the nobility.</description>
     <occupations>
@@ -221,7 +225,7 @@
 
   <interest_group id="commoners" main_trait="Just"
                   demands_council="false" allows_commoners="true" allows_nobles="false"
-                  centralism_pull="-1" legitimacy_factor="0.8">
+                  centralism_pull="-1" ideology_pull="0.3" legitimacy_factor="0.8">
     <name>Commoners</name>
     <description>Commoners represent the general populace, intermediated by fief dignataries. The benefit of the commoners often clashes with the benefit of the high nobility. However, the populace is open to supporting rulers that represent them. Often, that means a shared cultural and religious tradition, as well as signs of certain virtues, such as a keen sense of justice and generosity.</description>
     <occupations>
@@ -260,6 +264,113 @@
       <cb ref="SuppressThreat"/>
     </casus_belli>
     <demands>
+      <demand ref="DemesneLawChange"/>
+      <demand ref="PolicyChange"/>
+    </demands>
+  </interest_group>
+
+  <!-- Politics rework — modernist groups. Push social-advance reform: lighter
+       duties on commoners and craftsmen, citizenship, jury trial, magistrates,
+       the legitimist post-tribal/post-feudal state. They sit opposite the
+       Traditionalists on the ideology axis without taking a strong centralism
+       stance — they care about HOW the state treats people more than WHO holds
+       the reins. -->
+  <interest_group id="reformists" main_trait="Calculating"
+                  demands_council="true" allows_commoners="true" allows_nobles="true"
+                  centralism_pull="0" ideology_pull="1" legitimacy_factor="0.4">
+    <name>Reformists</name>
+    <description>Reformists are voices for the new century — clerks, magistrates, scholars, ambitious commoners and the nobles who keep their company. They press the realm to put down older customs that no longer fit: heavy duties on its working classes, arbitrary lordly justice, the assumption that the powerful sit above the law. Where Traditionalists fear that change will weaken the realm, Reformists argue the realm rots without it. They have little patience for the high crown's pomp or for the magnates' privileges, but their first quarrel is with anyone who would freeze society where it is.</description>
+    <occupations>
+      <occupation id="Artisan"/>
+      <occupation id="Preacher"/>
+    </occupations>
+    <supported_policies>
+      <policy ref="policy_citizenship"/>
+      <policy ref="policy_magistrates"/>
+      <policy ref="policy_trial_by_jury"/>
+      <policy ref="policy_forgiveness_of_debts"/>
+      <policy ref="policy_tribunes_of_the_people"/>
+      <policy ref="policy_council_of_the_commons"/>
+      <policy ref="policy_grazing_rights"/>
+      <policy ref="policy_hunting_rights"/>
+    </supported_policies>
+    <shunned_policies>
+      <policy ref="policy_serfdom"/>
+      <policy ref="policy_war_tax"/>
+      <policy ref="policy_royal_privilege"/>
+      <policy ref="policy_sacred_majesty"/>
+    </shunned_policies>
+    <supported_laws>
+      <law ref="slavery_manumission"/>
+      <law ref="serfs_lax_duties"/>
+      <law ref="craftsmen_lax_duties"/>
+      <law ref="nobles_lax_duties"/>
+    </supported_laws>
+    <shunned_laws>
+      <law ref="slavery_aserai"/>
+      <law ref="slavery_standard"/>
+      <law ref="slavery_vlandia"/>
+      <law ref="serfs_agriculture_duties"/>
+      <law ref="serfs_military_service_duties"/>
+      <law ref="craftsmen_military_service_duties"/>
+      <law ref="craftsmen_tax_duties"/>
+    </shunned_laws>
+    <casus_belli>
+      <cb ref="cultural_liberation"/>
+    </casus_belli>
+    <demands>
+      <demand ref="CouncilPosition"/>
+      <demand ref="DemesneLawChange"/>
+      <demand ref="PolicyChange"/>
+    </demands>
+  </interest_group>
+
+  <!-- Mercantile League — the burghers, the chartered trade houses, the lenders
+       who finance both magnates and crowns. Modernist (the late-medieval city
+       and not the old village); modestly autonomist because their fortunes
+       depend on chartered freedoms the crown grants them, not on a strong
+       crown ruling over them. They oppose road-tolls, war taxes, and serfdom
+       (which holds labour off the trade roads) and back lighter-touch
+       institutions that make commerce predictable. -->
+  <interest_group id="mercantile" main_trait="Calculating"
+                  demands_council="true" allows_commoners="true" allows_nobles="false"
+                  centralism_pull="-0.3" ideology_pull="1" legitimacy_factor="0.3">
+    <name>Mercantile League</name>
+    <description>The Mercantile League speaks for the chartered trading houses and the moneylenders that keep the realm's coin moving. Their interest is plain: predictable rules, light tolls, a labouring class free to move where the trade roads take it. They oppose the heavy hand of a crown that taxes commerce to fund its wars, and they have no love for magnates who choke the roads with private tolls. Their reforms are quiet — a charter here, a forgiven debt there — but the realm they would build looks very different from the realm of lords and villages.</description>
+    <occupations>
+      <occupation id="Merchant"/>
+      <occupation id="Artisan"/>
+    </occupations>
+    <supported_policies>
+      <policy ref="policy_citizenship"/>
+      <policy ref="policy_magistrates"/>
+      <policy ref="policy_forgiveness_of_debts"/>
+      <policy ref="policy_trial_by_jury"/>
+      <policy ref="policy_imperial_towns"/>
+    </supported_policies>
+    <shunned_policies>
+      <policy ref="policy_war_tax"/>
+      <policy ref="policy_road_tolls"/>
+      <policy ref="policy_serfdom"/>
+      <policy ref="policy_state_monopolies"/>
+      <policy ref="policy_marshals"/>
+    </shunned_policies>
+    <supported_laws>
+      <law ref="slavery_manumission"/>
+      <law ref="craftsmen_lax_duties"/>
+      <law ref="serfs_lax_duties"/>
+    </supported_laws>
+    <shunned_laws>
+      <law ref="slavery_aserai"/>
+      <law ref="serfs_agriculture_duties"/>
+      <law ref="craftsmen_tax_duties"/>
+      <law ref="craftsmen_military_service_duties"/>
+    </shunned_laws>
+    <casus_belli>
+      <cb ref="cultural_liberation"/>
+    </casus_belli>
+    <demands>
+      <demand ref="CouncilPosition"/>
       <demand ref="DemesneLawChange"/>
       <demand ref="PolicyChange"/>
     </demands>
