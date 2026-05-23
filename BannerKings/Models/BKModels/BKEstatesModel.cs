@@ -465,15 +465,53 @@ namespace BannerKings.Models.BKModels
             return result;
         }
 
+        // Phase 4 fallback: the legacy acre-summed land valuation. Used for
+        // estates that aren't yet bound to a BetterEconomy parcel (rare;
+        // AnchorEstatesToBetterEconomy weaves them on every Update tick).
+        // Keeps prices computable on partially-migrated saves.
+        private void AddLegacyAcrePrice(ExplainedNumber result, Settlement settlement, Estate estate)
+        {
+            float acrePrice = CalculateAcrePrice(settlement).ResultNumber;
+            result.Add(acrePrice * estate.Farmland, new TextObject("{=zMPm162W}Farmlands"));
+            result.Add(acrePrice * estate.Pastureland * 0.5f, new TextObject("{=ngRhXYj1}Pasturelands"));
+            result.Add(acrePrice * estate.Woodland * 0.15f, new TextObject("{=qPQ7HKgG}Woodlands"));
+        }
+
         public ExplainedNumber CalculateEstatePrice(Estate estate, bool explanations = false)
         {
             var result = new ExplainedNumber(500f, explanations);
             var settlement = estate.EstatesData.Settlement;
 
-            float acrePrice = CalculateAcrePrice(settlement).ResultNumber;
-            result.Add(acrePrice * estate.Farmland, new TextObject("{=zMPm162W}Farmlands"));
-            result.Add(acrePrice * estate.Pastureland * 0.5f, new TextObject("{=ngRhXYj1}Pasturelands"));
-            result.Add(acrePrice * estate.Woodland * 0.15f, new TextObject("{=qPQ7HKgG}Woodlands"));
+            // Phase 4 BE-transition. The land-value term now reads the bound
+            // BetterEconomy EstateRecord's Quality × Size, scaled by a
+            // multiplier calibrated against the legacy acre formula. A
+            // baseline 250-acre estate priced at ~31,250 under the old
+            // (acrePrice ≈ 125 × Farmland ≈ 250) formula; for a baseline
+            // parcel (Quality ≈ 1, Size ≈ 1) the multiplier 30000 reproduces
+            // that ballpark. With Phase 3 daily gross ≈ 110, the payback
+            // window comes out around ~3.5 in-game years — reasonable for
+            // an inheritable productive asset. Unbound estates (BoundEstateId
+            // null on partially-migrated saves) fall through to the legacy
+            // acre formula so values keep being computable until the weave
+            // catches up.
+            const float ParcelValueMultiplier = 30000f;
+            if (!string.IsNullOrEmpty(estate.BoundEstateId))
+            {
+                var record = BannerKings.Utils.BetterEconomyBridge.GetEstateById(settlement, estate.BoundEstateId);
+                if (record != null)
+                {
+                    float parcelValue = record.Quality * record.Size * ParcelValueMultiplier;
+                    result.Add(parcelValue, new TextObject("{=!}Parcel value"));
+                }
+                else
+                {
+                    AddLegacyAcrePrice(result, settlement, estate);
+                }
+            }
+            else
+            {
+                AddLegacyAcrePrice(result, settlement, estate);
+            }
 
             result.Add(estate.TaxAccumulated, new TextObject("{=kyB8tkgY}Current Income"));
             result.Add(estate.LastIncome * CampaignTime.DaysInYear, new TextObject("{=8xNix2pu}Yearly income"));

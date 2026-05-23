@@ -603,8 +603,35 @@ namespace BannerKings.Managers.Populations.Estates
             if (Retinue == null) EstateComponent.CreateRetinue(this);
             else if (Retinue.MemberRoster.TotalManCount < (int)MaxManpower.ResultNumber)
             {
-                float tenantProportion = data.GetCurrentTypeFraction(PopType.Tenants);
-                float serfProportion = data.GetCurrentTypeFraction(PopType.Serfs);
+                // Phase 5 BE-transition: read class proportions directly from
+                // BetterEconomy instead of going through PopulationData's
+                // GetCurrentTypeFraction. PopulationData mirrors BE via
+                // SyncClassesFromBetterEconomy, so reading the mirror works,
+                // but the direct read removes a hop and one more parallel
+                // source of truth. Fall back to BK's mirror when BE class
+                // state isn't available OR when both relevant classes are
+                // zero (Nomadic / Extractive villages with only Craftsmen +
+                // BondedLaborers would otherwise dead-loop on `random × 0 <
+                // chance` failing forever — silent retinue starvation).
+                float tenantProportion;
+                float serfProportion;
+                float beTotal = BannerKings.Utils.BetterEconomyBridge.GetTotalPopulation(data.Settlement);
+                float beTenant = beTotal > 0f
+                    ? BannerKings.Utils.BetterEconomyBridge.GetClassCount(data.Settlement, PopType.Tenants)
+                    : 0f;
+                float beSerf = beTotal > 0f
+                    ? BannerKings.Utils.BetterEconomyBridge.GetClassCount(data.Settlement, PopType.Serfs)
+                    : 0f;
+                if (beTotal > 0f && (beTenant + beSerf) > 0f)
+                {
+                    tenantProportion = beTenant / beTotal;
+                    serfProportion   = beSerf   / beTotal;
+                }
+                else
+                {
+                    tenantProportion = data.GetCurrentTypeFraction(PopType.Tenants);
+                    serfProportion   = data.GetCurrentTypeFraction(PopType.Serfs);
+                }
                 foreach (var spawn in DefaultRecruitSpawns.Instance.GetPossibleSpawns(data.Settlement.Culture, data.Settlement))
                 {
                     // Skip malformed spawn entries — a null Troop here would
@@ -667,6 +694,32 @@ namespace BannerKings.Managers.Populations.Estates
                     default:
                         Woodland += progress;
                         break;
+                }
+
+                // Phase 6 BE-transition: parcel.Size is recomputed from BK's
+                // (already cap-clamped) effective acreage below, so growth
+                // here implicitly raises record.Size on the next sync.
+            }
+
+            // Phase 6 BE-transition: keep record.Size in sync with BK's
+            // effective acreage. Earlier draft incremented Size by `progress
+            // × ratio` each Growth tick, but that was monotonic — no decay
+            // on raids / famine / cap-clamp shrinkage, and the income (Phase
+            // 3) would inflate over a long save. Recomputing from the
+            // already-clamped BK axes each tick gives a single source of
+            // truth: anything that decrements Farmland/Pastureland/Woodland
+            // (above clamp, future raid loss) flows directly into Size.
+            // Baseline parcel.Size ≈ 1.0 corresponds to ~250 effective
+            // acres (matches the Phase 3 income-formula proxy). The
+            // EffectiveAcresPerSizeUnit constant is tunable.
+            if (!string.IsNullOrEmpty(BoundEstateId) && EstatesData != null)
+            {
+                var record = BannerKings.Utils.BetterEconomyBridge.GetEstateById(EstatesData.Settlement, BoundEstateId);
+                if (record != null)
+                {
+                    const float EffectiveAcresPerSizeUnit = 250f;
+                    float effectiveAcres = Farmland + (Pastureland * 0.5f) + (Woodland * 0.15f);
+                    record.Size = effectiveAcres / EffectiveAcresPerSizeUnit;
                 }
             }
         }
