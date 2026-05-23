@@ -6,6 +6,7 @@ using TaleWorlds.CampaignSystem.Settlements;
 using TaleWorlds.Core;
 using TaleWorlds.Library;
 using TaleWorlds.SaveSystem;
+using static BannerKings.Managers.PopulationManager;
 
 namespace BannerKings.Managers.Populations.Estates
 {
@@ -19,6 +20,32 @@ namespace BannerKings.Managers.Populations.Estates
 
         [SaveableProperty(1)] public Settlement Settlement { get; private set; }
         [SaveableProperty(2)]  public List<Estate> Estates { get; private set; }
+
+        // Phase 3 BE-transition: per-village share-sum normalization. When the
+        // sum of all estates' WorkforceShare (or SlaveShare) actually exceeds
+        // 1 by a non-trivial margin, scale each share down proportionally so
+        // the village's BE pool isn't over-allocated. 1.01 epsilon avoids
+        // stomping legitimate sums sitting at 1.0 ± float noise.
+        private const float ShareSumEpsilon = 1.01f;
+        private void NormalizeShares(System.Func<Estate, float> read, System.Action<Estate, float> write)
+        {
+            if (Estates == null || Estates.Count == 0) return;
+            float sum = 0f;
+            foreach (var estate in Estates)
+            {
+                if (estate == null || estate.IsDisabled) continue;
+                float v = read(estate);
+                if (v > 0f) sum += v;
+            }
+            if (sum <= ShareSumEpsilon) return;
+            float scale = 1f / sum;
+            foreach (var estate in Estates)
+            {
+                if (estate == null || estate.IsDisabled) continue;
+                float v = read(estate);
+                if (v > 0f) write(estate, MathF.Clamp(v * scale, 0f, 1f));
+            }
+        }
 
         public bool HeroHasEstate(Hero hero) => Estates.Any(x => x.Owner == hero);
 
@@ -68,28 +95,28 @@ namespace BannerKings.Managers.Populations.Estates
             Settlement.Village.TradeTaxAccumulated += tradeTax - totalDeducted;
         }
 
-        // Daily production income for every estate in this village. Trade-tax
-        // share alone (AccumulateTradeTax above) was anemic — for small
-        // estates the per-trip share rounded to a fraction of a denar, so a
-        // population-41 estate effectively earned nothing. Estates also have
-        // physical productive land (Farmland / Pastureland / Woodland), and
-        // the owner should derive income from working that land too.
+        // Phase 3 BE-transition. Daily production income for every estate in
+        // this village. The old acre-based formula (Farmland + Pastureland*0.5
+        // + Woodland*0.15, with a calibrated AcrePriceMultiplier) is now
+        // sourced directly from the bound BetterEconomy EstateRecord's
+        // Quality × Size product, which is the parcel valuation BE already
+        // computes for each estate. BK's own acreage split is still tracked
+        // (Growth-spec daily acreage gain, UI tooltips) but no longer drives
+        // gross income. Fall back to the old acre formula for unbound estates
+        // (no BE parcel weave yet) so a partially-migrated save keeps paying.
         //
-        // Per-day formula:
-        //   effectiveAcres = Farmland + Pastureland * 0.5 + Woodland * 0.15
+        // Per-day formula (bound estates):
+        //   parcelValue     = record.Quality * record.Size
         //   workforceFactor = clamp((Pop + Slaves) / RequiredLaborForAcres, 0, 1)
-        //   gross           = effectiveAcres * workforceFactor * AcrePriceMultiplier
+        //   gross           = parcelValue * workforceFactor * ParcelPriceMultiplier
         //   net             = gross * (1 - TaxRatio)
         //
-        // RequiredLaborForAcres scales with the land mix; workforceFactor
-        // saturates at 1, so over-population doesn't increase yield (matching
-        // the existing WorkforceSaturation tooltip semantics).
-        // AcrePriceMultiplier is 1.0 — recalibrated for workshop-parity
-        // profit/cost ratio. Earlier 0.4 produced ~25 denar/day on a
-        // 250-acre estate at typical 45% workforce saturation, vs ~80–150
-        // denar/day for an equivalently priced workshop. Tripling to ~75
-        // denar/day brings allodial estates to roughly the same payback
-        // window (~1–2 in-game years) as workshops.
+        // ParcelPriceMultiplier is calibrated against the Phase 2 acre formula:
+        // a typical estate had ~250 effective acres × 1.0 AcrePriceMultiplier
+        // × ~0.45 workforce sat = ~110 gross. BE quality×size lands around
+        // ~1.0 for a baseline parcel; we want gross ≈ 110 at parcel=1.0, so
+        // ParcelPriceMultiplier = 110. Tunable via the LayeredEconomy toggle
+        // below if calibration ends up off.
         public void DailyProductionIncome()
         {
             try
@@ -101,35 +128,63 @@ namespace BannerKings.Managers.Populations.Estates
                     // Estates under enemy custody (war between village faction
                     // and owner faction) don't accrue income — no back-pay.
                     if (estate.IncomeBlockedReason != null) continue;
-                    float farm = estate.Farmland;
-                    float pasture = estate.Pastureland;
-                    float wood = estate.Woodland;
-                    float effectiveAcres = farm + (pasture * 0.5f) + (wood * 0.15f);
-                    if (effectiveAcres <= 0f) continue;
 
                     int totalLabor = estate.Population + estate.Slaves;
                     if (totalLabor <= 0) continue;
-                    // Required-labor-per-acre is roughly 0.5 in vanilla land
-                    // economics. Saturation = totalLabor / (acres * 0.5).
-                    float requiredLabor = effectiveAcres * 0.5f;
-                    float workforceFactor = requiredLabor > 0f
-                        ? MathF.Clamp(totalLabor / requiredLabor, 0f, 1f)
-                        : 0f;
-                    if (workforceFactor <= 0f) continue;
 
-                    const float AcrePriceMultiplier = 1.0f;
+                    // Phase 3: try the bound-BE-parcel path first. Unbound
+                    // estates (BoundEstateId null on partially-migrated saves)
+                    // fall through to the legacy acre formula so income keeps
+                    // flowing.
+                    float gross;
+                    if (!string.IsNullOrEmpty(estate.BoundEstateId))
+                    {
+                        var record = BannerKings.Utils.BetterEconomyBridge.GetEstateById(Settlement, estate.BoundEstateId);
+                        if (record == null) continue;
+                        float parcelValue = record.Quality * record.Size;
+                        if (parcelValue <= 0f) continue;
+
+                        // Required labor proxy: parcel size is in normalized
+                        // units (~1.0 baseline). A 1.0-size parcel maps to
+                        // roughly 50 workers required for full saturation,
+                        // matching the old "0.5 labor/acre × 100 acres" rule
+                        // for a baseline parcel.
+                        float requiredLabor = record.Size * 50f;
+                        float workforceFactor = requiredLabor > 0f
+                            ? MathF.Clamp(totalLabor / requiredLabor, 0f, 1f)
+                            : 0f;
+                        if (workforceFactor <= 0f) continue;
+
+                        const float ParcelPriceMultiplier = 110f;
+                        gross = parcelValue * workforceFactor * ParcelPriceMultiplier;
+                    }
+                    else
+                    {
+                        float farm = estate.Farmland;
+                        float pasture = estate.Pastureland;
+                        float wood = estate.Woodland;
+                        float effectiveAcres = farm + (pasture * 0.5f) + (wood * 0.15f);
+                        if (effectiveAcres <= 0f) continue;
+
+                        float requiredLabor = effectiveAcres * 0.5f;
+                        float workforceFactor = requiredLabor > 0f
+                            ? MathF.Clamp(totalLabor / requiredLabor, 0f, 1f)
+                            : 0f;
+                        if (workforceFactor <= 0f) continue;
+
+                        const float AcrePriceMultiplier = 1.0f;
+                        gross = effectiveAcres * workforceFactor * AcrePriceMultiplier;
+                    }
+
                     float keepRate = 1f - estate.TaxRatio.ResultNumber;
                     if (keepRate < 0f) keepRate = 0f;
-                    float gross = effectiveAcres * workforceFactor * AcrePriceMultiplier;
 
                     // Phase 2 layered-economy yield multiplier — gated behind
                     // MCM toggle so the rework is opt-in until playtest
                     // confirms regression baseline. When off, the multiplier
-                    // is exactly 1.0 and the formula reduces to the original
-                    // vanilla path. When on, EstateSpec × VillageClass ×
-                    // pop-weighted worker-fit multiplies gross. Industry-
-                    // demand stays at 1.0 here; Phase 3 cluster aggregation
-                    // adds the cluster-fit factor.
+                    // is exactly 1.0 and the formula reduces to the
+                    // parcel-or-acre baseline. When on, EstateSpec × VillageClass ×
+                    // pop-weighted worker-fit multiplies gross.
                     if (BannerKings.Settings.BannerKingsSettings.Instance?.LayeredEconomyYields == true)
                     {
                         var br = BannerKings.CampaignContent.Economy.Layered.EstateYieldCalculator.GoldMultiplier(estate);
@@ -275,6 +330,27 @@ namespace BannerKings.Managers.Populations.Estates
                 // estates without any double-counting random walk on top.
                 // The growthFactor calculation above is removed; if a Phase 2
                 // consumer needs it, route through BE's class state directly.
+
+                // Phase 3 BE-transition: per-village share-sum normalization.
+                // Original Phase 3 design also included an "external BE pool
+                // delta" recompute that detected BE-side pool movement and
+                // rewrote shares from (absolute / new pool). Cold-context
+                // critic correctly pointed out the fractional-share semantic
+                // is self-correcting: if pool grows from 1000 to 1200, an
+                // estate at share=0.5 naturally derives 600 (was 500) — its
+                // proportional slice followed the village. Recomputing share
+                // from yesterday's absolute / today's pool defeats the
+                // semantic and slowly demotes shares every growth tick. So
+                // the delta block is GONE; share is canonical and
+                // proportional, period.
+                //
+                // What remains: per-village share-sum normalization. Two
+                // estates with WorkforceShare = 0.6 sum to 1.2 → derived
+                // counts over-allocate the pool. Rescale proportionally,
+                // but only when sum exceeds 1 + epsilon (so we don't stomp
+                // legitimate sums sitting at 1.0 ± float noise).
+                NormalizeShares(estate => estate.WorkforceShare, (estate, v) => estate.WorkforceShare = v);
+                NormalizeShares(estate => estate.SlaveShare,     (estate, v) => estate.SlaveShare     = v);
 
                 var dead = new List<Estate>();
                 foreach (Estate estate in Estates)
