@@ -4,7 +4,7 @@
         xsi:noNamespaceSchemaLocation="https://raw.githubusercontent.com/BUTR/Bannerlord.XmlSchemas/master/SubModule.xsd">
 	<Id value="BannerKings.Redux" />
 	<Name value="Banner Kings — Redux" />
-	<Version value="v1.9.5.1" />
+	<Version value="v1.9.5.2" />
 	<Official value="false" />
 	<DefaultModule value="true" />
 	<ModuleCategory value="Singleplayer" />
@@ -54,6 +54,11 @@
 		<DependedModuleMetadata id="RTSCamera.CommandSystem" order="LoadAfterThis" optional="true" />
 		<DependedModuleMetadata id="AIInfluence" order="LoadAfterThis" optional="true" />
 		<DependedModuleMetadata id="realmofthrones.core" order="LoadAfterThis" optional="true" />
+		<!-- Shokuho is a total conversion with its own ShokuhoCampaign GameType.
+		     BK's behaviors register for Campaign / CampaignStoryMode so they do
+		     not auto-load into a Shokuho save; LoadAfterThis is declared so the
+		     ModCompat.Shokuho probe sees the module list at BK init time. -->
+		<DependedModuleMetadata id="Shokuho" order="LoadAfterThis" optional="true" />
 	</DependedModuleMetadatas>
 	<!-- Community Dependency Metadata -->
 	<SubModules>

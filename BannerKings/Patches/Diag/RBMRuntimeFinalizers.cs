@@ -88,7 +88,110 @@ namespace BannerKings.Patches.Diag
         public static void TryInstallAll()
         {
             TryInstallSiegeArcherPointsSkip();
+            TryInstallAddMissionBehaviorFilter();
             TryInstallDoPatchingFinalizer();
+        }
+
+        // Crash htm 2026-05-23 14:28: SiegeArcherPoints.OnMissionTick fires
+        // and JIT-compiles its body, which references
+        //   GameEntity.Instantiate(Scene, String, MatrixFrame, Boolean, String)
+        // — an overload that existed in 1.3 but was dropped in 1.4. The JIT
+        // throws MissingMethodException → Mission.OnTick unhandled →
+        // fatal.
+        //
+        // v1.9.1.13 installed a Prefix that returns false to skip the
+        // original body so the JIT never compiles it. That worked in
+        // theory but Harmony's install path reads the original method's IL
+        // (to determine the right wrapper signature) and chokes on the
+        // missing reference DURING INSTALL — user logs show:
+        //   "[BK] RBMRuntimeFinalizers: failed to install SiegeArcherPoints
+        //    skip-prefix: MissingMethodException ..."
+        // Result: the skip isn't in place, the body runs, the JIT throws.
+        //
+        // Phase-shift the defence: instead of patching OnMissionTick on
+        // SiegeArcherPoints (which makes Harmony read its IL), patch
+        // Mission.AddMissionBehavior and reject any attempt to add a
+        // SiegeArcherPoints instance. The MissionBehavior never enters the
+        // mission's behavior list, OnMissionTick is never called by the
+        // mission tick loop, and the JIT never has reason to compile the
+        // broken body. SiegeArcherPoints's siege-archer-formation logic is
+        // lost on this user's setup (same outcome as the skip-prefix
+        // intent), but battle entry succeeds.
+        //
+        // Patch is unconditional once installed — every mission filters
+        // SiegeArcherPoints additions. If RBM ever ships a 1.4-compat
+        // SiegeArcherPoints with a working Instantiate call, BK still
+        // skips it; user can uninstall BK to restore that behavior. Per
+        // the BK "decisions only, never break the campaign" rule the
+        // crash-prevention takes priority.
+        private static bool _addMissionBehaviorFilterInstalled;
+        private static bool _addMissionBehaviorFilterLogged;
+        private static void TryInstallAddMissionBehaviorFilter()
+        {
+            if (_addMissionBehaviorFilterInstalled) return;
+
+            // AddMissionBehavior lives on TaleWorlds.MountAndBlade.Mission.
+            // Bind by name and assert the typeof in code so we tolerate
+            // minor overload shifts.
+            Type missionType = AccessTools.TypeByName("TaleWorlds.MountAndBlade.Mission");
+            if (missionType == null) return; // engine module not loaded yet
+
+            MethodInfo m = AccessTools.Method(missionType, "AddMissionBehavior");
+            if (m == null)
+            {
+                TaleWorlds.Library.Debug.Print(
+                    "[BK] RBMRuntimeFinalizers: Mission.AddMissionBehavior not found — SiegeArcherPoints filter not installed");
+                return;
+            }
+
+            try
+            {
+                var harmony = new Harmony("BannerKings.RBM.RuntimeFinalizers");
+                var prefixMethod = AccessTools.Method(
+                    typeof(RBMRuntimeFinalizers), nameof(AddMissionBehaviorFilterPrefix));
+                harmony.Patch(m, prefix: new HarmonyMethod(prefixMethod));
+                _addMissionBehaviorFilterInstalled = true;
+                TaleWorlds.Library.Debug.Print(
+                    "[BK] RBMRuntimeFinalizers: installed Mission.AddMissionBehavior filter (skips SiegeArcherPoints)");
+                BannerKings.Utils.Logs.MajorEvent(() =>
+                    "[BK] RBMRuntimeFinalizers: installed Mission.AddMissionBehavior filter (skips SiegeArcherPoints)");
+            }
+            catch (Exception ex)
+            {
+                TaleWorlds.Library.Debug.Print(
+                    $"[BK] RBMRuntimeFinalizers: failed to install AddMissionBehavior filter: {ex.GetType().Name}: {ex.Message}");
+            }
+        }
+
+        // Harmony Prefix on Mission.AddMissionBehavior. Returning false
+        // skips the original method — the behavior is never added.
+        // First parameter of AddMissionBehavior is the MissionBehavior to
+        // add; bind it by Harmony's standard __0 positional name to avoid
+        // depending on the vanilla parameter name.
+        public static bool AddMissionBehaviorFilterPrefix(object __0)
+        {
+            try
+            {
+                if (__0 == null) return true; // let vanilla decide what to do with null
+                var typeName = __0.GetType().Name;
+                if (typeName == "SiegeArcherPoints")
+                {
+                    if (!_addMissionBehaviorFilterLogged)
+                    {
+                        _addMissionBehaviorFilterLogged = true;
+                        TaleWorlds.Library.Debug.Print(
+                            "[BK] RBMRuntimeFinalizers: filtering SiegeArcherPoints out of Mission behavior list (1.4 compat — GameEntity.Instantiate signature mismatch)");
+                        BannerKings.Utils.Logs.MajorEvent(() =>
+                            "[BK] RBMRuntimeFinalizers: filtering SiegeArcherPoints out of Mission behavior list (1.4 compat)");
+                    }
+                    return false; // skip Add — behavior never enters mission
+                }
+            }
+            catch
+            {
+                // Reflection / typing trips → fall through to vanilla.
+            }
+            return true;
         }
 
         // Crash htm 2026-05-23 22:39: RBM 4.3 on game v1.4.5 throws during

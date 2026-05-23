@@ -44,31 +44,37 @@ namespace BannerKings.Patches
         private static readonly HashSet<string> _loggedTroops = new HashSet<string>();
         private static readonly object _logLock = new object();
 
-        // OnXpChanged is internal on PartyBase; bind by name without an
-        // explicit overload list so we tolerate 1.4.x signature drift across
-        // patch builds (the method's parameter set has shifted before).
+        // OnXpChanged is internal on PartyBase. Vanilla 1.4 signature is
+        //   void OnXpChanged(TroopRoster roster, ref TroopRosterElement element)
+        // not the (CharacterObject, int, ...) shape an earlier version of
+        // this finalizer assumed — that mismatch made Harmony reject the
+        // install in user logs ("Patching exception in method ... OnXpChanged
+        // (TroopRoster roster, ref TroopRosterElement& element)"). Take only
+        // __exception now; the offending CharacterObject identity lookup
+        // (which needs the ref-element) isn't worth the parameter-binding
+        // brittleness, and the once-per-process major-event log still tells
+        // the user the swallow happened.
         [HarmonyFinalizer]
         [HarmonyPatch("OnXpChanged")]
-        private static Exception OnXpChangedFinalizer(Exception __exception, CharacterObject character)
+        private static Exception OnXpChangedFinalizer(Exception __exception)
         {
             if (__exception == null) return null;
             if (!(__exception is NullReferenceException)) return __exception;
 
             try
             {
-                string id = character?.StringId ?? "<null-character>";
                 bool first;
                 lock (_logLock)
                 {
-                    first = _loggedTroops.Add(id);
+                    // Process-wide one-shot via a sentinel key — we don't
+                    // have the character identity at this scope so we can't
+                    // dedupe per-troop. One log per process is enough.
+                    first = _loggedTroops.Add("__onxp_changed_nre__");
                 }
                 if (first)
                 {
-                    string name = character?.Name?.ToString() ?? "<null-name>";
-                    bool isTemplate = character != null && character.IsTemplate;
-                    bool hasUpgrades = character != null && character.UpgradeTargets != null;
                     BannerKings.Utils.Logs.MajorEvent(() =>
-                        $"[BK] OnXpChanged NRE swallowed for non-hero troop id={id} name={name} isTemplate={isTemplate} hasUpgradeTargets={hasUpgrades}. Likely a mod-spawned or template character with no upgrade_targets reaching the daily party-training tick. XP credit lost for this troop today; campaign continues.");
+                        "[BK] OnXpChanged NRE swallowed at least once. Cause: a non-hero CharacterObject in a party member roster has null UpgradeTargets — likely a mod-spawned or template character (e.g. boss-tier troop with no upgrade_targets line) reaching the daily party-training tick. XP credit lost for that troop today; campaign continues.");
                 }
             }
             catch { /* never throw out of a finalizer */ }
