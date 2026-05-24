@@ -205,21 +205,27 @@ namespace BannerKings.UI.Estates
             int estDaily = (int)Estate.EstimatedDailyIncome;
             string blocker = Estate.IncomeBlockedReason;
             var sb = new System.Text.StringBuilder();
-            // Surface every reason income could be 0 — the previous tooltip
-            // only flagged IncomeBlockedReason (war custody / registration
-            // sync), but EstimatedDailyIncome also silently returns 0 when
-            // effectiveAcres / totalLabor / workforceFactor land at 0.
-            // Without these explicit lines, "0 income, no explanation" was
-            // observable on a healthy-looking estate.
+            // Surface every reason income could be 0. After Phase 3-6 the
+            // gross formula reads through the bound BetterEconomy parcel
+            // (Quality × Size × ParcelPriceMultiplier), so the breakdown
+            // we surface here must show those factors — not just
+            // effective acres, which is no longer the multiplier in the
+            // dominant path. We still report effective acres because
+            // parcel.Size is recomputed from it each tick (so it remains
+            // the underlying knob the player controls via Growth-spec).
             float effAcresPreview = Estate.Farmland + Estate.Pastureland * 0.5f + Estate.Woodland * 0.15f;
             int totalLaborPreview = Estate.Population + Estate.Slaves;
+            var record = !string.IsNullOrEmpty(Estate.BoundEstateId) && Estate.EstatesData?.Settlement != null
+                ? BannerKings.Utils.BetterEconomyBridge.GetEstateById(Estate.EstatesData.Settlement, Estate.BoundEstateId)
+                : null;
             if (estDaily == 0)
             {
                 sb.AppendLine("INCOME = 0/day. Reasons:");
                 if (blocker != null) sb.AppendLine($"  • {blocker}");
-                if (effAcresPreview <= 0f) sb.AppendLine($"  • effective acres = 0 (no Farmland/Pastureland/Woodland)");
+                if (record == null && effAcresPreview <= 0f) sb.AppendLine($"  • effective acres = 0 (no Farmland/Pastureland/Woodland)");
+                if (record != null && record.Quality * record.Size <= 0f) sb.AppendLine($"  • parcel value = 0 (Quality × Size)");
                 if (totalLaborPreview <= 0) sb.AppendLine($"  • total labor = 0 (Population + Slaves both empty)");
-                if (effAcresPreview > 0f && totalLaborPreview > 0 && Estate.WorkforceSaturation <= 0f)
+                if (totalLaborPreview > 0 && Estate.WorkforceSaturation <= 0f)
                     sb.AppendLine($"  • workforce saturation = 0%");
                 sb.AppendLine();
             }
@@ -230,7 +236,21 @@ namespace BannerKings.UI.Estates
                 sb.AppendLine();
             }
             sb.AppendLine("Estimated steady-state daily income from production.");
-            sb.AppendLine($"  effective acres = {effAcresPreview:0.0}");
+            if (record != null)
+            {
+                // Phase 3-6 path: gross = Quality × Size × 110, with
+                // effective acres shown as the underlying source that
+                // Growth-spec moves.
+                sb.AppendLine($"  parcel quality = {record.Quality:0.00}");
+                sb.AppendLine($"  parcel size    = {record.Size:0.00}");
+                sb.AppendLine($"  effective acres (drives Size) = {effAcresPreview:0.0}");
+            }
+            else
+            {
+                // Legacy acre path — unbound estate, weave hasn't anchored
+                // it to a BE parcel yet.
+                sb.AppendLine($"  effective acres = {effAcresPreview:0.0}  (legacy acre formula; estate not yet bound to a BetterEconomy parcel)");
+            }
             sb.AppendLine($"  workforce saturation = {(Estate.WorkforceSaturation * 100f):0}%");
             sb.AppendLine($"  keep rate after tax = {((1f - Estate.TaxRatio.ResultNumber) * 100f):0}%");
 

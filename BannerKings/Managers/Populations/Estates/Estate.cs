@@ -197,23 +197,54 @@ namespace BannerKings.Managers.Populations.Estates
             get
             {
                 if (IncomeBlockedReason != null) return 0f;
-                float effectiveAcres = Farmland + (Pastureland * 0.5f) + (Woodland * 0.15f);
-                if (effectiveAcres <= 0f) return 0f;
                 int totalLabor = Population + Slaves;
                 if (totalLabor <= 0) return 0f;
-                float required = effectiveAcres * 0.5f;
-                float workforceFactor = required > 0f
-                    ? MathF.Clamp(totalLabor / required, 0f, 1f)
-                    : 0f;
-                if (workforceFactor <= 0f) return 0f;
                 float keepRate = 1f - TaxRatio.ResultNumber;
                 if (keepRate < 0f) keepRate = 0f;
-                float gross = effectiveAcres * workforceFactor * 1.0f;
 
-                // Phase 2 layered-economy multiplier — must mirror the
-                // gating + math in EstateData.DailyProductionIncome so the
-                // UI estimate doesn't diverge from the actual daily
-                // payout. Single source of truth = EstateYieldCalculator.
+                // v1.9.6.1: mirror EstateData.DailyProductionIncome exactly —
+                // the previous implementation was stuck on the pre-Phase-3
+                // acre formula (effectiveAcres × 1.0) while the actual
+                // payout had moved to parcel.Quality × parcel.Size × 110.
+                // For a baseline-quality estate the divergence was about
+                // 0.44× — players saw an "Estimated payout: X denar/day"
+                // tooltip and got 0.44X paid. Same shape now: bound
+                // estates compute through the BE parcel; unbound estates
+                // fall through to the legacy acre formula until the weave
+                // anchors them.
+                float gross;
+                if (!string.IsNullOrEmpty(BoundEstateId) && EstatesData != null)
+                {
+                    var record = BannerKings.Utils.BetterEconomyBridge.GetEstateById(EstatesData.Settlement, BoundEstateId);
+                    if (record == null) return 0f;
+                    float parcelValue = record.Quality * record.Size;
+                    if (parcelValue <= 0f) return 0f;
+
+                    float requiredLabor = record.Size * 50f;
+                    float workforceFactor = requiredLabor > 0f
+                        ? MathF.Clamp(totalLabor / requiredLabor, 0f, 1f)
+                        : 0f;
+                    if (workforceFactor <= 0f) return 0f;
+
+                    const float ParcelPriceMultiplier = 110f;
+                    gross = parcelValue * workforceFactor * ParcelPriceMultiplier;
+                }
+                else
+                {
+                    float effectiveAcres = Farmland + (Pastureland * 0.5f) + (Woodland * 0.15f);
+                    if (effectiveAcres <= 0f) return 0f;
+                    float requiredLabor = effectiveAcres * 0.5f;
+                    float workforceFactor = requiredLabor > 0f
+                        ? MathF.Clamp(totalLabor / requiredLabor, 0f, 1f)
+                        : 0f;
+                    if (workforceFactor <= 0f) return 0f;
+                    const float AcrePriceMultiplier = 1.0f;
+                    gross = effectiveAcres * workforceFactor * AcrePriceMultiplier;
+                }
+
+                // Phase 2 layered-economy multiplier — same gating + math
+                // as EstateData.DailyProductionIncome so the estimate doesn't
+                // diverge from the actual daily payout.
                 if (BannerKings.Settings.BannerKingsSettings.Instance?.LayeredEconomyYields == true)
                 {
                     var br = BannerKings.CampaignContent.Economy.Layered.EstateYieldCalculator.GoldMultiplier(this);

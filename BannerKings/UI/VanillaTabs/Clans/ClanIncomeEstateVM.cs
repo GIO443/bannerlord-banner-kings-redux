@@ -114,13 +114,17 @@ namespace BannerKings.UI.VanillaTabs.Clans
                     var sb = new System.Text.StringBuilder();
                     float effAcres = Estate.Farmland + Estate.Pastureland * 0.5f + Estate.Woodland * 0.15f;
                     int totalLabor = Estate.Population + Estate.Slaves;
+                    var record = !string.IsNullOrEmpty(Estate.BoundEstateId) && Estate.EstatesData?.Settlement != null
+                        ? BannerKings.Utils.BetterEconomyBridge.GetEstateById(Estate.EstatesData.Settlement, Estate.BoundEstateId)
+                        : null;
                     if (estDaily == 0)
                     {
                         sb.AppendLine("INCOME = 0/day. Reasons:");
                         if (blocker != null) sb.AppendLine($"  • {blocker}");
-                        if (effAcres <= 0f) sb.AppendLine($"  • effective acres = 0 (no Farmland/Pastureland/Woodland)");
+                        if (record == null && effAcres <= 0f) sb.AppendLine($"  • effective acres = 0 (no Farmland/Pastureland/Woodland)");
+                        if (record != null && record.Quality * record.Size <= 0f) sb.AppendLine($"  • parcel value = 0 (Quality × Size)");
                         if (totalLabor <= 0) sb.AppendLine($"  • total labor = 0 (Population + Slaves both empty)");
-                        if (effAcres > 0f && totalLabor > 0 && Estate.WorkforceSaturation <= 0f)
+                        if (totalLabor > 0 && Estate.WorkforceSaturation <= 0f)
                             sb.AppendLine($"  • workforce saturation = 0%");
                         sb.AppendLine();
                     }
@@ -131,7 +135,16 @@ namespace BannerKings.UI.VanillaTabs.Clans
                         sb.AppendLine();
                     }
                     sb.AppendLine($"Estimated steady-state daily payout: {estDaily} denar");
-                    sb.AppendLine($"  effective acres = {effAcres:0.0}");
+                    if (record != null)
+                    {
+                        sb.AppendLine($"  parcel quality = {record.Quality:0.00}");
+                        sb.AppendLine($"  parcel size    = {record.Size:0.00}");
+                        sb.AppendLine($"  effective acres (drives Size) = {effAcres:0.0}");
+                    }
+                    else
+                    {
+                        sb.AppendLine($"  effective acres = {effAcres:0.0}  (legacy acre formula; estate not yet bound to a BetterEconomy parcel)");
+                    }
                     sb.AppendLine($"  workforce saturation = {(Estate.WorkforceSaturation * 100f):0}%");
                     sb.AppendLine($"  keep rate after tax = {((1f - Estate.TaxRatio.ResultNumber) * 100f):0}%");
                     sb.AppendLine();
