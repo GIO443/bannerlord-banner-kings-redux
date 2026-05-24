@@ -60,7 +60,15 @@ namespace BannerKings.Managers.Institutions.Religions
         public MBReadOnlyDictionary<Settlement, Clergyman> Clergy => clergy.GetReadOnlyDictionary();
         public ExplainedNumber Fervor => BannerKingsConfig.Instance.ReligionModel.CalculateFervor(this);
         public List<CultureObject> FavoredCultures { get; private set; }
-        public MBReadOnlyList<Rite> Rites => new MBReadOnlyList<Rite>(Faith.Rites);
+        // v1.9.6.0 sweep: Faith can legitimately be null on a save-restored
+        // Religion whose StringId no longer resolves in DefaultFaiths (e.g.
+        // a War Sails faith loaded into a save without War Sails). The
+        // PostInitialize fallback sets Faith = null in that case (line 47);
+        // these accessors then must not dereference it. Return empty
+        // collection / null leader instead of NRE-ing the UI / daily tick.
+        public MBReadOnlyList<Rite> Rites => Faith?.Rites != null
+            ? new MBReadOnlyList<Rite>(Faith.Rites)
+            : new MBReadOnlyList<Rite>(new List<Rite>());
         // FavoredCultures can legitimately be empty — PostInitialize falls a
         // saved religion whose id no longer resolves in DefaultReligions (e.g.
         // a War Sails faith on a save without War Sails) back to an empty
@@ -68,7 +76,7 @@ namespace BannerKings.Managers.Institutions.Religions
         public CultureObject MainCulture => (FavoredCultures != null && FavoredCultures.Count > 0)
             ? FavoredCultures[0]
             : null;
-        public Hero FaithLeader => Faith.FaithGroup.Leader;
+        public Hero FaithLeader => Faith?.FaithGroup?.Leader;
 
         public bool HasDoctrine(Doctrine doctrine)
         {
@@ -79,11 +87,19 @@ namespace BannerKings.Managers.Institutions.Religions
         public FaithStance GetStance(Faith otherFaith)
         {
             if (HasDoctrine(DefaultDoctrines.Instance.Tolerant)) return FaithStance.Tolerated;
+            // v1.9.6.0 sweep: Faith may be null on a save-restored stub
+            // whose StringId no longer resolves. A null-faith stub
+            // shouldn't be picking fights — return the same Tolerated
+            // value as the doctrine branch above so downstream judgement
+            // logic treats the broken religion as passive instead of
+            // an active negative.
+            if (Faith == null) return FaithStance.Tolerated;
             return Faith.GetStance(otherFaith);
         }
 
         public void ChangeClergymanRank(Clergyman clergyman, int newRank)
         {
+            if (clergyman?.Hero == null || Faith == null) return;
             var firstName = clergyman.Hero.FirstName;
             var fullName = new TextObject("{=6MHqUBXt}{RELIGIOUS_TITLE} {NAME}")
                 .SetTextVariable("RELIGIOUS_TITLE", Faith.GetRankTitle(newRank))
@@ -133,6 +149,11 @@ namespace BannerKings.Managers.Institutions.Religions
         
         public Clergyman GenerateClergyman(Settlement settlement)
         {
+            // v1.9.6.0 sweep: save-restored Religion can have Faith == null
+            // when its StringId no longer resolves in DefaultFaiths (mod
+            // uninstall mid-campaign). No faith → no clergy generation;
+            // bail before touching Faith.X.
+            if (Faith == null) return null;
             var rank = Faith.GetIdealRank(settlement);
             if (rank <= 0)
             {

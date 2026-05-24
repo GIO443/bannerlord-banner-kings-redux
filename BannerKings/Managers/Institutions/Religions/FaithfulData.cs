@@ -32,8 +32,20 @@ namespace BannerKings.Managers.Institutions.Religions
             if (Blessing != null)
             {
                 var bless = DefaultDivinities.Instance.GetById(Blessing.StringId);
-                Blessing.Initialize(bless.Name, bless.Description, bless.Effects, bless.SecondaryTitle,
-                    bless.BaseBlessingCost);
+                // v1.9.6.0 sweep: GetById can legitimately return null when a
+                // saved Divinity id no longer resolves (mod uninstall, faith
+                // temporarily dropped from a run). Skip Initialize in that
+                // case but LEAVE Blessing intact — overwriting it to null
+                // here would persist on next save (Blessing is a
+                // [SaveableField]) and permanently de-bless the hero even
+                // if the user later reinstalls the missing mod. Letting
+                // the saved stub ride means the next load with the mod
+                // back in place re-resolves and re-initialises normally.
+                if (bless != null)
+                {
+                    Blessing.Initialize(bless.Name, bless.Description, bless.Effects, bless.SecondaryTitle,
+                        bless.BaseBlessingCost);
+                }
             }
         }
         public CampaignTime BlessingEndDate => blessingEndDate;

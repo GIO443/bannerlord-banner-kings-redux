@@ -70,15 +70,26 @@ namespace BannerKings.Managers.Institutions.Religions.Faiths
 
         // Lazy-init backstop for the ctor-bypassing deserialization path.
         // Returns a never-null FaithPreset; if the field is null (save-
-        // restored stub) installs an empty one once and returns it. New
-        // call sites should use this; existing preset.X sites can be moved
-        // over case-by-case as crash reports surface them.
+        // restored stub) installs an empty one once and returns it.
+        //
+        // Thread-safety: UI thread (Religion VM tooltip, faith picker)
+        // reads Preset.X concurrently with the campaign thread's daily
+        // tick (CalculateFervor, BalanceReligions). The naive
+        // `if (preset == null) preset = new FaithPreset();` race could
+        // produce two FaithPreset instances briefly — one wins, the
+        // other is discarded — which would be a wasted allocation but
+        // also a brief window where two readers observe different
+        // identities. Interlocked.CompareExchange installs only when the
+        // field is still null, atomic across threads. Same memory-race
+        // hygiene as the BannerKings cache MEMORY note.
         private FaithPreset Preset
         {
             get
             {
-                if (preset == null) preset = new FaithPreset();
-                return preset;
+                var p = preset;
+                if (p != null) return p;
+                var fresh = new FaithPreset();
+                return System.Threading.Interlocked.CompareExchange(ref preset, fresh, null) ?? fresh;
             }
         }
 
@@ -102,28 +113,36 @@ namespace BannerKings.Managers.Institutions.Religions.Faiths
                 societies ?? new List<Society>());
         }
 
-        public override string GetId() => id ?? preset?.Id;
+        // v1.9.6.0 sweep: every preset-backed accessor now reads through
+        // Preset (the lazy-null-safe property) instead of the bare `preset`
+        // field. This closes the same FormatterServices.GetUninitializedObject
+        // hazard that took down FaithSeat (v1.9.5.3) at every other surface —
+        // GetFaithName for the Religion UI panel, the flavor multipliers for
+        // CalculateFervor, the rank-title lookups for clergy spawning, etc.
+        // Save-restored stubs that escape Religion.PostInitialize's canonical
+        // -faith swap now degrade to placeholder text instead of crashing.
+        public override string GetId() => id ?? Preset.Id;
 
-        public override TextObject GetFaithName() => preset.Name;
-        public override TextObject GetFaithDescription() => preset.Description;
-        public override TextObject GetCultsDescription() => preset.CultsDescription ?? new TextObject("{=!}cults");
-        public override TextObject GetZealotsGroupName() => preset.ZealotsGroupName ?? new TextObject("{=!}zealots");
-        public override TextObject GetInductionExplanationText() => preset.InductionExplanation
+        public override TextObject GetFaithName() => Preset.Name;
+        public override TextObject GetFaithDescription() => Preset.Description;
+        public override TextObject GetCultsDescription() => Preset.CultsDescription ?? new TextObject("{=!}cults");
+        public override TextObject GetZealotsGroupName() => Preset.ZealotsGroupName ?? new TextObject("{=!}zealots");
+        public override TextObject GetInductionExplanationText() => Preset.InductionExplanation
             ?? new TextObject("{=!}You may be inducted into this faith by speaking to one of its preachers.");
-        public override TextObject GetDescriptionHint() => preset.DescriptionHint ?? preset.Description;
+        public override TextObject GetDescriptionHint() => Preset.DescriptionHint ?? Preset.Description;
 
-        public override TextObject GetBlessingAction() => preset.BlessingAction ?? new TextObject("{=!}I seek a blessing.");
-        public override TextObject GetBlessingActionName() => preset.BlessingActionName ?? new TextObject("{=!}blessings");
-        public override TextObject GetBlessingQuestion() => preset.BlessingQuestion
+        public override TextObject GetBlessingAction() => Preset.BlessingAction ?? new TextObject("{=!}I seek a blessing.");
+        public override TextObject GetBlessingActionName() => Preset.BlessingActionName ?? new TextObject("{=!}blessings");
+        public override TextObject GetBlessingQuestion() => Preset.BlessingQuestion
             ?? new TextObject("{=!}Which divinity do you seek favour from?");
-        public override TextObject GetBlessingConfirmQuestion() => preset.BlessingConfirmQuestion
+        public override TextObject GetBlessingConfirmQuestion() => Preset.BlessingConfirmQuestion
             ?? new TextObject("{=!}Are you certain in your devotion?");
-        public override TextObject GetBlessingQuickInformation() => preset.BlessingQuickInformation
+        public override TextObject GetBlessingQuickInformation() => Preset.BlessingQuickInformation
             ?? new TextObject("{=!}{HERO} has received the blessing of {DIVINITY}.");
 
         public override int GetMaxClergyRank()
         {
-            int n = preset.RankTitles?.Count ?? 0;
+            int n = Preset.RankTitles?.Count ?? 0;
             return n > 0 ? n : 1;
         }
 
@@ -139,8 +158,9 @@ namespace BannerKings.Managers.Institutions.Religions.Faiths
 
         public override TextObject GetRankTitle(int rank)
         {
-            if (preset.RankTitles != null && rank > 0 && rank <= preset.RankTitles.Count)
-                return preset.RankTitles[rank - 1];
+            var p = Preset;
+            if (p.RankTitles != null && rank > 0 && rank <= p.RankTitles.Count)
+                return p.RankTitles[rank - 1];
             return new TextObject("{=!}Cleric");
         }
 
@@ -176,8 +196,9 @@ namespace BannerKings.Managers.Institutions.Religions.Faiths
 
         public override bool IsCultureNaturalFaith(CultureObject culture)
         {
-            if (culture == null || preset.NaturalCultureIds == null) return false;
-            return preset.NaturalCultureIds.Contains(culture.StringId);
+            var p = Preset;
+            if (culture == null || p.NaturalCultureIds == null) return false;
+            return p.NaturalCultureIds.Contains(culture.StringId);
         }
 
         public override bool IsHeroNaturalFaith(Hero hero) =>
@@ -189,9 +210,10 @@ namespace BannerKings.Managers.Institutions.Religions.Faiths
             if (cachedBanner != null) return cachedBanner;
             try
             {
-                if (!string.IsNullOrEmpty(preset.BannerCode))
+                var code = Preset.BannerCode;
+                if (!string.IsNullOrEmpty(code))
                 {
-                    cachedBanner = new Banner(preset.BannerCode);
+                    cachedBanner = new Banner(code);
                     return cachedBanner;
                 }
             }
@@ -220,7 +242,7 @@ namespace BannerKings.Managers.Institutions.Religions.Faiths
             }
         }
 
-        public override float BlessingCostFactor => preset.Flavor switch
+        public override float BlessingCostFactor => Preset.Flavor switch
         {
             FaithFlavor.Monotheistic => 1f,
             FaithFlavor.Polytheistic => 1.3f,
@@ -228,7 +250,7 @@ namespace BannerKings.Managers.Institutions.Religions.Faiths
             FaithFlavor.Dualistic => 1.3f,
             _ => 1f,
         };
-        public override float FaithStrengthFactor => preset.Flavor switch
+        public override float FaithStrengthFactor => Preset.Flavor switch
         {
             FaithFlavor.Monotheistic => 1f,
             FaithFlavor.Polytheistic => 0.7f,
@@ -236,7 +258,7 @@ namespace BannerKings.Managers.Institutions.Religions.Faiths
             FaithFlavor.Dualistic => 1.1f,
             _ => 1f,
         };
-        public override float JoinSocietyCost => preset.Flavor switch
+        public override float JoinSocietyCost => Preset.Flavor switch
         {
             FaithFlavor.Monotheistic => 1f,
             FaithFlavor.Polytheistic => 0.5f,
@@ -244,7 +266,7 @@ namespace BannerKings.Managers.Institutions.Religions.Faiths
             FaithFlavor.Dualistic => 1.5f,
             _ => 1f,
         };
-        public override float VirtueFactor => preset.Flavor switch
+        public override float VirtueFactor => Preset.Flavor switch
         {
             FaithFlavor.Monotheistic => 1f,
             FaithFlavor.Polytheistic => 0.5f,
@@ -252,7 +274,7 @@ namespace BannerKings.Managers.Institutions.Religions.Faiths
             FaithFlavor.Dualistic => 2f,
             _ => 1f,
         };
-        public override float ConversionCost => preset.Flavor switch
+        public override float ConversionCost => Preset.Flavor switch
         {
             FaithFlavor.Monotheistic => 1f,
             FaithFlavor.Polytheistic => 1.3f,
@@ -261,7 +283,7 @@ namespace BannerKings.Managers.Institutions.Religions.Faiths
             _ => 1f,
         };
 
-        public override TextObject GetFaithTypeName() => preset.Flavor switch
+        public override TextObject GetFaithTypeName() => Preset.Flavor switch
         {
             FaithFlavor.Monotheistic => new TextObject("{=!}Monotheism"),
             FaithFlavor.Polytheistic => new TextObject("{=!}Polytheism"),
@@ -270,7 +292,7 @@ namespace BannerKings.Managers.Institutions.Religions.Faiths
             _ => new TextObject("{=!}"),
         };
 
-        public override TextObject GetFaithTypeExplanation() => preset.Flavor switch
+        public override TextObject GetFaithTypeExplanation() => Preset.Flavor switch
         {
             FaithFlavor.Polytheistic => new TextObject("{=!}Polytheists worship many gods, all worthy of devotion."),
             FaithFlavor.Henotheistic => new TextObject("{=!}Henotheists honour many divinities yet hold one supreme."),
