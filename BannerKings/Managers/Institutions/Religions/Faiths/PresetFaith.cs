@@ -50,6 +50,15 @@ namespace BannerKings.Managers.Institutions.Religions.Faiths
         // Religion.PostInitialize's canonical-faith swap (e.g. a per-settlement
         // ReligionData.Religions key) then degrades gracefully instead of
         // NRE-ing on the religion daily tick.
+        //
+        // Crash htm 2026-05-23 confirmed this isn't enough on its own. The
+        // save serializer constructs PresetFaith via FormatterServices
+        // .GetUninitializedObject when restoring a saved reference, which
+        // BYPASSES the no-arg ctor entirely — preset comes back null.
+        // Every site that reads preset.X then needs a fall-back. The Preset
+        // accessor below lazily reinstates an empty FaithPreset on first
+        // null read so the rest of the codebase can keep using preset.X
+        // (or Preset.X for new sites) without per-call null checks.
         public PresetFaith() : base() { preset = new FaithPreset(); }
 
         public PresetFaith(FaithPreset preset) : base()
@@ -57,6 +66,20 @@ namespace BannerKings.Managers.Institutions.Religions.Faiths
             this.preset = preset;
             this.id = preset.Id;
             base.StringId = preset.Id;
+        }
+
+        // Lazy-init backstop for the ctor-bypassing deserialization path.
+        // Returns a never-null FaithPreset; if the field is null (save-
+        // restored stub) installs an empty one once and returns it. New
+        // call sites should use this; existing preset.X sites can be moved
+        // over case-by-case as crash reports surface them.
+        private FaithPreset Preset
+        {
+            get
+            {
+                if (preset == null) preset = new FaithPreset();
+                return preset;
+            }
         }
 
         public void Bind(Divinity mainGod,
@@ -177,12 +200,23 @@ namespace BannerKings.Managers.Institutions.Religions.Faiths
             return cachedBanner;
         }
 
+        // Reads through Preset (not preset) so the save-restored stub case
+        // (preset == null on a ctor-bypassed deserialization) returns null
+        // gracefully instead of NRE-ing the daily fervor tick. User crash
+        // 2026-05-23 fell exactly here:
+        //   PresetFaith.get_FaithSeat()
+        //     ← BKReligionModel.CalculateFervor(religion)
+        //     ← ReligionData.BalanceReligions → Update → daily settlement tick
+        // The CalculateFervor caller already null-checks the return value;
+        // the missing piece was making the getter itself survive a null
+        // backing field.
         public override Settlement FaithSeat
         {
             get
             {
-                if (string.IsNullOrEmpty(preset.FaithSeatId)) return null;
-                return Settlement.All?.FirstOrDefault(s => s.StringId == preset.FaithSeatId);
+                var p = Preset;
+                if (string.IsNullOrEmpty(p.FaithSeatId)) return null;
+                return Settlement.All?.FirstOrDefault(s => s.StringId == p.FaithSeatId);
             }
         }
 
