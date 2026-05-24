@@ -181,27 +181,30 @@ namespace BannerKings.UI.VanillaTabs.Clans
             return (value * 100f).ToString("0.00") + '%';
         }
 
+        // v1.9.6.2: workshop upgrade flow retired alongside BK's workshop
+        // model. BetterEconomy owns the workshop simulation now (Main.cs
+        // line 256-258); BK's BKWorkshopModel is no longer registered.
+        // The old body of this method computed cost via the orphaned BK
+        // model, then reflection-set Workshop.Level/ConstructionTimeRemained
+        // directly — bypassing whatever progression rules BE enforces.
+        // If the player pressed the button, they paid BK-computed gold for
+        // a level bump BE didn't authorise, and BE then continued ticking
+        // the workshop with state it didn't expect.
+        //
+        // The DataSourceMethod stays bound (so the Gauntlet prefab keeps
+        // resolving the binding without an exception) but is now a no-op
+        // that surfaces the new ownership to the player.
         [DataSourceMethod]
         public void ExecuteUpgrade()
         {
-            int cost = BannerKingsConfig.Instance.WorkshopModel.GetUpgradeCost(viewModel.CurrentSelectedIncome.Workshop);
             InformationManager.ShowInquiry(new InquiryData(
                 new TextObject("{=kZMXmhpv}Workshop Upgrading").ToString(),
-                new TextObject("{=gVt0aj0G}Would you like to upgrade this workshop property? By upgrading, the workshop's expenses will increase by 12%, while it's production quality increases by 8%. The process will take 3 construction days and cost {COST}{GOLD_ICON}")
-                .SetTextVariable("COST", cost)
-                .ToString(),
-                Hero.MainHero.Gold >= cost,
+                new TextObject("{=!}Workshop progression is now managed by Bannerlord Living Economy. Upgrade your workshop through that mod's UI or simulation tick — Banner Kings no longer alters workshop levels directly.").ToString(),
                 true,
-                GameTexts.FindText("str_accept").ToString(),
-                GameTexts.FindText("str_cancel").ToString(),
-                () =>
-                {
-                    var workshop = viewModel.CurrentSelectedIncome.Workshop;
-                    AccessTools.Property(workshop.GetType(), "ConstructionTimeRemained").SetValue(workshop, 3);
-                    AccessTools.Property(workshop.GetType(), "Level").SetValue(workshop, workshop.Level() + 1);
-                    Hero.MainHero.ChangeHeroGold(-cost);
-                    OnRefresh();
-                },
+                false,
+                GameTexts.FindText("str_done").ToString(),
+                null,
+                null,
                 null));
         }
 

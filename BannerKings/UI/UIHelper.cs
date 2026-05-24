@@ -143,17 +143,19 @@ namespace BannerKings.UI
             properties.Add(new TooltipProperty(new TextObject("{=!}Capital").ToString(),
                     MBRandom.RoundRandomized(workshop.Capital).ToString(), 0));
 
-            ExplainedNumber result = BannerKingsConfig.Instance.WorkshopModel.GetBuyingCostExplained(workshop, Hero.MainHero, true);
+            // v1.9.6.2: the BK-computed buying-cost breakdown is gone. BK's
+            // BKWorkshopModel is no longer registered (Main.cs:256-258) —
+            // BetterEconomy owns workshop economics. The old block here
+            // called BannerKingsConfig.Instance.WorkshopModel.GetBuyingCost
+            // Explained directly on the BK singleton (which still exists
+            // even though it's not in the game model slot), producing a
+            // tooltip "Value" line that didn't match what the actual sale
+            // would charge. Capital above is the vanilla canonical price;
+            // a note tells the player the rest is managed by BLE.
             TooltipAddEmptyLine(properties);
-
-            properties.Add(new TooltipProperty(new TextObject("{=f7t4saJu}Value").ToString(), " ", 0));
-            properties.Add(new TooltipProperty("", string.Empty, 0, false, TooltipProperty.TooltipPropertyFlags.RundownSeperator));
-
-            var explanation = CampaignUIHelper.GetTooltipForAccumulatingPropertyWithResult(String.Empty,
-                MBRandom.RoundRandomized(result.ResultNumber),
-                ref result);
-            explanation.RemoveAt(0);
-            properties.AddRange(explanation);
+            properties.Add(new TooltipProperty(string.Empty,
+                new TextObject("{=!}Workshop valuation managed by Bannerlord Living Economy.").ToString(),
+                0));
 
             return properties;
         }
