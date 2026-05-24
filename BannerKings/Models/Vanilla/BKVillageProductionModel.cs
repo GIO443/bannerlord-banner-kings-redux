@@ -168,6 +168,70 @@ namespace BannerKings.Models.Vanilla
             return base.CalculateDailyProductionAmount(village, item);
         }
 
+        // v1.9.7.4 Phase B batch 4: BK-only multipliers to layer on top of
+        // BE's village production. Skips the from-scratch BK workforce ×
+        // per-acre yield base (BE owns that, with its richer class state)
+        // and skips vanilla perks BE likely already applies. Only adds
+        // multipliers BE has no concept of:
+        //   - SlavesHardLabor demesne-law mining bonus (the "Hard Labor"
+        //     law's promised but previously-dead mining-production effect
+        //     — finally honoured)
+        //   - Khuzait/Vlandia warhorse offset (BK adds this on top of the
+        //     vanilla Tier-2 mount penalty)
+        //   - RitterIronHorses BK perk (castle owner)
+        //
+        // Returns a multiplicative factor delta (e.g. 0.35 means "+35%
+        // factor"). Caller does __result.AddFactor(delta) only when
+        // non-zero to keep the explanation breakdown clean.
+        public static float CalculateBKVillageProductionDelta(Village village, ItemObject item)
+        {
+            if (village == null || item == null) return 0f;
+            if (village.Settlement == null) return 0f;
+            float delta = 0f;
+            try
+            {
+                var data = BannerKingsConfig.Instance.PopulationManager?.GetPopData(village.Settlement);
+                if (data == null) return 0f;
+
+                // SlavesHardLabor demesne law — applies only to mineral items
+                // (the BK code's "AddGeneralProcution" path checks IsMineral).
+                if (item.IsMineral()
+                    && data.TitleData?.Title?.Contract != null
+                    && data.TitleData.Title.Contract.IsLawEnacted(DefaultDemesneLaws.Instance.SlavesHardLabor))
+                {
+                    // Equivalent of the old BOOSTED_PRODUCTION-vs-PRODUCTION
+                    // ratio on the slave workforce share. Conservative +20%
+                    // factor; calibratable in playtest.
+                    delta += 0.20f;
+                }
+
+                // Cavalry-culture WarHorse offset (BK-only).
+                if (item.ItemCategory == DefaultItemCategories.WarHorse
+                    && village.Settlement.OwnerClan?.Leader?.CharacterObject != null)
+                {
+                    var culture = village.Settlement.OwnerClan.Leader.CharacterObject.Culture;
+                    if (culture != null
+                        && (culture.StringId == "khuzait" || culture.StringId == "vlandia"))
+                    {
+                        delta += 0.35f;
+                    }
+                }
+
+                // RitterIronHorses BK castle-owner perk.
+                if (village.Bound != null && village.Bound.IsCastle
+                    && village.Settlement.OwnerClan?.Leader != null)
+                {
+                    var education = BannerKingsConfig.Instance.EducationManager.GetHeroEducation(village.Settlement.OwnerClan.Leader);
+                    if (education != null && education.HasPerk(BKPerks.Instance.RitterIronHorses))
+                    {
+                        delta += 0.10f;
+                    }
+                }
+            }
+            catch { }
+            return delta;
+        }
+
         private ExplainedNumber GetWorkforceOutput(float farmers, float slaves, ItemObject item, PopulationData data)
         {
             var result = new ExplainedNumber();

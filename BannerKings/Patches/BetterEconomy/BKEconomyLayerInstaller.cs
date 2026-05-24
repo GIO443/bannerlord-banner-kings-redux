@@ -106,6 +106,78 @@ namespace BannerKings.Patches.BetterEconomy
                 TaleWorlds.Library.Debug.Print(
                     $"[BK] BetterEconomyLayer: FeudalEconomy.GetProductionQuality postfix install threw {ex.GetType().Name}: {ex.Message}");
             }
+
+            try { InstallVillageProductionPostfix(harmony); }
+            catch (Exception ex)
+            {
+                TaleWorlds.Library.Debug.Print(
+                    $"[BK] BetterEconomyLayer: VillageProduction.CalculateDailyProductionAmount postfix install threw {ex.GetType().Name}: {ex.Message}");
+            }
+        }
+
+        // ----- POSTFIX: VillageProductionCalculatorModel.CalculateDailyProductionAmount -----
+
+        // v1.9.7.4 Phase B batch 4: BE owns the daily village-production
+        // simulation; the BK BKVillageProductionModel.CalculateDailyProductionAmount
+        // override is dead. Most BK content there was a from-scratch
+        // workforce × acre × class formula that would double-count if we
+        // layered it on BE — those bits are dropped. What we DO layer
+        // are the BK-only multipliers BE has no concept of: SlavesHardLabor
+        // demesne-law mining bonus (the previously-dead Hard Labor law
+        // promise from the demesne-law audit), cavalry-culture warhorse
+        // offset, and the RitterIronHorses BK perk.
+        //
+        // Patches every non-abstract subclass of
+        // DefaultVillageProductionCalculatorModel — auto-targets BE's
+        // concrete class plus vanilla as a safety net.
+        private static void InstallVillageProductionPostfix(Harmony harmony)
+        {
+            var baseType = typeof(DefaultVillageProductionCalculatorModel);
+            var subs = FindNonAbstractSubclasses(baseType);
+            var targets = new List<Type>(subs) { baseType };
+            var postfix = new HarmonyMethod(AccessTools.Method(
+                typeof(BKEconomyLayerInstaller), nameof(VillageProductionPostfix)));
+
+            int patched = 0;
+            foreach (var target in targets)
+            {
+                // The single-item overload — two-arg (Village, ItemObject).
+                var m = AccessTools.Method(target, "CalculateDailyProductionAmount",
+                    new[] { typeof(TaleWorlds.CampaignSystem.Settlements.Village), typeof(TaleWorlds.Core.ItemObject) });
+                if (m == null) continue;
+                if (m.DeclaringType != target) continue;
+                try
+                {
+                    harmony.Patch(m, postfix: postfix);
+                    patched++;
+                }
+                catch (Exception ex)
+                {
+                    TaleWorlds.Library.Debug.Print(
+                        $"[BK] BetterEconomyLayer: patch on {target.FullName}.CalculateDailyProductionAmount failed: {ex.GetType().Name}: {ex.Message}");
+                }
+            }
+            if (patched > 0)
+            {
+                BannerKings.Utils.Logs.MajorEvent(() =>
+                    $"[BK] BetterEconomyLayer: installed VillageProduction.CalculateDailyProductionAmount postfix on {patched} concrete model(s) — BK SlavesHardLabor mining / cavalry warhorse offset / RitterIronHorses perk multipliers now apply on top of BE.");
+            }
+        }
+
+        public static void VillageProductionPostfix(
+            TaleWorlds.CampaignSystem.Settlements.Village village,
+            TaleWorlds.Core.ItemObject item,
+            ref TaleWorlds.CampaignSystem.ExplainedNumber __result)
+        {
+            try
+            {
+                float delta = BannerKings.Models.Vanilla.BKVillageProductionModel.CalculateBKVillageProductionDelta(village, item);
+                if (delta != 0f)
+                {
+                    __result.AddFactor(delta, new TaleWorlds.Localization.TextObject("{=!}BK contributions"));
+                }
+            }
+            catch { }
         }
 
         // ----- POSTFIXES: GetMercantilism / GetProductionEfficiency / GetProductionQuality -----
