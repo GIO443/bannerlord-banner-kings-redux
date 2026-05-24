@@ -3,6 +3,7 @@ using BannerKings.Managers.Populations;
 using BannerKings.Models.BKModels;
 using BannerKings.UI.Items;
 using BannerKings.UI.Items.UI;
+using BannerKings.Utils;
 using System.Linq;
 using TaleWorlds.CampaignSystem;
 using TaleWorlds.CampaignSystem.Settlements;
@@ -153,6 +154,74 @@ namespace BannerKings.UI.Management
                         new TextObject("{=8mSDgwhX}The amount of influence this settlement provides in your realm."))
                     .SetTextVariable("EXPLANATIONS", influence.GetExplanations())
                     .ToString()));
+
+            // v1.9.8.0 settlement UI rework: BE-side state readouts. Towns
+            // only — the BetterEconomy town behaviors don't apply to
+            // villages or castles. Each line reads through the bridge so
+            // BE absence (early load / custom-battle / etc.) shows 0
+            // gracefully rather than failing.
+            if (settlement.IsTown)
+            {
+                var spec = BetterEconomyBridge.GetSpecializationName(settlement);
+                if (!string.IsNullOrEmpty(spec))
+                {
+                    StatsInfo.Add(new InformationElement(new TextObject("{=!}Specialization:").ToString(),
+                        spec,
+                        BetterEconomyBridge.GetSpecializationSummary(settlement)));
+                }
+
+                int treasury = BetterEconomyBridge.GetTreasuryGold(settlement);
+                float treasuryNet = BetterEconomyBridge.GetTreasuryNetEstimate(settlement);
+                StatsInfo.Add(new InformationElement(new TextObject("{=!}Town Treasury:").ToString(),
+                    $"{treasury:n0}g ({(treasuryNet >= 0 ? "+" : "")}{treasuryNet:n0}/day)",
+                    new TextObject("{=!}Bannerlord Living Economy town treasury. Funds town projects and the armory. Contribute via the town menu or BK console (bannerkings.be_contribute_treasury).")
+                        .ToString()));
+
+                float readiness = BetterEconomyBridge.GetWarReadiness(settlement);
+                StatsInfo.Add(new InformationElement(new TextObject("{=!}War Readiness:").ToString(),
+                    $"{readiness * 100f:0}%",
+                    new TextObject("{=!}Bannerlord Living Economy war-readiness — driven by armory level and treasury investment. Higher readiness benefits garrison quality and siege defence.")
+                        .ToString()));
+
+                float corruption = BetterEconomyBridge.GetCorruption(settlement);
+                if (corruption > 0f)
+                {
+                    int leak = BetterEconomyBridge.GetCorruptionTaxLeakEstimate(settlement);
+                    StatsInfo.Add(new InformationElement(new TextObject("{=!}Corruption:").ToString(),
+                        $"{corruption * 100f:0}% (-{leak:n0}g/day tax leak)",
+                        new TextObject("{=!}Bannerlord Living Economy corruption — siphons a daily share of tax revenue. High corruption signals weak law enforcement; the Constable EnforceLaw task and tax-policy choice both push corruption down.")
+                            .ToString()));
+                }
+
+                string armory = BetterEconomyBridge.GetArmorySummary(settlement);
+                if (!string.IsNullOrEmpty(armory))
+                {
+                    StatsInfo.Add(new InformationElement(new TextObject("{=!}Armory:").ToString(),
+                        armory,
+                        new TextObject("{=!}Town armory level. Each level raises war readiness and the troop-quality tier the garrison can field. Upgrade via the town menu or BK console (bannerkings.be_upgrade_armory).")
+                            .ToString()));
+                }
+
+                string activeProject = BetterEconomyBridge.GetActiveProjectSummary(settlement);
+                if (!string.IsNullOrEmpty(activeProject))
+                {
+                    StatsInfo.Add(new InformationElement(new TextObject("{=!}Active Project:").ToString(),
+                        activeProject,
+                        new TextObject("{=!}Bannerlord Living Economy town infrastructure project. Each project takes treasury and time but raises a town economic stat.")
+                            .ToString()));
+                }
+            }
+            else if (settlement.IsVillage)
+            {
+                // Village parity — surface BE's investment cooldown so the
+                // player knows when the bannerkings.be_village_invest cheat
+                // command will be allowed again.
+                int daysLeft = BetterEconomyBridge.GetVillagePlayerInvestmentDaysLeft(settlement);
+                StatsInfo.Add(new InformationElement(new TextObject("{=!}Next investment in:").ToString(),
+                    daysLeft <= 0 ? new TextObject("{=!}available now").ToString() : $"{daysLeft}d",
+                    new TextObject("{=!}Player-investment cooldown on this village's BetterEconomy state. Invest via BK console (bannerkings.be_village_invest <amount>) to boost village output and prosperity.")
+                        .ToString()));
+            }
 
             /*StatsInfo.Add(new InformationElement(new TextObject("{=NP0RCoMH}Foreigner Ratio:").ToString(),
                 FormatValue(new BKForeignerModel().CalculateEffect(settlement).ResultNumber),

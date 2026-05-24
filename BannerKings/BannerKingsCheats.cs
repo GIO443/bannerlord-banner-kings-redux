@@ -303,6 +303,63 @@ namespace BannerKings
             return msg;
         }
 
+        // v1.9.8.0 settlement UI rework: BE player actions exposed as cheat
+        // commands. The corresponding prefab buttons follow in v1.9.9.x as
+        // the two-pane layout lands; until then these are the interim
+        // surface so the actions exist somewhere player-accessible.
+        //
+        // All three operate on Settlement.CurrentSettlement (the one the
+        // player is currently in / managing). Format examples:
+        //   bannerkings.be_contribute_treasury 5000
+        //   bannerkings.be_upgrade_armory
+        //   bannerkings.be_village_invest 3000
+        [CommandLineFunctionality.CommandLineArgumentFunction("be_contribute_treasury", "bannerkings")]
+        public static string BeContributeTreasury(List<string> strings)
+        {
+            if (!CampaignCheats.CheckCheatUsage(ref CampaignCheats.ErrorType)) return CampaignCheats.ErrorType;
+            if (strings == null || strings.Count != 1 || !int.TryParse(strings[0], out int amount))
+                return "Format: bannerkings.be_contribute_treasury <amount>";
+            var s = Settlement.CurrentSettlement;
+            if (s == null || !s.IsTown) return "Stand in a town to use this command.";
+            bool ok = BannerKings.Utils.BetterEconomyBridge.TryPlayerContributeTreasury(s, Hero.MainHero, amount, out string reason);
+            string msg = ok
+                ? $"Contributed {amount:n0}g to {s.Name}'s treasury."
+                : $"Couldn't contribute: {reason}";
+            try { InformationManager.DisplayMessage(new InformationMessage(msg, Color.FromUint(ok ? 0xFF00FF80 : 0xFFFF8080))); } catch { }
+            return msg;
+        }
+
+        [CommandLineFunctionality.CommandLineArgumentFunction("be_upgrade_armory", "bannerkings")]
+        public static string BeUpgradeArmory(List<string> strings)
+        {
+            if (!CampaignCheats.CheckCheatUsage(ref CampaignCheats.ErrorType)) return CampaignCheats.ErrorType;
+            var s = Settlement.CurrentSettlement;
+            if (s == null || !s.IsTown) return "Stand in a town to use this command.";
+            int cost = BannerKings.Utils.BetterEconomyBridge.GetArmoryCostForNextLevel(s);
+            bool ok = BannerKings.Utils.BetterEconomyBridge.TryPlayerBuildOrUpgradeArmory(s, Hero.MainHero, out string reason);
+            string msg = ok
+                ? $"Built/upgraded {s.Name}'s armory (cost {cost:n0}g)."
+                : $"Couldn't upgrade armory: {reason}";
+            try { InformationManager.DisplayMessage(new InformationMessage(msg, Color.FromUint(ok ? 0xFF00FF80 : 0xFFFF8080))); } catch { }
+            return msg;
+        }
+
+        [CommandLineFunctionality.CommandLineArgumentFunction("be_village_invest", "bannerkings")]
+        public static string BeVillageInvest(List<string> strings)
+        {
+            if (!CampaignCheats.CheckCheatUsage(ref CampaignCheats.ErrorType)) return CampaignCheats.ErrorType;
+            if (strings == null || strings.Count != 1 || !int.TryParse(strings[0], out int amount))
+                return "Format: bannerkings.be_village_invest <amount>";
+            var s = Settlement.CurrentSettlement;
+            if (s == null || !s.IsVillage) return "Stand in a village to use this command.";
+            bool ok = BannerKings.Utils.BetterEconomyBridge.TryVillagePlayerInvest(s, Hero.MainHero, amount, out string reason);
+            string msg = ok
+                ? $"Invested {amount:n0}g in {s.Name}."
+                : $"Couldn't invest: {reason}";
+            try { InformationManager.DisplayMessage(new InformationMessage(msg, Color.FromUint(ok ? 0xFF00FF80 : 0xFFFF8080))); } catch { }
+            return msg;
+        }
+
         // Diagnostic for the BK shipping topology — connected components, sea
         // hubs, average shortest path, diameter. Useful when validating the
         // HasPort-driven port set and the auto-derived sea/land edges.

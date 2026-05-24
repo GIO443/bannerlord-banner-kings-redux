@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using BannerKings.Managers;
@@ -244,6 +245,228 @@ namespace BannerKings.Utils
             if (feudal == null || settlement == null) return 1f;
             try { return feudal.GetProductionQuality(settlement); }
             catch { return 1f; }
+        }
+
+        // ===== v1.9.8.0 settlement UI rework: BE town/village action wrappers =====
+        //
+        // BE's TownEconomyCampaignBehavior + VillageInvestmentCampaignBehavior
+        // expose a rich set of player-actionable methods (set policy, start
+        // project, contribute treasury, invest, upgrade armory) that BK's
+        // settlement UI doesn't currently surface. This block wraps each
+        // with a safe-fallback accessor so the BK VMs can route through
+        // BetterEconomyBridge without null-checking the BE side.
+        //
+        // The CanX wrappers return (bool, string) tuples — the string is
+        // BE's reason text when CanX==false, surfaced verbatim in the BK
+        // tooltip / inquiry. The TryX wrappers return bool for success and
+        // an out reason string for failure.
+        //
+        // Display getters (GetSpecializationName, GetActiveProjectSummary
+        // etc.) return string for direct binding in BK info panels.
+
+        // Strongly-typed accessors via BE.dll project reference. The dynamic
+        // pattern needs Microsoft.CSharp.RuntimeBinder which isn't on the
+        // net48 game build; direct typed calls work because BE.dll is in
+        // the compile reference set already (Bridge calls FeudalEconomyCampaign
+        // Behavior elsewhere in this file the same way).
+
+        // ---- Display getters (read-only, for info-panel binding) ----
+
+        public static int GetTreasuryGold(Settlement settlement)
+        {
+            if (settlement == null) return 0;
+            var beh = TownEconomyCampaignBehavior.Instance;
+            if (beh == null) return 0;
+            try { return beh.GetTreasuryGold(settlement); }
+            catch { return 0; }
+        }
+
+        public static float GetTreasuryNetEstimate(Settlement settlement)
+        {
+            if (settlement == null) return 0f;
+            var beh = TownEconomyCampaignBehavior.Instance;
+            if (beh == null) return 0f;
+            try { return beh.GetTreasuryNetEstimate(settlement); }
+            catch { return 0f; }
+        }
+
+        public static float GetWarReadiness(Settlement settlement)
+        {
+            if (settlement == null) return 0f;
+            var beh = TownEconomyCampaignBehavior.Instance;
+            if (beh == null) return 0f;
+            try { return beh.GetWarReadiness(settlement); }
+            catch { return 0f; }
+        }
+
+        public static float GetCorruption(Settlement settlement)
+        {
+            if (settlement == null) return 0f;
+            var beh = TownEconomyCampaignBehavior.Instance;
+            if (beh == null) return 0f;
+            try { return beh.GetCorruption(settlement); }
+            catch { return 0f; }
+        }
+
+        public static int GetCorruptionTaxLeakEstimate(Settlement settlement)
+        {
+            if (settlement == null) return 0;
+            var beh = TownEconomyCampaignBehavior.Instance;
+            if (beh == null) return 0;
+            try { return beh.GetCorruptionTaxLeakEstimate(settlement); }
+            catch { return 0; }
+        }
+
+        public static string GetSpecializationName(Settlement settlement)
+        {
+            if (settlement == null) return string.Empty;
+            var beh = TownEconomyCampaignBehavior.Instance;
+            if (beh == null) return string.Empty;
+            try
+            {
+                var spec = beh.GetSpecialization(settlement);
+                return beh.SpecializationName(spec) ?? string.Empty;
+            }
+            catch { return string.Empty; }
+        }
+
+        public static string GetSpecializationSummary(Settlement settlement)
+        {
+            if (settlement == null) return string.Empty;
+            var beh = TownEconomyCampaignBehavior.Instance;
+            if (beh == null) return string.Empty;
+            try { return beh.GetSpecializationSummary(settlement) ?? string.Empty; }
+            catch { return string.Empty; }
+        }
+
+        public static string GetActiveProjectSummary(Settlement settlement)
+        {
+            if (settlement == null) return string.Empty;
+            var beh = TownEconomyCampaignBehavior.Instance;
+            if (beh == null) return string.Empty;
+            try { return beh.GetActiveProjectSummary(settlement) ?? string.Empty; }
+            catch { return string.Empty; }
+        }
+
+        public static string GetProjectsSummary(Settlement settlement)
+        {
+            if (settlement == null) return string.Empty;
+            var beh = TownEconomyCampaignBehavior.Instance;
+            if (beh == null) return string.Empty;
+            try { return beh.GetProjectsSummary(settlement) ?? string.Empty; }
+            catch { return string.Empty; }
+        }
+
+        public static string GetArmorySummary(Settlement settlement)
+        {
+            if (settlement == null) return string.Empty;
+            var beh = TownEconomyCampaignBehavior.Instance;
+            if (beh == null) return string.Empty;
+            try { return beh.GetArmorySummary(settlement) ?? string.Empty; }
+            catch { return string.Empty; }
+        }
+
+        public static int GetArmoryCostForNextLevel(Settlement settlement)
+        {
+            if (settlement == null) return 0;
+            var beh = TownEconomyCampaignBehavior.Instance;
+            if (beh == null) return 0;
+            try { return beh.GetArmoryCostForNextLevel(settlement); }
+            catch { return 0; }
+        }
+
+        public static string GetDemandSummary(Settlement settlement)
+        {
+            if (settlement == null) return string.Empty;
+            var beh = TownEconomyCampaignBehavior.Instance;
+            if (beh == null) return string.Empty;
+            try { return beh.GetDemandSummary(settlement) ?? string.Empty; }
+            catch { return string.Empty; }
+        }
+
+        // ---- Player actions (Try wrappers) ----
+
+        public static bool TryPlayerContributeTreasury(Settlement settlement, Hero playerHero, int amount, out string reason)
+        {
+            reason = string.Empty;
+            if (settlement == null || playerHero == null) { reason = "Invalid settlement/hero."; return false; }
+            var beh = TownEconomyCampaignBehavior.Instance;
+            if (beh == null) { reason = "BetterEconomy town behavior unavailable."; return false; }
+            try
+            {
+                string r = string.Empty;
+                bool ok = beh.TryPlayerContributeTreasury(settlement, playerHero, amount, out r);
+                reason = r ?? string.Empty;
+                return ok;
+            }
+            catch (Exception ex) { reason = ex.Message; return false; }
+        }
+
+        public static bool TryPlayerBuildOrUpgradeArmory(Settlement settlement, Hero playerHero, out string reason)
+        {
+            reason = string.Empty;
+            if (settlement == null || playerHero == null) { reason = "Invalid settlement/hero."; return false; }
+            var beh = TownEconomyCampaignBehavior.Instance;
+            if (beh == null) { reason = "BetterEconomy town behavior unavailable."; return false; }
+            try
+            {
+                string r = string.Empty;
+                bool ok = beh.TryPlayerBuildOrUpgradeArmory(settlement, playerHero, out r);
+                reason = r ?? string.Empty;
+                return ok;
+            }
+            catch (Exception ex) { reason = ex.Message; return false; }
+        }
+
+        public static int GetVillagePlayerInvestmentDaysLeft(Settlement village)
+        {
+            if (village == null) return 0;
+            var beh = VillageInvestmentCampaignBehavior.Instance;
+            if (beh == null) return 0;
+            try { return beh.GetPlayerInvestmentDaysLeft(village); }
+            catch { return 0; }
+        }
+
+        public static bool CanVillagePlayerInvest(Settlement village, Hero playerHero, int amount, out string reason)
+        {
+            reason = string.Empty;
+            if (village == null || playerHero == null) { reason = "Invalid village/hero."; return false; }
+            var beh = VillageInvestmentCampaignBehavior.Instance;
+            if (beh == null) { reason = "BetterEconomy village investment behavior unavailable."; return false; }
+            try
+            {
+                string r = string.Empty;
+                bool ok = beh.CanPlayerInvest(village, playerHero, amount, out r);
+                reason = r ?? string.Empty;
+                return ok;
+            }
+            catch (Exception ex) { reason = ex.Message; return false; }
+        }
+
+        // Village invest method needs a VillageInvestmentSummary out struct
+        // (nested type) — surface via reflection so BK doesn't need to
+        // know the struct type at compile time. Returns true on success.
+        public static bool TryVillagePlayerInvest(Settlement village, Hero playerHero, int amount, out string reason)
+        {
+            reason = string.Empty;
+            if (village == null || playerHero == null) { reason = "Invalid village/hero."; return false; }
+            var beh = VillageInvestmentCampaignBehavior.Instance;
+            if (beh == null) { reason = "BetterEconomy village investment behavior unavailable."; return false; }
+            try
+            {
+                var method = beh.GetType().GetMethod("TryApplyPlayerInvestment");
+                if (method == null) { reason = "TryApplyPlayerInvestment method not found."; return false; }
+                var parms = method.GetParameters();
+                object[] args = new object[parms.Length];
+                args[0] = village;
+                args[1] = playerHero;
+                args[2] = amount;
+                // out summary, out reason — leave default. Method writes back.
+                bool ok = (bool)method.Invoke(beh, args);
+                reason = args[parms.Length - 1] as string ?? string.Empty;
+                return ok;
+            }
+            catch (Exception ex) { reason = ex.Message; return false; }
         }
 
         /// <summary>
