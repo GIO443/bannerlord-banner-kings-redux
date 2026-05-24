@@ -1,0 +1,87 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  BK structural data — Governments (Shokuho compat layer).
+  Three Sengoku-Japan government types. They reference Shokuho-specific
+  successions defined in bk_successions_shokuho.xml; if neither file is
+  shipped the rows simply don't appear. policy refs point at vanilla
+  PolicyObject StringIds plus BK's policy_limited_army_privilege —
+  all are registered regardless of GameType, so no policy ref drops.
+  In-game adoption goes through the political-transition mechanic;
+  auto-binding a Shokuho kingdom StringId to one of these governments
+  would require extending the C# GetKingdomIdealGovernment fallback,
+  which is out of XML-only scope.
+-->
+<governments requires_module="Shokuho">
+  <government id="Shogunate" mercantilism="0.25" authoritarian="0.9" oligarchic="-0.1" egalitarian="-0.7"
+              crown_authority_floor="2" crown_authority_ceiling="4"
+              council_control="Appointed" political_layer="Vassals">
+    <name>Shogunate</name>
+    <description>The bakufu is a military government held in the Shōgun's hand, ruling the realm on behalf of an Imperial court that has long since stopped ruling itself. Land is held by samurai houses at the Shōgun's pleasure: confiscation and reassignment of a clan's fiefs is the bakufu's most-used political tool. Beneath the Shōgun stand the shugo and the great daimyō houses; beneath them, the karō and the lesser samurai; beneath them, the soldiery and the peasants under arms.</description>
+    <effects>- Settlement security +1{newline}- Settlement cultural weight +30%{newline}- Settlement mercantilism +25%{newline}- Vassal fiefs reassignable at low influence cost</effects>
+    <prohibited_policies>
+      <policy ref="policy_senate"/>
+      <policy ref="policy_council_of_the_commons"/>
+      <policy ref="policy_tribunes_of_the_people"/>
+      <policy ref="policy_cantons"/>
+      <policy ref="policy_magistrates"/>
+      <policy ref="policy_imperial_towns"/>
+      <policy ref="policy_citizenship"/>
+      <policy ref="policy_precarial_land_tenure"/>
+      <policy ref="policy_war_tax"/>
+      <policy ref="policy_state_monopolies"/>
+    </prohibited_policies>
+    <successions>
+      <succession ref="ShogunalHereditary"/>
+      <succession ref="Hereditary"/>
+    </successions>
+  </government>
+
+  <government id="DaimyoFeudal" mercantilism="0.2" authoritarian="-0.3" oligarchic="0.9" egalitarian="-0.3"
+              crown_authority_floor="1" crown_authority_ceiling="3"
+              council_control="Appointed" political_layer="Vassals">
+    <name>Daimyō Realm</name>
+    <description>A daimyō rules his han as a sovereign within his own borders, owing only formal loyalty to the Shōgun in distant Kyōto. The clan's senior retainers — the karō — hold the inner council; the lesser samurai hold the outer fiefs; ji-samurai and ashigaru fill the host. Where the daimyō rides personally, the laws of the han are whatever he says they are; where he does not, the karō rule in his name.</description>
+    <effects>- Petitioning rights yield no relation loss{newline}- Settlement stability +5%{newline}- Settlement draft efficiency +15%{newline}- Settlement mercantilism +20%</effects>
+    <prohibited_policies>
+      <policy ref="policy_senate"/>
+      <policy ref="policy_council_of_the_commons"/>
+      <policy ref="policy_tribunes_of_the_people"/>
+      <policy ref="policy_imperial_towns"/>
+      <policy ref="policy_citizenship"/>
+      <policy ref="policy_magistrates"/>
+      <policy ref="policy_cantons"/>
+      <policy ref="policy_state_monopolies"/>
+      <policy ref="policy_precarial_land_tenure"/>
+      <policy ref="policy_war_tax"/>
+    </prohibited_policies>
+    <successions>
+      <succession ref="DaimyoElective"/>
+      <succession ref="FeudalElective"/>
+      <succession ref="Hereditary"/>
+    </successions>
+  </government>
+
+  <government id="IkkoLeague" mercantilism="0.4" authoritarian="-0.6" oligarchic="-0.3" egalitarian="0.9"
+              crown_authority_floor="0" crown_authority_ceiling="2"
+              council_control="Might" political_layer="Parliament">
+    <name>Ikkō League</name>
+    <description>The Ikkō-Ikki are not a kingdom but a confederation — autonomous leagues (kō) of Shin Buddhist farmers, ji-samurai, town merchants and ikkō priests, recognising the Monshu of Honganji as their spiritual head and convening in great assemblies to decide war, peace and the price of rice. There are no hereditary daimyō here. There is the kō; there is the Monshu; there is the Nembutsu; and there is the wall of Honganji.</description>
+    <effects>- Settlement militia +2{newline}- Settlement loyalty +1 (Shin faith){newline}- Settlement mercantilism +35%{newline}- Reduced influence cost for league-wide decisions</effects>
+    <prohibited_policies>
+      <policy ref="policy_sacred_majesty"/>
+      <policy ref="policy_crown_duty"/>
+      <policy ref="policy_imperial_towns"/>
+      <policy ref="policy_royal_commissions"/>
+      <policy ref="policy_royal_guard"/>
+      <policy ref="policy_royal_privilege"/>
+      <policy ref="policy_feudal_inheritance"/>
+      <policy ref="policy_castle_charters"/>
+      <policy ref="policy_lords_privy_council"/>
+      <policy ref="policy_noble_retinues"/>
+    </prohibited_policies>
+    <successions>
+      <succession ref="IkkoConfederation"/>
+      <succession ref="TheocraticElective"/>
+    </successions>
+  </government>
+</governments>

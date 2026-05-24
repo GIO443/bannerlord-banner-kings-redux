@@ -195,6 +195,68 @@ education projects) and unlock or restrict behaviours (mercy-on-siege
 relations, council eligibility, holy-war availability). Each faith
 ships with four to five baseline doctrines, listed above.
 
+### Shokuho faiths (Sengoku-Japan campaign)
+
+When the [Shokuho total-conversion mod](https://steamcommunity.com/sharedfiles/filedetails/?id=3496296180)
+is loaded alongside BK, six additional faiths seed for Shokuho's
+regional cultures (Hokuriku, Kantō, Kinai, Nankai, Ō). They use the
+same religion-system mechanics as the Calradian faiths above —
+preacher dialogue, blessings, conversion, doctrines, holy-war
+availability — and the Shokuho rows silently drop on a vanilla
+Calradia campaign so there's no need to maintain two installs.
+
+| Native cultures | Faith | Type | Faith group | Main divinity | Notable doctrines |
+|---|---|---|---|---|---|
+| All five regions | **Shintō** | Polytheistic | Shintō Shrines (kannushi) | Amaterasu (Heaven-Shining) | Animism, Ancestor Worship, Shamanism, Tolerant |
+| Kinai, Kantō | **Rinzai Zen** | Henotheistic | Rinzai Sect (rōshi) | Bodhidharma (Wall-Gazer) | Literalism, Warlike, Esotericism, Ancestor Worship |
+| Hokuriku | **Sōtō Zen** | Henotheistic | Sōtō Sect (zenji) | Shakyamuni (Awakened One) | Pacifism, Esotericism, Ancestor Worship, Tolerant |
+| Kinai, Nankai | **Shingon** | Polytheistic | Shingon Sect (daiajari) | Dainichi (Great Sun Buddha) | Esotericism, Astrology, Ancestor Worship, Literalism |
+| Kinai, Kantō | **Tendai** | Henotheistic | Tendai Sect (zasu) | Shakyamuni (Awakened One) | Legalism, Literalism, Esotericism, Tolerant |
+| Hokuriku, Kinai, Kantō | **Jōdo Shinshū** | Monotheistic | Shin Sect (monshu) | Amida (Infinite Light) | Communal Faith, Tolerant, Literalism, Warlike |
+
+The Shokuho pantheon for blessings overlaps deliberately: Kannon
+appears in Rinzai, Sōtō, Shingon and Tendai; Shakyamuni in Rinzai,
+Sōtō, Shingon and Tendai; Dainichi in both Shingon and Tendai —
+mirroring the syncretic Buddhism that actually existed in Sengoku
+Japan. Shintō shares no divinities with the Buddhist sects (the
+historical *honji suijaku* syncretism is left for the player or a
+follow-up data pass to express via doctrine, not pantheon).
+
+## Shokuho governments and successions
+
+When Shokuho is loaded, three Sengoku-fitting realm types are
+selectable in the BK political layer alongside the standard
+Imperial / Feudal / Tribal / Republic / Dictatorship set. They are
+**not auto-assigned** to Shokuho kingdoms at game-start — the
+kingdom-to-government default map is C# code that doesn't yet know
+about Shokuho's daimyō kingdoms — so a Shokuho realm starts under
+whichever vanilla government the C# fallback picked and the player
+adopts the appropriate Japanese form via a government transition
+under the realm's political controls. (Auto-binding the ~40 Shokuho
+kingdoms to their fitting government is a follow-up that needs a C#
+extension to `GetKingdomIdealGovernment`.)
+
+| Government | Layer | Crown auth. | Council | Successions allowed |
+|---|---|---|---|---|
+| **Shogunate** | Vassals | 2–4 (high) | Appointed | Shogunal Hereditary, Hereditary |
+| **Daimyō Realm** | Vassals | 1–3 | Appointed | Daimyō Elective, Feudal Elective, Hereditary |
+| **Ikkō League** | Parliament | 0–2 (low) | Might | Ikkō Confederation, Theocratic Elective |
+
+The three Shokuho-specific successions reuse existing BK succession
+algorithms (Hereditary, Feudal Elective, Theocratic Elective) with
+Sengoku-fitting names, descriptions, and culture-ideal bindings —
+Shogunal Hereditary is ideal for *kantō*, Daimyō Elective for
+*hokuriku / kinai / nankai / ō*, Ikkō Confederation for *hokuriku /
+kinai*.
+
+What you should expect in-game: open the kingdom screen → BannerKings
+tab → Realm. The government bar reflects the current government; the
+**Change Government** action lists Shogunate / Daimyō Realm / Ikkō
+League as adoption options if your realm's Crown Authority sits
+within the legal band for the target. Adoption costs influence and
+goes through the normal proposal vote, same as Vlandia transitioning
+Tribal → Feudal.
+
 ---
 
 ← [Getting started](Getting-Started) · [Home](Home) · [Player guide →](Player-Guide)

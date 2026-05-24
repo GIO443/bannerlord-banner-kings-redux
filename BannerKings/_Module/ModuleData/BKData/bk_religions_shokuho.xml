@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  BK structural data — Religions (Shokuho compat layer).
+  A Religion ties a Faith to the CultureObjects that consider it native.
+  Refs to Shokuho cultures don't resolve on a vanilla Calradia campaign
+  and DefaultReligions drops the row, mirroring the Osfeyd/War Sails
+  pattern. The faith ids here must match bk_faiths_shokuho.xml.
+-->
+<religions requires_module="Shokuho">
+  <religion id="shinto" faith="shinto">
+    <cultures>
+      <culture id="hokuriku"/>
+      <culture id="kanto"/>
+      <culture id="kinai"/>
+      <culture id="nankai"/>
+      <culture id="ou"/>
+    </cultures>
+  </religion>
+
+  <religion id="rinzai" faith="rinzai">
+    <cultures>
+      <culture id="kinai"/>
+      <culture id="kanto"/>
+    </cultures>
+  </religion>
+
+  <religion id="soto" faith="soto">
+    <cultures>
+      <culture id="hokuriku"/>
+    </cultures>
+  </religion>
+
+  <religion id="shingon" faith="shingon">
+    <cultures>
+      <culture id="kinai"/>
+      <culture id="nankai"/>
+    </cultures>
+  </religion>
+
+  <religion id="tendai" faith="tendai">
+    <cultures>
+      <culture id="kinai"/>
+      <culture id="kanto"/>
+    </cultures>
+  </religion>
+
+  <religion id="shin" faith="shin">
+    <cultures>
+      <culture id="hokuriku"/>
+      <culture id="kinai"/>
+      <culture id="kanto"/>
+    </cultures>
+  </religion>
+</religions>

@@ -251,8 +251,13 @@ namespace BannerKings
                 campaignStarter.AddModel(BannerKingsConfig.Instance.VillageProductionModel);
             if (!ModCompat.BetterEconomy)
                 campaignStarter.AddModel(BannerKingsConfig.Instance.EconomyModel);
-            if (!ModCompat.BetterEconomy)
-                campaignStarter.AddModel(new BKPriceFactorModel());
+            // v1.9.7.0: BKPriceFactorModel registration retired. BetterEconomy
+            // is a hard dependency, so this gate has always been false at
+            // runtime and the BK model never replaced vanilla's slot. The
+            // BK-specific GetTradePenalty deltas (Gladiator lifestyle,
+            // CaravaneerOutsideConnections perk, castle markup, equipment-
+            // tier markup) now re-apply on top of BE's value via the
+            // postfix in BKEconomyLayerInstaller.
             // BK's workshop system is retired — Bannerlord Living Economy owns
             // workshops. BKWorkshopModel is no longer registered; the vanilla /
             // BetterEconomy workshop model holds the slot.
@@ -318,6 +323,21 @@ namespace BannerKings
             {
                 TaleWorlds.Library.Debug.Print(
                     $"[BK] RBMRuntimeFinalizers.Install failed: {ex.GetType().Name}: {ex.Message}",
+                    color: TaleWorlds.Library.Debug.DebugColor.Yellow);
+            }
+
+            // Phase A of the BK-on-top-of-BetterEconomy layering arc
+            // (v1.9.7.0). Logs the BE concrete economy model classes for
+            // diagnostic visibility, then installs BK delta postfixes on
+            // top of BE's slots. Phase A wires only GetTradePenalty (the
+            // one BK override that was already shaped as base + delta);
+            // later batches extend to ProsperityChange / Village Production
+            // / Economy metrics once the splits are done.
+            try { BannerKings.Patches.BetterEconomy.BKEconomyLayerInstaller.Install(); }
+            catch (System.Exception ex)
+            {
+                TaleWorlds.Library.Debug.Print(
+                    $"[BK] BKEconomyLayerInstaller.Install failed: {ex.GetType().Name}: {ex.Message}",
                     color: TaleWorlds.Library.Debug.DebugColor.Yellow);
             }
 

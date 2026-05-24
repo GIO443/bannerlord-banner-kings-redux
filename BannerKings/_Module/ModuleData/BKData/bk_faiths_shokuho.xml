@@ -1,0 +1,231 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  BK structural data — Faiths (Shokuho compat layer).
+  Six faiths matching the six religion StringIds Shokuho ships in
+  ModuleData/religions.xml: shinto, rinzai, shingon, tendai, soto, shin.
+  natural_cultures binds to Shokuho's five regional culture StringIds
+  (hokuriku, kanto, kinai, nankai, ou). On a vanilla Calradia campaign
+  these refs don't resolve and DefaultFaiths drops the row, same as
+  Osfeyd dropping without War Sails.
+-->
+<faiths requires_module="Shokuho">
+  <faith id="shinto"
+         flavor="Polytheistic"
+         main_god="amaterasu"
+         group="shinto_shrines"
+         marriage_doctrine="Monogamy"
+         war_doctrine="OpenWarfare">
+    <name>Shintō</name>
+    <description>Shintō is the native faith of the islands — the way of the kami who inhabit mountain, river, rice-paddy and ancestor. Every village keeps a shrine to its local kami; every household honours Amaterasu, ruling kami of the Heavenly Plain, from whom the Imperial line descends.</description>
+    <cults_desc>the kami</cults_desc>
+    <zealots_name>Shrine Wardens</zealots_name>
+    <blessing_action>Kannushi, I would have a blessing of the kami.</blessing_action>
+    <blessing_action_name>kami-blessings</blessing_action_name>
+    <blessing_question>Which kami's blessing do you seek?</blessing_question>
+    <blessing_confirm_question>Will you bear the kami's mark?</blessing_confirm_question>
+    <natural_cultures>
+      <culture id="hokuriku"/>
+      <culture id="kanto"/>
+      <culture id="kinai"/>
+      <culture id="nankai"/>
+      <culture id="ou"/>
+    </natural_cultures>
+    <pantheon>
+      <divinity ref="hachiman"/>
+      <divinity ref="inari"/>
+      <divinity ref="susanoo"/>
+      <divinity ref="tsukuyomi"/>
+    </pantheon>
+    <doctrines>
+      <doctrine ref="animism"/>
+      <doctrine ref="AncestorWorship"/>
+      <doctrine ref="Shamanism"/>
+      <doctrine ref="Tolerant"/>
+    </doctrines>
+    <ranks>
+      <rank>Shinshoku</rank>
+      <rank>Negi</rank>
+      <rank>Kannushi</rank>
+    </ranks>
+    <rites/>
+  </faith>
+
+  <faith id="rinzai"
+         flavor="Henotheistic"
+         main_god="bodhidharma"
+         group="rinzai_sangha"
+         marriage_doctrine="Monogamy"
+         war_doctrine="OpenWarfare">
+    <name>Rinzai Zen</name>
+    <description>The Rinzai school is the Zen of the kōan — sudden insight forced by the master's stick and the impossible question. Of all the Buddhist schools the daimyō favour Rinzai most, for its discipline turns easily into the discipline of the sword.</description>
+    <cults_desc>the patriarchs of Zen</cults_desc>
+    <zealots_name>Warrior Monks of the Gozan</zealots_name>
+    <blessing_action>Rōshi, I would receive a teaching.</blessing_action>
+    <blessing_action_name>Zen blessings</blessing_action_name>
+    <blessing_question>Whose lineage do you wish to receive?</blessing_question>
+    <blessing_confirm_question>Will you sit with the master's word?</blessing_confirm_question>
+    <natural_cultures>
+      <culture id="kinai"/>
+      <culture id="kanto"/>
+    </natural_cultures>
+    <pantheon>
+      <divinity ref="shakyamuni"/>
+      <divinity ref="kannon"/>
+    </pantheon>
+    <doctrines>
+      <doctrine ref="literalism"/>
+      <doctrine ref="Warlike"/>
+      <doctrine ref="Esotericism"/>
+      <doctrine ref="AncestorWorship"/>
+    </doctrines>
+    <ranks>
+      <rank>Unsui</rank>
+      <rank>Oshō</rank>
+      <rank>Rōshi</rank>
+    </ranks>
+    <rites/>
+  </faith>
+
+  <faith id="soto"
+         flavor="Henotheistic"
+         main_god="shakyamuni"
+         group="soto_sangha"
+         marriage_doctrine="Monogamy"
+         war_doctrine="NoWarfare">
+    <name>Sōtō Zen</name>
+    <description>The Sōtō school teaches that practice and enlightenment are not two — sit zazen, and you are already a Buddha. Its mother house Eiheiji stands in the snows of Echizen, and its abbots refuse the patronage games of the capital.</description>
+    <cults_desc>the silent patriarchs</cults_desc>
+    <zealots_name>Sons of Dōgen</zealots_name>
+    <blessing_action>Zenji, I would receive a teaching.</blessing_action>
+    <blessing_action_name>silent-sitting blessings</blessing_action_name>
+    <blessing_question>Will you sit, or speak?</blessing_question>
+    <blessing_confirm_question>Will you give the cushion the time it asks?</blessing_confirm_question>
+    <natural_cultures>
+      <culture id="hokuriku"/>
+    </natural_cultures>
+    <pantheon>
+      <divinity ref="bodhidharma"/>
+      <divinity ref="kannon"/>
+    </pantheon>
+    <doctrines>
+      <doctrine ref="pacifism"/>
+      <doctrine ref="Esotericism"/>
+      <doctrine ref="AncestorWorship"/>
+      <doctrine ref="Tolerant"/>
+    </doctrines>
+    <ranks>
+      <rank>Unsui</rank>
+      <rank>Oshō</rank>
+      <rank>Zenji</rank>
+    </ranks>
+    <rites/>
+  </faith>
+
+  <faith id="shingon"
+         flavor="Polytheistic"
+         main_god="dainichi"
+         group="shingon_sangha"
+         marriage_doctrine="Monogamy"
+         war_doctrine="OpenWarfare">
+    <name>Shingon</name>
+    <description>The Shingon school is the esoteric Buddhism of Kūkai — mantra, mudra and mandala. The cosmos itself is the body of Dainichi Buddha, and the practitioner who traces the mandala traces him. Its high seat is Mount Kōya, and its warrior-monks have defended it through every war.</description>
+    <cults_desc>the cosmic Buddha</cults_desc>
+    <zealots_name>Mount Kōya Warrior Monks</zealots_name>
+    <blessing_action>Daiajari, I seek an esoteric blessing.</blessing_action>
+    <blessing_action_name>mandala blessings</blessing_action_name>
+    <blessing_question>Through which Buddha's aspect will the blessing pass?</blessing_question>
+    <blessing_confirm_question>Will you carry the mantra to the end of your days?</blessing_confirm_question>
+    <natural_cultures>
+      <culture id="kinai"/>
+      <culture id="nankai"/>
+    </natural_cultures>
+    <pantheon>
+      <divinity ref="kannon"/>
+      <divinity ref="fudo_myo_o"/>
+      <divinity ref="shakyamuni"/>
+    </pantheon>
+    <doctrines>
+      <doctrine ref="Esotericism"/>
+      <doctrine ref="Astrology"/>
+      <doctrine ref="AncestorWorship"/>
+      <doctrine ref="literalism"/>
+    </doctrines>
+    <ranks>
+      <rank>Sōryo</rank>
+      <rank>Ajari</rank>
+      <rank>Daiajari</rank>
+    </ranks>
+    <rites/>
+  </faith>
+
+  <faith id="tendai"
+         flavor="Henotheistic"
+         main_god="shakyamuni"
+         group="tendai_sangha"
+         marriage_doctrine="Monogamy"
+         war_doctrine="OpenWarfare">
+    <name>Tendai</name>
+    <description>The Tendai school is the great syncretism of Mount Hiei — Lotus Sūtra, esoteric ritual and Zen practice woven together. Its head abbot, the Zasu, is one of the great religious lords of the realm, and its sōhei warrior-monks have ridden into the capital itself when the school's interests required it.</description>
+    <cults_desc>the Lotus and the mandala</cults_desc>
+    <zealots_name>Sōhei of Enryakuji</zealots_name>
+    <blessing_action>Zasu, I seek a teaching of the Lotus.</blessing_action>
+    <blessing_action_name>Lotus blessings</blessing_action_name>
+    <blessing_question>Through which aspect of the One Vehicle?</blessing_question>
+    <blessing_confirm_question>Will you read the Lotus all your days?</blessing_confirm_question>
+    <natural_cultures>
+      <culture id="kinai"/>
+      <culture id="kanto"/>
+    </natural_cultures>
+    <pantheon>
+      <divinity ref="amida"/>
+      <divinity ref="dainichi"/>
+      <divinity ref="kannon"/>
+    </pantheon>
+    <doctrines>
+      <doctrine ref="legalism"/>
+      <doctrine ref="literalism"/>
+      <doctrine ref="Esotericism"/>
+      <doctrine ref="Tolerant"/>
+    </doctrines>
+    <ranks>
+      <rank>Sōryo</rank>
+      <rank>Jūshoku</rank>
+      <rank>Zasu</rank>
+    </ranks>
+    <rites/>
+  </faith>
+
+  <faith id="shin"
+         flavor="Monotheistic"
+         main_god="amida"
+         group="shin_sangha"
+         marriage_doctrine="Monogamy"
+         war_doctrine="OpenWarfare">
+    <name>Jōdo Shinshū</name>
+    <description>The Shin school teaches the single practice: trust in Amida's vow and recite his name. Its priests marry, its laity rule themselves through the kō, and when the Monshu speaks the Ikkō-Ikki rises — leagues of farmers and ji-samurai under a single religious banner.</description>
+    <cults_desc>Amida's vow</cults_desc>
+    <zealots_name>Ikkō-Ikki</zealots_name>
+    <blessing_action>Monshu, I would recite the Nembutsu.</blessing_action>
+    <blessing_action_name>Pure Land blessings</blessing_action_name>
+    <blessing_question>How long will you carry the name?</blessing_question>
+    <blessing_confirm_question>Will you say the name daily?</blessing_confirm_question>
+    <natural_cultures>
+      <culture id="hokuriku"/>
+      <culture id="kinai"/>
+      <culture id="kanto"/>
+    </natural_cultures>
+    <pantheon/>
+    <doctrines>
+      <doctrine ref="communal_faith"/>
+      <doctrine ref="Tolerant"/>
+      <doctrine ref="literalism"/>
+      <doctrine ref="Warlike"/>
+    </doctrines>
+    <ranks>
+      <rank>Bōmori</rank>
+      <rank>Jūshoku</rank>
+      <rank>Monshu</rank>
+    </ranks>
+    <rites/>
+  </faith>
+</faiths>

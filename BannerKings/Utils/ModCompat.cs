@@ -93,6 +93,21 @@ namespace BannerKings.Utils
         public const string RealmOfThronesId = "realmofthrones.core";
         public const string RealmOfThronesAsm = "ROT";
 
+        // Shokuho — Sengoku-era total conversion (Workshop ID 3496296180).
+        // Ships its own `ShokuhoCampaign` GameType, cultures, kingdoms, clans,
+        // settlements, and religions (shinto / rinzai / shingon / tendai /
+        // soto / shin). Shokuho.dll contains zero references to BannerKings
+        // or BetterEconomy — it is BK-unaware. BK's behaviors are registered
+        // for the `Campaign` / `CampaignStoryMode` GameTypes, so they do not
+        // auto-load into a Shokuho campaign; this flag is here so any BK
+        // bootstrap code that runs *before* GameType resolution (XML
+        // registration, SubModule init, model replacement) can yield when
+        // Shokuho is present. No BK content (titles, religions, lifestyles)
+        // currently fits Shokuho's setting — a content port is out of scope
+        // and would belong in a separate sub-mod.
+        public const string ShokuhoId = "Shokuho";
+        public const string ShokuhoAsm = "Shokuho";
+
         private static readonly ConcurrentDictionary<string, bool> _cache = new();
 
         private static MethodInfo _getModulesMethod;
@@ -162,6 +177,10 @@ namespace BannerKings.Utils
         /// <summary>True if the Realm of Thrones total-conversion module is loaded.</summary>
         public static bool RealmOfThrones
             => IsLoaded(RealmOfThronesId, RealmOfThronesAsm);
+
+        /// <summary>True if the Shokuho Sengoku-era total-conversion module is loaded.</summary>
+        public static bool Shokuho
+            => IsLoaded(ShokuhoId, ShokuhoAsm);
 
         // ----- internals -----
 

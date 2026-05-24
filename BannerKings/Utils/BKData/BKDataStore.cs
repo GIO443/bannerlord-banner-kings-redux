@@ -118,6 +118,24 @@ namespace BannerKings.Utils.BKData
                     return;
                 }
 
+                // File-level module gate. A file whose root element declares
+                // requires_module="<moduleId>" is loaded only when that module
+                // is present per BannerKings.Utils.ModCompat. This is how
+                // total-conversion compat data (Shokuho faiths/governments/etc.)
+                // stays registered on the TC campaign but inert on a vanilla
+                // Calradia campaign — without this, governments and successions
+                // (which have no culture-resolution gate of their own) would
+                // appear in the vanilla government picker. Files with no
+                // requires_module attribute load unconditionally, preserving
+                // existing BK file behaviour.
+                var requiresModule = (string)root.Attribute("requires_module");
+                if (!string.IsNullOrEmpty(requiresModule) &&
+                    !BannerKings.Utils.ModCompat.IsLoaded(requiresModule))
+                {
+                    _diagnostics.Add($"[BKData] {path}: skipped (requires module '{requiresModule}', not loaded)");
+                    return;
+                }
+
                 var category = root.Name.LocalName;
                 if (!_rows.TryGetValue(category, out var dict))
                 {

@@ -1,0 +1,112 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  BK structural data — Divinities (Shokuho compat layer).
+  Schema matches bk_divinities.xml. These rows merge into the same
+  DefaultDivinities table at BKDataStore scan time. Faiths whose
+  natural_cultures don't resolve (i.e. running on a vanilla Calradia
+  campaign without Shokuho loaded) drop their bound religion entirely,
+  taking these divinities out of player-visible reach — but the rows
+  themselves stay registered, which is the same pattern Osfeyd uses
+  when War Sails is absent.
+-->
+<divinities requires_module="Shokuho">
+  <!-- Shinto pantheon -->
+  <divinity id="amaterasu" blessing_cost="400">
+    <name>Amaterasu Ōmikami</name>
+    <description>Amaterasu is the Sun Goddess and ruling kami of the Heavenly Plain. From her line the Imperial House descends, and from her light the rice ripens each autumn.</description>
+    <effects>Grants leadership focus and a household-wide loyalty bonus.</effects>
+    <epithet>Heaven-Shining</epithet>
+    <lore>Withdraw the sun and the world ends. Amaterasu hid in the cave once and the kami themselves had to coax her out with a mirror and a dance. The Imperial line is unbroken because her grandson stepped down to rule it.</lore>
+    <prayer>Pray to her at the household shrine before any oath that must outlive you.</prayer>
+  </divinity>
+
+  <divinity id="hachiman" blessing_cost="350">
+    <name>Hachiman</name>
+    <description>Hachiman is the war kami of the bow and arrow, patron of the samurai, divine guardian of the Minamoto line. No daimyō rides to battle without a Hachiman banner near the war-camp.</description>
+    <effects>Combat bonus when outnumbered; renown reward on duel victory.</effects>
+    <epithet>God of War</epithet>
+    <lore>Hachiman walks among the warrior houses. His shrines are wherever bowmen gather; his banner rides at the head of every samurai host.</lore>
+    <prayer>Bow once to him before drawing the bow against another.</prayer>
+  </divinity>
+
+  <divinity id="inari" blessing_cost="250">
+    <name>Inari Ōkami</name>
+    <description>Inari is the kami of rice, sake, prosperity and the white fox. Every village shrine and every merchant's lintel carries Inari's vermilion gates.</description>
+    <effects>Increased village hearth growth; trade caravan profits boost.</effects>
+    <epithet>Rice-Bringer</epithet>
+    <lore>Where Inari's foxes pass, the rice grows tall. Merchants set out sake before opening the shop; villages offer the first cooked rice of the year.</lore>
+    <prayer>Leave a saucer at the gate and the storehouse stays full.</prayer>
+  </divinity>
+
+  <divinity id="susanoo" blessing_cost="300">
+    <name>Susanoo-no-Mikoto</name>
+    <description>Susanoo is the storm-kami, brother of Amaterasu, slayer of the eight-headed serpent Yamata-no-Orochi from whose tail he drew the sword that founded the Imperial regalia.</description>
+    <effects>Combat boost in storms; bonus piety on crushing victories.</effects>
+    <epithet>Storm-Brother</epithet>
+    <lore>Susanoo was banished from heaven for his temper and earned his redemption on earth, killing the serpent that no kami above would face. The sword he drew from its tail is one of the three sacred treasures.</lore>
+    <prayer>Storm-blessed work is finished when the storm is.</prayer>
+  </divinity>
+
+  <divinity id="tsukuyomi" blessing_cost="200">
+    <name>Tsukuyomi-no-Mikoto</name>
+    <description>Tsukuyomi is the kami of the moon, second-born of the three noble children. He rules the night opposite his sister's day, and they have not looked upon one another since the killing of Uke Mochi.</description>
+    <epithet>Moon-Counter</epithet>
+    <lore>Tsukuyomi marks the tides, the months and the night-watches. His face turns from his sister's because of an old offence that the kami themselves will not name.</lore>
+    <prayer>Night travel is his to bless or deny.</prayer>
+  </divinity>
+
+  <!-- Buddhist figures (shared across the Buddhist faiths) -->
+  <divinity id="shakyamuni" blessing_cost="400">
+    <name>Shakyamuni</name>
+    <description>Shakyamuni is the historical Buddha, the prince of the Shakya clan who left his palace, woke beneath the bodhi tree, and gave the teaching that founded every school of the Dharma.</description>
+    <effects>Wisdom yields piety; finishing education projects yields piety and Theology.</effects>
+    <epithet>The Awakened One</epithet>
+    <lore>Shakyamuni's teaching is older than any temple. Every Buddhist school in Japan, whether it reads the Lotus or sits in zazen, traces its lineage back to his first sermon.</lore>
+    <prayer>The Dharma is heard once and remembered forever.</prayer>
+  </divinity>
+
+  <divinity id="amida" blessing_cost="350">
+    <name>Amida Nyorai</name>
+    <description>Amida is the Buddha of Infinite Light, sovereign of the Pure Land in the west. His original vow promises rebirth there to any who call his name in sincere faith.</description>
+    <effects>Reduced spouse-mourning malus; piety on the deaths of family members named with the Nembutsu.</effects>
+    <epithet>Buddha of Infinite Light</epithet>
+    <lore>Amida's vow is the open door. Six syllables — Namu Amida Butsu — and the door does not close. The Shin faithful need no other practice.</lore>
+    <prayer>Say the name and the name carries you.</prayer>
+  </divinity>
+
+  <divinity id="dainichi" blessing_cost="400">
+    <name>Dainichi Nyorai</name>
+    <description>Dainichi is the Great Sun Buddha, the cosmic Buddha whose body is the universe itself. The Shingon school teaches that all the other Buddhas are aspects of him.</description>
+    <effects>Cultural innovations develop faster (when Cultural Head); scholarship piety bonus.</effects>
+    <epithet>Great Sun Buddha</epithet>
+    <lore>Dainichi is not seen because everything is Dainichi. The mandala is his body laid flat; the mantras are his speech; the mudras are his hands moving through the world.</lore>
+    <prayer>Trace the mandala and the cosmos folds with you.</prayer>
+  </divinity>
+
+  <divinity id="bodhidharma" blessing_cost="300">
+    <name>Bodhidharma</name>
+    <description>Bodhidharma is the patriarch who brought Chan — Zen — from the western lands to the Tang court and then to the silent wall where he sat nine years.</description>
+    <effects>Combat focus bonus; reduced morale loss in extended campaigns.</effects>
+    <epithet>Wall-Gazer</epithet>
+    <lore>Bodhidharma told the emperor there was no merit in his temples. He sat nine years facing a wall. The wall, in the end, was the answer.</lore>
+    <prayer>Sit until the question dissolves.</prayer>
+  </divinity>
+
+  <divinity id="kannon" blessing_cost="250">
+    <name>Kannon Bosatsu</name>
+    <description>Kannon is the Bodhisattva of Compassion, hearer of the cries of the world. Of all the Mahayana figures, none is more widely worshipped across the Buddhist schools of Japan.</description>
+    <effects>Healing speed; reduced child-illness mortality.</effects>
+    <epithet>Hearer of the Cries</epithet>
+    <lore>Kannon takes whatever form is needed by the suffering. Thousand-armed Kannon reaches everywhere; horse-headed Kannon listens for animals; eleven-headed Kannon sees in every direction.</lore>
+    <prayer>Speak the suffering aloud and Kannon hears, even when no temple is near.</prayer>
+  </divinity>
+
+  <divinity id="fudo_myo_o" blessing_cost="300">
+    <name>Fudō Myō-ō</name>
+    <description>Fudō is the immovable wrathful guardian of the Dharma, sword in one hand and lasso in the other, surrounded by flame. The Shingon school invokes him at every fire ritual.</description>
+    <effects>Combat boost when defending; relations gain on suppressing rebellions.</effects>
+    <epithet>The Immovable</epithet>
+    <lore>Fudō does not yield. His sword cuts ignorance; his lasso pulls back what would fall away; his flame burns what is unworthy in the practitioner.</lore>
+    <prayer>Face him without flinching and your own resolve answers back.</prayer>
+  </divinity>
+</divinities>

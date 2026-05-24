@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  BK structural data — Faith Groups (Shokuho compat layer).
+  One group per faith for clarity; each Buddhist school keeps its own hierarchy
+  rather than sharing a generic sangha node, matching the historical reality
+  that Tendai, Shingon, Rinzai, Sōtō and Shin governed independently in
+  Sengoku Japan. type="Temporal" is the only XML-supported hierarchical kind
+  (Disorganized fits Shintō, whose shrines have no central seat).
+-->
+<faith_groups requires_module="Shokuho">
+  <faith_group id="shinto_shrines" type="Disorganized">
+    <name>Shintō Shrines</name>
+    <title>Kannushi</title>
+    <description>The kami are honoured at thousands of shrines across the islands. There is no national priesthood: each shrine answers to the kami enshrined there, and the kannushi who tend it answer to the local community.</description>
+  </faith_group>
+
+  <faith_group id="rinzai_sangha" type="Temporal">
+    <name>Rinzai Sect</name>
+    <title>Rōshi</title>
+    <description>The Rinzai Zen school is organised around the Gozan — the great Five Mountains — under abbots whose lineages descend from the Chinese masters of the Linji line. Daimyō patronise these monasteries openly.</description>
+  </faith_group>
+
+  <faith_group id="soto_sangha" type="Temporal">
+    <name>Sōtō Sect</name>
+    <title>Zenji</title>
+    <description>The Sōtō Zen school traces its line to Dōgen and Keizan, and its mother house Eiheiji sits in the snows of Echizen. Its abbots teach silent sitting before any other practice.</description>
+  </faith_group>
+
+  <faith_group id="shingon_sangha" type="Temporal">
+    <name>Shingon Sect</name>
+    <title>Daiajari</title>
+    <description>The Shingon esoteric school keeps its high seat on Mount Kōya, where the founder Kūkai is said to wait in eternal meditation. Its great abbot transmits the Womb and Diamond mandalas to a chosen successor.</description>
+  </faith_group>
+
+  <faith_group id="tendai_sangha" type="Temporal">
+    <name>Tendai Sect</name>
+    <title>Zasu</title>
+    <description>The Tendai school holds Mount Hiei outside the capital, and its head abbot — the Zasu — is one of the great religious lords of the realm. The school's warrior-monks have made and unmade emperors.</description>
+  </faith_group>
+
+  <faith_group id="shin_sangha" type="Temporal">
+    <name>Shin Sect</name>
+    <title>Monshu</title>
+    <description>The Jōdo Shinshū school is led hereditarily by the descendants of Shinran, whose Honganji line governs an unbroken community of lay believers across the central provinces. The Monshu's word can raise an army of farmers.</description>
+  </faith_group>
+</faith_groups>

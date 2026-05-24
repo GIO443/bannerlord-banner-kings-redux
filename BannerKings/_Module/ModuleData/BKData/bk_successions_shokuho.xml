@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  BK structural data — Successions (Shokuho compat layer).
+  These rows reuse existing SuccessionRegistry C# behaviors (Hereditary,
+  FeudalElective, TheocraticElective) with Sengoku-Japan names, descriptions,
+  and ideal_for culture bindings. Authoring a genuinely-new succession
+  algorithm would require a C# SuccessionRegistry.Register(...) call; the
+  three Japanese realm-types map cleanly onto behaviors BK already ships.
+  ideal_for refs to Shokuho cultures don't resolve on vanilla Calradia
+  and the row's mapping is dropped without affecting the existing
+  Calradian succession set.
+-->
+<successions requires_module="Shokuho">
+  <succession id="ShogunalHereditary" behavior="Hereditary" elected="false"
+              authoritarian="0.9" oligarchic="-0.1" egalitarian="-0.7">
+    <name>Shogunal Hereditary</name>
+    <description>The Shōgun's office passes from father to son within the bakufu's ruling house. The Imperial court in Kyōto formally invests each new Shōgun, but the line itself is fixed — Minamoto, then Ashikaga, then Tokugawa — and a clan that loses the office rarely recovers it. Adoption into the line is recognised but the choice rests with the household elders, not the realm at large.</description>
+    <candidates_text>- Inheritance candidates of current Shōgun
+- Title claimants
+- Adopted heirs of the ruling clan</candidates_text>
+    <score_text>+++ Inheritance score (for clan inheritors)
+++ Title claim
++ Clan tier</score_text>
+    <ideal_for>
+      <culture id="kanto"/>
+    </ideal_for>
+  </succession>
+
+  <succession id="DaimyoElective" behavior="FeudalElective" elected="true"
+              authoritarian="-0.3" oligarchic="1" egalitarian="0.1">
+    <name>Daimyō Elective</name>
+    <description>When a daimyō dies, the clan's senior retainers — its karō — gather to acclaim a successor. The first call goes to the daimyō's chosen heir, but a child too young to lead in war can be passed over for an adopted brother-in-arms, a son-in-law, or even a senior retainer raised into the family name. The succession is therefore hereditary in intent and elective in fact.</description>
+    <candidates_text>- Inheritance candidates of current daimyō
+- Title claimants
+- Senior karō with clan tier 5 or higher</candidates_text>
+    <score_text>+++ Inheritance score (for clan inheritors)
+++ Title claim
+++ Influence cap
++ Clan tier
++ Skills</score_text>
+    <ideal_for>
+      <culture id="hokuriku"/>
+      <culture id="kinai"/>
+      <culture id="nankai"/>
+      <culture id="ou"/>
+    </ideal_for>
+  </succession>
+
+  <succession id="IkkoConfederation" behavior="TheocraticElective" elected="true"
+              authoritarian="-0.2" oligarchic="-0.4" egalitarian="0.8">
+    <name>Ikkō Confederation</name>
+    <description>The Ikkō-Ikki recognise no temporal sovereign but the Monshu, hereditary head of the Honganji line, descendant of Shinran. When the Monshu names a successor the kō — the leagues of farmers, ji-samurai and lay priests — are expected to affirm him. In practice the office descends in the Honganji bloodline; in theory the community can refuse, and at moments of crisis it has.</description>
+    <candidates_text>- Inheritance candidates of the current Monshu
+- Any clan leader of the Shin faith with clan tier 4 or higher</candidates_text>
+    <score_text>++ Piety
+++ Virtues
+++ Zealotry
++ Clan tier
++ Skills</score_text>
+    <ideal_for>
+      <culture id="hokuriku"/>
+      <culture id="kinai"/>
+    </ideal_for>
+  </succession>
+</successions>
