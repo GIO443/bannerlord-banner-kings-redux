@@ -69,6 +69,13 @@ namespace BannerKings.Patches.BetterEconomy
                 TaleWorlds.Library.Debug.Print(
                     $"[BK] BetterEconomyLayer: GetTradePenalty postfix install threw {ex.GetType().Name}: {ex.Message}");
             }
+
+            try { InstallProsperityChangePostfix(harmony); }
+            catch (Exception ex)
+            {
+                TaleWorlds.Library.Debug.Print(
+                    $"[BK] BetterEconomyLayer: CalculateProsperityChange postfix install threw {ex.GetType().Name}: {ex.Message}");
+            }
         }
 
         // ----- DISCOVERY -----
@@ -166,6 +173,65 @@ namespace BannerKings.Patches.BetterEconomy
             {
                 BannerKings.Utils.Logs.MajorEvent(() =>
                     $"[BK] BetterEconomyLayer: installed GetTradePenalty postfix on {patched} concrete model(s) — BK lifestyle/perk/castle/equipment-tier modifiers now re-apply on top of BE.");
+            }
+        }
+
+        // ----- POSTFIX: CalculateProsperityChange -----
+
+        // Phase B batch 1: BK's BKProsperityModel.CalculateProsperityChange
+        // is dead at runtime (BE registers the prosperity model slot). The
+        // BK-only contributions — population-mix factors, stability,
+        // satisfactions, food bonus, council Steward / Castellan, Public
+        // Works innovation, demesne laws — are silently inactive. Extracted
+        // into BKProsperityModel.ApplyBKProsperityDeltas (a static helper);
+        // this postfix calls the helper after BE's CalculateProsperityChange
+        // runs, so the BK deltas re-apply on top of BE's base value.
+        private static void InstallProsperityChangePostfix(Harmony harmony)
+        {
+            var baseType = typeof(DefaultSettlementProsperityModel);
+            var subs = FindNonAbstractSubclasses(baseType);
+            var targets = new List<Type>(subs) { baseType };
+
+            var postfix = new HarmonyMethod(AccessTools.Method(
+                typeof(BKEconomyLayerInstaller), nameof(CalculateProsperityChangePostfix)));
+
+            int patched = 0;
+            foreach (var target in targets)
+            {
+                var m = AccessTools.Method(target, "CalculateProsperityChange");
+                if (m == null) continue;
+                if (m.DeclaringType != target) continue; // only patch where the override actually lives
+                try
+                {
+                    harmony.Patch(m, postfix: postfix);
+                    patched++;
+                }
+                catch (Exception ex)
+                {
+                    TaleWorlds.Library.Debug.Print(
+                        $"[BK] BetterEconomyLayer: patch on {target.FullName}.CalculateProsperityChange failed: {ex.GetType().Name}: {ex.Message}");
+                }
+            }
+            if (patched > 0)
+            {
+                BannerKings.Utils.Logs.MajorEvent(() =>
+                    $"[BK] BetterEconomyLayer: installed CalculateProsperityChange postfix on {patched} concrete model(s) — BK pop-mix / stability / satisfaction / food / council / Public Works / demesne-law deltas now re-apply on top of BE.");
+            }
+        }
+
+        public static void CalculateProsperityChangePostfix(
+            TaleWorlds.CampaignSystem.Settlements.Town fortification,
+            ref TaleWorlds.CampaignSystem.ExplainedNumber __result)
+        {
+            try
+            {
+                BannerKings.Models.Vanilla.BKProsperityModel.ApplyBKProsperityDeltas(fortification, ref __result);
+            }
+            catch
+            {
+                // Never throw out of a postfix on a daily-tick economy
+                // path — a bad PopulationData / council lookup leaves BE's
+                // value intact, not crashes the tick.
             }
         }
 

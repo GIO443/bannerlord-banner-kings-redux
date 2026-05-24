@@ -221,6 +221,103 @@ namespace BannerKings.Models.Vanilla
 
         private void AddDemesneLawEffect(PopulationData data, ref ExplainedNumber result)
         {
+            ApplyDemesneLawDeltas(data, ref result);
+        }
+
+        // v1.9.7.1 Phase B: extracted BK-only prosperity-change deltas so they
+        // can be applied as a Harmony postfix on top of BE's
+        // CalculateProsperityChange (the BK override doesn't fire when BE
+        // registers the slot). Helper is public + static so the postfix in
+        // BKEconomyLayerInstaller can call it without instantiating the BK
+        // model. Mirrors only the BK-SPECIFIC additions from the override
+        // above — population-mix factors, stability, satisfaction curves,
+        // food bonus / starvation, council Steward / Castellan, Public Works
+        // innovation, demesne laws SerfsLaxDuties / CraftsmenLaxDuties.
+        // Vanilla-equivalent blocks (housing curve, merchant gold, perks,
+        // policies, building effects, issues) are NOT replicated — BE's
+        // base calculation already handles those.
+        public static void ApplyBKProsperityDeltas(Town fortification, ref ExplainedNumber explainedNumber)
+        {
+            if (fortification == null) return;
+            var data = BannerKingsConfig.Instance.PopulationManager?.GetPopData(fortification.Settlement);
+            if (data == null) return;
+
+            // Population-mix factors. Population counts come from BE via the
+            // PopulationData mirror — these deltas describe how BK weights
+            // each class, additive on top of BE's own prosperity tick.
+            float craftsmen = data.GetTypeCount(PopType.Craftsmen);
+            explainedNumber.Add(craftsmen * 0.0005f, new TextObject("{=!}BK: Craftsmen output"));
+
+            float slaves = data.GetTypeCount(PopType.Slaves);
+            explainedNumber.Add(slaves * -0.0001f, new TextObject("{=!}BK: Slave population"));
+            if (BannerKingsConfig.Instance.PopulationManager.PopSurplusExists(fortification.Settlement, PopType.Slaves, true))
+            {
+                explainedNumber.Add(slaves * -0.0003f, new TextObject("{=!}BK: Slave surplus"));
+            }
+
+            var serfs = data.GetTypeCount(PopType.Serfs);
+            explainedNumber.Add(serfs * -0.00004f, new TextObject("{=!}BK: Serf population"));
+
+            // Stability factor — pure BK concept.
+            var factor = data.Stability - 1f + data.Stability;
+            var stabilityImpact = STABILITY_FACTOR * factor;
+            explainedNumber.Add(stabilityImpact, new TextObject("{=!}BK: Stability"));
+
+            // Satisfaction curves — EconomicData.Satisfactions is BK.
+            for (var i = 0; i < 4; i++)
+            {
+                float satisfaction = data.EconomicData.Satisfactions[i];
+                explainedNumber.Add(-MBMath.Map(satisfaction, 0f, 0.85f, 0.5f, 0f),
+                    Utils.TextHelper.GetConsumptionSatisfactionText((ConsumptionType)i));
+            }
+
+            // Food bonus / starvation (uses vanilla food state but applies
+            // BK-flavoured magnitudes; net delta on BE's tick).
+            int foodLimitForBonus = (int)(fortification.FoodStocksUpperLimit() * 0.8f);
+            if (fortification.FoodStocks >= foodLimitForBonus)
+            {
+                explainedNumber.Add(0.5f, new TextObject("{=!}BK: Well fed populace"));
+            }
+            else if (fortification.Settlement.IsStarving)
+            {
+                var starvation = stabilityImpact;
+                if (starvation > 0f) starvation *= -0.5f;
+                if (stabilityImpact <= 0f && stabilityImpact > -1f) starvation = -1f;
+                explainedNumber.Add(starvation, FoodShortageText);
+            }
+
+            // Council positions — pure BK.
+            if (fortification.OwnerClan != null)
+            {
+                Hero leader = fortification.OwnerClan.Leader;
+                BannerKingsConfig.Instance.CourtManager.ApplyCouncilEffect(ref explainedNumber,
+                    leader, DefaultCouncilPositions.Instance.Steward,
+                    DefaultCouncilTasks.Instance.DevelopEconomy,
+                    1f, false);
+
+                if (fortification.IsCastle)
+                {
+                    BannerKingsConfig.Instance.CourtManager.ApplyCouncilEffect(ref explainedNumber,
+                        leader, DefaultCouncilPositions.Instance.Castellan,
+                        DefaultCouncilTasks.Instance.OverseeBaronies,
+                        0.5f, false);
+                }
+            }
+
+            // Innovation PublicWorks — pure BK.
+            InnovationData innovationData = BannerKingsConfig.Instance.InnovationsManager.GetInnovationData(fortification.Culture);
+            if (innovationData != null
+                && innovationData.HasFinishedInnovation(DefaultInnovations.Instance.PublicWorks))
+            {
+                explainedNumber.Add(1.5f, DefaultInnovations.Instance.PublicWorks.Name);
+            }
+
+            // Demesne laws (factor on whole result).
+            ApplyDemesneLawDeltas(data, ref explainedNumber);
+        }
+
+        private static void ApplyDemesneLawDeltas(PopulationData data, ref ExplainedNumber result)
+        {
             if (data != null && data.TitleData != null && data.TitleData.Title != null)
             {
                 var title = data.TitleData.Title;
@@ -235,7 +332,7 @@ namespace BannerKings.Models.Vanilla
                     if (title.Contract.IsLawEnacted(DefaultDemesneLaws.Instance.CraftsmenLaxDuties))
                     {
                         float proportion = data.GetCurrentTypeFraction(PopType.Craftsmen);
-                        result.AddFactor(proportion * 0.08f, DefaultDemesneLaws.Instance.SerfsLaxDuties.Name);
+                        result.AddFactor(proportion * 0.08f, DefaultDemesneLaws.Instance.CraftsmenLaxDuties.Name);
                     }
                 }
             }
