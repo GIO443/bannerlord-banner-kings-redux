@@ -83,6 +83,118 @@ namespace BannerKings.Patches.BetterEconomy
                 TaleWorlds.Library.Debug.Print(
                     $"[BK] BetterEconomyLayer: FeudalEconomy.GetTradePower postfix install threw {ex.GetType().Name}: {ex.Message}");
             }
+
+            // v1.9.7.3 Phase B batch 3: Mercantilism / ProductionEfficiency /
+            // ProductionQuality postfixes follow the same shape as TradePower
+            // (BE owns the canonical value, BK postfix adds BK contributions
+            // so they actually drive game economy, not just BK display).
+            try { InstallFeudalEconomyMercantilismPostfix(harmony); }
+            catch (Exception ex)
+            {
+                TaleWorlds.Library.Debug.Print(
+                    $"[BK] BetterEconomyLayer: FeudalEconomy.GetMercantilism postfix install threw {ex.GetType().Name}: {ex.Message}");
+            }
+            try { InstallFeudalEconomyProductionEfficiencyPostfix(harmony); }
+            catch (Exception ex)
+            {
+                TaleWorlds.Library.Debug.Print(
+                    $"[BK] BetterEconomyLayer: FeudalEconomy.GetProductionEfficiency postfix install threw {ex.GetType().Name}: {ex.Message}");
+            }
+            try { InstallFeudalEconomyProductionQualityPostfix(harmony); }
+            catch (Exception ex)
+            {
+                TaleWorlds.Library.Debug.Print(
+                    $"[BK] BetterEconomyLayer: FeudalEconomy.GetProductionQuality postfix install threw {ex.GetType().Name}: {ex.Message}");
+            }
+        }
+
+        // ----- POSTFIXES: GetMercantilism / GetProductionEfficiency / GetProductionQuality -----
+
+        // Shared install helper for the FeudalEconomyCampaignBehavior single-
+        // argument getters that all share the (Settlement) → float shape.
+        private static void InstallFeudalEconomyGetterPostfix(
+            Harmony harmony, string getterName, string postfixMethodName,
+            string contributionDescription)
+        {
+            var t = AccessTools.TypeByName("BetterEconomy.Behaviors.FeudalEconomyCampaignBehavior");
+            if (t == null)
+            {
+                TaleWorlds.Library.Debug.Print(
+                    $"[BK] BetterEconomyLayer: FeudalEconomyCampaignBehavior type not found; {getterName} postfix skipped");
+                return;
+            }
+            var m = AccessTools.Method(t, getterName);
+            if (m == null)
+            {
+                TaleWorlds.Library.Debug.Print(
+                    $"[BK] BetterEconomyLayer: {t.FullName}.{getterName} not found; postfix skipped");
+                return;
+            }
+            try
+            {
+                harmony.Patch(m, postfix: new HarmonyMethod(AccessTools.Method(
+                    typeof(BKEconomyLayerInstaller), postfixMethodName)));
+                BannerKings.Utils.Logs.MajorEvent(() =>
+                    $"[BK] BetterEconomyLayer: installed FeudalEconomyCampaignBehavior.{getterName} postfix — {contributionDescription} now contribute to the canonical BE value.");
+            }
+            catch (Exception ex)
+            {
+                TaleWorlds.Library.Debug.Print(
+                    $"[BK] BetterEconomyLayer: patch on {t.FullName}.{getterName} failed: {ex.GetType().Name}: {ex.Message}");
+            }
+        }
+
+        private static void InstallFeudalEconomyMercantilismPostfix(Harmony harmony) =>
+            InstallFeudalEconomyGetterPostfix(harmony, "GetMercantilism",
+                nameof(FeudalEconomyMercantilismPostfix),
+                "BK government type + Encourage Mercantilism decision");
+
+        private static void InstallFeudalEconomyProductionEfficiencyPostfix(Harmony harmony) =>
+            InstallFeudalEconomyGetterPostfix(harmony, "GetProductionEfficiency",
+                nameof(FeudalEconomyProductionEfficiencyPostfix),
+                "BK craftsmen pop / Martial-Law policy / Feudal government / Civil-Manufacturer & Lordship-Economic-Admin & Artisan-Entrepeneur perks / innovations (Wheelbarrow, BlastFurnace, Stirrups, Cogs, Cranes) / council Steward OverseeProduction / governor skill");
+
+        private static void InstallFeudalEconomyProductionQualityPostfix(Harmony harmony) =>
+            InstallFeudalEconomyGetterPostfix(harmony, "GetProductionQuality",
+                nameof(FeudalEconomyProductionQualityPostfix),
+                "BK mercantilism contribution / Lordship-Economic-Admin & Civil-Manufacturer perks / Republic government / council Steward OverseeProduction / governor skill");
+
+        public static void FeudalEconomyMercantilismPostfix(
+            TaleWorlds.CampaignSystem.Settlements.Settlement settlement,
+            ref float __result)
+        {
+            try
+            {
+                __result += BannerKings.Models.Vanilla.BKEconomyModel.CalculateBKMercantilismDelta(settlement);
+                if (__result < 0f) __result = 0f;
+                if (__result > 1f) __result = 1f;
+            }
+            catch { }
+        }
+
+        public static void FeudalEconomyProductionEfficiencyPostfix(
+            TaleWorlds.CampaignSystem.Settlements.Settlement settlement,
+            ref float __result)
+        {
+            try
+            {
+                __result += BannerKings.Models.Vanilla.BKEconomyModel.CalculateBKProductionEfficiencyDelta(settlement);
+                if (__result < 0f) __result = 0f;
+            }
+            catch { }
+        }
+
+        public static void FeudalEconomyProductionQualityPostfix(
+            TaleWorlds.CampaignSystem.Settlements.Settlement settlement,
+            ref float __result)
+        {
+            try
+            {
+                __result += BannerKings.Models.Vanilla.BKEconomyModel.CalculateBKProductionQualityDelta(settlement);
+                if (__result < 0f) __result = 0f;
+                if (__result > 2f) __result = 2f;
+            }
+            catch { }
         }
 
         // ----- POSTFIX: FeudalEconomyCampaignBehavior.GetTradePower -----

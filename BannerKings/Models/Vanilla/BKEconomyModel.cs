@@ -326,6 +326,176 @@ namespace BannerKings.Models.Vanilla
             return result;
         }
 
+        // v1.9.7.3 Phase B batch 3: BK-only mercantilism contributions. BE's
+        // GetMercantilism is the canonical value; this delta is what BK
+        // adds on top via the Harmony postfix. Government mercantilism is
+        // a per-government-type constant from the title's contract;
+        // "encourage mercantilism" is a kingdom decision. BK is the only
+        // place either concept exists, so the delta is purely additive
+        // (no double-counting with BE).
+        public static float CalculateBKMercantilismDelta(Settlement settlement)
+        {
+            if (settlement == null) return 0f;
+            float delta = 0f;
+            try
+            {
+                var data = BannerKingsConfig.Instance.PopulationManager?.GetPopData(settlement);
+                var titleData = data?.TitleData;
+                if (titleData?.Title?.Contract?.Government != null)
+                {
+                    delta += titleData.Title.Contract.Government.Mercantilism;
+                }
+                if (BannerKingsConfig.Instance.PolicyManager.IsDecisionEnacted(settlement, "decision_mercantilism"))
+                {
+                    delta += 0.1f;
+                }
+            }
+            catch { }
+            return delta;
+        }
+
+        // v1.9.7.3 Phase B batch 3: BK-only production-efficiency
+        // contributions. Mercantilism contribution reads via BetterEconomy
+        // Bridge.GetMercantilism (which already includes BK government /
+        // decision deltas thanks to the mercantilism postfix), so the
+        // numbers stay consistent across the chain.
+        public static float CalculateBKProductionEfficiencyDelta(Settlement settlement)
+        {
+            if (settlement == null) return 0f;
+            float delta = 0f;
+            try
+            {
+                var data = BannerKingsConfig.Instance.PopulationManager?.GetPopData(settlement);
+                if (data == null) return 0f;
+
+                // Craftsmen pop contribution.
+                float craftsmen = data.GetTypeCount(PopType.Craftsmen);
+                delta += MathF.Min(craftsmen / 250f * 0.020f, CRAFTSMEN_EFFECT_CAP);
+
+                // Martial Law policy penalty.
+                if (BannerKingsConfig.Instance.PolicyManager.IsPolicyEnacted(settlement, "workforce",
+                        (int)WorkforcePolicy.Martial_Law))
+                {
+                    delta += -0.30f;
+                }
+
+                // Mercantilism contribution (now BE-derived via bridge).
+                float mercantilism = BannerKings.Utils.BetterEconomyBridge.GetMercantilism(settlement);
+                delta += 0.25f * mercantilism;
+
+                // Government type — Feudal bonus (factor on base; approximate
+                // additive equivalent of base*0.15 over a 0.7-0.9 base = ~0.1-0.15).
+                var government = BannerKingsConfig.Instance.TitleManager.GetSettlementGovernment(settlement);
+                if (government != null && government.Equals(DefaultGovernments.Instance.Feudal))
+                {
+                    delta += 0.12f;
+                }
+
+                // Owner perks (CivilManufacturer, LordshipEconomicAdministration, ArtisanEntrepeneur).
+                if (settlement.OwnerClan?.Leader != null)
+                {
+                    var education = BannerKingsConfig.Instance.EducationManager.GetHeroEducation(settlement.Owner);
+                    if (education.HasPerk(BKPerks.Instance.CivilManufacturer))
+                        delta += 0.15f;
+                    if (settlement.Owner.GetPerkValue(BKPerks.Instance.LordshipEconomicAdministration))
+                        delta += 0.1f;
+                    if (education.HasPerk(BKPerks.Instance.ArtisanEntrepeneur))
+                        delta += 0.1f;
+                }
+
+                // Innovations (additive equivalents of the original factor lines).
+                var innovations = BannerKingsConfig.Instance.InnovationsManager.GetInnovationData(settlement.Culture);
+                if (innovations != null)
+                {
+                    if (innovations.HasFinishedInnovation(DefaultInnovations.Instance.Wheelbarrow))   delta += 0.08f;
+                    if (innovations.HasFinishedInnovation(DefaultInnovations.Instance.BlastFurnace)) delta += 0.16f;
+                    if (innovations.HasFinishedInnovation(DefaultInnovations.Instance.Stirrups))     delta += 0.05f;
+                    if (innovations.HasFinishedInnovation(DefaultInnovations.Instance.Cogs))         delta += 0.05f;
+                    if (innovations.HasFinishedInnovation(DefaultInnovations.Instance.Cranes))       delta += 0.10f;
+                }
+
+                // Council Steward → OverseeProduction (additive equivalent of factor).
+                if (settlement.OwnerClan?.Leader != null)
+                {
+                    var stewardEN = new ExplainedNumber(1f);
+                    BannerKingsConfig.Instance.CourtManager.ApplyCouncilEffect(ref stewardEN,
+                        settlement.OwnerClan.Leader,
+                        DefaultCouncilPositions.Instance.Steward,
+                        DefaultCouncilTasks.Instance.OverseeProduction,
+                        0.15f, true);
+                    delta += (stewardEN.ResultNumber - 1f);
+                }
+
+                // Skill bonus (governor — TradePower's mirror lives here too).
+                if (settlement.Town != null)
+                {
+                    var skillEN = new ExplainedNumber(0f);
+                    SkillHelper.AddSkillBonusForTown(BKSkillEffects.Instance.ProductionEfficiency,
+                        settlement.Town,
+                        ref skillEN);
+                    delta += skillEN.ResultNumber;
+                }
+            }
+            catch { }
+            return delta;
+        }
+
+        // v1.9.7.3 Phase B batch 3: BK-only production-quality
+        // contributions. Same shape as efficiency.
+        public static float CalculateBKProductionQualityDelta(Settlement settlement)
+        {
+            if (settlement == null) return 0f;
+            float delta = 0f;
+            try
+            {
+                // Mercantilism contribution.
+                float mercantilism = BannerKings.Utils.BetterEconomyBridge.GetMercantilism(settlement);
+                delta += (mercantilism - 0.4f) * 0.5f;
+
+                // LordshipEconomicAdministration perk (+0.05 factor on baseline 1.0 → 0.05 additive).
+                if (settlement.Owner != null
+                    && settlement.Owner.GetPerkValue(BKPerks.Instance.LordshipEconomicAdministration))
+                {
+                    delta += 0.05f;
+                }
+
+                if (settlement.OwnerClan == null) return delta;
+
+                var education = BannerKingsConfig.Instance.EducationManager.GetHeroEducation(settlement.Owner);
+                if (education.Perks.Contains(BKPerks.Instance.CivilManufacturer))
+                    delta += 0.1f;
+
+                // Government Republic (+0.1 factor → +0.1 additive on baseline 1.0).
+                var government = BannerKingsConfig.Instance.TitleManager.GetSettlementGovernment(settlement);
+                if (government != null && government.Equals(DefaultGovernments.Instance.Republic))
+                    delta += 0.1f;
+
+                // Council Steward → OverseeProduction (factor).
+                if (settlement.OwnerClan?.Leader != null)
+                {
+                    var stewardEN = new ExplainedNumber(1f);
+                    BannerKingsConfig.Instance.CourtManager.ApplyCouncilEffect(ref stewardEN,
+                        settlement.OwnerClan.Leader,
+                        DefaultCouncilPositions.Instance.Steward,
+                        DefaultCouncilTasks.Instance.OverseeProduction,
+                        0.085f, true);
+                    delta += (stewardEN.ResultNumber - 1f);
+                }
+
+                // Skill bonus.
+                if (settlement.Town != null)
+                {
+                    var skillEN = new ExplainedNumber(0f);
+                    SkillHelper.AddSkillBonusForTown(BKSkillEffects.Instance.ProductionQuality,
+                        settlement.Town,
+                        ref skillEN);
+                    delta += skillEN.ResultNumber;
+                }
+            }
+            catch { }
+            return delta;
+        }
+
         // v1.9.7.2 Phase B port-from-BE: extracted BK-only trade-power
         // contributions so the postfix on BE's FeudalEconomyCampaignBehavior
         // .GetTradePower can add them to BE's authoritative value. Mirrors

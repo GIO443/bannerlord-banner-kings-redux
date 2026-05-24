@@ -6,6 +6,7 @@ using TaleWorlds.CampaignSystem.Party;
 using TaleWorlds.CampaignSystem.Settlements;
 using TaleWorlds.Core;
 using TaleWorlds.Library;
+using TaleWorlds.Localization;
 using TaleWorlds.SaveSystem;
 using static BannerKings.Managers.PopulationManager;
 
@@ -105,13 +106,55 @@ namespace BannerKings.Managers.Populations
             ? BannerKingsConfig.Instance.EconomyModel.GetMerchantIncome(settlement.Town).ResultNumber
             : 0f;
 
-        public ExplainedNumber Mercantilism => BannerKingsConfig.Instance.EconomyModel.CalculateMercantilism(settlement);
+        // v1.9.7.3 Phase B batch 3 port-from-BE: Mercantilism / Production
+        // Efficiency / Production Quality now source from BetterEconomy's
+        // FeudalEconomyCampaignBehavior.GetX (the canonical value), with
+        // BK contributions (government type, council, perks, innovations,
+        // policy) baked in via the postfixes installed in
+        // BKEconomyLayerInstaller. BK's BKEconomyModel.CalculateX methods
+        // remain in the model class so legacy consumers that want an
+        // ExplainedNumber breakdown can still get one (BK's calc) — but
+        // the canonical scalar that drives BE downstream lives on BE and
+        // is what EconomicData surfaces here. The "BetterEconomy" line in
+        // the explanation is purely cosmetic; the contributions are
+        // already inside the float.
+        public ExplainedNumber Mercantilism
+        {
+            get
+            {
+                var en = new ExplainedNumber(0f, true);
+                en.Add(BannerKings.Utils.BetterEconomyBridge.GetMercantilism(settlement),
+                    new TextObject("{=!}BetterEconomy (with BK contributions)"));
+                en.LimitMin(0f);
+                en.LimitMax(1f);
+                return en;
+            }
+        }
 
-        public ExplainedNumber ProductionEfficiency =>
-            BannerKingsConfig.Instance.EconomyModel.CalculateProductionEfficiency(settlement);
+        public ExplainedNumber ProductionEfficiency
+        {
+            get
+            {
+                var en = new ExplainedNumber(0f, true);
+                en.Add(BannerKings.Utils.BetterEconomyBridge.GetProductionEfficiency(settlement),
+                    new TextObject("{=!}BetterEconomy (with BK contributions)"));
+                en.LimitMin(0f);
+                return en;
+            }
+        }
 
-        public ExplainedNumber ProductionQuality =>
-            BannerKingsConfig.Instance.EconomyModel.CalculateProductionQuality(settlement);
+        public ExplainedNumber ProductionQuality
+        {
+            get
+            {
+                var en = new ExplainedNumber(0f, true);
+                en.Add(BannerKings.Utils.BetterEconomyBridge.GetProductionQuality(settlement),
+                    new TextObject("{=!}BetterEconomy (with BK contributions)"));
+                en.LimitMin(0f);
+                en.LimitMax(2f);
+                return en;
+            }
+        }
 
         public void RemoveGuild()
         {
