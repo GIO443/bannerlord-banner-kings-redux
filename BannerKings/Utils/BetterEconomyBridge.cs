@@ -199,6 +199,54 @@ namespace BannerKings.Utils
         }
 
         /// <summary>
+        /// v1.9.7.2 Phase B port-from-BE: settlement-level economy values
+        /// canonically held by BetterEconomy. Each accessor returns a sane
+        /// fallback (typically 1f, the multiplicative identity) when BE's
+        /// FeudalEconomyCampaignBehavior isn't available — early load,
+        /// custom-battle game type, etc. — so BK callers (EconomicData,
+        /// UI, clan finance) never have to null-check the BE side.
+        ///
+        /// Any BK contributions to these values are applied via Harmony
+        /// postfixes on the corresponding BE methods in
+        /// BKEconomyLayerInstaller — by the time the bridge returns, BK
+        /// government / council / perk / shipping deltas are already baked
+        /// into the float. This is the inverse of Phase A (BK contributing
+        /// via postfix on top of BE) made canonical: BK code now READS BE
+        /// state and BE state already reflects BK contributions.
+        /// </summary>
+        public static float GetTradePower(Settlement settlement)
+        {
+            var feudal = FeudalEconomyCampaignBehavior.Instance;
+            if (feudal == null || settlement == null) return 1f;
+            try { return feudal.GetTradePower(settlement); }
+            catch { return 1f; }
+        }
+
+        public static float GetMercantilism(Settlement settlement)
+        {
+            var feudal = FeudalEconomyCampaignBehavior.Instance;
+            if (feudal == null || settlement == null) return 0.4f; // BK baseline
+            try { return feudal.GetMercantilism(settlement); }
+            catch { return 0.4f; }
+        }
+
+        public static float GetProductionEfficiency(Settlement settlement)
+        {
+            var feudal = FeudalEconomyCampaignBehavior.Instance;
+            if (feudal == null || settlement == null) return 1f;
+            try { return feudal.GetProductionEfficiency(settlement); }
+            catch { return 1f; }
+        }
+
+        public static float GetProductionQuality(Settlement settlement)
+        {
+            var feudal = FeudalEconomyCampaignBehavior.Instance;
+            if (feudal == null || settlement == null) return 1f;
+            try { return feudal.GetProductionQuality(settlement); }
+            catch { return 1f; }
+        }
+
+        /// <summary>
         /// Writes a BK estate's hero owner into its woven BetterEconomy parcel so
         /// the economic layer and the feudal layer agree on who holds the land.
         /// A null owner resets the parcel to abstract-local ownership.

@@ -326,6 +326,112 @@ namespace BannerKings.Models.Vanilla
             return result;
         }
 
+        // v1.9.7.2 Phase B port-from-BE: extracted BK-only trade-power
+        // contributions so the postfix on BE's FeudalEconomyCampaignBehavior
+        // .GetTradePower can add them to BE's authoritative value. Mirrors
+        // the BK-specific factors from CalculateTradePower above; vanilla-
+        // equivalent state (settlement gold, mercantilism — both BK
+        // concepts, but mercantilism is itself derived from BE soon)
+        // remain in the BK calc above for now. The postfix only adds what
+        // BE genuinely has no concept of: BK council / shipping graph /
+        // harbor / capital / militarism. Returns the BK delta to add (NOT
+        // the new total — the caller is expected to do `result += delta`).
+        public static float CalculateBKTradePowerDelta(Settlement settlement)
+        {
+            if (settlement == null || settlement.Town == null) return 0f;
+            float delta = 0f;
+
+            try
+            {
+                // Militarism penalty (BK concept).
+                var data = BannerKingsConfig.Instance.PopulationManager?.GetPopData(settlement);
+                if (data?.MilitaryData != null)
+                {
+                    delta += data.MilitaryData.Militarism.ResultNumber * -1f;
+                }
+
+                // Council Steward → DevelopEconomy.
+                if (settlement.OwnerClan?.Leader != null)
+                {
+                    var stewardEN = new ExplainedNumber(0f);
+                    BannerKingsConfig.Instance.CourtManager.ApplyCouncilEffect(ref stewardEN,
+                        settlement.OwnerClan.Leader,
+                        DefaultCouncilPositions.Instance.Steward,
+                        DefaultCouncilTasks.Instance.DevelopEconomy,
+                        0.15f, false);
+                    delta += stewardEN.ResultNumber;
+                }
+
+                // Sea-trade network — BK shipping graph.
+                bool isPort = false; try { isPort = settlement.HasPort; } catch { }
+                if (isPort)
+                {
+                    int seaNeighbours = 0;
+                    if (BannerKings.Managers.Shipping.ShippingGraph.Instance.Adjacency.TryGetValue(settlement, out var edges))
+                    {
+                        foreach (var e in edges)
+                        {
+                            if (e.Kind == BannerKings.Managers.Shipping.ShippingGraph.EdgeKind.Sea
+                                && e.To != null && e.To.IsTown)
+                            {
+                                seaNeighbours++;
+                            }
+                        }
+                    }
+                    if (seaNeighbours > 0)
+                    {
+                        delta += MathF.Min(seaNeighbours * 0.06f, 0.4f);
+                    }
+                }
+
+                // Capital bonus — BK title system.
+                var ownerKingdom = settlement.OwnerClan?.Kingdom;
+                if (ownerKingdom != null)
+                {
+                    var capitalBehavior = TaleWorlds.CampaignSystem.Campaign.Current?.GetCampaignBehavior<BKCapitalBehavior>();
+                    var capital = capitalBehavior?.GetCapital(ownerKingdom);
+                    if (capital == settlement.Town)
+                    {
+                        delta += 0.2f;
+                    }
+                }
+
+                // Harbor / Port BK buildings.
+                Building building = settlement.Town.Buildings?.FirstOrDefault(x =>
+                    x.BuildingType.StringId == BKBuildings.Instance.Harbor.StringId ||
+                    x.BuildingType.StringId == BKBuildings.Instance.Port.StringId);
+                if (building != null && building.CurrentLevel > 0)
+                {
+                    bool harbor = building.BuildingType.StringId == BKBuildings.Instance.Harbor.StringId;
+                    delta += (harbor ? 0.1f : 0.08f) * building.CurrentLevel;
+                }
+
+                // Council Constable → EnforceLaw (factor).
+                if (settlement.OwnerClan?.Leader != null)
+                {
+                    var constableEN = new ExplainedNumber(1f);
+                    BannerKingsConfig.Instance.CourtManager.ApplyCouncilEffect(ref constableEN,
+                       settlement.OwnerClan.Leader,
+                       DefaultCouncilPositions.Instance.Constable,
+                       DefaultCouncilTasks.Instance.EnforceLaw,
+                       0.05f,
+                       true);
+                    // The "true" arg above means apply as factor; result-1 = delta on the base.
+                    delta += (constableEN.ResultNumber - 1f);
+                }
+
+                // Castle penalty (factor on raw 1f base).
+                if (settlement.IsCastle) delta += -0.25f;
+            }
+            catch
+            {
+                // Any BK side lookup tripping should leave BE's value
+                // untouched — never throw out of an economy postfix.
+            }
+
+            return delta;
+        }
+
         public override ExplainedNumber CalculateTradePower(Settlement settlement, bool descriptions = false) =>
             CalculateTradePower(settlement.PopulationData(), descriptions);
 

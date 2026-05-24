@@ -129,7 +129,16 @@ namespace BannerKings.Managers.Populations
 
         internal override void Update(PopulationData data)
         {
-            TradePower = BannerKingsConfig.Instance.EconomyModel.CalculateTradePower(data).ResultNumber;
+            // v1.9.7.2 Phase B port-from-BE: TradePower is sourced from
+            // BetterEconomy's FeudalEconomyCampaignBehavior.GetTradePower
+            // (the canonical value), with BK contributions (council /
+            // shipping / harbor / capital / militarism / castle) baked in
+            // via the Harmony postfix in BKEconomyLayerInstaller. BK's
+            // own CalculateTradePower is no longer the source of truth —
+            // it remains in the model class for legacy consumers that
+            // still want the ExplainedNumber-shaped result, but the
+            // canonical TradePower field on EconomicData now reads BE.
+            TradePower = BannerKings.Utils.BetterEconomyBridge.GetTradePower(settlement);
             /*
             if (guild == null && settlement.IsTown)
             {

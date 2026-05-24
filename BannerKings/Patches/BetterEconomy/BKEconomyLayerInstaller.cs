@@ -76,6 +76,74 @@ namespace BannerKings.Patches.BetterEconomy
                 TaleWorlds.Library.Debug.Print(
                     $"[BK] BetterEconomyLayer: CalculateProsperityChange postfix install threw {ex.GetType().Name}: {ex.Message}");
             }
+
+            try { InstallFeudalEconomyTradePowerPostfix(harmony); }
+            catch (Exception ex)
+            {
+                TaleWorlds.Library.Debug.Print(
+                    $"[BK] BetterEconomyLayer: FeudalEconomy.GetTradePower postfix install threw {ex.GetType().Name}: {ex.Message}");
+            }
+        }
+
+        // ----- POSTFIX: FeudalEconomyCampaignBehavior.GetTradePower -----
+
+        // Phase B batch 2 (v1.9.7.2): BE owns TradePower (returns Single).
+        // BK's old CalculateTradePower was a total replacement that's been
+        // dead since BE took the model slot — its BK-only deltas (council
+        // Steward / Constable, shipping graph sea-trade, capital, harbor,
+        // militarism, castle penalty) silently stopped applying.
+        //
+        // Port-from-BE approach: EconomicData.TradePower now reads BE's
+        // GetTradePower via BetterEconomyBridge; this postfix on BE's
+        // method adds the BK deltas to its float return BEFORE BK's read
+        // sees it. The BK contributions are baked into BE's value, so
+        // downstream BE consumers (workshop output, etc.) also pick up the
+        // boost — BK isn't just decorating a display value, it's actually
+        // influencing the canonical game value.
+        private static void InstallFeudalEconomyTradePowerPostfix(Harmony harmony)
+        {
+            var t = AccessTools.TypeByName("BetterEconomy.Behaviors.FeudalEconomyCampaignBehavior");
+            if (t == null)
+            {
+                TaleWorlds.Library.Debug.Print(
+                    "[BK] BetterEconomyLayer: FeudalEconomyCampaignBehavior type not found in AppDomain; trade-power postfix skipped");
+                return;
+            }
+            var m = AccessTools.Method(t, "GetTradePower");
+            if (m == null)
+            {
+                TaleWorlds.Library.Debug.Print(
+                    $"[BK] BetterEconomyLayer: {t.FullName}.GetTradePower not found; postfix skipped");
+                return;
+            }
+
+            try
+            {
+                harmony.Patch(m, postfix: new HarmonyMethod(AccessTools.Method(
+                    typeof(BKEconomyLayerInstaller), nameof(FeudalEconomyTradePowerPostfix))));
+                BannerKings.Utils.Logs.MajorEvent(() =>
+                    "[BK] BetterEconomyLayer: installed FeudalEconomyCampaignBehavior.GetTradePower postfix — BK council/shipping/harbor/capital/militarism/castle deltas now contribute to the canonical BE trade-power value.");
+            }
+            catch (Exception ex)
+            {
+                TaleWorlds.Library.Debug.Print(
+                    $"[BK] BetterEconomyLayer: patch on {t.FullName}.GetTradePower failed: {ex.GetType().Name}: {ex.Message}");
+            }
+        }
+
+        public static void FeudalEconomyTradePowerPostfix(
+            TaleWorlds.CampaignSystem.Settlements.Settlement settlement,
+            ref float __result)
+        {
+            try
+            {
+                __result += BannerKings.Models.Vanilla.BKEconomyModel.CalculateBKTradePowerDelta(settlement);
+                if (__result < 0f) __result = 0f;
+            }
+            catch
+            {
+                // BK lookup tripping leaves BE's value intact.
+            }
         }
 
         // ----- DISCOVERY -----
