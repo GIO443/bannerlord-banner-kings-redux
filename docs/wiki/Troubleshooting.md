@@ -38,7 +38,7 @@
   manager not loaded, owner→estate registry desync). See the full
   recipe under [Player guide → Estates](Player-Guide#estates). On older
   builds, upgrade — current builds added a backstop payout that fixes
-  the silent ImprovedGarrisons-replaces-finance-model case.
+  the silent finance-model-replaced-by-another-mod case.
 - **"Can't change demesne law"** — locked behind a contract-change cooldown
   (≈ 1 in-game year) and minimum loyalty / authority gates.
 - **"Skills level too fast in Banner Kings"** — older builds shipped

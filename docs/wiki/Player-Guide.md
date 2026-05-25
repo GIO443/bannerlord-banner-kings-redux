@@ -329,8 +329,8 @@ and pays you in one lump sum.
 If no blocker is named and income is still zero, run
 `bannerkings.dump_estate_finance` in the console — it writes
 `BK_dump_estate_finance.txt` showing the active `ClanFinanceModel`
-class. If it's not `BKClanFinanceModel` (because ImprovedGarrisons
-or another mod replaced it), a backstop daily-tick payout in
+class. If it's not `BKClanFinanceModel` (because another mod replaced
+the slot), a backstop daily-tick payout in
 `BKEstateIncomeBehavior` catches that case. Older builds silently
 piled up `TaxAccumulated` without paying — upgrade if you see this.
 

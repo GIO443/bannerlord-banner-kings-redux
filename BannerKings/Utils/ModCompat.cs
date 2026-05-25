@@ -20,8 +20,14 @@ namespace BannerKings.Utils
         public const string DiplomacyId = "Diplomacy";
         public const string DiplomacyAsm = "DiplomacyFixes";
 
-        public const string ImprovedGarrisonsId = "ImprovedGarrisons";
-        public const string ImprovedGarrisonsAsm = "ImprovedGarrisons";
+        // v1.9.9.3: ImprovedGarrisons compat constants retired.
+        // The IG yield-gates in Main.cs (BKGarrisonModel registration) and
+        // EconomyPatches (UpdateClanSettlementAutoRecruitment prefix) were
+        // producing incompatible behaviour rather than coexistence. BK now
+        // runs its garrison + auto-recruit logic unconditionally.
+        // ImprovedGarrisons property below stays as a stub returning false
+        // so any external/legacy callers still compile but get no-op
+        // behaviour. Will be removed entirely in a follow-up.
 
         public const string RecruitEverywhereId = "RecruitEverywhere";
         public const string RecruitEverywhereAsm = "RecruitEverywhere";
@@ -130,8 +136,12 @@ namespace BannerKings.Utils
         public static bool DiplomacyMod
             => IsLoaded(DiplomacyId, DiplomacyAsm);
 
-        public static bool ImprovedGarrisons
-            => IsLoaded(ImprovedGarrisonsId, ImprovedGarrisonsAsm);
+        // v1.9.9.3: Retired. Always returns false so any remaining
+        // callers behave as if IG is not loaded (BK's own garrison
+        // logic runs). Property kept as a stub for compile-compat with
+        // out-of-tree callers; will be removed once nothing references
+        // it.
+        public static bool ImprovedGarrisons => false;
 
         public static bool RecruitEverywhere
             => IsLoaded(RecruitEverywhereId, RecruitEverywhereAsm);

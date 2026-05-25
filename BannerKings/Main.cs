@@ -171,6 +171,7 @@ namespace BannerKings
             campaignStarter.AddBehavior(new BKImperialLoyaltyBehavior());
             campaignStarter.AddBehavior(new BKRepublicLegislationBehavior());
             campaignStarter.AddBehavior(new BKVassalPoliticsBehavior());
+            campaignStarter.AddBehavior(new BKRulerPoliticsBehavior());
             campaignStarter.AddBehavior(new BKCriminalityBehavior());
             campaignStarter.AddBehavior(new BKTraitBehavior());
             campaignStarter.AddBehavior(new BKPartyNeedsBehavior());
@@ -264,9 +265,12 @@ namespace BannerKings
             campaignStarter.AddModel(BannerKingsConfig.Instance.ClanFinanceModel);
             campaignStarter.AddModel(BannerKingsConfig.Instance.ArmyManagementModel);
             campaignStarter.AddModel(BannerKingsConfig.Instance.VolunteerModel);
-            // Defer garrison sizing to ImprovedGarrisons when present.
-            if (!ModCompat.ImprovedGarrisons)
-                campaignStarter.AddModel(new BKGarrisonModel());
+            // v1.9.9.3: ImprovedGarrisons compat gate retired. The IG
+            // integration was non-functional in practice (yielding to IG
+            // produced incompatible behaviour rather than coexistence) so
+            // BK now always registers BKGarrisonModel. Players running IG
+            // alongside BK should expect the BK garrison model to override.
+            campaignStarter.AddModel(new BKGarrisonModel());
             campaignStarter.AddModel(new BKPartyWageModel());
             // BK's smithing overhaul (smelting yield caps, custom stamina costs,
             // armor crafting UI mode, botching, hourly smithing fee) is opt-out
@@ -349,7 +353,6 @@ namespace BannerKings
             {
                 var detected = new System.Collections.Generic.List<string>();
                 if (BannerKings.Utils.ModCompat.DiplomacyMod) detected.Add("Diplomacy");
-                if (BannerKings.Utils.ModCompat.ImprovedGarrisons) detected.Add("ImprovedGarrisons");
                 if (BannerKings.Utils.ModCompat.RecruitEverywhere) detected.Add("RecruitEverywhere");
                 if (BannerKings.Utils.ModCompat.MarryAnyone) detected.Add("MarryAnyone");
                 if (BannerKings.Utils.ModCompat.BuyLandAtVillages) detected.Add("BuyLandAtVillages");

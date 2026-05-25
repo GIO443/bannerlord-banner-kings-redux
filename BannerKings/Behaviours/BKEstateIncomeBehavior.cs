@@ -4,8 +4,7 @@ using TaleWorlds.CampaignSystem.Actions;
 
 namespace BannerKings.Behaviours
 {
-    // Backstop for estate income payout when another mod (e.g.
-    // ImprovedGarrisons.GarrisonCostModel) replaces the
+    // Backstop for estate income payout when another mod replaces the
     // ClanFinanceModel. Vanilla's daily clan-finance reset reads the
     // currently registered model — if that model isn't BKClanFinanceModel,
     // BK's AddIncomes never fires and TaxAccumulated piles up forever

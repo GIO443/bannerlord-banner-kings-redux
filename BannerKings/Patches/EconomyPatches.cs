@@ -409,9 +409,9 @@ namespace BannerKings.Patches
                 var __sw = BannerKings.Behaviours.Shipping.BKShippingBehavior.TraceEnter("Patch.UpdateClanSettlementAutoRecruitment:" + BannerKings.Utils.TickTrace.IdOf(clan));
                 try
                 {
-                    // ImprovedGarrisons owns garrison auto-recruit decisions; let vanilla
-                    // run so IG's own postfix sees a sane state.
-                    if (ModCompat.ImprovedGarrisons) return true;
+                    // v1.9.9.3: IG yield-gate retired alongside the rest of
+                    // the IG compat layer. BK's own auto-recruit logic runs
+                    // unconditionally.
 
                     if (clan.MapFaction is { IsKingdomFaction: true })
                     {

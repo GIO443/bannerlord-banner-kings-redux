@@ -72,69 +72,6 @@ If a specific mod isn't behaving as expected with BK loaded, file an
 issue and we'll add or adjust a shim — but assume it works until you
 have a concrete report.
 
-### Total conversions (Shokuho, Realm of Thrones, etc.)
-
-Total-conversion mods replace Calradia with a different setting and ship
-their own GameType (Shokuho uses `ShokuhoCampaign`, ROT uses its own
-campaign mode). BK's campaign behaviors register against the vanilla
-`Campaign` / `CampaignStoryMode` GameTypes and **do not auto-load into a
-total-conversion campaign**, but individual BK content systems that
-read from the cross-module `ModuleData/BKData/*.xml` registry (faiths,
-religions, divinities, faith groups today; titles, lifestyles,
-governments later) load **regardless of GameType** — so BK can ship
-total-conversion-specific content data alongside its Calradian data,
-and the loader's culture-binding silently drops the wrong-setting rows.
-
-**Currently shipped Shokuho content:**
-
-- **All six Shokuho religions** Shokuho ships in `ModuleData/religions.xml`
-  (Shintō, Rinzai, Sōtō, Shingon, Tendai, Jōdo Shinshū) are seeded into
-  BK's faith system with their own pantheons (Amaterasu, Hachiman, Inari,
-  Susanoo, Tsukuyomi, Shakyamuni, Amida, Dainichi, Bodhidharma, Kannon,
-  Fudō Myō-ō), faith groups (shrine/sangha hierarchies), doctrines, and
-  clergy rank titles (Kannushi, Rōshi, Zenji, Daiajari, Zasu, Monshu).
-  Cultures are bound to historically appropriate sects — Sōtō to the
-  Hokuriku snows of Eiheiji, Shingon to Kinai and Nankai (Mt. Kōya), and
-  so on. See [Systems-Reference → Faiths](Systems-Reference#faiths) for
-  the full table.
-- **Three Sengoku government types** — Shogunate, Daimyō Realm, and
-  Ikkō League — selectable through the standard BK government-
-  transition mechanic, with three matching succession laws (Shogunal
-  Hereditary, Daimyō Elective, Ikkō Confederation) that reuse BK's
-  Hereditary / Feudal Elective / Theocratic Elective C# algorithms
-  with Japanese names, descriptions, and culture-ideal bindings. See
-  [Systems-Reference → Shokuho governments](Systems-Reference#shokuho-governments-and-successions)
-  for the table. **Not yet auto-assigned**: Shokuho kingdoms still
-  start under whichever vanilla government the BK C# fallback picks;
-  the player adopts the appropriate Japanese form via the in-game
-  political transition. Auto-binding would need a C# extension to
-  `GetKingdomIdealGovernment`.
-
-**Not yet shipped for Shokuho:**
-
-- **Titles** — the `TitleGenerator` loader currently reads only BK's
-  single `titles.xml` file and binds settlements/factions by exact
-  StringId, so Shokuho titles can't be added as a separate XML drop
-  without first extending the loader. The C# change is small but
-  touches save-retrofit logic and needs its own careful pass.
-- **Lifestyles** — XML loader is in place, but each lifestyle entry
-  must bind to existing `LifestyleCataphractEquites`-style perk
-  classes shipped in BK's C# code. Authoring Sengoku-fitting
-  lifestyles (samurai, monk, merchant, ji-samurai, ashigaru) needs
-  matching C# perk classes, not just XML.
-- **Demesne laws, council positions, estates, custom troops** — these
-  systems are hard-coded C# in BK and have no XML loader at all,
-  so a port for any total conversion requires new C# code for each.
-
-BK and the conversion can be **safely enabled at the same time**: starting
-the conversion's own campaign now gives you Shokuho **plus** BK's
-religion system on Shokuho cultures; starting a vanilla Campaign gives
-you Calradia + BK without any Shokuho content (the Shokuho rows
-silently drop because Shokuho cultures aren't registered). If you see
-a crash specifically while loading either campaign with both mods
-enabled, file an issue — that points to a BK init path that needs
-gating via `ModCompat.Shokuho` / `ModCompat.RealmOfThrones`.
-
 ## Recommended load order
 
 The launcher will sort this automatically if you've enabled all of them:
@@ -145,7 +82,7 @@ Native → SandBoxCore → SandBox → StoryMode → CustomBattle
 NavalDLC (if installed)
 Bannerlord Living Economy
 Banner Kings — Redux
-Diplomacy / Improved Garrisons / Recruit Everywhere / MarryAnyone /
+Diplomacy / Recruit Everywhere / MarryAnyone /
 Buy Land at Villages / RBMCombat / etc.
 Bannerlord Tweaks / cosmetic mods / etc.
 ```

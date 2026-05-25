@@ -4,7 +4,7 @@
         xsi:noNamespaceSchemaLocation="https://raw.githubusercontent.com/BUTR/Bannerlord.XmlSchemas/master/SubModule.xsd">
 	<Id value="BannerKings.Redux" />
 	<Name value="Banner Kings — Redux" />
-	<Version value="v1.9.9.2" />
+	<Version value="v1.9.9.3" />
 	<Official value="false" />
 	<DefaultModule value="true" />
 	<ModuleCategory value="Singleplayer" />
@@ -38,7 +38,9 @@
 		     via BannerKings.Utils.ModCompat. Listed here so the launcher orders them
 		     correctly when both are installed. -->
 		<DependedModuleMetadata id="Diplomacy" order="LoadAfterThis" optional="true" />
-		<DependedModuleMetadata id="ImprovedGarrisons" order="LoadAfterThis" optional="true" />
+		<!-- ImprovedGarrisons metadata retired in v1.9.9.3 — IG was not
+		     compatible in practice; BK now overrides the garrison model
+		     unconditionally rather than yielding. -->
 		<DependedModuleMetadata id="RecruitEverywhere" order="LoadAfterThis" optional="true" />
 		<DependedModuleMetadata id="MarryAnyone" order="LoadAfterThis" optional="true" />
 		<DependedModuleMetadata id="BuyLandAtVillages" order="LoadAfterThis" optional="true" />
