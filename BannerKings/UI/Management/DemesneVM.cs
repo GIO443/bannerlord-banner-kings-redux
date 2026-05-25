@@ -3,6 +3,7 @@ using BannerKings.Managers.Policies;
 using BannerKings.Managers.Populations;
 using BannerKings.Managers.Titles;
 using BannerKings.Models.BKModels;
+using BannerKings.Utils;
 using BannerKings.UI.Items;
 using BannerKings.UI.Items.UI;
 using TaleWorlds.CampaignSystem;
@@ -295,6 +296,19 @@ namespace BannerKings.UI.Management
                 WorkforceSelector = GetSelector(workforceItem, workforceItem.OnChange);
                 WorkforceSelector.SelectedIndex = workforceItem.Selected;
                 WorkforceSelector.SetOnChangeAction(workforceItem.OnChange);
+
+                // v1.9.9.5 settlement UI rework: BE land/economy readouts.
+                // Demand summary and top deficits both come from BE's
+                // TownEconomyCampaignBehavior — they reflect what the town's
+                // markets actually want / are short of, which is genuine
+                // land-relevant data BK didn't surface anywhere.
+                string demandSummary = BetterEconomyBridge.GetDemandSummary(data.Settlement);
+                if (!string.IsNullOrEmpty(demandSummary))
+                {
+                    WorkforceInfo.Add(new InformationElement(new TextObject("{=!}Market Demand:").ToString(),
+                        new TextObject("{=!}see tooltip").ToString(),
+                        demandSummary));
+                }
             }
         }
 
