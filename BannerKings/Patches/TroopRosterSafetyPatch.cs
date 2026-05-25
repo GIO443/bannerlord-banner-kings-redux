@@ -72,6 +72,36 @@ namespace BannerKings.Patches
             return __exception;
         }
 
+        // GetCharacterAtIndex is the read-side of the slot table. Vanilla
+        // DefaultPartyMoraleModel.GetMoraleEffectsFromSkill iterates by
+        // index in a for-loop bounded by .Count, and if the slot array is
+        // smaller than .Count claims (the same UniqueTroopDescriptor /
+        // slot-table desync class as the writers above) GetCharacterAtIndex
+        // throws IndexOutOfRangeException and the hourly clan-strength tick
+        // dies. User crashreport.html (2026-05-25) shows the exact chain:
+        //   GetCharacterAtIndex
+        //     DefaultPartyMoraleModel.GetMoraleEffectsFromSkill
+        //       DefaultPartyMoraleModel.GetEffectivePartyMorale (vanilla + NavalDLC)
+        //         MobileParty.get_Morale
+        //           DefaultMilitaryPowerModel.GetPowerOfParty (vanilla + NavalDLC)
+        //             PartyBase.CalculateEstimatedCurrentStrength
+        //               Clan.UpdateCurrentStrength
+        //                 HourlyTickClan → Campaign.Tick → fatal
+        // Finalizer swallows IOOR and returns null; vanilla null-tolerates
+        // (the moral skill-bonus loop just skips that slot). The roster
+        // self-heals on the next save/load cycle, same as the writers.
+        [HarmonyFinalizer]
+        [HarmonyPatch("GetCharacterAtIndex", typeof(int))]
+        private static Exception GetCharacterAtIndexFinalizer(Exception __exception, ref CharacterObject __result)
+        {
+            if (__exception is IndexOutOfRangeException)
+            {
+                __result = null;
+                return null;
+            }
+            return __exception;
+        }
+
         // Caller-trace logger for AddToCounts. Off by default; enabled via
         // MCM → Diagnostics → Log Roster Mutations (heavy). Useful to
         // identify any iterate-and-mutate site that BK code reaches that
