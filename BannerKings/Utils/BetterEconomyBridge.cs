@@ -633,6 +633,112 @@ namespace BannerKings.Utils
             catch (Exception ex) { reason = ex.Message; return false; }
         }
 
+        // ---- v1.9.9.2: Castle (CastleEconomyCampaignBehavior) wrappers ----
+        //
+        // Castles are first-class economic settlements in BetterEconomy with
+        // their own treasury, training camp (raises garrison troop tier &
+        // training capacity), and infrastructure projects. None of this is
+        // currently surfaced in BK's UI. The Military tab gets first dibs
+        // since training-camp is military-themed; treasury contribution is
+        // also exposed here for parity with town treasury.
+
+        public static string GetCastleTrainingSummary(Settlement castle)
+        {
+            if (castle == null || !castle.IsCastle) return string.Empty;
+            var beh = CastleEconomyCampaignBehavior.Instance;
+            if (beh == null) return string.Empty;
+            try { return beh.GetTrainingSummary(castle) ?? string.Empty; }
+            catch { return string.Empty; }
+        }
+
+        public static bool CastleHasActiveTraining(Settlement castle)
+        {
+            if (castle == null || !castle.IsCastle) return false;
+            var beh = CastleEconomyCampaignBehavior.Instance;
+            if (beh == null) return false;
+            try { return beh.HasActiveTraining(castle); } catch { return false; }
+        }
+
+        public static bool CastleHasTrainingCampBuildActive(Settlement castle)
+        {
+            if (castle == null || !castle.IsCastle) return false;
+            var beh = CastleEconomyCampaignBehavior.Instance;
+            if (beh == null) return false;
+            try { return beh.HasTrainingCampBuildActive(castle); } catch { return false; }
+        }
+
+        public static int GetCastleTrainingCampCostForNextLevel(Settlement castle)
+        {
+            if (castle == null || !castle.IsCastle) return 0;
+            var beh = CastleEconomyCampaignBehavior.Instance;
+            if (beh == null) return 0;
+            try { return beh.GetTrainingCampCostForNextLevel(castle); } catch { return 0; }
+        }
+
+        public static bool TryCastlePlayerBuildOrUpgradeTrainingCamp(Settlement castle, Hero playerHero, out string reason)
+        {
+            reason = string.Empty;
+            if (castle == null || playerHero == null || !castle.IsCastle) { reason = "Invalid castle/hero."; return false; }
+            var beh = CastleEconomyCampaignBehavior.Instance;
+            if (beh == null) { reason = "BetterEconomy castle behavior unavailable."; return false; }
+            try
+            {
+                string r = string.Empty;
+                bool ok = beh.TryPlayerBuildOrUpgradeTrainingCamp(castle, playerHero, out r);
+                reason = r ?? string.Empty;
+                return ok;
+            }
+            catch (Exception ex) { reason = ex.Message; return false; }
+        }
+
+        public static bool TryCastlePlayerStartTraining(Settlement castle, Hero playerHero, out string reason)
+        {
+            reason = string.Empty;
+            if (castle == null || playerHero == null || !castle.IsCastle) { reason = "Invalid castle/hero."; return false; }
+            var beh = CastleEconomyCampaignBehavior.Instance;
+            if (beh == null) { reason = "BetterEconomy castle behavior unavailable."; return false; }
+            try
+            {
+                string r = string.Empty;
+                bool ok = beh.TryPlayerStartTraining(castle, playerHero, out r);
+                reason = r ?? string.Empty;
+                return ok;
+            }
+            catch (Exception ex) { reason = ex.Message; return false; }
+        }
+
+        public static bool TryCastlePlayerCancelTraining(Settlement castle, Hero playerHero, out string reason)
+        {
+            reason = string.Empty;
+            if (castle == null || playerHero == null || !castle.IsCastle) { reason = "Invalid castle/hero."; return false; }
+            var beh = CastleEconomyCampaignBehavior.Instance;
+            if (beh == null) { reason = "BetterEconomy castle behavior unavailable."; return false; }
+            try
+            {
+                string r = string.Empty;
+                bool ok = beh.TryPlayerCancelTraining(castle, playerHero, out r);
+                reason = r ?? string.Empty;
+                return ok;
+            }
+            catch (Exception ex) { reason = ex.Message; return false; }
+        }
+
+        public static bool TryCastlePlayerContributeTreasury(Settlement castle, Hero playerHero, int amount, out string reason)
+        {
+            reason = string.Empty;
+            if (castle == null || playerHero == null || !castle.IsCastle) { reason = "Invalid castle/hero."; return false; }
+            var beh = CastleEconomyCampaignBehavior.Instance;
+            if (beh == null) { reason = "BetterEconomy castle behavior unavailable."; return false; }
+            try
+            {
+                string r = string.Empty;
+                bool ok = beh.TryPlayerContributeTreasury(castle, playerHero, amount, out r);
+                reason = r ?? string.Empty;
+                return ok;
+            }
+            catch (Exception ex) { reason = ex.Message; return false; }
+        }
+
         // Village invest method needs a VillageInvestmentSummary out struct
         // (nested type) — surface via reflection so BK doesn't need to
         // know the struct type at compile time. Returns true on success.

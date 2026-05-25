@@ -268,6 +268,88 @@
 															</Children>
 														</Widget>
 
+															<!-- v1.9.9.2 settlement UI rework: BE Military-tab actions.
+															     Town settlements: Upgrade Armory + Contribute Town Treasury.
+															     Castle settlements: Upgrade Training Camp + Start/Cancel
+															     Training + Contribute Castle Treasury.
+															     Visibility flags gate the rows by settlement type. -->
+															<Widget WidthSizePolicy="StretchToParent" HeightSizePolicy="CoverChildren"
+																	IsVisible="@IsTownMilitaryActionsVisible" MarginTop="20">
+																<Children>
+																	<ListPanel WidthSizePolicy="StretchToParent" HeightSizePolicy="CoverChildren"
+																			   StackLayout.LayoutMethod="VerticalTopToBottom">
+																		<Children>
+																			<ButtonWidget WidthSizePolicy="Fixed" HeightSizePolicy="Fixed"
+																						  SuggestedHeight="48" SuggestedWidth="280" MarginBottom="6"
+																						  HorizontalAlignment="Center" VerticalAlignment="Top"
+																						  Brush="ButtonBrush2" Command.Click="ExecuteUpgradeArmoryMilitary">
+																				<Children>
+																					<RichTextWidget DoNotAcceptEvents="true" WidthSizePolicy="CoverChildren" HeightSizePolicy="CoverChildren"
+																									HorizontalAlignment="Center" VerticalAlignment="Center"
+																									Brush="OverlayPopup.ButtonText" Brush.FontSize="18"
+																									Text="@UpgradeArmoryText" />
+																				</Children>
+																			</ButtonWidget>
+																			<ButtonWidget WidthSizePolicy="Fixed" HeightSizePolicy="Fixed"
+																						  SuggestedHeight="48" SuggestedWidth="280" MarginBottom="6"
+																						  HorizontalAlignment="Center" VerticalAlignment="Top"
+																						  Brush="ButtonBrush2" Command.Click="ExecuteContributeTownTreasuryMilitary">
+																				<Children>
+																					<RichTextWidget DoNotAcceptEvents="true" WidthSizePolicy="CoverChildren" HeightSizePolicy="CoverChildren"
+																									HorizontalAlignment="Center" VerticalAlignment="Center"
+																									Brush="OverlayPopup.ButtonText" Brush.FontSize="18"
+																									Text="@ContributeTownTreasuryText" />
+																				</Children>
+																			</ButtonWidget>
+																		</Children>
+																	</ListPanel>
+																</Children>
+															</Widget>
+
+															<Widget WidthSizePolicy="StretchToParent" HeightSizePolicy="CoverChildren"
+																	IsVisible="@IsCastleMilitaryActionsVisible" MarginTop="20">
+																<Children>
+																	<ListPanel WidthSizePolicy="StretchToParent" HeightSizePolicy="CoverChildren"
+																			   StackLayout.LayoutMethod="VerticalTopToBottom">
+																		<Children>
+																			<ButtonWidget WidthSizePolicy="Fixed" HeightSizePolicy="Fixed"
+																						  SuggestedHeight="48" SuggestedWidth="280" MarginBottom="6"
+																						  HorizontalAlignment="Center" VerticalAlignment="Top"
+																						  Brush="ButtonBrush2" Command.Click="ExecuteUpgradeTrainingCamp">
+																				<Children>
+																					<RichTextWidget DoNotAcceptEvents="true" WidthSizePolicy="CoverChildren" HeightSizePolicy="CoverChildren"
+																									HorizontalAlignment="Center" VerticalAlignment="Center"
+																									Brush="OverlayPopup.ButtonText" Brush.FontSize="18"
+																									Text="@UpgradeTrainingCampText" />
+																				</Children>
+																			</ButtonWidget>
+																			<ButtonWidget WidthSizePolicy="Fixed" HeightSizePolicy="Fixed"
+																						  SuggestedHeight="48" SuggestedWidth="280" MarginBottom="6"
+																						  HorizontalAlignment="Center" VerticalAlignment="Top"
+																						  Brush="ButtonBrush2" Command.Click="ExecuteStartOrCancelTraining">
+																				<Children>
+																					<RichTextWidget DoNotAcceptEvents="true" WidthSizePolicy="CoverChildren" HeightSizePolicy="CoverChildren"
+																									HorizontalAlignment="Center" VerticalAlignment="Center"
+																									Brush="OverlayPopup.ButtonText" Brush.FontSize="18"
+																									Text="@StartTrainingText" />
+																				</Children>
+																			</ButtonWidget>
+																			<ButtonWidget WidthSizePolicy="Fixed" HeightSizePolicy="Fixed"
+																						  SuggestedHeight="48" SuggestedWidth="280" MarginBottom="6"
+																						  HorizontalAlignment="Center" VerticalAlignment="Top"
+																						  Brush="ButtonBrush2" Command.Click="ExecuteContributeCastleTreasury">
+																				<Children>
+																					<RichTextWidget DoNotAcceptEvents="true" WidthSizePolicy="CoverChildren" HeightSizePolicy="CoverChildren"
+																									HorizontalAlignment="Center" VerticalAlignment="Center"
+																									Brush="OverlayPopup.ButtonText" Brush.FontSize="18"
+																									Text="@ContributeCastleTreasuryText" />
+																				</Children>
+																			</ButtonWidget>
+																		</Children>
+																	</ListPanel>
+																</Children>
+															</Widget>
+
 													</Children>
 												</ListPanel>
 											</Children>

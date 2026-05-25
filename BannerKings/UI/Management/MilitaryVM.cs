@@ -9,7 +9,9 @@ using BannerKings.Managers.Recruits;
 using BannerKings.Models.Vanilla;
 using BannerKings.UI.Items;
 using BannerKings.UI.Items.UI;
+using BannerKings.Utils;
 using TaleWorlds.CampaignSystem;
+using TaleWorlds.Core;
 using TaleWorlds.CampaignSystem.Party;
 using TaleWorlds.CampaignSystem.Settlements;
 using TaleWorlds.Core.ViewModelCollection.Selector;
@@ -209,13 +211,44 @@ namespace BannerKings.UI.Management
                     .ToString()));
 
             var militiaQuality = new BKMilitiaModel().MilitiaSpawnChanceExplained(settlement);
-            DefenseInfo.Add(new InformationElement(new TextObject("{=ROFzvP4W}Militia Quality:").ToString(), 
+            DefenseInfo.Add(new InformationElement(new TextObject("{=ROFzvP4W}Militia Quality:").ToString(),
                 $"{militiaQuality.ResultNumber:P}",
                 new TextObject("{=ez3NzFgO}{TEXT}\n{EXPLANATIONS}")
                     .SetTextVariable("TEXT",
                         new TextObject("{=xQbPBzgn}Chance of militiamen being spawned as veterans instead of recruits."))
                     .SetTextVariable("EXPLANATIONS", militiaQuality.GetExplanations())
                     .ToString()));
+
+            // v1.9.9.2 settlement UI rework: BetterEconomy military readouts.
+            // Towns surface the Armory tier + War Readiness here (also shown
+            // briefly on the Overview tab — duplicated on purpose so the
+            // Military tab is the complete-defense view). Castles surface
+            // their Training Camp summary instead — entirely new to BK, was
+            // never visible anywhere before v1.9.9.2.
+            if (settlement.IsTown)
+            {
+                string armory = BetterEconomyBridge.GetArmorySummary(settlement);
+                if (!string.IsNullOrEmpty(armory))
+                {
+                    DefenseInfo.Add(new InformationElement(new TextObject("{=!}Armory:").ToString(),
+                        armory,
+                        new TextObject("{=!}Town armory level. Each level raises war readiness and the troop-quality tier the garrison can field. Upgrade via the button below or BK console (bannerkings.be_upgrade_armory).").ToString()));
+                }
+                float readiness = BetterEconomyBridge.GetWarReadiness(settlement);
+                DefenseInfo.Add(new InformationElement(new TextObject("{=!}War Readiness:").ToString(),
+                    $"{readiness * 100f:0}%",
+                    new TextObject("{=!}Bannerlord Living Economy war-readiness, driven by armory level + treasury investment. Higher readiness benefits garrison quality and siege defence.").ToString()));
+            }
+            else if (settlement.IsCastle)
+            {
+                string trainingSummary = BetterEconomyBridge.GetCastleTrainingSummary(settlement);
+                if (!string.IsNullOrEmpty(trainingSummary))
+                {
+                    DefenseInfo.Add(new InformationElement(new TextObject("{=!}Training Camp:").ToString(),
+                        trainingSummary,
+                        new TextObject("{=!}Bannerlord Living Economy castle training camp. Higher tiers raise garrison troop quality and training throughput. Upgrade / start / cancel training via the buttons below.").ToString()));
+                }
+            }
 
             ManpowerInfo.Add(new InformationElement(new TextObject("{=t9sG2dMh}Manpower:").ToString(), 
                 $"{data.MilitaryData.Manpower:n0}",
@@ -413,6 +446,176 @@ namespace BannerKings.UI.Management
                     subsidizeDecision.OnChange(value);
                     RefreshValues();
                 }, new TextObject(subsidizeDecision.GetHint()));
+        }
+
+        // ===== v1.9.9.2 settlement UI rework: BE Military-tab actions =====
+        //
+        // Towns: Upgrade Armory + Contribute Town Treasury.
+        // Castles: Upgrade Training Camp + Start/Cancel Training +
+        //          Contribute Castle Treasury.
+        //
+        // Visibility flags gate the button rows by settlement type.
+        // Each Execute* opens an inquiry, calls the bridge, surfaces
+        // success/failure as InformationManager toast, and refreshes.
+
+        [DataSourceProperty]
+        public bool IsTownMilitaryActionsVisible => settlement != null && settlement.IsTown;
+
+        [DataSourceProperty]
+        public bool IsCastleMilitaryActionsVisible => settlement != null && settlement.IsCastle;
+
+        [DataSourceProperty]
+        public string UpgradeArmoryText
+        {
+            get
+            {
+                if (settlement == null || !settlement.IsTown) return string.Empty;
+                int cost = BetterEconomyBridge.GetArmoryCostForNextLevel(settlement);
+                return new TextObject("{=!}Upgrade Armory ({COST}g)")
+                    .SetTextVariable("COST", cost.ToString("n0")).ToString();
+            }
+        }
+
+        [DataSourceProperty]
+        public string ContributeTownTreasuryText => new TextObject("{=!}Contribute to Town Treasury").ToString();
+
+        [DataSourceProperty]
+        public string UpgradeTrainingCampText
+        {
+            get
+            {
+                if (settlement == null || !settlement.IsCastle) return string.Empty;
+                int cost = BetterEconomyBridge.GetCastleTrainingCampCostForNextLevel(settlement);
+                return new TextObject("{=!}Upgrade Training Camp ({COST}g)")
+                    .SetTextVariable("COST", cost.ToString("n0")).ToString();
+            }
+        }
+
+        [DataSourceProperty]
+        public string StartTrainingText
+        {
+            get
+            {
+                if (settlement == null || !settlement.IsCastle) return string.Empty;
+                return BetterEconomyBridge.CastleHasActiveTraining(settlement)
+                    ? new TextObject("{=!}Training Active — Cancel?").ToString()
+                    : new TextObject("{=!}Start Training Cycle").ToString();
+            }
+        }
+
+        [DataSourceProperty]
+        public string ContributeCastleTreasuryText => new TextObject("{=!}Contribute to Castle Treasury").ToString();
+
+        public void ExecuteUpgradeArmoryMilitary()
+        {
+            if (settlement == null || !settlement.IsTown) return;
+            int cost = BetterEconomyBridge.GetArmoryCostForNextLevel(settlement);
+            InformationManager.ShowInquiry(new InquiryData(
+                new TextObject("{=!}Upgrade Armory").ToString(),
+                new TextObject("{=!}Upgrade {TOWN}'s armory for {COST}g? Higher armory levels raise war readiness and garrison troop tier.")
+                    .SetTextVariable("TOWN", settlement.Name)
+                    .SetTextVariable("COST", cost.ToString("n0")).ToString(),
+                Hero.MainHero.Gold >= cost, true,
+                GameTexts.FindText("str_accept").ToString(),
+                GameTexts.FindText("str_cancel").ToString(),
+                () =>
+                {
+                    bool ok = BetterEconomyBridge.TryPlayerBuildOrUpgradeArmory(settlement, Hero.MainHero, out string reason);
+                    InformationManager.DisplayMessage(new InformationMessage(
+                        ok ? $"Upgraded {settlement.Name}'s armory." : $"Couldn't upgrade armory: {reason}",
+                        Color.FromUint(ok ? 0xFF00FF80u : 0xFFFF8080u)));
+                    RefreshValues();
+                }, null));
+        }
+
+        public void ExecuteContributeTownTreasuryMilitary()
+        {
+            if (settlement == null || !settlement.IsTown) return;
+            ShowGoldAmountInquiry(
+                new TextObject("{=!}Contribute to Town Treasury").ToString(),
+                new TextObject("{=!}How many denars to contribute to {TOWN}'s treasury? Treasury funds armory upgrades and war readiness.")
+                    .SetTextVariable("TOWN", settlement.Name).ToString(),
+                amount =>
+                {
+                    bool ok = BetterEconomyBridge.TryPlayerContributeTreasury(settlement, Hero.MainHero, amount, out string reason);
+                    InformationManager.DisplayMessage(new InformationMessage(
+                        ok ? $"Contributed {amount:n0}g to {settlement.Name}'s treasury." : $"Couldn't contribute: {reason}",
+                        Color.FromUint(ok ? 0xFF00FF80u : 0xFFFF8080u)));
+                    RefreshValues();
+                });
+        }
+
+        public void ExecuteUpgradeTrainingCamp()
+        {
+            if (settlement == null || !settlement.IsCastle) return;
+            int cost = BetterEconomyBridge.GetCastleTrainingCampCostForNextLevel(settlement);
+            InformationManager.ShowInquiry(new InquiryData(
+                new TextObject("{=!}Upgrade Training Camp").ToString(),
+                new TextObject("{=!}Upgrade {CASTLE}'s training camp for {COST}g? Higher camp tiers raise garrison troop quality and training throughput.")
+                    .SetTextVariable("CASTLE", settlement.Name)
+                    .SetTextVariable("COST", cost.ToString("n0")).ToString(),
+                Hero.MainHero.Gold >= cost, true,
+                GameTexts.FindText("str_accept").ToString(),
+                GameTexts.FindText("str_cancel").ToString(),
+                () =>
+                {
+                    bool ok = BetterEconomyBridge.TryCastlePlayerBuildOrUpgradeTrainingCamp(settlement, Hero.MainHero, out string reason);
+                    InformationManager.DisplayMessage(new InformationMessage(
+                        ok ? $"Upgraded {settlement.Name}'s training camp." : $"Couldn't upgrade camp: {reason}",
+                        Color.FromUint(ok ? 0xFF00FF80u : 0xFFFF8080u)));
+                    RefreshValues();
+                }, null));
+        }
+
+        public void ExecuteStartOrCancelTraining()
+        {
+            if (settlement == null || !settlement.IsCastle) return;
+            // Toggle: if training is active, cancel; if not, start.
+            bool active = BetterEconomyBridge.CastleHasActiveTraining(settlement);
+            string reason;
+            bool ok;
+            if (active)
+            {
+                ok = BetterEconomyBridge.TryCastlePlayerCancelTraining(settlement, Hero.MainHero, out reason);
+                InformationManager.DisplayMessage(new InformationMessage(
+                    ok ? $"Cancelled training at {settlement.Name}." : $"Couldn't cancel training: {reason}",
+                    Color.FromUint(ok ? 0xFF00FF80u : 0xFFFF8080u)));
+            }
+            else
+            {
+                ok = BetterEconomyBridge.TryCastlePlayerStartTraining(settlement, Hero.MainHero, out reason);
+                InformationManager.DisplayMessage(new InformationMessage(
+                    ok ? $"Started training cycle at {settlement.Name}." : $"Couldn't start training: {reason}",
+                    Color.FromUint(ok ? 0xFF00FF80u : 0xFFFF8080u)));
+            }
+            RefreshValues();
+        }
+
+        public void ExecuteContributeCastleTreasury()
+        {
+            if (settlement == null || !settlement.IsCastle) return;
+            ShowGoldAmountInquiry(
+                new TextObject("{=!}Contribute to Castle Treasury").ToString(),
+                new TextObject("{=!}How many denars to contribute to {CASTLE}'s treasury? Funds training-camp upgrades and castle infrastructure.")
+                    .SetTextVariable("CASTLE", settlement.Name).ToString(),
+                amount =>
+                {
+                    bool ok = BetterEconomyBridge.TryCastlePlayerContributeTreasury(settlement, Hero.MainHero, amount, out string reason);
+                    InformationManager.DisplayMessage(new InformationMessage(
+                        ok ? $"Contributed {amount:n0}g to {settlement.Name}'s castle treasury." : $"Couldn't contribute: {reason}",
+                        Color.FromUint(ok ? 0xFF00FF80u : 0xFFFF8080u)));
+                    RefreshValues();
+                });
+        }
+
+        private void ShowGoldAmountInquiry(string title, string body, System.Action<int> onAmount)
+        {
+            InformationManager.ShowTextInquiry(new TextInquiryData(
+                title, body, true, true,
+                GameTexts.FindText("str_accept").ToString(),
+                GameTexts.FindText("str_cancel").ToString(),
+                input => { if (int.TryParse(input?.Trim(), out int amount) && amount > 0) onAmount(amount); },
+                null));
         }
     }
 }
