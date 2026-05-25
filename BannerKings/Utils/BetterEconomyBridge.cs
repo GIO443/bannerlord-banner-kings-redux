@@ -443,6 +443,196 @@ namespace BannerKings.Utils
             catch (Exception ex) { reason = ex.Message; return false; }
         }
 
+        // ---- v1.9.9.1: BE policy / project picker wrappers ----
+        //
+        // Policy + project actions need to enumerate BE's enum types
+        // (TownEconomicPolicy / TownTaxPolicy / TownInfrastructureProject)
+        // so the UI can show a picker dialog. We expose:
+        //   - GetCurrentEconomicPolicyName / GetCurrentTaxPolicyName: read
+        //     the active selection for display.
+        //   - EnumerateEconomicPolicies / Tax / Projects: return list of
+        //     (enum-value, display-name, summary) tuples for picker UI.
+        //   - TrySetEconomicPolicy / TrySetTax / TryStartProject: callbacks
+        //     for picker selections. Take a string-name + match by name
+        //     against the enumeration (UI doesn't pass enum type back).
+        //
+        // Pure reflection so we tolerate BE enum changes / naming drifts —
+        // a UI button that hovers a missing option silently falls back to
+        // "unknown".
+
+        // All policy/project enums sit in some sub-namespace of
+        // BetterEconomy I don't want to hard-code (it changed between BE
+        // versions in the past). Use pure reflection on the strongly-
+        // typed TownEconomyCampaignBehavior to discover the enum Type at
+        // runtime: GetPolicy(settlement) returns a TownEconomicPolicy, so
+        // .GetType() on the result hands us the enum Type to enumerate.
+        private static Type _econPolicyType;
+        private static Type _taxPolicyType;
+        private static Type _projectType;
+
+        private static Type GetEconPolicyType(TownEconomyCampaignBehavior beh, Settlement settlement)
+        {
+            if (_econPolicyType != null) return _econPolicyType;
+            try { _econPolicyType = beh.GetPolicy(settlement).GetType(); }
+            catch { }
+            return _econPolicyType;
+        }
+        private static Type GetTaxPolicyType(TownEconomyCampaignBehavior beh, Settlement settlement)
+        {
+            if (_taxPolicyType != null) return _taxPolicyType;
+            try { _taxPolicyType = beh.GetTaxPolicy(settlement).GetType(); }
+            catch { }
+            return _taxPolicyType;
+        }
+        private static Type GetProjectType(TownEconomyCampaignBehavior beh, Settlement settlement)
+        {
+            if (_projectType != null) return _projectType;
+            try
+            {
+                // ProjectName takes a TownInfrastructureProject — grab the
+                // method's first parameter type. Doesn't need a real value.
+                var m = beh.GetType().GetMethod("ProjectName");
+                if (m != null)
+                {
+                    var p = m.GetParameters();
+                    if (p.Length > 0) _projectType = p[0].ParameterType;
+                }
+            }
+            catch { }
+            return _projectType;
+        }
+
+        public static string GetCurrentEconomicPolicyName(Settlement settlement)
+        {
+            if (settlement == null) return string.Empty;
+            var beh = TownEconomyCampaignBehavior.Instance;
+            if (beh == null) return string.Empty;
+            try
+            {
+                var pol = beh.GetPolicy(settlement);
+                return beh.PolicyName(pol) ?? string.Empty;
+            }
+            catch { return string.Empty; }
+        }
+
+        public static string GetCurrentTaxPolicyName(Settlement settlement)
+        {
+            if (settlement == null) return string.Empty;
+            var beh = TownEconomyCampaignBehavior.Instance;
+            if (beh == null) return string.Empty;
+            try
+            {
+                var pol = beh.GetTaxPolicy(settlement);
+                return beh.TaxPolicyName(pol) ?? string.Empty;
+            }
+            catch { return string.Empty; }
+        }
+
+        // (display-name, summary, opaque enum-value) for picker UI.
+        public static List<(string Name, string Summary, object Value)> EnumerateEconomicPolicies(Settlement settlement)
+        {
+            var result = new List<(string, string, object)>();
+            var beh = TownEconomyCampaignBehavior.Instance;
+            if (beh == null || settlement == null) return result;
+            var t = GetEconPolicyType(beh, settlement);
+            if (t == null) return result;
+            var nameMethod = beh.GetType().GetMethod("PolicyName");
+            var summaryMethod = beh.GetType().GetMethod("PolicySummary");
+            foreach (var v in Enum.GetValues(t))
+            {
+                string name = (string)nameMethod?.Invoke(beh, new object[] { v }) ?? v.ToString();
+                string summary = (string)summaryMethod?.Invoke(beh, new object[] { v }) ?? string.Empty;
+                result.Add((name, summary, v));
+            }
+            return result;
+        }
+
+        public static List<(string Name, string Summary, object Value)> EnumerateTaxPolicies(Settlement settlement)
+        {
+            var result = new List<(string, string, object)>();
+            var beh = TownEconomyCampaignBehavior.Instance;
+            if (beh == null || settlement == null) return result;
+            var t = GetTaxPolicyType(beh, settlement);
+            if (t == null) return result;
+            var nameMethod = beh.GetType().GetMethod("TaxPolicyName");
+            var summaryMethod = beh.GetType().GetMethod("TaxPolicySummary");
+            foreach (var v in Enum.GetValues(t))
+            {
+                string name = (string)nameMethod?.Invoke(beh, new object[] { v }) ?? v.ToString();
+                string summary = (string)summaryMethod?.Invoke(beh, new object[] { v }) ?? string.Empty;
+                result.Add((name, summary, v));
+            }
+            return result;
+        }
+
+        public static List<(string Name, string Summary, int Cost, object Value)> EnumerateProjects(Settlement settlement)
+        {
+            var result = new List<(string, string, int, object)>();
+            if (settlement == null) return result;
+            var beh = TownEconomyCampaignBehavior.Instance;
+            if (beh == null) return result;
+            var t = GetProjectType(beh, settlement);
+            if (t == null) return result;
+            var nameMethod = beh.GetType().GetMethod("ProjectName");
+            var summaryMethod = beh.GetType().GetMethod("ProjectSummary");
+            var costMethod = beh.GetType().GetMethod("GetProjectCostForNextLevel");
+            foreach (var v in Enum.GetValues(t))
+            {
+                string name = (string)nameMethod?.Invoke(beh, new object[] { v }) ?? v.ToString();
+                string summary = (string)summaryMethod?.Invoke(beh, new object[] { v }) ?? string.Empty;
+                int cost = 0;
+                try { cost = (int)costMethod.Invoke(beh, new object[] { settlement, v }); } catch { }
+                result.Add((name, summary, cost, v));
+            }
+            return result;
+        }
+
+        public static bool TrySetEconomicPolicy(Settlement settlement, object policyValue)
+        {
+            if (settlement == null || policyValue == null) return false;
+            var beh = TownEconomyCampaignBehavior.Instance;
+            if (beh == null) return false;
+            try
+            {
+                var m = beh.GetType().GetMethod("TrySetPolicy");
+                if (m == null) return false;
+                return (bool)m.Invoke(beh, new object[] { settlement, policyValue });
+            }
+            catch { return false; }
+        }
+
+        public static bool TrySetTaxPolicy(Settlement settlement, object policyValue)
+        {
+            if (settlement == null || policyValue == null) return false;
+            var beh = TownEconomyCampaignBehavior.Instance;
+            if (beh == null) return false;
+            try
+            {
+                var m = beh.GetType().GetMethod("TrySetTaxPolicy");
+                if (m == null) return false;
+                return (bool)m.Invoke(beh, new object[] { settlement, policyValue, true /* playerAction */ });
+            }
+            catch { return false; }
+        }
+
+        public static bool TryStartInfrastructureProject(Settlement settlement, object projectValue, out string reason)
+        {
+            reason = string.Empty;
+            if (settlement == null || projectValue == null) { reason = "Invalid settlement/project."; return false; }
+            var beh = TownEconomyCampaignBehavior.Instance;
+            if (beh == null) { reason = "BetterEconomy town behavior unavailable."; return false; }
+            try
+            {
+                var m = beh.GetType().GetMethod("TryStartProject");
+                if (m == null) { reason = "TryStartProject method not found."; return false; }
+                object[] args = new object[] { settlement, projectValue, true, string.Empty };
+                bool ok = (bool)m.Invoke(beh, args);
+                reason = args[3] as string ?? string.Empty;
+                return ok;
+            }
+            catch (Exception ex) { reason = ex.Message; return false; }
+        }
+
         // Village invest method needs a VillageInvestmentSummary out struct
         // (nested type) — surface via reflection so BK doesn't need to
         // know the struct type at compile time. Returns true on success.

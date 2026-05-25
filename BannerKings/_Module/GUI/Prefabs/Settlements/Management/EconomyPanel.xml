@@ -328,6 +328,44 @@
 															</Children>
 														</ButtonWidget>
 
+														<!-- v1.9.9.1 settlement UI rework: BetterEconomy player-action
+														     row. Three buttons stacked vertically beneath the BK
+														     Tournament button, all gated on IsBETownActionsVisible.
+														     Labels bake the currently-selected option into the
+														     button text via the BE*Text bindings. -->
+														<ButtonWidget WidthSizePolicy="Fixed" IsVisible="@IsBETownActionsVisible"
+																	  HeightSizePolicy="Fixed" SuggestedHeight="48" SuggestedWidth="280"
+																	  MarginTop="14" HorizontalAlignment="Center" VerticalAlignment="Top"
+																	  Brush="ButtonBrush2" Command.Click="ExecuteSetBEEconomicPolicy">
+															<Children>
+																<RichTextWidget DoNotAcceptEvents="true" WidthSizePolicy="CoverChildren" HeightSizePolicy="CoverChildren"
+																				HorizontalAlignment="Center" VerticalAlignment="Center" Brush="OverlayPopup.ButtonText"
+																				Brush.FontSize="18" Text="@BEEconomicPolicyText" />
+															</Children>
+														</ButtonWidget>
+
+														<ButtonWidget WidthSizePolicy="Fixed" IsVisible="@IsBETownActionsVisible"
+																	  HeightSizePolicy="Fixed" SuggestedHeight="48" SuggestedWidth="280"
+																	  MarginTop="6" HorizontalAlignment="Center" VerticalAlignment="Top"
+																	  Brush="ButtonBrush2" Command.Click="ExecuteSetBETaxPolicy">
+															<Children>
+																<RichTextWidget DoNotAcceptEvents="true" WidthSizePolicy="CoverChildren" HeightSizePolicy="CoverChildren"
+																				HorizontalAlignment="Center" VerticalAlignment="Center" Brush="OverlayPopup.ButtonText"
+																				Brush.FontSize="18" Text="@BETaxPolicyText" />
+															</Children>
+														</ButtonWidget>
+
+														<ButtonWidget WidthSizePolicy="Fixed" IsVisible="@IsBETownActionsVisible"
+																	  HeightSizePolicy="Fixed" SuggestedHeight="48" SuggestedWidth="280"
+																	  MarginTop="6" HorizontalAlignment="Center" VerticalAlignment="Top"
+																	  Brush="ButtonBrush2" Command.Click="ExecuteStartBEProject">
+															<Children>
+																<RichTextWidget DoNotAcceptEvents="true" WidthSizePolicy="CoverChildren" HeightSizePolicy="CoverChildren"
+																				HorizontalAlignment="Center" VerticalAlignment="Center" Brush="OverlayPopup.ButtonText"
+																				Brush.FontSize="18" Text="@BEStartProjectText" />
+															</Children>
+														</ButtonWidget>
+
 													</Children>
 												</ListPanel>
 															

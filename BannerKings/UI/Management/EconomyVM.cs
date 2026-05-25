@@ -6,6 +6,7 @@ using BannerKings.Managers.Populations;
 using BannerKings.Managers.Shipping;
 using BannerKings.UI.Items;
 using BannerKings.UI.Items.UI;
+using BannerKings.Utils;
 using TaleWorlds.CampaignSystem;
 
 using TaleWorlds.CampaignSystem.Party;
@@ -336,6 +337,156 @@ namespace BannerKings.UI.Management
             {
                 tournamentData.Start(Settlement.Town);
             }
+        }
+
+        // v1.9.9.1 settlement UI rework: BE Economy-tab actions. Three new
+        // surfaces wired through BetterEconomyBridge:
+        //   - Set Economic Policy: pick from BE's TownEconomicPolicy enum.
+        //   - Set Tax Policy: pick from BE's TownTaxPolicy enum (this is
+        //     BE's own tax-policy enum, distinct from BK's existing tax
+        //     dropdown which sits above and controls BK's BKTaxPolicy).
+        //   - Start Project: pick from BE's TownInfrastructureProject
+        //     enum, with the cost-for-next-level baked into each label.
+        // Visibility gated on town settlements (BE doesn't have these
+        // concepts for castles/villages).
+
+        [DataSourceProperty]
+        public bool IsBETownActionsVisible => Settlement != null && Settlement.IsTown;
+
+        [DataSourceProperty]
+        public string BEEconomicPolicyText
+        {
+            get
+            {
+                if (Settlement == null || !Settlement.IsTown) return string.Empty;
+                string cur = BetterEconomyBridge.GetCurrentEconomicPolicyName(Settlement);
+                return string.IsNullOrEmpty(cur)
+                    ? new TextObject("{=!}Set Economic Policy").ToString()
+                    : new TextObject("{=!}Economic Policy: {CUR}").SetTextVariable("CUR", cur).ToString();
+            }
+        }
+
+        [DataSourceProperty]
+        public string BETaxPolicyText
+        {
+            get
+            {
+                if (Settlement == null || !Settlement.IsTown) return string.Empty;
+                string cur = BetterEconomyBridge.GetCurrentTaxPolicyName(Settlement);
+                return string.IsNullOrEmpty(cur)
+                    ? new TextObject("{=!}Set BLE Tax Policy").ToString()
+                    : new TextObject("{=!}BLE Tax: {CUR}").SetTextVariable("CUR", cur).ToString();
+            }
+        }
+
+        [DataSourceProperty]
+        public string BEStartProjectText => new TextObject("{=!}Start Infrastructure Project").ToString();
+
+        public void ExecuteSetBEEconomicPolicy()
+        {
+            if (Settlement == null || !Settlement.IsTown) return;
+            var policies = BetterEconomyBridge.EnumerateEconomicPolicies(Settlement);
+            if (policies.Count == 0)
+            {
+                InformationManager.DisplayMessage(new InformationMessage(
+                    "BetterEconomy economic policy options unavailable.", Color.FromUint(0xFFFF8080)));
+                return;
+            }
+            var list = new List<InquiryElement>();
+            foreach (var p in policies)
+            {
+                list.Add(new InquiryElement(p.Value, p.Name, null, true, p.Summary));
+            }
+            MBInformationManager.ShowMultiSelectionInquiry(new MultiSelectionInquiryData(
+                new TextObject("{=!}Set Economic Policy").ToString(),
+                new TextObject("{=!}Choose the economic policy for {TOWN}. Different policies steer the town's tax/growth/specialization tradeoff.")
+                    .SetTextVariable("TOWN", Settlement.Name).ToString(),
+                list, true, 1, 1,
+                GameTexts.FindText("str_accept").ToString(),
+                GameTexts.FindText("str_cancel").ToString(),
+                selected =>
+                {
+                    if (selected == null || selected.Count == 0) return;
+                    bool ok = BetterEconomyBridge.TrySetEconomicPolicy(Settlement, selected[0].Identifier);
+                    InformationManager.DisplayMessage(new InformationMessage(
+                        ok ? $"Set economic policy: {selected[0].Title}" : "Couldn't set policy (BE rejected).",
+                        Color.FromUint(ok ? 0xFF00FF80u : 0xFFFF8080u)));
+                    RefreshValues();
+                },
+                null));
+        }
+
+        public void ExecuteSetBETaxPolicy()
+        {
+            if (Settlement == null || !Settlement.IsTown) return;
+            var policies = BetterEconomyBridge.EnumerateTaxPolicies(Settlement);
+            if (policies.Count == 0)
+            {
+                InformationManager.DisplayMessage(new InformationMessage(
+                    "BetterEconomy tax policy options unavailable.", Color.FromUint(0xFFFF8080)));
+                return;
+            }
+            var list = new List<InquiryElement>();
+            foreach (var p in policies)
+            {
+                list.Add(new InquiryElement(p.Value, p.Name, null, true, p.Summary));
+            }
+            MBInformationManager.ShowMultiSelectionInquiry(new MultiSelectionInquiryData(
+                new TextObject("{=!}Set BLE Tax Policy").ToString(),
+                new TextObject("{=!}BetterEconomy tax policy for {TOWN}. This is BE's own tax-policy ladder (distinct from BK's tax dropdown above which controls BK's own BKTaxPolicy).")
+                    .SetTextVariable("TOWN", Settlement.Name).ToString(),
+                list, true, 1, 1,
+                GameTexts.FindText("str_accept").ToString(),
+                GameTexts.FindText("str_cancel").ToString(),
+                selected =>
+                {
+                    if (selected == null || selected.Count == 0) return;
+                    bool ok = BetterEconomyBridge.TrySetTaxPolicy(Settlement, selected[0].Identifier);
+                    InformationManager.DisplayMessage(new InformationMessage(
+                        ok ? $"Set BLE tax policy: {selected[0].Title}" : "Couldn't set BLE tax policy.",
+                        Color.FromUint(ok ? 0xFF00FF80u : 0xFFFF8080u)));
+                    RefreshValues();
+                },
+                null));
+        }
+
+        public void ExecuteStartBEProject()
+        {
+            if (Settlement == null || !Settlement.IsTown) return;
+            var projects = BetterEconomyBridge.EnumerateProjects(Settlement);
+            if (projects.Count == 0)
+            {
+                InformationManager.DisplayMessage(new InformationMessage(
+                    "No BetterEconomy infrastructure projects available.", Color.FromUint(0xFFFF8080)));
+                return;
+            }
+            var list = new List<InquiryElement>();
+            foreach (var p in projects)
+            {
+                string label = p.Cost > 0
+                    ? $"{p.Name} ({p.Cost:n0}g)"
+                    : p.Name;
+                list.Add(new InquiryElement(p.Value, label, null, true, p.Summary));
+            }
+            MBInformationManager.ShowMultiSelectionInquiry(new MultiSelectionInquiryData(
+                new TextObject("{=!}Start Infrastructure Project").ToString(),
+                new TextObject("{=!}Pick an infrastructure project for {TOWN}. Each project takes treasury and time but raises a town economic stat. Cost shown is for the project's next level.")
+                    .SetTextVariable("TOWN", Settlement.Name).ToString(),
+                list, true, 1, 1,
+                GameTexts.FindText("str_accept").ToString(),
+                GameTexts.FindText("str_cancel").ToString(),
+                selected =>
+                {
+                    if (selected == null || selected.Count == 0) return;
+                    bool ok = BetterEconomyBridge.TryStartInfrastructureProject(
+                        Settlement, selected[0].Identifier, out string reason);
+                    InformationManager.DisplayMessage(new InformationMessage(
+                        ok ? $"Started project: {selected[0].Title}"
+                           : $"Couldn't start project: {reason}",
+                        Color.FromUint(ok ? 0xFF00FF80u : 0xFFFF8080u)));
+                    RefreshValues();
+                },
+                null));
         }
 
         [DataSourceProperty]
