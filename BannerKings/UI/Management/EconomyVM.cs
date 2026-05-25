@@ -186,7 +186,7 @@ namespace BannerKings.UI.Management
                     $"{mercantilism.ResultNumber:P}",
                     new TextObject("{=ez3NzFgO}{TEXT}\n{EXPLANATIONS}")
                         .SetTextVariable("TEXT",
-                            new TextObject("{=tOk3vpRY}Represents how economicaly free craftsmen, tradesmen and guilds are. Increased mercantilism reduces the tax revenue of these, but allows them to accumulate wealth or contribute more to overall prosperity."))
+                            new TextObject("{=tOk3vpRY}Represents how economicaly free craftsmen, tradesmen and guilds are. Increased mercantilism reduces the tax revenue of these, but allows them to accumulate wealth or contribute more to overall prosperity. The displayed value already includes the active 'Encourage Mercantilism' decision toggle below — turning the toggle on adds roughly +10% to this value."))
                         .SetTextVariable("EXPLANATIONS", mercantilism.GetExplanations())
                         .ToString()));
 

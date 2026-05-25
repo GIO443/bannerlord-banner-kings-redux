@@ -47,12 +47,21 @@ namespace BannerKings.UI.Management
                 return;
             }
           
-            data.Classes.ForEach(popClass => 
+            // v1.9.9.7: percentage column. Compute settlement-total ONCE up
+            // front, hand it to each PopulationInfoVM so the row text
+            // becomes "count (X.X%)" instead of just count. Player asked
+            // for this directly — easier to read class composition at a
+            // glance.
+            int popTotal = 0;
+            foreach (var pc in data.Classes) popTotal += pc.count;
+
+            data.Classes.ForEach(popClass =>
             {
                 CulturalPopulationName popName = DefaultPopulationNames.Instance.GetPopulationName(settlement.Culture, popClass.type);
                 ExplainedNumber demand = BannerKingsConfig.Instance.GrowthModel.CalculatePopulationClassDemand(settlement, popClass.type, true);
                 PopList.Add(new PopulationInfoVM(popName.Name.ToString(),
                         popClass.count,
+                        popTotal,
                         new TextObject("{=umTZshjG}{DESCRIPTION}\n\nDemand for this class: {DEMAND}\nExplanations:\n{EXPLANATIONS}")
                         .SetTextVariable("DEMAND", FormatValue(demand.ResultNumber))
                         .SetTextVariable("EXPLANATIONS", demand.GetExplanations())
