@@ -288,6 +288,143 @@ namespace BannerKings.UI.Management
             }
         }
 
+        // v1.9.9.0 settlement UI rework: BE-action button-bar bindings.
+        // Visibility flags let the prefab show or hide the row depending
+        // on settlement type. Each Execute* method opens an inquiry,
+        // collects the parameter the action needs (gold amount, etc.),
+        // calls the bridge wrapper, and surfaces success/failure as an
+        // InformationManager toast. The VM is reused between settlements
+        // so settlement is read from the cached `settlement` field — no
+        // need to re-resolve from CurrentSettlement at action time.
+
+        [DataSourceProperty]
+        public bool IsTownActionsVisible => settlement != null && settlement.IsTown;
+
+        [DataSourceProperty]
+        public bool IsVillageActionsVisible => settlement != null && settlement.IsVillage;
+
+        [DataSourceProperty]
+        public string ContributeTreasuryText => new TextObject("{=!}Contribute to Town Treasury").ToString();
+
+        [DataSourceProperty]
+        public string UpgradeArmoryText
+        {
+            get
+            {
+                if (settlement == null || !settlement.IsTown) return string.Empty;
+                int cost = BetterEconomyBridge.GetArmoryCostForNextLevel(settlement);
+                return new TextObject("{=!}Upgrade Armory ({COST}g)")
+                    .SetTextVariable("COST", cost.ToString("n0"))
+                    .ToString();
+            }
+        }
+
+        [DataSourceProperty]
+        public string InvestVillageText
+        {
+            get
+            {
+                if (settlement == null || !settlement.IsVillage) return string.Empty;
+                int days = BetterEconomyBridge.GetVillagePlayerInvestmentDaysLeft(settlement);
+                return days > 0
+                    ? new TextObject("{=!}Invest in Village (next in {DAYS}d)")
+                        .SetTextVariable("DAYS", days.ToString())
+                        .ToString()
+                    : new TextObject("{=!}Invest in Village").ToString();
+            }
+        }
+
+        public void ExecuteContributeTreasury()
+        {
+            if (settlement == null || !settlement.IsTown) return;
+            ShowGoldAmountInquiry(
+                new TextObject("{=!}Contribute to Town Treasury").ToString(),
+                new TextObject("{=!}How many denars do you want to contribute to {TOWN}'s treasury?")
+                    .SetTextVariable("TOWN", settlement.Name).ToString(),
+                amount =>
+                {
+                    bool ok = BetterEconomyBridge.TryPlayerContributeTreasury(settlement, Hero.MainHero, amount, out string reason);
+                    string msg = ok
+                        ? new TextObject("{=!}Contributed {AMOUNT}g to {TOWN}'s treasury.")
+                            .SetTextVariable("AMOUNT", amount.ToString("n0"))
+                            .SetTextVariable("TOWN", settlement.Name).ToString()
+                        : new TextObject("{=!}Couldn't contribute: {REASON}")
+                            .SetTextVariable("REASON", reason ?? "unknown").ToString();
+                    InformationManager.DisplayMessage(new InformationMessage(msg,
+                        ok ? Color.FromUint(0xFF00FF80) : Color.FromUint(0xFFFF8080)));
+                    RefreshValues();
+                });
+        }
+
+        public void ExecuteUpgradeArmory()
+        {
+            if (settlement == null || !settlement.IsTown) return;
+            int cost = BetterEconomyBridge.GetArmoryCostForNextLevel(settlement);
+            InformationManager.ShowInquiry(new InquiryData(
+                new TextObject("{=!}Upgrade Armory").ToString(),
+                new TextObject("{=!}Upgrade {TOWN}'s armory for {COST}g? Higher armory levels raise war readiness and the troop tier the garrison can field.")
+                    .SetTextVariable("TOWN", settlement.Name)
+                    .SetTextVariable("COST", cost.ToString("n0")).ToString(),
+                Hero.MainHero.Gold >= cost,
+                true,
+                GameTexts.FindText("str_accept").ToString(),
+                GameTexts.FindText("str_cancel").ToString(),
+                () =>
+                {
+                    bool ok = BetterEconomyBridge.TryPlayerBuildOrUpgradeArmory(settlement, Hero.MainHero, out string reason);
+                    string msg = ok
+                        ? new TextObject("{=!}Upgraded {TOWN}'s armory.").SetTextVariable("TOWN", settlement.Name).ToString()
+                        : new TextObject("{=!}Couldn't upgrade armory: {REASON}").SetTextVariable("REASON", reason ?? "unknown").ToString();
+                    InformationManager.DisplayMessage(new InformationMessage(msg,
+                        ok ? Color.FromUint(0xFF00FF80) : Color.FromUint(0xFFFF8080)));
+                    RefreshValues();
+                },
+                null));
+        }
+
+        public void ExecuteInvestVillage()
+        {
+            if (settlement == null || !settlement.IsVillage) return;
+            ShowGoldAmountInquiry(
+                new TextObject("{=!}Invest in Village").ToString(),
+                new TextObject("{=!}How many denars do you want to invest in {VILLAGE}? Investment boosts village output and prosperity. (Cooldown applies after each investment.)")
+                    .SetTextVariable("VILLAGE", settlement.Name).ToString(),
+                amount =>
+                {
+                    bool ok = BetterEconomyBridge.TryVillagePlayerInvest(settlement, Hero.MainHero, amount, out string reason);
+                    string msg = ok
+                        ? new TextObject("{=!}Invested {AMOUNT}g in {VILLAGE}.")
+                            .SetTextVariable("AMOUNT", amount.ToString("n0"))
+                            .SetTextVariable("VILLAGE", settlement.Name).ToString()
+                        : new TextObject("{=!}Couldn't invest: {REASON}")
+                            .SetTextVariable("REASON", reason ?? "unknown").ToString();
+                    InformationManager.DisplayMessage(new InformationMessage(msg,
+                        ok ? Color.FromUint(0xFF00FF80) : Color.FromUint(0xFFFF8080)));
+                    RefreshValues();
+                });
+        }
+
+        // Simple text-inquiry helper: prompts for a number, parses, calls
+        // the callback if positive. Cancelled / non-numeric input no-ops.
+        private void ShowGoldAmountInquiry(string title, string body, System.Action<int> onAmount)
+        {
+            InformationManager.ShowTextInquiry(new TextInquiryData(
+                title,
+                body,
+                true,
+                true,
+                GameTexts.FindText("str_accept").ToString(),
+                GameTexts.FindText("str_cancel").ToString(),
+                input =>
+                {
+                    if (int.TryParse(input?.Trim(), out int amount) && amount > 0)
+                    {
+                        onAmount(amount);
+                    }
+                },
+                null));
+        }
+
         [DataSourceProperty]
         public DecisionElement ForeignerToogle
         {
