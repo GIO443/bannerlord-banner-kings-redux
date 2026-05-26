@@ -141,7 +141,12 @@ namespace BannerKings.Behaviours.Mercenary
             }
         }
 
-        public bool HasPrivilegeCurrentKingdom(MercenaryPrivilege privilege) => Kingdom != null && KingdomPrivileges[Kingdom].Any(x => x.Equals(privilege));
+        public bool HasPrivilegeCurrentKingdom(MercenaryPrivilege privilege)
+        {
+            if (Kingdom == null) return false;
+            EnsureKingdomInitialized(Kingdom);
+            return KingdomPrivileges[Kingdom].Any(x => x.Equals(privilege));
+        }
 
         public void AddReputation(float reputation, TextObject reason)
         {
@@ -161,12 +166,24 @@ namespace BannerKings.Behaviours.Mercenary
             }
         }
 
-        public bool HasTimePassedForPrivilege(Kingdom kingdom) => PrivilegeTimes[kingdom].ElapsedSeasonsUntilNow >= 2f;
+        public bool HasTimePassedForPrivilege(Kingdom kingdom)
+        {
+            if (kingdom == null) return false;
+            EnsureKingdomInitialized(kingdom);
+            return PrivilegeTimes[kingdom].ElapsedSeasonsUntilNow >= 2f;
+        }
 
-        public CampaignTime GetPrivilegeTime(Kingdom kingdom) => PrivilegeTimes[kingdom];
+        public CampaignTime GetPrivilegeTime(Kingdom kingdom)
+        {
+            if (kingdom == null) return CampaignTime.Zero;
+            EnsureKingdomInitialized(kingdom);
+            return PrivilegeTimes[kingdom];
+        }
 
         public int GetPrivilegeLevelCurrentKingdom(MercenaryPrivilege privilege)
         {
+            if (Kingdom == null) return 0;
+            EnsureKingdomInitialized(Kingdom);
             int result = 0;
             var current = KingdomPrivileges[Kingdom].FirstOrDefault(x => x.Equals(privilege));
             if (current != null)
@@ -196,6 +213,8 @@ namespace BannerKings.Behaviours.Mercenary
 
         internal bool CanLevelUpPrivilege(MercenaryPrivilege privilege)
         {
+            if (Kingdom == null) return false;
+            EnsureKingdomInitialized(Kingdom);
             if (KingdomPrivileges[Kingdom].Contains(privilege))
             {
                 var currentPrivilege = KingdomPrivileges[Kingdom].First(x => x.Equals(privilege));
@@ -203,7 +222,13 @@ namespace BannerKings.Behaviours.Mercenary
                     KingdomProgress[Kingdom] > currentPrivilege.Points &&
                     currentPrivilege.IsAvailable(this) && HasTimePassedForPrivilege(Kingdom);
             }
-            return KingdomProgress[Kingdom] > privilege.Points && HasTimePassedForPrivilege(Kingdom);
+            // Un-owned privilege: also gate on IsAvailable so contractor-state
+            // restrictions (Workshop / Estate / Barony grants the kingdom can't
+            // currently fulfil) show as disabled in the picker rather than
+            // silently failing inside AddPrivilege.OnPrivilegeAdded.
+            return KingdomProgress[Kingdom] > privilege.Points &&
+                   privilege.IsAvailable(this) &&
+                   HasTimePassedForPrivilege(Kingdom);
         }
 
         public void AddKingdom(Kingdom kingdom)
@@ -225,6 +250,26 @@ namespace BannerKings.Behaviours.Mercenary
             }
 
             ContractDueDate = CampaignTime.YearsFromNow(1f);
+        }
+
+        // Read-side lazy init. Older saves — and any path that mutates Kingdom
+        // without going through AddKingdom — can leave the per-kingdom dicts
+        // unpopulated. A bare KingdomPrivileges[kingdom] / PrivilegeTimes[kingdom]
+        // then throws KeyNotFoundException; in the VM that aborts the refresh
+        // and the Ask-for-Privilege button stays at its default (greyed) state.
+        // Seeding PrivilegeTimes to CampaignTime.Zero rather than .Now means a
+        // legacy mercenary clan isn't artificially locked out for two seasons
+        // on load — they're treated as having already served the cooldown,
+        // which matches what the player actually experienced.
+        private void EnsureKingdomInitialized(Kingdom kingdom)
+        {
+            if (kingdom == null) return;
+            if (!KingdomPrivileges.ContainsKey(kingdom))
+                KingdomPrivileges.Add(kingdom, new List<MercenaryPrivilege>());
+            if (!KingdomProgress.ContainsKey(kingdom))
+                KingdomProgress.Add(kingdom, 0f);
+            if (!PrivilegeTimes.ContainsKey(kingdom))
+                PrivilegeTimes.Add(kingdom, CampaignTime.Zero);
         }
 
         public void CheckFiring(Kingdom kingdom)
@@ -485,6 +530,7 @@ namespace BannerKings.Behaviours.Mercenary
         {
             var list = new List<MercenaryPrivilege>();
             if (kingdom == null) return list;
+            EnsureKingdomInitialized(kingdom);
 
             foreach (var kingdomPrivilege in KingdomPrivileges[kingdom])
             {
@@ -496,6 +542,9 @@ namespace BannerKings.Behaviours.Mercenary
 
         internal void AddPrivilege(MercenaryPrivilege privilege)
         {
+            if (Kingdom == null) return;
+            EnsureKingdomInitialized(Kingdom);
+
             MercenaryPrivilege newPrivilege;
             if (KingdomPrivileges[Kingdom].Contains(privilege))
             {
@@ -535,6 +584,19 @@ namespace BannerKings.Behaviours.Mercenary
                         null,
                         null, Utils.Helpers.GetKingdomDecisionSound());
                 }
+            }
+            else if (Clan == Clan.PlayerClan)
+            {
+                // Fallback feedback. The Workshop/Estate behaviors print their
+                // own specific failure reasons inside OnPrivilegeAdded; Barony
+                // and FullPeerage do not. Without this, the player clicks
+                // Accept on the inquiry, the privilege silently fails, and
+                // there is no signal anything happened — indistinguishable
+                // from "the button is broken".
+                InformationManager.DisplayMessage(new InformationMessage(
+                    new TextObject("{=Bk5oPrivFail}Your contractor was not able to grant the {PRIVILEGE} privilege at this time.")
+                        .SetTextVariable("PRIVILEGE", privilege.Name)
+                        .ToString()));
             }
         }
 

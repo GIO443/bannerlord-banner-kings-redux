@@ -195,67 +195,99 @@ education projects) and unlock or restrict behaviours (mercy-on-siege
 relations, council eligibility, holy-war availability). Each faith
 ships with four to five baseline doctrines, listed above.
 
-### Shokuho faiths (Sengoku-Japan campaign)
+## How AI realm leaders respond
 
-When the [Shokuho total-conversion mod](https://steamcommunity.com/sharedfiles/filedetails/?id=3496296180)
-is loaded alongside BK, six additional faiths seed for Shokuho's
-regional cultures (Hokuriku, Kantō, Kinai, Nankai, Ō). They use the
-same religion-system mechanics as the Calradian faiths above —
-preacher dialogue, blessings, conversion, doctrines, holy-war
-availability — and the Shokuho rows silently drop on a vanilla
-Calradia campaign so there's no need to maintain two installs.
+Two AI gaps were previously player-only and made BK realm politics
+feel one-sided. Both are now wired and gated by the
+**MCM → Banner Kings → Politics → Enable Politics Rework** toggle —
+flip that off and you get the older player-only behavior back.
 
-| Native cultures | Faith | Type | Faith group | Main divinity | Notable doctrines |
-|---|---|---|---|---|---|
-| All five regions | **Shintō** | Polytheistic | Shintō Shrines (kannushi) | Amaterasu (Heaven-Shining) | Animism, Ancestor Worship, Shamanism, Tolerant |
-| Kinai, Kantō | **Rinzai Zen** | Henotheistic | Rinzai Sect (rōshi) | Bodhidharma (Wall-Gazer) | Literalism, Warlike, Esotericism, Ancestor Worship |
-| Hokuriku | **Sōtō Zen** | Henotheistic | Sōtō Sect (zenji) | Shakyamuni (Awakened One) | Pacifism, Esotericism, Ancestor Worship, Tolerant |
-| Kinai, Nankai | **Shingon** | Polytheistic | Shingon Sect (daiajari) | Dainichi (Great Sun Buddha) | Esotericism, Astrology, Ancestor Worship, Literalism |
-| Kinai, Kantō | **Tendai** | Henotheistic | Tendai Sect (zasu) | Shakyamuni (Awakened One) | Legalism, Literalism, Esotericism, Tolerant |
-| Hokuriku, Kinai, Kantō | **Jōdo Shinshū** | Monotheistic | Shin Sect (monshu) | Amida (Infinite Light) | Communal Faith, Tolerant, Literalism, Warlike |
+### AI rulers answer interest-group and radical-group demands
 
-The Shokuho pantheon for blessings overlaps deliberately: Kannon
-appears in Rinzai, Sōtō, Shingon and Tendai; Shakyamuni in Rinzai,
-Sōtō, Shingon and Tendai; Dainichi in both Shingon and Tendai —
-mirroring the syncretic Buddhism that actually existed in Sengoku
-Japan. Shintō shares no divinities with the Buddhist sects (the
-historical *honji suijaku* syncretism is left for the player or a
-follow-up data pass to express via doctrine, not pantheon).
+When an Interest Group or Radical Group surfaces a demand and the
+realm leader is not the player, the AI ruler now picks among the
+available responses (concede / refuse / appease / compromise / leverage
+influence / dispute on lordship grounds) using:
 
-## Shokuho governments and successions
+- **The ruler's personality.** Generous + Honourable lean toward
+  conceding; Calculating + Cruel lean toward refusing; Honourable +
+  Merciful won't crush a legitimate grievance even when they could;
+  Valorous welcomes the radical-group revolt risk that a refusal
+  invites. Trait levels are read from vanilla (`Honor`, `Mercy`,
+  `Generosity`, `Calculating`, `Valor`) so existing trait gain/loss
+  shapes ruler decisions naturally.
+- **Relation with the group leader.** Rulers grant to allies and
+  refuse rivals.
+- **Interest alignment.** If the ruler is also a member of the
+  demanding group, they share its agenda and lean toward yes.
+- **Stakes.** Radical groups revolt on refusal — a Calculating ruler
+  weighs that consequence and tilts toward concession to defuse;
+  a Valorous one accepts the fight.
+- **Adequacy.** AI rulers no longer pick options they can't actually
+  fulfil (e.g. Dispute on Lordship when Lordship < 100, or Leverage
+  Influence when they can't pay). The player UI already filtered
+  these; the AI now mirrors that filter.
 
-When Shokuho is loaded, three Sengoku-fitting realm types are
-selectable in the BK political layer alongside the standard
-Imperial / Feudal / Tribal / Republic / Dictatorship set. They are
-**not auto-assigned** to Shokuho kingdoms at game-start — the
-kingdom-to-government default map is C# code that doesn't yet know
-about Shokuho's daimyō kingdoms — so a Shokuho realm starts under
-whichever vanilla government the C# fallback picked and the player
-adopts the appropriate Japanese form via a government transition
-under the realm's political controls. (Auto-binding the ~40 Shokuho
-kingdoms to their fitting government is a follow-up that needs a C#
-extension to `GetKingdomIdealGovernment`.)
+Behind the scenes this is a scoring wrapper on the existing
+`DemandResponse.CalculateAiLikelihood` lambdas — each per-response
+score gets a personality multiplier before the weighted random pick.
+The system stays stochastic (low-weight options can still hit), so
+the same ruler facing the same demand twice may answer differently.
 
-| Government | Layer | Crown auth. | Council | Successions allowed |
-|---|---|---|---|---|
-| **Shogunate** | Vassals | 2–4 (high) | Appointed | Shogunal Hereditary, Hereditary |
-| **Daimyō Realm** | Vassals | 1–3 | Appointed | Daimyō Elective, Feudal Elective, Hereditary |
-| **Ikkō League** | Parliament | 0–2 (low) | Might | Ikkō Confederation, Theocratic Elective |
+### AI rulers revoke titles from threatening vassals
 
-The three Shokuho-specific successions reuse existing BK succession
-algorithms (Hereditary, Feudal Elective, Theocratic Elective) with
-Sengoku-fitting names, descriptions, and culture-ideal bindings —
-Shogunal Hereditary is ideal for *kantō*, Daimyō Elective for
-*hokuriku / kinai / nankai / ō*, Ikkō Confederation for *hokuriku /
-kinai*.
+The AI realm leader (kingdom rank, never the player) now strips
+titles from vassals they perceive as threatening, via the existing
+revocation pipe (BK's `BKTitleModel.GetRevoke` →
+`TitleManager.RevokeTitle`). All existing gates apply unchanged:
+Tribal governments forbid revocation entirely, Republican governments
+allow it only for dukedoms, Imperial requires the ruler to be de jure
+faction leader, and Feudal requires a direct vassal chain plus a
+hierarchy-rank advantage.
 
-What you should expect in-game: open the kingdom screen → BannerKings
-tab → Realm. The government bar reflects the current government; the
-**Change Government** action lists Shogunate / Daimyō Realm / Ikkō
-League as adoption options if your realm's Crown Authority sits
-within the legal band for the target. Adoption costs influence and
-goes through the normal proposal vote, same as Vlandia transitioning
-Tribal → Feudal.
+**Threat is summed from vanilla and BK state:**
+- Relation deficit (capped at +50 threat units for –50 relation).
+- +20 per claim the vassal has pressed on one of the ruler's titles.
+- +40 if the vassal leads a Radical Group within the realm.
+- +15 if the vassal is a member (but not leader) of a Radical Group.
+- +20 if the vassal commands more than 30 % of the realm's
+  non-ruler military strength.
+
+**The threshold for action is set by the ruler's personality:**
+- Base 60 threat units.
+- –20 per Calculating trait level (Calculating rulers act on real
+  threats sooner).
+- +25 per Mercy level (Merciful rulers wait longer; Cruel rulers
+  act earlier).
+- +15 per Honour level (Honourable rulers won't strip without
+  strong cause).
+- A maximally Cruel Calculating ruler acts at ~25 threat units; a
+  maximally Merciful Honourable one at ~110.
+
+**Choice of title to revoke**: the lowest revocable tier the vassal
+holds (a barony before a dukedom). A measured signal of disapproval,
+not a casus-belli-grade strip.
+
+**Cost gates**: ruler must have enough Influence to pay the revoke
+cost and at least 1.5× Renown headroom over the renown cost — the
+political point isn't worth bankrupting the ruler's own standing.
+
+**Throttling**: ~once per ruler per week (via the standard
+`RunWeekly` probability gate), with a 1-in-game-year cooldown per
+(ruler, vassal) pair. Revocation is meant to be a deliberate
+political event, not a daily churn.
+
+**What this changes for players:**
+- Misbehaving vassals in non-Tribal AI realms now face real
+  consequences. Don't lead a Radical Group in a Calculating king's
+  realm unless you can afford to lose a county.
+- AI rulers vary visibly by personality: Calculating Cruel kings
+  prune ruthlessly, Merciful Honourable kings tolerate.
+- **The player is never the target.** The revocation loop hard-
+  skips `Clan.PlayerClan`. If you misbehave in an AI ruler's realm,
+  the existing player-facing systems (interest groups, relation
+  drift, ruler-initiated decisions) still apply, but the AI won't
+  auto-strip your titles.
 
 ---
 

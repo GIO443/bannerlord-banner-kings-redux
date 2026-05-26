@@ -441,14 +441,128 @@ namespace BannerKings.Behaviours.Diplomacy.Groups.Demands
 
         public void DoAiChoice()
         {
+            Hero ruler = Group.FactionLeader;
             List<ValueTuple<DemandResponse, float>> options = new List<(DemandResponse, float)>();
             foreach (DemandResponse response in DemandResponses)
             {
-                options.Add(new (response, response.CalculateAiLikelihood(Group.FactionLeader)));
+                // Mirror the player UI's IsAdequate gate (ShowPlayerDemandAnswers,
+                // line 66). The base AI loop ignored adequacy, so AI rulers could
+                // pick e.g. DisputeLordship at Lordship<100 or LeverageInfluence
+                // they can't afford — both wasted picks. The Fulfill lambda then
+                // ran and silently failed-or-succeeded with no scoring backing.
+                if (!response.IsAdequate(ruler)) continue;
+                float baseScore = response.CalculateAiLikelihood(ruler);
+                float personality = ScoreResponseByPersonality(ruler, response);
+                options.Add(new (response, MathF.Max(0.01f, baseScore * personality)));
+            }
+
+            // Safety net: if every response was inadequate (e.g. low-skill ruler
+            // with poor relations + no influence + no gold), fall back to the
+            // legacy weighting so the demand still resolves and the Tick loop
+            // doesn't spin forever on an unresolved due date.
+            if (options.Count == 0)
+            {
+                foreach (DemandResponse response in DemandResponses)
+                {
+                    options.Add(new (response, MathF.Max(0.01f, response.CalculateAiLikelihood(ruler))));
+                }
             }
 
             DemandResponse result = MBRandom.ChooseWeighted(options);
-            Fulfill(result, Group.FactionLeader);
+            Fulfill(result, ruler);
+        }
+
+        // Personality + interests modifier on the AI ruler's response choice.
+        // The shipped per-response CalculateAiLikelihood is mostly a constant
+        // 1.0f (see DisputeLordship, AppeaseCharm, LeverageInfluence,
+        // FinancialCompromise above), so without this every AI ruler resolves
+        // demands as a uniform coin-flip over adequate options regardless of
+        // who they are. The signal sources used here are all vanilla / BK
+        // state — traits, relations, group membership, IsRadicalGroup — so
+        // nothing new persists.
+        //
+        // The classification axis is the response's Relation field: positive
+        // Relation means the response concedes (group gets what it wants);
+        // negative means the response refuses; zero is neutral compromise.
+        // Each axis is then biased by the ruler's traits and the stakes
+        // (radical group => revolt on refusal raises the stakes asymmetrically).
+        private float ScoreResponseByPersonality(Hero ruler, DemandResponse response)
+        {
+            if (ruler == null) return 1f;
+
+            // Trait levels are integers in [-2, +2]. Convert to ~[-1, +1] floats.
+            float honor       = ruler.GetTraitLevel(DefaultTraits.Honor)      * 0.5f;
+            float mercy       = ruler.GetTraitLevel(DefaultTraits.Mercy)      * 0.5f;
+            float generosity  = ruler.GetTraitLevel(DefaultTraits.Generosity) * 0.5f;
+            float calculating = ruler.GetTraitLevel(DefaultTraits.Calculating) * 0.5f;
+            float valor       = ruler.GetTraitLevel(DefaultTraits.Valor)      * 0.5f;
+
+            // Stakes asymmetry: a radical group revolts on refusal. A calculating
+            // ruler weighs that consequence; a valorous one welcomes the fight.
+            float radicalRefusalPenalty = Group != null && Group.IsRadicalGroup
+                ? (calculating * 0.4f) - (valor * 0.3f)
+                : 0f;
+
+            // Relation between ruler and group leader skews the entire grant
+            // axis: rulers favour their friends and refuse their rivals.
+            int relationInt = Group != null && Group.Leader != null
+                ? Group.Leader.GetRelation(ruler)
+                : 0;
+            float relationFactor = MathF.Clamp(relationInt / 50f, -1f, 1f);
+
+            // Interest alignment: if the ruler is also a member of the demanding
+            // group (or, for a radical group, its parent InterestGroup), they
+            // share its agenda and should lean toward conceding. We don't have
+            // a direct radical->parent link in DiplomacyGroup, so membership in
+            // the same Members list is the available proxy.
+            float interestAlignment = (Group != null && Group.Members != null && Group.Members.Contains(ruler))
+                ? 0.6f
+                : 0f;
+
+            // Axis selection.
+            //   Relation >  0  : conceding response  (positive answers, financial compromise)
+            //   Relation <  0  : refusing response   (leverage influence, denial-style answers)
+            //   Relation == 0  : neutral / mechanical (appease charm, dispute lordship)
+            float multiplier;
+            if (response.Relation > 0)
+            {
+                // Grant / compromise. Generous + Honor + aligned interest + good
+                // relation push toward yes. Calculating without alignment pulls
+                // back (calculating ruler doesn't pay unless aligned).
+                multiplier = 1f
+                    + 0.5f * generosity
+                    + 0.4f * honor
+                    + 0.3f * relationFactor
+                    + interestAlignment
+                    - 0.3f * calculating * (1f - interestAlignment)
+                    + 0.5f * radicalRefusalPenalty;  // grant defuses radical revolt
+            }
+            else if (response.Relation < 0)
+            {
+                // Refuse / suppress. Calculating + Cruel (=-Mercy) + bad relation
+                // + valor push toward no. Honor + Mercy + aligned interest pull
+                // back (won't crush legitimate grievance or own faction).
+                multiplier = 1f
+                    + 0.5f * calculating
+                    - 0.5f * mercy
+                    + 0.3f * valor
+                    - 0.3f * relationFactor
+                    - 0.4f * honor
+                    - interestAlignment
+                    - 0.5f * radicalRefusalPenalty; // calculating ruler avoids refusal when radical
+            }
+            else
+            {
+                // Neutral / mechanical (charm appeal, lordship dispute).
+                // Mild calculating bias — efficient rulers favour the cheap
+                // procedural way out over either capitulation or confrontation.
+                multiplier = 1f + 0.25f * calculating + 0.15f * honor;
+            }
+
+            // Floor at 0.05 — even a maximally trait-opposed response stays
+            // non-zero so the weighted random can still pick it occasionally,
+            // preserving the existing stochastic feel of the system.
+            return MathF.Max(0.05f, multiplier);
         }
 
         public override bool Equals(object obj)

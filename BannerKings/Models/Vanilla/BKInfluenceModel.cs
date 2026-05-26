@@ -292,9 +292,23 @@ namespace BannerKings.Models.Vanilla
                 if (settlement.IsVillage)
                 {
                     var owner = settlement.Village.GetActualOwner();
-                    if (!owner.IsClanLeader() && owner.MapFaction == settlement.MapFaction)
+                    // Funnel a village's daily influence into knight-progression
+                    // ONLY when its title is held by a hero in a DIFFERENT clan
+                    // (a genuine vassal-knight within the same kingdom). When
+                    // the de-jure holder is a same-clan non-leader — typically
+                    // a companion that BKTitleBehavior.ChooseVassalToGiftLandedTitle
+                    // routes Lordship titles to whenever the clan trips its
+                    // demesne limit — the village is still household-managed
+                    // and its influence belongs to the clan, not to a phantom
+                    // splinter-clan progression track. Without the same-clan
+                    // exclusion the player silently loses ~100% of any village
+                    // that has ever auto-drifted to a companion.
+                    if (owner != null
+                        && !owner.IsClanLeader()
+                        && owner.Clan != settlement.OwnerClan
+                        && owner.MapFaction == settlement.MapFaction)
                     {
-                        BannerKingsConfig.Instance.TitleManager.AddKnightInfluence(owner, 
+                        BannerKingsConfig.Instance.TitleManager.AddKnightInfluence(owner,
                             settlementResult.ResultNumber * 0.1f * BannerKingsSettings.Instance.KnightClanCreationSpeed);
                         continue;
                     }
