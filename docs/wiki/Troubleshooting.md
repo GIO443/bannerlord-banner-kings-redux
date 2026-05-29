@@ -59,6 +59,18 @@
   Kingdom → Demesne → Legitimacy breakdown to verify the contribution
   now sits alongside the title / culture / faith lines instead of
   dominating them.
+- **"Daily ~10-20s freeze + 'failed peace settlements' spam every day"**
+  — fixed in v1.9.10.7. v1.9.10.6 lowered the threshold at which BK
+  force-proposes peace so stalemate wars would actually wind down. But
+  the existing "already queued" guard only skipped wars whose previous
+  proposal was still in the kingdom decision queue — once a vote
+  completed (succeed or fail), the same proposal re-queued the next
+  day, so every war in the world ran a full vanilla KingdomElection
+  vote daily. The freeze was the cumulative election cost; the spam
+  was the per-war "force-propose peace" log line. Two fixes: a
+  14-in-game-day cooldown per (kingdom, target) pair after BK queues
+  a peace decision, and a stronger vote-push curve so the proposals
+  that do get queued actually carry.
 - **"Wars never end / forever-war stalemates"** — extended in v1.9.10.6.
   v1.9.10.2 fixed *decisively losing* kingdoms (war fatigue past 0.6
   with a clearly negative war score) — that vote now passes. But many

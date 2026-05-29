@@ -34,6 +34,23 @@ namespace BannerKings.Behaviours.Diplomacy
         // allocating a defensive-copy Dictionary on every fire.
         private List<KingdomDiplomacy> _diplomacyTickSnapshot;
 
+        // v1.9.10.7 — transient per-pair propose cooldown. The v1.9.10.6
+        // lower threshold (fatigue >= 0.5 stalemate mode) made ~every war
+        // eligible to propose peace daily. The existing "skip if already
+        // queued" check only catches CURRENT UnresolvedDecisions — after
+        // a vote completes (success or fail) the decision drops out and
+        // we re-queued next tick, causing a daily KingdomElection per war
+        // (multi-second freeze + log spam). After proposing, mark the
+        // pair so we don't try again for 14 in-game days. Transient by
+        // design: load/save resets the cooldown which is acceptable —
+        // worst case is one freeze on the first day after load.
+        private readonly Dictionary<string, CampaignTime> _peaceProposeCooldown =
+            new Dictionary<string, CampaignTime>();
+        private const float PeaceProposeCooldownDays = 14f;
+
+        private static string PeaceProposeKey(Kingdom k, IFaction otherSide)
+            => (k?.StringId ?? "?") + "->" + (otherSide?.StringId ?? "?");
+
         public bool WillJoinWar(IFaction attacker, IFaction defender, IFaction ally, DeclareWarAction.DeclareWarDetail detail)
             => BannerKingsConfig.Instance.DiplomacyModel.WillJoinWar(attacker, defender, ally, detail).ResultNumber > 0f;
 
@@ -478,6 +495,16 @@ namespace BannerKings.Behaviours.Diplomacy
             bool exhausted = fatigue >= 0.5f && s <= 0.1f;
             if (!losing && !exhausted) return;
 
+            // v1.9.10.7 — cooldown so we don't re-queue this pair every
+            // day once the previous proposal completes. The old "already
+            // queued" check below only caught CURRENT queue entries.
+            var key = PeaceProposeKey(k, otherSide);
+            if (bk._peaceProposeCooldown.TryGetValue(key, out var lastProposed)
+                && lastProposed.ElapsedDaysUntilNow < PeaceProposeCooldownDays)
+            {
+                return;
+            }
+
             // Skip if a peace decision is already queued for this pair.
             foreach (var pending in k.UnresolvedDecisions)
             {
@@ -492,6 +519,7 @@ namespace BannerKings.Behaviours.Diplomacy
             {
                 k.AddDecision(new TaleWorlds.CampaignSystem.Election.MakePeaceKingdomDecision(
                     k.RulingClan, otherSide), false);
+                bk._peaceProposeCooldown[key] = CampaignTime.Now;
                 BannerKings.Utils.Logs.Kingdom(() =>
                     $"force-propose peace: {k.Name} → {otherSide.Name} (fatigue={fatigue:0.00}, score={s:0.00}, mode={(losing ? "losing" : "exhausted")})");
             }

@@ -624,12 +624,16 @@ namespace BannerKings.Patches
                 float loss = exhaustion + defeat;
                 if (loss <= 0f) return;
 
-                // Same ±80-style magnitude BK uses on policy votes
-                // (KingdomPolicyDecisionPatches in Patches.cs).
-                // Realistic max loss ≈ 1.1 (fatigue 1.0 + score -1.0)
-                // → push ≈ 88, enough to flip a contested vote without
-                // overriding a kingdom that's still actually winning.
-                float push = 80f * loss;
+                // v1.9.10.7 — user reports votes still not carrying
+                // ("every day every war is put to vote, none ending in
+                // peace"). Old `80f * loss` gave stalemate (loss≈0.2)
+                // only push ≈ 16, swing 32 — easily dominated by
+                // vanilla's strong "stay at war" merit. Two-term curve:
+                // flat 40 base once loss > 0 (any qualifying war gets a
+                // meaningful nudge) plus 80*loss ramp (decisive losers
+                // get the strong push). Capped at 120 so we never
+                // single-handedly override every other vote signal.
+                float push = MathF.Min(120f, 40f + 80f * loss);
                 __result += outcome.ShouldPeaceBeDeclared ? push : -push;
             }
         }
