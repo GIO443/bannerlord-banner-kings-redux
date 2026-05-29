@@ -74,77 +74,132 @@ namespace BannerKings.UI.VanillaTabs.Kingdoms.Mercenary
         {
             base.RefreshValues();
 
-            if (Career != null && Career.Kingdom != null && Clan.PlayerClan.IsUnderMercenaryService)
+            // v1.9.10.1 settlement-UI-style fix: the old single-gate
+            // "Career != null && Kingdom != null && IsUnderMercenaryService"
+            // collapsed every dynamic field to its default when the player
+            // wasn't CURRENTLY under contract — even though career history
+            // (reputation, service days, custom troops) persists across
+            // contracts. Split the refresh into three layers:
+            //
+            //   1. No career object at all — clan has never been a merc.
+            //      Show the "no privileges yet" explainer (re-purposed
+            //      from the empty-privilege-list case) as the catch-all.
+            //   2. Career exists — fill clan-level state (reputation,
+            //      total service days, career name) regardless of current
+            //      contract.
+            //   3. Career has an active Kingdom — fill contract-specific
+            //      state (current kingdom points, contract due date,
+            //      privileges-in-this-kingdom, points gain, custom troops).
+            //
+            // Player on a kingdom-mercenary contract sees everything as
+            // before. Player between contracts sees reputation + service
+            // days. Player never-merc sees the explainer. No prefab edit
+            // needed — all the bindings still exist; we're just choosing
+            // which to fill on each branch.
+
+            Privileges.Clear();
+            LevyVisible = false;
+            ProfessionalVisible = false;
+            LevyCharacter = new CharacterViewModel(CharacterViewModel.StanceTypes.OnMount);
+            ProfessionalCharacter = new CharacterViewModel(CharacterViewModel.StanceTypes.OnMount);
+            EditLevyText = new TextObject("{=!}Create").ToString();
+            EditProfessionalText = new TextObject("{=!}Create").ToString();
+            CanEditLevy = false;
+            CanEditProfessional = false;
+            CanAskForPrivilege = false;
+
+            if (Career == null)
             {
-                Privileges.Clear();
-                PointsText = Career.GetPoints(Career.Kingdom).ToString();
-                ReputationText = FormatValue(Career.Reputation);
+                // No career object — clan has never taken a mercenary
+                // contract. Surface the "no privileges yet" explainer as
+                // the catch-all so the panel isn't an empty void.
+                ShowNoPrivilegesText = true;
+                PointsText = "0";
+                ReputationText = "0";
+                TimeText = new TextObject("{=!}No mercenary contract on record").ToString();
+                DailyPointsGainText = "0";
+                PrivilegeAvailableText = "—";
+                DailyPointsGainHint = new HintViewModel(new TextObject(string.Empty));
+                return;
+            }
 
-                var contractDaysLeft = (int)Career.ContractDueDate.RemainingDaysFromNow;
-                TimeText = (contractDaysLeft > 0
-                    ? new TextObject("{=BKmercSvcDue}{DAYS} days served - contract due in {LEFT} days")
-                        .SetTextVariable("LEFT", contractDaysLeft)
-                    : new TextObject("{=BKmercSvcOver}{DAYS} days served - contract term complete, renew or leave freely"))
-                    .SetTextVariable("DAYS", Career.ServiceDays)
-                    .ToString();
+            // Career exists. Fill clan-level state — reputation and total
+            // service days survive across contracts / kingdoms.
+            ReputationText = FormatValue(Career.Reputation);
+            TimeText = new TextObject("{=BKmercSvcOver}{DAYS} days served - contract term complete, renew or leave freely")
+                .SetTextVariable("DAYS", Career.ServiceDays)
+                .ToString();
 
-                var pointsGain = BannerKingsConfig.Instance.MercenaryModel.GetDailyCareerPointsGain(Clan.PlayerClan, Career, true);
-                DailyPointsGainText = FormatFloatGain(pointsGain.ResultNumber);
-                DailyPointsGainHint = new HintViewModel(new TextObject("{=!}" + pointsGain.GetExplanations()));
+            if (Career.Kingdom == null || !Clan.PlayerClan.IsUnderMercenaryService)
+            {
+                // Career exists, but not currently under a contract — show
+                // history but explicitly mark contract-specific fields as
+                // unavailable.
+                PointsText = "0";
+                DailyPointsGainText = "0";
+                PrivilegeAvailableText = new TextObject("{=!}— (no active contract)").ToString();
+                DailyPointsGainHint = new HintViewModel(
+                    new TextObject("{=!}Take a mercenary contract with a kingdom to start earning Career Points."));
+                ShowNoPrivilegesText = true;
+                return;
+            }
 
-                LevyCharacter = new CharacterViewModel(CharacterViewModel.StanceTypes.OnMount);
-                ProfessionalCharacter = new CharacterViewModel(CharacterViewModel.StanceTypes.OnMount);
+            // Player IS currently under a contract — fill contract-specific
+            // state (the original v1.8.x behavior).
+            PointsText = Career.GetPoints(Career.Kingdom).ToString();
 
-                LevyVisible = false;
-                ProfessionalVisible = false;
+            var contractDaysLeft = (int)Career.ContractDueDate.RemainingDaysFromNow;
+            TimeText = (contractDaysLeft > 0
+                ? new TextObject("{=BKmercSvcDue}{DAYS} days served - contract due in {LEFT} days")
+                    .SetTextVariable("LEFT", contractDaysLeft)
+                : new TextObject("{=BKmercSvcOver}{DAYS} days served - contract term complete, renew or leave freely"))
+                .SetTextVariable("DAYS", Career.ServiceDays)
+                .ToString();
 
+            var pointsGain = BannerKingsConfig.Instance.MercenaryModel.GetDailyCareerPointsGain(Clan.PlayerClan, Career, true);
+            DailyPointsGainText = FormatFloatGain(pointsGain.ResultNumber);
+            DailyPointsGainHint = new HintViewModel(new TextObject("{=!}" + pointsGain.GetExplanations()));
 
-                var privilegesList = Career.GetPrivileges(Career.Kingdom);
-                foreach (var privilege in privilegesList)
-                {
-                    Privileges.Add(new MercenaryPrivilegeVM(privilege));
-                }
+            var privilegesList = Career.GetPrivileges(Career.Kingdom);
+            foreach (var privilege in privilegesList)
+            {
+                Privileges.Add(new MercenaryPrivilegeVM(privilege));
+            }
+            ShowNoPrivilegesText = privilegesList.Count == 0;
 
-                ShowNoPrivilegesText = privilegesList.Count == 0;
+            CanEditLevy = privilegesList.Contains(DefaultMercenaryPrivileges.Instance.CustomTroop3);
+            CanEditProfessional = privilegesList.Contains(DefaultMercenaryPrivileges.Instance.CustomTroop5);
+            CanAskForPrivilege = Career.HasTimePassedForPrivilege(Career.Kingdom);
+            PrivilegeAvailableText = new TextObject("{=xGNd2D1A}{AVAILABLE} ({TIME})")
+                .SetTextVariable("AVAILABLE", GameTexts.FindText(CanAskForPrivilege ? "str_yes" : "str_no"))
+                .SetTextVariable("TIME", Career.GetPrivilegeTime(Career.Kingdom).ToString()).ToString();
 
-                CanEditLevy = privilegesList.Contains(DefaultMercenaryPrivileges.Instance.CustomTroop3);
-                CanEditProfessional = privilegesList.Contains(DefaultMercenaryPrivileges.Instance.CustomTroop5);
+            var levy = Career.GetTroop(Career.Kingdom);
+            if (levy != null)
+            {
+                LevyVisible = true;
+                EditLevyText = new TextObject("{=we2yiKUb}Edit").ToString();
+                LevyCharacterName = levy.Name != null ? levy.Name.ToString() : "";
+                LevyCharacter.FillFrom(levy.Character);
+                // BattleEquipments can be empty on a freshly-created
+                // custom troop (the Edit dialog's text-confirm fires
+                // RefreshValues before any equipment has been assigned).
+                // First() throws InvalidOperationException on empty —
+                // use FirstOrDefault + null-guard so the preview just
+                // renders without equipment until the player sets it.
+                var levyEq = levy.Character.BattleEquipments?.FirstOrDefault();
+                if (levyEq != null) LevyCharacter.SetEquipment(levyEq);
+            }
 
-                EditLevyText = new TextObject("{=!}Create").ToString();
-                EditProfessionalText = new TextObject("{=!}Create").ToString();
-
-                CanAskForPrivilege = Career.HasTimePassedForPrivilege(Career.Kingdom);
-                PrivilegeAvailableText = new TextObject("{=xGNd2D1A}{AVAILABLE} ({TIME})")
-                    .SetTextVariable("AVAILABLE", GameTexts.FindText(CanAskForPrivilege ? "str_yes" : "str_no"))
-                    .SetTextVariable("TIME", Career.GetPrivilegeTime(Career.Kingdom).ToString()).ToString();
-
-                var levy = Career.GetTroop(Career.Kingdom);
-                if (levy != null)
-                {
-                    LevyVisible = true;
-                    EditLevyText = new TextObject("{=we2yiKUb}Edit").ToString();
-                    LevyCharacterName = levy.Name != null ? levy.Name.ToString() : "";
-                    LevyCharacter.FillFrom(levy.Character);
-                    // BattleEquipments can be empty on a freshly-created
-                    // custom troop (the Edit dialog's text-confirm fires
-                    // RefreshValues before any equipment has been assigned).
-                    // First() throws InvalidOperationException on empty —
-                    // use FirstOrDefault + null-guard so the preview just
-                    // renders without equipment until the player sets it.
-                    var levyEq = levy.Character.BattleEquipments?.FirstOrDefault();
-                    if (levyEq != null) LevyCharacter.SetEquipment(levyEq);
-                }
-
-                var professional = Career.GetTroop(Career.Kingdom, false);
-                if (professional != null)
-                {
-                    ProfessionalVisible = true;
-                    EditProfessionalText = new TextObject("{=we2yiKUb}Edit").ToString();
-                    ProfessionalCharacterName = professional.Name != null ? professional.Name.ToString() : "";
-                    ProfessionalCharacter.FillFrom(professional.Character);
-                    var proEq = professional.Character.BattleEquipments?.FirstOrDefault();
-                    if (proEq != null) ProfessionalCharacter.SetEquipment(proEq);
-                }
+            var professional = Career.GetTroop(Career.Kingdom, false);
+            if (professional != null)
+            {
+                ProfessionalVisible = true;
+                EditProfessionalText = new TextObject("{=we2yiKUb}Edit").ToString();
+                ProfessionalCharacterName = professional.Name != null ? professional.Name.ToString() : "";
+                ProfessionalCharacter.FillFrom(professional.Character);
+                var proEq = professional.Character.BattleEquipments?.FirstOrDefault();
+                if (proEq != null) ProfessionalCharacter.SetEquipment(proEq);
             }
         }
 
