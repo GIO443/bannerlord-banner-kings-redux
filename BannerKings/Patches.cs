@@ -363,7 +363,7 @@ namespace BannerKings.Patches
 
     namespace Government
     {
-        [HarmonyPatch(typeof(KingSelectionKingdomDecision))]
+        [HarmonyPatch(typeof(KingdomPolicyDecision))]
         internal class KingdomPolicyDecisionPatches
         {
             // Was [HarmonyPostfix] on a method named Prefix returning bool
@@ -373,6 +373,18 @@ namespace BannerKings.Patches
             // The original intent is a prefix that replaces vanilla when
             // BK governs the policy whitelist; restore that by switching
             // to [HarmonyPrefix].
+            //
+            // Second fix: the outer [HarmonyPatch] was typeof(KingSelectionKingdomDecision)
+            // — copy-paste of the KingSelectionKingdomDecisionPatches attribute
+            // below. Both prefix and postfix here are typed for KingdomPolicyDecision
+            // (__instance, .Policy accessor) and the class is literally named
+            // KingdomPolicyDecisionPatches; the wrong outer type meant Harmony
+            // attached both methods to KingSelectionKingdomDecision instead.
+            // Net effect was that the BK government-prohibition gate AND the
+            // ±80 interest-group voting push on policy decisions never fired,
+            // so AI clans scored policies on pure vanilla heuristics and
+            // rarely mustered the vote threshold — visible as "kingdoms with
+            // plenty of influence never seem to enact laws."
             [HarmonyPrefix]
             [HarmonyPatch("IsAllowed", MethodType.Normal)]
             private static bool Prefix(ref bool __result, KingdomPolicyDecision __instance)
