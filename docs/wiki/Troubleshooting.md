@@ -24,6 +24,17 @@
 - **"Crash hovering parties in the Army Management screen"** — fixed.
   Caused by BK's mercenary eligibility tweak leaving the hover tooltip's
   reason text null. Update to a current Banner Kings — Redux build.
+- **"Crash on AI tick: IndexOutOfRangeException in GetCharacterAtIndex /
+  morale calculation"** — fixed in v1.9.10.4. v1.9.9.6 already added a
+  finalizer on the inner `TroopRoster.GetCharacterAtIndex` method, but
+  it only swallowed the IOOR throw — vanilla's morale skill-bonus loop
+  then dereferenced the null character it received and re-threw NRE
+  from the same spot, killing the AI tick the same way. The fix wraps
+  the actual vanilla method (`DefaultPartyMoraleModel.GetMoraleEffectsFromSkill`)
+  in a defense-in-depth finalizer that catches both IOOR and NRE from
+  a corrupted roster slot table. Affected parties get vanilla baseline
+  morale until the roster self-heals on save/load. No player action
+  needed — load the affected save and the AI tick proceeds.
 - **"My kingdom's Legitimacy is always 0"** — fixed in v1.9.10.3. The
   clan-tier penalty in the legitimacy model was on the wrong scale —
   whole-number penalties (-5/-10/-20) sat next to fractional bonuses

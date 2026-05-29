@@ -2,6 +2,7 @@ using System;
 using System.Diagnostics;
 using HarmonyLib;
 using TaleWorlds.CampaignSystem;
+using TaleWorlds.CampaignSystem.GameComponents;
 using TaleWorlds.CampaignSystem.Roster;
 using TaleWorlds.Core;
 
@@ -129,6 +130,43 @@ namespace BannerKings.Patches
                     $"AddToCounts({character?.Name}, {countChange}) ← {string.Join(" ← ", frames)}");
             }
             catch { /* never throw out of a tracer */ }
+        }
+    }
+
+    /// <summary>
+    /// v1.9.10.4 — defense-in-depth shim around the vanilla method that
+    /// actually crashes on a corrupt roster:
+    /// DefaultPartyMoraleModel.GetMoraleEffectsFromSkill. The inner-method
+    /// finalizer on TroopRoster.GetCharacterAtIndex above swallows the
+    /// IOOR throw and returns null, but vanilla's for-loop then derefs
+    /// the null character to read a skill value and re-throws NRE — same
+    /// crash, different exception type, same dead AI tick.
+    ///
+    /// User trace 2026-05-29:
+    ///   LateAITickAux → PartiesThink → GetBestInitiativeBehavior →
+    ///   MilitaryPowerModel → MobileParty.get_Morale →
+    ///   NavalDLCPartyMoraleModel.GetEffectivePartyMorale →
+    ///   DefaultPartyMoraleModel.GetEffectivePartyMorale →
+    ///   GetMoraleEffectsFromSkill → throw.
+    ///
+    /// Wrapping the vanilla method itself catches whatever fault the
+    /// corrupt roster produces. The outer GetEffectivePartyMorale just
+    /// adds the (empty) bonus to its total — no contribution from the
+    /// skill bonus this tick. Save/load self-heals the slot table.
+    /// </summary>
+    [HarmonyPatch(typeof(DefaultPartyMoraleModel))]
+    internal class PartyMoraleSkillEffectsSafetyPatch
+    {
+        [HarmonyFinalizer]
+        [HarmonyPatch("GetMoraleEffectsFromSkill")]
+        private static Exception GetMoraleEffectsFromSkillFinalizer(Exception __exception)
+        {
+            if (__exception is IndexOutOfRangeException
+                || __exception is NullReferenceException)
+            {
+                return null;
+            }
+            return __exception;
         }
     }
 }
