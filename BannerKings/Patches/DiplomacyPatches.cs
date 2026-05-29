@@ -624,16 +624,25 @@ namespace BannerKings.Patches
                 float loss = exhaustion + defeat;
                 if (loss <= 0f) return;
 
-                // v1.9.10.7 — user reports votes still not carrying
-                // ("every day every war is put to vote, none ending in
-                // peace"). Old `80f * loss` gave stalemate (loss≈0.2)
-                // only push ≈ 16, swing 32 — easily dominated by
-                // vanilla's strong "stay at war" merit. Two-term curve:
-                // flat 40 base once loss > 0 (any qualifying war gets a
-                // meaningful nudge) plus 80*loss ramp (decisive losers
-                // get the strong push). Capped at 120 so we never
-                // single-handedly override every other vote signal.
-                float push = MathF.Min(120f, 40f + 80f * loss);
+                // v1.9.10.9 — user reports ruler proposes peace, every
+                // vassal votes against. The postfix IS reaching vassals
+                // (clan.Kingdom resolves to their shared realm; identical
+                // fatigue/score input for every voter). What's failing is
+                // magnitude: vanilla DetermineSupport gives vassal clans
+                // strong pro-war merit (personal loot, fief proximity,
+                // valor traits) commonly +150..+300, while the ruling
+                // clan has weaker per-clan pro-war merit (kingdom-wide
+                // preservation outweighs personal stake). v1.9.10.7's
+                // 40+80*loss / 120 cap pushed stalemate to 56 (swing
+                // 112) — enough to flip the ruler, not enough to flip
+                // vassals.
+                //
+                // Bumped: 100 + 100*loss / 200 cap. Stalemate push=120
+                // (swing 240), decisive=200 (swing 400). Closes the
+                // vassal pro-war gap for moderate-merit vassals;
+                // very-aggressive ones still vote no, which is right
+                // roleplay (some lords genuinely want the war).
+                float push = MathF.Min(200f, 100f + 100f * loss);
                 __result += outcome.ShouldPeaceBeDeclared ? push : -push;
             }
         }
