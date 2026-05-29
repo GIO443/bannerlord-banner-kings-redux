@@ -24,6 +24,18 @@
 - **"Crash hovering parties in the Army Management screen"** — fixed.
   Caused by BK's mercenary eligibility tweak leaving the hover tooltip's
   reason text null. Update to a current Banner Kings — Redux build.
+- **"War Support says 0% but nobody votes for peace"** — fixed in
+  v1.9.10.2. The kingdom screen's *War Support* % runs BK's full
+  decision model (war fatigue, war score, casus belli expiry), so it
+  drops to zero on hopeless wars. The peace vote, however, used pure
+  vanilla heuristics (kingdom strength, fief threat) and never saw
+  those BK signals, so every clan voted "stay at war" and you got
+  forever wars. The peace vote now reads the same BK fatigue + war-
+  score and pushes losing-side clans toward peace proportional to how
+  badly they're losing. The winning side keeps voting against peace —
+  only kingdoms BK actually flags as losing get the nudge. Open the
+  Kingdom → Diplomacy screen, propose peace, and the vote should now
+  carry when *War Support* is at or near 0%.
 - **"My army disbands far too soon"** — fixed. BK's
   cohesion postfix was clamping the daily change at a forced loss,
   blocking every vanilla recovery condition (camped at home, food,

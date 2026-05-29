@@ -559,5 +559,73 @@ namespace BannerKings.Patches
                     null));
             }
         }
+
+        // v1.9.10.2 — Peace-vote / war-support UI disconnect fix.
+        //
+        // BK's "war support %" UI (CalculateWarSupport above) simulates
+        // a fresh BKDeclareWarDecision and reports the % chance the
+        // kingdom would vote FOR war. When that number is 0, the player
+        // sees "nobody wants this war" and pushes a peace proposal. The
+        // proposal queues fine. Then the actual vote runs on vanilla
+        // MakePeaceKingdomDecision.DetermineSupport which has no idea
+        // about BK's war fatigue, war score, or CB-expiry signals — it
+        // scores peace on pure vanilla heuristics (kingdom strength,
+        // fief threat). Result: every clan votes "stay at war", peace
+        // fails, players see "war support 0% but everyone voted no" and
+        // report forever wars.
+        //
+        // Mirror BK's signal into the actual vote. Loss factor combines
+        // war fatigue (KingdomDiplomacy.Fatigue, 0..1) and BK war score
+        // (negative = losing) into an additive push that ramps with
+        // both. Symmetric: the WINNING side keeps voting against peace
+        // under vanilla math (loss clamped at 0), which is intended —
+        // only the losing kingdom gets nudged toward peace.
+        [HarmonyPatch(typeof(MakePeaceKingdomDecision))]
+        internal class MakePeaceKingdomDecisionPatches
+        {
+            [HarmonyPostfix]
+            [HarmonyPatch("DetermineSupport", MethodType.Normal)]
+            private static void DetermineSupportPostfix(MakePeaceKingdomDecision __instance,
+                Clan clan, DecisionOutcome possibleOutcome, ref float __result)
+            {
+                if (ModCompat.DiplomacyMod) return;
+                if (clan?.Kingdom == null || __instance == null) return;
+                var outcome = possibleOutcome as MakePeaceKingdomDecision.MakePeaceDecisionOutcome;
+                if (outcome == null) return;
+
+                var bk = TaleWorlds.CampaignSystem.Campaign.Current
+                    .GetCampaignBehavior<BKDiplomacyBehavior>();
+                if (bk == null) return;
+
+                War war = bk.GetWar(clan.Kingdom, __instance.FactionToMakePeaceWith);
+                if (war == null) return;
+
+                KingdomDiplomacy diplo = bk.GetKingdomDiplomacy(clan.Kingdom);
+                if (diplo == null) return;
+
+                float fatigue = diplo.Fatigue;
+                float score;
+                try { score = war.CalculateWarScore(clan.Kingdom, false).ResultNumber; }
+                catch { return; }
+
+                // Align with the proposer's threshold in
+                // ForceProposePeaceFromLosingSide (fatigue >= 0.6 AND
+                // score <= -0.3): under either floor, contributes 0 to
+                // loss; above each floor, ramps continuously. The
+                // proposer says "we should sue for peace" only past the
+                // floors, and the voter starts pushing exactly there —
+                // no daylight between proposal gate and vote pressure.
+                float loss = MathF.Max(0f, fatigue - 0.6f) + MathF.Max(0f, -score - 0.3f);
+                if (loss <= 0f) return;
+
+                // Same ±80-style magnitude BK uses on policy votes
+                // (KingdomPolicyDecisionPatches in Patches.cs).
+                // Realistic max loss ≈ 1.1 (fatigue 1.0 + score -1.0)
+                // → push ≈ 88, enough to flip a contested vote without
+                // overriding a kingdom that's still actually winning.
+                float push = 80f * loss;
+                __result += outcome.ShouldPeaceBeDeclared ? push : -push;
+            }
+        }
     }
 }
