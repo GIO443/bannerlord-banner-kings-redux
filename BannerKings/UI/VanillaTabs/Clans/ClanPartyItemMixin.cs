@@ -28,16 +28,9 @@ namespace BannerKings.UI.VanillaTabs.Clans
         public ClanPartyItemMixin(ClanPartyItemVM vm) : base(vm)
         {
             _vm = vm;
-            // One-line attach trace per row. Confirms UIExtenderEx is
-            // instantiating the mixin per ClanPartyItemVM construction.
-            try
-            {
-                var pname = vm?.Party?.Name?.ToString() ?? "?";
-                var iscar = vm?.Party?.MobileParty?.IsCaravan == true ? "caravan" : "non-caravan";
-                BannerKings.BannerKingsCheats.AppendDiagnosticLine("caravan_orders.txt",
-                    $"ClanPartyItemMixin attached: {pname} ({iscar})");
-            }
-            catch { }
+            // v1.9.10.12 — dev-time attach trace removed. It wrote a
+            // disk line per party row per clan-screen open and was
+            // only useful during the caravan-orders feature rollout.
         }
 
         private MobileParty SelectedCaravan
@@ -68,12 +61,6 @@ namespace BannerKings.UI.VanillaTabs.Clans
         [DataSourceMethod]
         public void ExecuteSetCaravanOrders()
         {
-            try
-            {
-                BannerKings.BannerKingsCheats.AppendDiagnosticLine("caravan_orders.txt",
-                    $"ExecuteSetCaravanOrders fired on {_vm?.Party?.Name?.ToString() ?? "?"}");
-            }
-            catch { }
             var caravan = SelectedCaravan;
             if (caravan == null)
             {

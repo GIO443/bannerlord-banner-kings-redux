@@ -1,6 +1,7 @@
 using System;
 using HarmonyLib;
 using TaleWorlds.CampaignSystem.ViewModelCollection.ClanManagement;
+using TaleWorlds.CampaignSystem.ViewModelCollection.ClanManagement.Categories;
 
 namespace BannerKings.Patches
 {
@@ -55,6 +56,77 @@ namespace BannerKings.Patches
             catch { }
 
             return null;
+        }
+    }
+
+    /// <summary>
+    /// v1.9.10.12 — defense-in-depth around the wider clan-screen build.
+    /// User reports opening the clan menu can sometimes freeze then CTD
+    /// with no popup, even with the v1.9.9.9 finalizer on
+    /// ClanRoleItemVM.Refresh in place. Same shape as the v1.9.10.4
+    /// morale-IOOR fix: the inner finalizer swallows one throw, but
+    /// vanilla's caller (ClanPartyItemVM.UpdateProperties /
+    /// ClanPartiesVM.RefreshPartiesList) doesn't tolerate the partially-
+    /// populated state and re-throws downstream, killing screen
+    /// construction with no managed-side reporter window.
+    ///
+    /// Finalizer wraps the two outer methods, swallowing NRE / IOOR /
+    /// InvalidOperationException ("Collection was modified during
+    /// enumeration"). The clan screen renders with at most one party
+    /// row blank; every other tab (Members / Fiefs / Income / Court)
+    /// continues to build.
+    ///
+    /// We only swallow the three exception classes — every other type
+    /// passes through so unrelated bugs stay visible. No reflection
+    /// needed; both methods are public on their VMs.
+    /// </summary>
+    [HarmonyPatch(typeof(ClanPartyItemVM), "UpdateProperties")]
+    internal static class ClanPartyItemUpdatePropertiesSafetyPatch
+    {
+        private static Exception Finalizer(Exception __exception)
+        {
+            if (__exception == null) return null;
+            if (__exception is NullReferenceException
+                || __exception is IndexOutOfRangeException
+                || __exception is System.Collections.Generic.KeyNotFoundException
+                || __exception is InvalidOperationException)
+            {
+                try
+                {
+                    TaleWorlds.Library.Debug.Print(
+                        "[BK] Swallowed " + __exception.GetType().Name
+                        + " in vanilla ClanPartyItemVM.UpdateProperties — party row left partial.",
+                        color: TaleWorlds.Library.Debug.DebugColor.Yellow);
+                }
+                catch { }
+                return null;
+            }
+            return __exception;
+        }
+    }
+
+    [HarmonyPatch(typeof(ClanPartiesVM), "RefreshPartiesList")]
+    internal static class ClanPartiesRefreshSafetyPatch
+    {
+        private static Exception Finalizer(Exception __exception)
+        {
+            if (__exception == null) return null;
+            if (__exception is NullReferenceException
+                || __exception is IndexOutOfRangeException
+                || __exception is System.Collections.Generic.KeyNotFoundException
+                || __exception is InvalidOperationException)
+            {
+                try
+                {
+                    TaleWorlds.Library.Debug.Print(
+                        "[BK] Swallowed " + __exception.GetType().Name
+                        + " in vanilla ClanPartiesVM.RefreshPartiesList — parties list left partial.",
+                        color: TaleWorlds.Library.Debug.DebugColor.Yellow);
+                }
+                catch { }
+                return null;
+            }
+            return __exception;
         }
     }
 }
