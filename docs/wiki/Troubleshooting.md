@@ -59,6 +59,24 @@
   Kingdom → Demesne → Legitimacy breakdown to verify the contribution
   now sits alongside the title / culture / faith lines instead of
   dominating them.
+- **"Knighted hero's party shows up in both my clan and the new knight
+  clan"** — fixed in v1.9.10.10. `ClanActions.CreateNewClan` (the path
+  knighthood uses to spin a new noble clan from a hero) moved the hero's
+  `Clan` reference but never re-parented the party they were leading.
+  Vanilla source of truth for which clan owns a party is
+  `MobileParty.ActualClan`, not `Hero.Clan` — setting that triggers
+  `WarPartyComponent.OnClanChange(old, new)` which actually moves the
+  entry between the two clans' `WarPartyComponents` collections. Without
+  it the party was visible in both the original clan and the new knight
+  clan on the management screen, and downstream consumers (income,
+  recruitment, council role assignment) saw conflicting ownership.
+  Fixed in `ClanActions.CreateNewClan` and `ClanActions.JoinClan`; the
+  knight now correctly belongs to (and brings their party to) only the
+  new clan. Existing save? Load it — re-knighting any affected hero is
+  not required, but BK doesn't auto-heal historical knight clans;
+  manual fix is to disband and re-form the affected knight clan via
+  the cheat menu, or accept the cosmetic duplication for legacy
+  clans.
 - **"Daily ~10-20s freeze + 'failed peace settlements' spam every day"**
   — fixed in v1.9.10.7. v1.9.10.6 lowered the threshold at which BK
   force-proposes peace so stalemate wars would actually wind down. But

@@ -58,6 +58,22 @@ namespace BannerKings.Actions
             hero.Clan = clan;
             clan.SetLeader(hero);
             clan.SetInitialHomeSettlement(settlement);
+
+            // v1.9.10.10 — re-parent any party the hero is leading.
+            // Setting hero.Clan doesn't touch WarPartyComponents; the
+            // source of truth is MobileParty.ActualClan, which fires
+            // WarPartyComponent.OnClanChange(old, new) to remove the
+            // entry from the old clan's WarPartyComponents collection
+            // and add it to the new clan's. Without this, the knight
+            // still leads their party but the party stays registered
+            // in the original clan — players saw it in BOTH clans on
+            // the management screen ("they remain in your clan
+            // incorrectly as well as being in the new clan").
+            if (hero.PartyBelongedTo != null && hero.PartyBelongedTo.ActualClan != clan)
+            {
+                hero.PartyBelongedTo.ActualClan = clan;
+            }
+
             if (hero.Spouse != null && !Utils.Helpers.IsClanLeader(hero.Spouse))
             {
                 JoinClan(hero.Spouse, clan);
@@ -94,6 +110,14 @@ namespace BannerKings.Actions
             hero.CompanionOf = null;
             hero.SetNewOccupation(Occupation.Lord);
             hero.Clan = clan;
+            // Re-parent any party the joining hero leads — same
+            // duplicate-source-of-truth fix as CreateNewClan. Rare via
+            // this path (spouses/children typically don't lead parties
+            // at the moment of clan-join) but cheap and correct.
+            if (hero.PartyBelongedTo != null && hero.PartyBelongedTo.ActualClan != clan)
+            {
+                hero.PartyBelongedTo.ActualClan = clan;
+            }
         }
 
         public static TextObject GetRandomAvailableName(CultureObject culture, Settlement settlement)
