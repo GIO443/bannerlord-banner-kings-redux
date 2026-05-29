@@ -483,88 +483,13 @@ namespace BannerKings.UI
             }
         }
 
-        // Crash-htm 2026-05-22 22:39: RBM-on-1.4 patch-install failure
-        // during mission load. RBMAI patches Mission::SpawnTroop with a
-        // patch method that declares a parameter "forceDismounted". That
-        // parameter existed in 1.3.x vanilla SpawnTroop but was removed in
-        // 1.4. When RBMAiPatcher.DoPatching() calls Harmony.PatchAll(its
-        // assembly), MethodCreatorTools.EmitCallParameter throws
-        //   "Parameter 'forceDismounted' not found in method ... SpawnTroop(...)"
-        // and the exception propagates out of PatchAll, through RBM's
-        // DoPatching, through Mission.AfterStart. Battle entry dies.
-        //
-        // BK-side compat: a Finalizer on HarmonyLib.PatchClassProcessor.Patch
-        // that swallows the exception WHEN AND ONLY WHEN the patch class is
-        // from an RBM assembly (RBMAI / RBMCombat / RBM). Other mods'
-        // patches throw normally. The specific broken RBM patch silently
-        // fails to install (its behaviour is lost); other RBM patches in the
-        // same DoPatching call install fine; battle entry succeeds.
-        //
-        // Each swallowed failure is logged once via Logs.MajorEvent so the
-        // user can see which RBM patches dropped via grep on major_events.
-        // Crash-htm 2026-05-22 22:53 / 2026-05-23 08:51: RBM-on-1.4 RUNTIME
-        // failure inside RBMAI MissionBehaviors. Method-not-found for
-        // GameEntity.Instantiate(Scene, String, MatrixFrame, Boolean, String)
-        // — RBMAI was compiled against 1.3 ref-assemblies which had that
-        // overload; 1.4 dropped/renamed it.
-        //
-        // v1.9.1.9 attempted a finalizer on RBMAI.SiegeArcherPoints
-        // .OnMissionTick via a [HarmonyPatch]-decorated class with a
-        // Prepare()/TargetMethod() pair. But BK's PatchAll-loop runs at
-        // OnGameStart, and RBMAI may not yet be loaded in the AppDomain at
-        // that point — Prepare() returned false and the finalizer was
-        // silently skipped, so crash htm v1.9.1.10 still shows the same
-        // signature.
-        //
-        // The runtime hook for these patches now lives in
-        // RBMRuntimeFinalizers (Patches/Diag/RBMRuntimeFinalizers.cs); it
-        // listens to AppDomain.AssemblyLoad and installs the finalizer
-        // imperatively the moment RBMAI.dll surfaces in the AppDomain,
-        // with idempotency flags. See Main.OnSubModuleLoad for the wire-up.
-
-        [HarmonyPatch(typeof(HarmonyLib.PatchClassProcessor))]
-        [HarmonyPatch("Patch")]
-        internal static class RBMHarmonyPatchFinalizer
-        {
-            private static readonly System.Reflection.FieldInfo ContainerTypeField =
-                AccessTools.Field(typeof(HarmonyLib.PatchClassProcessor), "containerType");
-
-            // Owner-asm name set; cheap O(1) match. Owner string is the
-            // System.Reflection.AssemblyName.Name of the class being patched.
-            private static readonly System.Collections.Generic.HashSet<string> RBMAssemblyNames =
-                new System.Collections.Generic.HashSet<string>(System.StringComparer.OrdinalIgnoreCase)
-                {
-                    "RBMAI",
-                    "RBMCombat",
-                    "RBM",
-                };
-
-            [HarmonyFinalizer]
-            private static System.Exception Finalizer(System.Exception __exception, object __instance)
-            {
-                if (__exception == null) return null;
-                try
-                {
-                    var containerType = ContainerTypeField?.GetValue(__instance) as System.Type;
-                    if (containerType == null) return __exception;
-
-                    var asmName = containerType.Assembly?.GetName()?.Name;
-                    if (asmName != null && RBMAssemblyNames.Contains(asmName))
-                    {
-                        BannerKings.Utils.Logs.MajorEvent(() =>
-                            $"[BK] Swallowed RBM 1.4-compat patch failure in {containerType.FullName}: {__exception.GetType().Name}: {__exception.Message}");
-                        return null; // swallow — the rest of RBM's PatchAll continues
-                    }
-                }
-                catch
-                {
-                    // If our reflection / logging trips, fall back to letting
-                    // the original exception propagate — never make the
-                    // diagnostic worse than the bug it's diagnosing.
-                }
-                return __exception;
-            }
-        }
+        // v1.9.10.0: RBMHarmonyPatchFinalizer retired. RBM is now
+        // 1.4-current and no longer throws "Parameter 'forceDismounted'
+        // not found" during PatchAll. The finalizer's swallow logic
+        // (filtering by RBMAI / RBMCombat / RBM assembly names) was
+        // specific to the 1.3→1.4 surface gap and isn't needed anymore.
+        // See RBMRuntimeFinalizers.cs deletion in the same release for
+        // the runtime-finalizer side.
 
         // Crash-htm 2026-05-22 20:29 caught a NullReferenceException deep
         // inside the vanilla CharacterCreationCultureVM(CultureObject, Action)

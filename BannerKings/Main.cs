@@ -107,12 +107,10 @@ namespace BannerKings
             GameTexts.SetVariable("SPEED_ICON", BannerKings.Utils.TextHelper.SPEED_ICON);
 
             campaignStarter.AddBehavior(new BKManagerBehavior());
-            // Backup install path for RBM 1.4-compat runtime finalizers/prefixes.
-            // The AssemblyLoad listener in RBMRuntimeFinalizers should win in
-            // most cases, but this CampaignBehavior subscribes to
-            // OnMissionStartedEvent — RBMAI is definitely loaded by then —
-            // and calls TryInstallAll as a backstop. Idempotent.
-            campaignStarter.AddBehavior(new BannerKings.Patches.Diag.RBMRuntimeFinalizersBackupBehavior());
+            // v1.9.10.0: RBMRuntimeFinalizersBackupBehavior retired. RBM
+            // is now 1.4-current; the SiegeArcherPoints / Mission.Spawn
+            // Troop / DoPatching airbags BK installed during the 1.3→1.4
+            // RBM gap are no longer needed.
             // Layered village/estate/town economy rework — Phase 1+4+6+8.
             campaignStarter.AddBehavior(new LayeredEconomyAssignmentBehavior());
             campaignStarter.AddBehavior(new ClusterFoodTracker());
@@ -318,17 +316,10 @@ namespace BannerKings
             base.OnSubModuleLoad();
             BKDiagnostics.Install();
 
-            // Lazy AppDomain.AssemblyLoad hook that installs RBM 1.4-compat
-            // runtime finalizers the moment RBMAI / RBMCombat surfaces.
-            // Subscribing here (not at OnGameStart) catches the load even
-            // when RBM lazy-loads its sub-assemblies after BK's patch sweep.
-            try { BannerKings.Patches.Diag.RBMRuntimeFinalizers.Install(); }
-            catch (System.Exception ex)
-            {
-                TaleWorlds.Library.Debug.Print(
-                    $"[BK] RBMRuntimeFinalizers.Install failed: {ex.GetType().Name}: {ex.Message}",
-                    color: TaleWorlds.Library.Debug.DebugColor.Yellow);
-            }
+            // v1.9.10.0: RBMRuntimeFinalizers.Install() retired. RBM is
+            // now 1.4-current; the three 1.4-gap airbags (SiegeArcherPoints
+            // skip-prefix, AddMissionBehavior filter, DoPatching swallow
+            // finalizer) are no longer needed.
 
             // Phase A of the BK-on-top-of-BetterEconomy layering arc
             // (v1.9.7.0). Logs the BE concrete economy model classes for
