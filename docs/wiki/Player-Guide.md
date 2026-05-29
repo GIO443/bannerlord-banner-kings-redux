@@ -628,6 +628,55 @@ runs unmodified. The result is fewer but more purposeful AI armies.
 An MCM toggle (Performance → AI Army Formation) disables the BK push
 entirely if you want pure vanilla AI behaviour.
 
+## Roleplay
+
+### How do I open a dialogue with a hero far away (telepathy)?
+
+v1.9.10.8 added an opt-in "telepathy" surface — open the standard
+dialogue UI with any met hero on the map, after a distance-based
+delay. Off by default; turn it on in MCM → Performance → **Enable
+Telepathy**. There's also a **Telepathy Delay Multiplier** slider
+(default 100%) that scales how long the thought takes to arrive.
+
+Step by step:
+
+1. **Enter any settlement** (town, castle, or village). The entry
+   point lives on the BK actions submenu, so being in a settlement
+   is the framing — "you find solitude to focus your thought".
+2. Open the settlement menu → **Banner Kings** submenu → **Reach
+   out with a thought**.
+3. A picker opens listing every hero you have met (Hero.HasMet),
+   excluding the dead, imprisoned, or disabled. Next to each name
+   you see the delivery time in hours — that's the distance from
+   your party to the recipient at 0.5h per map unit, clamped to
+   the [1h, 10d] window and scaled by the MCM multiplier.
+4. Pick a hero, accept. You get the message: *"Your thought
+   reaches out across N hours of distance toward {NAME}…"*
+5. Travel, fight, or sleep through those hours. When the timer
+   elapses (checked every in-game hour), you'll see *"A thought
+   from {NAME} settles in your mind…"* and the standard dialogue
+   UI opens with that hero as the partner, no matter where they
+   are on the map. Run dialogue normally; close to return to
+   campaign.
+
+What can go wrong:
+
+- **No one in the picker** — you haven't met anyone yet, or every
+  acquaintance is dead/imprisoned/disabled. The picker shows a
+  *"There is no one within your thought's reach"* notice.
+- **"Your thought finds no response from {NAME}"** — the recipient
+  died, was imprisoned, or otherwise dropped out of valid state
+  between when you queued and when the delivery fired. No dialogue
+  opens; the message dissolves.
+- **Vanilla dialogue conditions that gate on co-location** — some
+  vanilla dialogue lines check `Hero.MainHero.CurrentSettlement` or
+  the partner's settlement and may skip. The conversation still
+  runs; you may see fewer branches than you'd see standing next
+  to the hero in person.
+
+Pending thoughts persist across save/load — close the game, come
+back, and the dialogue opens at the right hour.
+
 ---
 
 ← [Systems reference](Systems-Reference) · [Home](Home) · [Shipping & trade →](Shipping-and-Trade)

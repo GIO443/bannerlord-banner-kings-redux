@@ -19,6 +19,14 @@ namespace BannerKings.Settings
         [SettingPropertyGroup("{=FnRzVf4Q}Performance")]
         public bool Feasts { get; set; } = true;
 
+        [SettingProperty("Enable Telepathy", RequireRestart = false, HintText = "When ON, BK adds a 'Reach out with a thought' option to the in-settlement Banner Kings actions submenu that lets the player open the standard dialogue UI with any met hero, after a distance-based delay (the farther the recipient, the longer the wait). Fantasy / roleplay convenience — OFF by default for purists. Default: false.")]
+        [SettingPropertyGroup("{=FnRzVf4Q}Performance")]
+        public bool EnableTelepathy { get; set; } = false;
+
+        [SettingPropertyFloatingInteger("Telepathy Delay Multiplier", minValue: 0.25f, maxValue: 4f, "#0%", RequireRestart = false, HintText = "Scales how long a thought takes to reach its recipient. 100% = ~0.5h per map unit, clamped to the [1h, 10d] window. Lower for snappier conversations, higher for more 'long-distance' framing. Default: 100%.")]
+        [SettingPropertyGroup("{=FnRzVf4Q}Performance")]
+        public float TelepathyDelayMultiplier { get; set; } = 1f;
+
         [SettingProperty("Enable Religion System", RequireRestart = true, HintText = "Master kill switch for the v1.8.9.0+ religion content (faiths, divinities, doctrines, preachers, piety, holy wars, the religion HUD widget). When OFF, BK skips seeding the seven default religions, doesn't register the religion campaign behavior, and doesn't surface piety in the map bar — the entire system goes dormant. Save data already containing religion entries (loaded from a religion-enabled save) is silently dropped on the first PostInitialize tick. Saves made on this branch can later be re-loaded with religion ON and the seven faiths re-seed automatically. Requires restart because seeding happens at game-data-load time. Default: ON (existing saves keep their religion state).")]
         [SettingPropertyGroup("{=FnRzVf4Q}Performance")]
         public bool EnableReligion { get; set; } = true;

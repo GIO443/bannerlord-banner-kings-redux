@@ -285,6 +285,8 @@ namespace BannerKings
             ConstructContainerDefinition(typeof(Dictionary<CultureObject, InnovationData>));
             ConstructContainerDefinition(typeof(Dictionary<Religion, float>));
             ConstructContainerDefinition(typeof(Dictionary<Town, CampaignTime>));
+            // v1.9.10.7+ — BKTelepathyBehavior pending deliveries.
+            ConstructContainerDefinition(typeof(Dictionary<Hero, CampaignTime>));
             ConstructContainerDefinition(typeof(Dictionary<MineralType, float>));
             ConstructContainerDefinition(typeof(Dictionary<Town, int>));
             ConstructContainerDefinition(typeof(List<DemesneLaw>));

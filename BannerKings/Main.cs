@@ -158,6 +158,12 @@ namespace BannerKings
             // estate-as-village-workshop redesign and the retinue mechanic
             // will be revisited then.
             campaignStarter.AddBehavior(new BKFeastBehavior());
+            // v1.9.10.8 — Telepathy: opt-in "reach out with a thought"
+            // menu option that opens vanilla dialogue with any met hero
+            // after a distance-based delay. Always registered (the
+            // menu condition checks the MCM toggle); when EnableTelepathy
+            // is false the option is hidden and no save state accrues.
+            campaignStarter.AddBehavior(new BKTelepathyBehavior());
 
             // BK's workshop system is retired — Bannerlord Living Economy owns
             // workshop production (WorkshopProductionPatch). BKWorkshopBehavior
