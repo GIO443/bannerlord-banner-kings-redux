@@ -93,6 +93,39 @@ namespace BannerKings.Actions
             if (originalClan != null)
             {
                 ChangeKingdomAction.ApplyByJoinToKingdom(clan, originalClan.Kingdom, default(CampaignTime), false);
+                // v1.9.10.11 — full severance: clear lingering BK refs in
+                // the original clan that would otherwise keep the now-
+                // knighted hero visible there. Vanilla Hero.Clan setter
+                // moves the hero's _lords entry but doesn't touch BK
+                // CourtManager council seats or vanilla party role
+                // assignments (Engineer/Surgeon/Quartermaster/Scout) the
+                // hero held on someone else's party in the old clan.
+                try
+                {
+                    var oldCouncil = BannerKingsConfig.Instance?.CourtManager?.GetCouncil(originalClan);
+                    if (oldCouncil != null)
+                    {
+                        foreach (var pos in oldCouncil.GetHeroPositions(hero))
+                        {
+                            pos.SetMember(null);
+                        }
+                    }
+                }
+                catch { /* defensive — never break clan creation on a court hiccup */ }
+
+                try
+                {
+                    foreach (var wpc in originalClan.WarPartyComponents)
+                    {
+                        var mp = wpc?.MobileParty;
+                        if (mp == null) continue;
+                        if (mp.EffectiveEngineer == hero) mp.SetPartyEngineer(null);
+                        if (mp.EffectiveSurgeon == hero) mp.SetPartySurgeon(null);
+                        if (mp.EffectiveQuartermaster == hero) mp.SetPartyQuartermaster(null);
+                        if (mp.EffectiveScout == hero) mp.SetPartyScout(null);
+                    }
+                }
+                catch { /* defensive */ }
             }
 
             BannerKingsConfig.Instance.TitleManager.RemoveKnights(hero);
