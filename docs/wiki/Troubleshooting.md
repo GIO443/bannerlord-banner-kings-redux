@@ -24,6 +24,16 @@
 - **"Crash hovering parties in the Army Management screen"** — fixed.
   Caused by BK's mercenary eligibility tweak leaving the hover tooltip's
   reason text null. Update to a current Banner Kings — Redux build.
+- **"My kingdom's Legitimacy is always 0"** — fixed in v1.9.10.3. The
+  clan-tier penalty in the legitimacy model was on the wrong scale —
+  whole-number penalties (-5/-10/-20) sat next to fractional bonuses
+  (+0.075/+0.10/+0.30) for titles, culture, and faith. Any tier-4 or
+  lower ruler's Legitimacy target went deeply negative and clamped to
+  0 regardless of how well they were playing the realm. Penalty
+  rescaled to match the fractional scale (-0.05/-0.10/-0.20). Open
+  Kingdom → Demesne → Legitimacy breakdown to verify the contribution
+  now sits alongside the title / culture / faith lines instead of
+  dominating them.
 - **"War Support says 0% but nobody votes for peace"** — fixed in
   v1.9.10.2. The kingdom screen's *War Support* % runs BK's full
   decision model (war fatigue, war score, casus belli expiry), so it

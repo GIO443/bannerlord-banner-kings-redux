@@ -142,14 +142,22 @@ namespace BannerKings.Models.BKModels
                 .SetTextVariable("GRACE", grace)
                 .SetTextVariable("EXPECTED", expectedGrace));
 
+            // v1.9.10.3 — was integer scalars (-5/-10/-20) while every
+            // other contribution above is fractional (0.075..0.30).
+            // LegitimacyTarget.ResultNumber is clamped to [0,1] in
+            // KingdomDiplomacy.LegitimacyChange, so any tier-<5 ruler
+            // pinned target legitimacy at 0 regardless of titles,
+            // culture, faith, traits, or lordship skill — players
+            // reported "legitimacy perpetually 0". Rescale to the same
+            // fractional bucket as the rest of the model.
             int tier = hero.Clan.Tier;
             if (tier < 5)
             {
-                int factor = tier switch
+                float factor = tier switch
                 {
-                    4 => -5,
-                    3 => -10,
-                    _ => -20
+                    4 => -0.05f,
+                    3 => -0.10f,
+                    _ => -0.20f
                 };
 
                 result.Add(factor, new TextObject("{=bbOk856z}Clan tier"));
