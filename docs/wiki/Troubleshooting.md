@@ -24,6 +24,20 @@
 - **"Crash hovering parties in the Army Management screen"** — fixed.
   Caused by BK's mercenary eligibility tweak leaving the hover tooltip's
   reason text null. Update to a current Banner Kings — Redux build.
+- **"Crash on opening Inventory / toggling equip-mode"** — fixed in
+  v1.9.10.5. Vanilla's `TownMarketData.GetCategoryData(null)` throws
+  `ArgumentNullException` from `Dictionary.FindEntry` when an item in
+  your inventory has no `ItemCategory` set — usually a custom item
+  from another installed content mod whose XML omitted the category
+  attribute. Finalizer on `InventoryLogic.GetItemPrice` returns 0 for
+  the affected slot so the rest of the inventory renders normally.
+- **"Crash on daily tick: NRE in Religion.GenerateClergyman"** — fixed
+  in v1.9.10.5. When a Faith doesn't have a rank title configured for
+  a settlement's ideal rank, or when no eligible hero culture exists
+  for the preset, the clergy generator NRE'd on the daily settlement
+  tick and killed the campaign. Defensive null guards on the title,
+  generated hero, and culture lookups. The generator simply skips that
+  settlement this tick and retries next day.
 - **"Crash on AI tick: IndexOutOfRangeException in GetCharacterAtIndex /
   morale calculation"** — fixed in v1.9.10.4. v1.9.9.6 already added a
   finalizer on the inner `TroopRoster.GetCharacterAtIndex` method, but

@@ -162,7 +162,18 @@ namespace BannerKings.Managers.Institutions.Religions
 
             var character = Faith.GetPreset(rank);
             var title = Faith.GetRankTitle(rank);
-            Hero preacher = settlement.HeroesWithoutParty.FirstOrDefault(x => x.IsPreacher && x.Name.ToString().Contains(title.ToString()));
+            // v1.9.10.5 — title can be null when a Faith doesn't have a
+            // rank title configured for the computed rank (user crash
+            // 2026-05-29 crashreport.html: NRE at GenerateClergyman
+            // line ~198 during daily settlement tick). When title is
+            // missing we can't match an existing preacher by name; skip
+            // the preacher lookup and fall through to generation.
+            Hero preacher = null;
+            if (title != null)
+            {
+                preacher = settlement.HeroesWithoutParty.FirstOrDefault(x =>
+                    x.IsPreacher && x.Name != null && x.Name.ToString().Contains(title.ToString()));
+            }
             if (preacher != null)
             {
                 var clergyman = new Clergyman(preacher, rank);
@@ -181,6 +192,12 @@ namespace BannerKings.Managers.Institutions.Religions
             if (character != null)
             {
                 var hero = GenerateClergymanHero(character, settlement, rank);
+                // v1.9.10.5 — GenerateClergymanHero can return null
+                // (no cultural settlement, no fallback, HeroCreator
+                // failed). EnterSettlementAction + Clergyman ctor +
+                // hero.Culture write all NRE on null hero. Bail; the
+                // generator retries next daily tick.
+                if (hero == null) return null;
                 EnterSettlementAction.ApplyForCharacterOnly(hero, settlement);
                 var clergyman = new Clergyman(hero, rank);
                 if (!clergy.ContainsKey(settlement))
@@ -190,7 +207,7 @@ namespace BannerKings.Managers.Institutions.Religions
                 {
                     clergy[settlement] = clergyman;
                 }
-                hero.Culture = character.Culture;
+                if (character.Culture != null) hero.Culture = character.Culture;
                 BannerKingsConfig.Instance.ReligionsManager.AddToReligion(hero, this);
                 return clergyman;
             }
