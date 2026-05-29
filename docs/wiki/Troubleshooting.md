@@ -59,6 +59,19 @@
   Kingdom → Demesne → Legitimacy breakdown to verify the contribution
   now sits alongside the title / culture / faith lines instead of
   dominating them.
+- **"Wars never end / forever-war stalemates"** — extended in v1.9.10.6.
+  v1.9.10.2 fixed *decisively losing* kingdoms (war fatigue past 0.6
+  with a clearly negative war score) — that vote now passes. But many
+  forever-wars are stalemates: two evenly-matched kingdoms grinding
+  away with high mutual fatigue but neither side's war score is
+  decisively negative. Neither side qualified as "losing" so nobody
+  proposed peace and nobody pushed the vote. The proposer now also
+  queues peace when **either** side is sufficiently exhausted
+  (fatigue >= 0.5 with at least neutral score). The vote-push formula
+  adds an `exhaustion` term that ramps from 0 at fatigue=0.5 to 0.5
+  at fatigue=1.0, so both sides of a stalemate get a mild push toward
+  peace while decisive losers still get the strong push. Wars that
+  used to sit at 90% mutual fatigue forever should now wind down.
 - **"War Support says 0% but nobody votes for peace"** — fixed in
   v1.9.10.2. The kingdom screen's *War Support* % runs BK's full
   decision model (war fatigue, war score, casus belli expiry), so it

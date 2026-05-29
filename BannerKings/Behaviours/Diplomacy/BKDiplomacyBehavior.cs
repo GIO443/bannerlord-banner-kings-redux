@@ -458,10 +458,25 @@ namespace BannerKings.Behaviours.Diplomacy
             var bk = TaleWorlds.CampaignSystem.Campaign.Current.GetCampaignBehavior<BKDiplomacyBehavior>();
             var diplo = bk?.GetKingdomDiplomacy(k);
             if (diplo == null) return;
-            if (diplo.Fatigue < 0.6f) return;
 
             BKExplainedNumber score = war.CalculateWarScore(k, false);
-            if (score.ResultNumber > -0.3f) return; // not losing enough
+            float fatigue = diplo.Fatigue;
+            float s = score.ResultNumber;
+
+            // v1.9.10.6 — was (fatigue >= 0.6 AND score <= -0.3). That gate
+            // never fired for stalemate wars: two evenly-matched kingdoms
+            // each accumulate high mutual fatigue but neither has a
+            // decisively negative war score → neither side ever queued a
+            // peace proposal and forever wars persisted.
+            //
+            // Two-condition gate now: either decisively losing OR
+            // mutually exhausted (fatigue >= 0.5 with at least neutral
+            // score). Matches the symmetric loss formula in the
+            // MakePeaceKingdomDecision DetermineSupport postfix — what
+            // pushes the vote also queues the proposal.
+            bool losing = fatigue >= 0.6f && s <= -0.3f;
+            bool exhausted = fatigue >= 0.5f && s <= 0.1f;
+            if (!losing && !exhausted) return;
 
             // Skip if a peace decision is already queued for this pair.
             foreach (var pending in k.UnresolvedDecisions)
@@ -478,7 +493,7 @@ namespace BannerKings.Behaviours.Diplomacy
                 k.AddDecision(new TaleWorlds.CampaignSystem.Election.MakePeaceKingdomDecision(
                     k.RulingClan, otherSide), false);
                 BannerKings.Utils.Logs.Kingdom(() =>
-                    $"force-propose peace: {k.Name} → {otherSide.Name} (fatigue={diplo.Fatigue:0.00}, score={score.ResultNumber:0.00})");
+                    $"force-propose peace: {k.Name} → {otherSide.Name} (fatigue={fatigue:0.00}, score={s:0.00}, mode={(losing ? "losing" : "exhausted")})");
             }
             catch { /* defensive */ }
         }

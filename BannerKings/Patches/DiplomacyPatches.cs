@@ -608,14 +608,20 @@ namespace BannerKings.Patches
                 try { score = war.CalculateWarScore(clan.Kingdom, false).ResultNumber; }
                 catch { return; }
 
-                // Align with the proposer's threshold in
-                // ForceProposePeaceFromLosingSide (fatigue >= 0.6 AND
-                // score <= -0.3): under either floor, contributes 0 to
-                // loss; above each floor, ramps continuously. The
-                // proposer says "we should sue for peace" only past the
-                // floors, and the voter starts pushing exactly there —
-                // no daylight between proposal gate and vote pressure.
-                float loss = MathF.Max(0f, fatigue - 0.6f) + MathF.Max(0f, -score - 0.3f);
+                // Loss has two terms:
+                //   exhaustion: pure fatigue past 0.5 — handles stalemates
+                //     where two evenly-matched kingdoms grind without a
+                //     decisive war score; both sides accumulate fatigue,
+                //     both sides get a mild push toward peace.
+                //   defeat:     -score past -0.3 — handles decisive losers
+                //     with a strong push proportional to how badly they're
+                //     losing.
+                // Mirrors the two-condition proposer gate in
+                // ForceProposePeaceFromLosingSide: anything that queues a
+                // peace proposal also gets at least a mild voter push.
+                float exhaustion = MathF.Max(0f, fatigue - 0.5f);
+                float defeat = MathF.Max(0f, -score - 0.3f);
+                float loss = exhaustion + defeat;
                 if (loss <= 0f) return;
 
                 // Same ±80-style magnitude BK uses on policy votes
