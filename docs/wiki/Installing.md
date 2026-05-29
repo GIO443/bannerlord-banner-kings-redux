@@ -58,19 +58,25 @@ enabled but Living Economy missing, BK will fail to load.
    carries your existing BK population into Living Economy on first load;
    back the save up first, as always.
 
-## Sub-mod compatibility
+## Sub-mods
 
 **Sub-mods built against the original Banner Kings are not supported.** This
 specifically includes Cultures Expanded and any mod that derives from the
 original BK release. They will likely crash or behave incorrectly on Redux.
 
-For other mods, BK detects common companions at startup and yields its
-overlapping features automatically — no configuration needed. The
-authoritative source on what compat shims are wired in is
-[`BannerKings/Utils/ModCompat.cs`](https://github.com/GIO443/bannerlord-banner-kings-redux/blob/main/BannerKings/Utils/ModCompat.cs).
-If a specific mod isn't behaving as expected with BK loaded, file an
-issue and we'll add or adjust a shim — but assume it works until you
-have a concrete report.
+## Other mods
+
+No guarantees in either direction. Mods that touch the same systems BK
+touches (economy, garrisons, recruitment, diplomacy, workshops, etc.)
+may or may not coexist cleanly with Banner Kings on any given combination
+of versions. We can't keep a current compatibility matrix and don't try —
+the moving target of other mods' update schedules makes any list stale
+within weeks.
+
+Try the combo you want. If something is clearly broken, file an issue
+with both versions named. If you can't tell which mod is at fault, BK's
+[Troubleshooting](Troubleshooting) page has a triage approach (look at
+crash logs, isolate by disabling halves of the load order).
 
 ## Recommended load order
 
@@ -82,8 +88,7 @@ Native → SandBoxCore → SandBox → StoryMode → CustomBattle
 NavalDLC (if installed)
 Bannerlord Living Economy
 Banner Kings — Redux
-Diplomacy / Recruit Everywhere / MarryAnyone /
-Buy Land at Villages / RBMCombat / etc.
+Other gameplay mods
 Bannerlord Tweaks / cosmetic mods / etc.
 ```
 

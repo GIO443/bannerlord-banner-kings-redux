@@ -43,7 +43,7 @@ This **Redux fork** brings the mod current with Bannerlord v1.4 and adds a layer
 
 ## Pages on this wiki
 
-- **[Installing](Installing)** — requirements, install steps, sub-mod compat warnings.
+- **[Installing](Installing)** — requirements, install steps, recommended load order.
 - **[Getting started](Getting-Started)** — what's in the mod (high-level), the first 30 minutes, glossary of terms that come up constantly.
 - **[Systems reference](Systems-Reference)** — lifestyles, demesne laws, per-settlement policies, faiths. Tables you look up while playing.
 - **[Player guide](Player-Guide)** — step-by-step "how do I…" recipes plus the per-system FAQ for population, titles, religion, education, diplomacy, mercenaries.
