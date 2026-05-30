@@ -254,6 +254,17 @@ namespace BannerKings.Behaviours
             // moves the entry between collections via the engine's
             // intended sync hook. Idempotent; future loads after the
             // sweep find no mismatches.
+            // v1.9.10.17 — restrict to LordPartyComponent. The original
+            // v1.9.10.13 sweep moved every party whose hero-leader's
+            // Clan disagreed with ActualClan, but that ALSO included
+            // caravans (owned by clan A, hired-hero-led from clan B —
+            // legitimately different), bandit parties, and any other
+            // sponsored component type. Caravans got force-moved to
+            // their hired leader's clan and vanished from the owner
+            // kingdom's parties list (user report: "some kingdoms have
+            // no parties"). The disagreement-implies-corruption
+            // assumption only holds for lord parties, where leader and
+            // owner are always the same hero.
             try
             {
                 int reconciled = 0;
@@ -263,16 +274,57 @@ namespace BannerKings.Behaviours
                     var mp = hero.PartyBelongedTo;
                     if (mp == null || hero.Clan == null) continue;
                     if (mp.ActualClan == hero.Clan) continue;
-                    // Only reconcile when this hero is the party's
-                    // leader. Member-only heroes don't own the party
-                    // and shouldn't drag ActualClan with them.
                     if (mp.LeaderHero != hero) continue;
+                    if (!(mp.PartyComponent is TaleWorlds.CampaignSystem.Party.PartyComponents.LordPartyComponent)) continue;
                     try { mp.ActualClan = hero.Clan; reconciled++; } catch { }
                 }
                 if (reconciled > 0)
                 {
                     BannerKings.Utils.Logs.Kingdom(() =>
-                        $"knight-party clan retrofit: reconciled {reconciled} parties whose ActualClan disagreed with leader Hero.Clan (legacy v1.9.10.10 heal)");
+                        $"knight-party clan retrofit: reconciled {reconciled} lord parties whose ActualClan disagreed with leader Hero.Clan (legacy v1.9.10.10 heal)");
+                }
+            }
+            catch { /* never block load on retrofit */ }
+
+            // v1.9.10.17 — heal saves where v1.9.10.13's over-broad
+            // sweep already moved caravans / villager parties / etc. to
+            // the wrong clan. Walk all mobile parties and restore the
+            // correct ActualClan based on the component type's
+            // intended owner. Idempotent.
+            try
+            {
+                int caravansHealed = 0;
+                int villagersHealed = 0;
+                foreach (var mp in TaleWorlds.CampaignSystem.Party.MobileParty.All)
+                {
+                    if (mp == null) continue;
+                    try
+                    {
+                        if (mp.PartyComponent is TaleWorlds.CampaignSystem.Party.PartyComponents.CaravanPartyComponent caravan)
+                        {
+                            var ownerClan = caravan.Owner?.Clan;
+                            if (ownerClan != null && mp.ActualClan != ownerClan)
+                            {
+                                mp.ActualClan = ownerClan;
+                                caravansHealed++;
+                            }
+                        }
+                        else if (mp.PartyComponent is TaleWorlds.CampaignSystem.Party.PartyComponents.VillagerPartyComponent villager)
+                        {
+                            var villageClan = villager.Village?.Settlement?.OwnerClan;
+                            if (villageClan != null && mp.ActualClan != villageClan)
+                            {
+                                mp.ActualClan = villageClan;
+                                villagersHealed++;
+                            }
+                        }
+                    }
+                    catch { }
+                }
+                if (caravansHealed > 0 || villagersHealed > 0)
+                {
+                    BannerKings.Utils.Logs.Kingdom(() =>
+                        $"v1.9.10.13-sweep heal: restored {caravansHealed} caravans + {villagersHealed} villager parties to their intended owner clan");
                 }
             }
             catch { /* never block load on retrofit */ }

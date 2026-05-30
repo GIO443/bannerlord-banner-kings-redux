@@ -1,6 +1,7 @@
 using HarmonyLib;
 using TaleWorlds.CampaignSystem.Actions;
 using TaleWorlds.CampaignSystem.Party;
+using TaleWorlds.CampaignSystem.Party.PartyComponents;
 
 namespace BannerKings.Patches
 {
@@ -34,6 +35,13 @@ namespace BannerKings.Patches
         private static bool Prefix(MobileParty mobileParty)
         {
             if (mobileParty == null) return true;
+            // v1.9.10.17 — only reconcile lord parties. For caravans /
+            // villager parties / etc. the leader hero is hired from a
+            // different clan than the owning clan, and ActualClan
+            // correctly differs from LeaderHero.Clan. Forcing equality
+            // there moves the party to the wrong clan and breaks
+            // ownership (user report: "some kingdoms have no parties").
+            if (!(mobileParty.PartyComponent is LordPartyComponent)) return true;
             var leader = mobileParty.LeaderHero;
             if (leader == null || leader.Clan == null) return true;
             if (mobileParty.ActualClan == leader.Clan) return true;

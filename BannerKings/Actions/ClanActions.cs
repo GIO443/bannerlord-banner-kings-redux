@@ -59,9 +59,10 @@ namespace BannerKings.Actions
             clan.SetLeader(hero);
             clan.SetInitialHomeSettlement(settlement);
 
-            // v1.9.10.10 — re-parent any party the hero is leading.
-            // Setting hero.Clan doesn't touch WarPartyComponents; the
-            // source of truth is MobileParty.ActualClan, which fires
+            // v1.9.10.10 — re-parent any lord party the hero is
+            // leading. Setting hero.Clan doesn't touch
+            // WarPartyComponents; the source of truth is
+            // MobileParty.ActualClan, which fires
             // WarPartyComponent.OnClanChange(old, new) to remove the
             // entry from the old clan's WarPartyComponents collection
             // and add it to the new clan's. Without this, the knight
@@ -69,9 +70,17 @@ namespace BannerKings.Actions
             // in the original clan — players saw it in BOTH clans on
             // the management screen ("they remain in your clan
             // incorrectly as well as being in the new clan").
-            if (hero.PartyBelongedTo != null && hero.PartyBelongedTo.ActualClan != clan)
+            //
+            // v1.9.10.17 — only reassign LORD parties. If the hero
+            // happens to lead a caravan or a villager party (unusual
+            // but possible), those carry ActualClan = owning-clan,
+            // which legitimately differs from leader-Clan and should
+            // not be force-moved on the leader's clan change.
+            if (hero.PartyBelongedTo is { } mpNew
+                && mpNew.PartyComponent is TaleWorlds.CampaignSystem.Party.PartyComponents.LordPartyComponent
+                && mpNew.ActualClan != clan)
             {
-                hero.PartyBelongedTo.ActualClan = clan;
+                mpNew.ActualClan = clan;
             }
 
             if (hero.Spouse != null && !Utils.Helpers.IsClanLeader(hero.Spouse))
@@ -143,13 +152,19 @@ namespace BannerKings.Actions
             hero.CompanionOf = null;
             hero.SetNewOccupation(Occupation.Lord);
             hero.Clan = clan;
-            // Re-parent any party the joining hero leads — same
+            // Re-parent any LORD party the joining hero leads — same
             // duplicate-source-of-truth fix as CreateNewClan. Rare via
             // this path (spouses/children typically don't lead parties
             // at the moment of clan-join) but cheap and correct.
-            if (hero.PartyBelongedTo != null && hero.PartyBelongedTo.ActualClan != clan)
+            //
+            // v1.9.10.17 — only LordPartyComponent. Caravans/villager
+            // parties carry ActualClan = owning-clan independent of
+            // leader-Clan and should not be force-moved.
+            if (hero.PartyBelongedTo is { } mpJoin
+                && mpJoin.PartyComponent is TaleWorlds.CampaignSystem.Party.PartyComponents.LordPartyComponent
+                && mpJoin.ActualClan != clan)
             {
-                hero.PartyBelongedTo.ActualClan = clan;
+                mpJoin.ActualClan = clan;
             }
         }
 
