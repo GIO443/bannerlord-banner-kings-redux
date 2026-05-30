@@ -92,7 +92,26 @@ namespace BannerKings.Models.BKModels
             var overLimit = studentData.Languages.Count - CalculateLanguageLimit(student).ResultNumber;
             if (overLimit > 0f)
             {
-                result.AddFactor(-0.33f * overLimit, new TextObject("{=1ssSRbe5}Over languages limit"));
+                // v1.9.10.15 — was uncapped `-0.33f * overLimit`. With
+                // overLimit=3 that's -0.99 (rate ≈ 1% of base, displays
+                // as 0.00%); overLimit=4 with other negative factors
+                // crossed -1 and LimitMin(0) clamped the result to
+                // exactly 0 → no progress ever. Cap the per-step
+                // penalty at -0.66 so a fluent instructor always
+                // produces measurable progress, even when the student
+                // is far over their language limit.
+                float penalty = TaleWorlds.Library.MathF.Max(-0.66f, -0.33f * overLimit);
+                result.AddFactor(penalty, new TextObject("{=1ssSRbe5}Over languages limit"));
+            }
+
+            // v1.9.10.15 — final floor: once an instructor is set and
+            // fluent (the picker enforces fluency == 1.0 via KnowsLanguage),
+            // the student MUST see progress. Any combination of negative
+            // factors that drove the rate below 0.1 is clamped up so
+            // language learning is always perceptibly advancing.
+            if (instructor != null && result.ResultNumber < 0.1f)
+            {
+                result.Add(0.1f - result.ResultNumber, new TextObject("{=BKlang_floor}Minimum learning rate"));
             }
 
             return result;

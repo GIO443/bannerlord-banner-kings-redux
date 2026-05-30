@@ -173,6 +173,26 @@ namespace BannerKings.Managers.Education
 
         public void SetCurrentLanguage(Language language, Hero instructor)
         {
+            // v1.9.10.15 — guard: if the student is already fully
+            // fluent in the picked language (native speaker, or one
+            // they previously mastered), don't accept the setup.
+            // Otherwise the daily tick would add +0.000913 to a
+            // languages[lang] already at 1.0, the >=1f branch in
+            // GainLanguageFluency would silently clear the instructor,
+            // and the player sees no progress and no error.
+            if (language != null && languages.TryGetValue(language, out var existing) && existing >= 1f)
+            {
+                if (hero == Hero.MainHero)
+                {
+                    InformationManager.DisplayMessage(new InformationMessage(
+                        new TextObject("{=BKlang_already_fluent}{HERO} is already fluent in {LANGUAGE}.")
+                            .SetTextVariable("HERO", hero.Name)
+                            .SetTextVariable("LANGUAGE", language.Name)
+                            .ToString()));
+                }
+                return;
+            }
+
             if (language != null && !languages.ContainsKey(language))
             {
                 languages.Add(language, 0f);
@@ -324,7 +344,15 @@ namespace BannerKings.Managers.Education
 
         internal override void Update(PopulationData data)
         {
-            if (LanguageInstructor != null && (LanguageInstructor.IsDead || LanguageInstructor.IsDisabled))
+            // v1.9.10.15 — was `IsDead || IsDisabled`. IsDisabled can be
+            // true for transient states (wounded, traveling-between-
+            // settlements, sometimes for court members the engine has
+            // momentarily marked unavailable) — clearing on every such
+            // tick wiped the user's instructor selection daily without
+            // a CTD. Only sever the relationship on permanent failure
+            // states: dead, or no longer in a state any UI surface
+            // could rebind them through.
+            if (LanguageInstructor != null && LanguageInstructor.IsDead)
             {
                 if (hero == Hero.MainHero)
                 {
