@@ -176,11 +176,22 @@ namespace BannerKings.Managers
 
         public void UpdateHeroData(Hero hero)
         {
-            EducationData data = null;
-            lock (CacheLock)
-            {
-                if (Educations != null) Educations.TryGetValue(hero, out data);
-            }
+            // v1.9.10.16 — was TryGetValue: when the daily tick fired
+            // for a hero whose EducationData wasn't in the cache yet
+            // (rare race: dict drop on a load-time clean, or a hero
+            // ticked before any UI/manager-path touched their data),
+            // the call silently skipped. For the player learning a
+            // language, that meant the data the UI created (which set
+            // CurrentLanguage / LanguageInstructor) and the data the
+            // tick reads could diverge in odd reload sequences. Lazy-
+            // init via GetHeroEducation ensures every daily tick has
+            // a live data object to drive Update on.
+            //
+            // GetHeroEducation itself only seeds native-at-1.0 if the
+            // entry is missing — it never wipes an existing entry —
+            // so calling it is safe even if the hero's data was
+            // already set up properly.
+            EducationData data = GetHeroEducation(hero);
             data?.Update(null);
         }
 

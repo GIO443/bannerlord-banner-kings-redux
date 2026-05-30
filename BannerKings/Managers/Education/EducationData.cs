@@ -238,6 +238,16 @@ namespace BannerKings.Managers.Education
 
         public void GainLanguageFluency(Language language, float rate)
         {
+            // v1.9.10.16 — defensive: SetCurrentLanguage normally adds
+            // the language to the dict at 0.0, but a re-loaded save or
+            // a state migration could leave CurrentLanguage pointing
+            // at a language not present in the dict. The `languages[
+            // language] += ...` below would then KeyNotFoundException
+            // and the daily tick chain dies silently inside the wrap.
+            // Cheap one-line guard restores the invariant.
+            if (language == null) return;
+            if (!languages.ContainsKey(language)) languages.Add(language, 0f);
+
             var result = LANGUAGE_RATE * rate;
             if (float.IsNaN(result) || float.IsInfinity(result) || result < 0f) result = 0f;
             if (result > 0.05f) result = 0.05f;
@@ -397,7 +407,39 @@ namespace BannerKings.Managers.Education
 
             if (CurrentLanguage != null && LanguageInstructor != null)
             {
-                GainLanguageFluency(CurrentLanguage, CurrentLanguageLearningRate.ResultNumber);
+                float rate = CurrentLanguageLearningRate.ResultNumber;
+                GainLanguageFluency(CurrentLanguage, rate);
+                // v1.9.10.16 — visible-in-F2 trace for the player so a
+                // "no progress after a month" report has a concrete
+                // per-day rate to look at. One line per day.
+                if (hero == Hero.MainHero)
+                {
+                    try
+                    {
+                        TaleWorlds.Library.Debug.Print(
+                            "[BK] Lang tick: " + CurrentLanguage.Name + " from " + LanguageInstructor.Name
+                            + " rate=" + rate.ToString("0.0000")
+                            + " fluency=" + (languages.ContainsKey(CurrentLanguage) ? languages[CurrentLanguage] : 0f).ToString("0.0000"),
+                            color: TaleWorlds.Library.Debug.DebugColor.Yellow);
+                    }
+                    catch { }
+                }
+            }
+            else if (hero == Hero.MainHero && (CurrentLanguage != null || LanguageInstructor != null))
+            {
+                // Half-state — language picked but instructor missing,
+                // or vice versa. Surface it so we know which side
+                // dropped.
+                try
+                {
+                    TaleWorlds.Library.Debug.Print(
+                        "[BK] Lang tick: half-state. CurrentLanguage="
+                        + (CurrentLanguage?.Name?.ToString() ?? "null")
+                        + " LanguageInstructor="
+                        + (LanguageInstructor?.Name?.ToString() ?? "null"),
+                        color: TaleWorlds.Library.Debug.DebugColor.Yellow);
+                }
+                catch { }
             }
 
             if (CurrentBook != null)
