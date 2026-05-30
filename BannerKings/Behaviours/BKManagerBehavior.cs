@@ -236,6 +236,47 @@ namespace BannerKings.Behaviours
             }
             catch { /* never block load on retrofit */ }
 
+            // v1.9.10.13 — legacy-save heal for the knight-party
+            // duplicate-clan bug fixed in v1.9.10.10. Saves where a hero
+            // was knighted before that fix have Hero.Clan = newClan but
+            // MobileParty.ActualClan still pointing at the original
+            // clan, so the party is double-listed (or wrong-listed) in
+            // WarPartyComponents. Vanilla disband path
+            // (DisbandPartyCampaignBehavior.OnPartyDisbandStarted)
+            // iterates party.ActualClan.Heroes — on a knight-clan whose
+            // ActualClan still points at the old clan, this can
+            // unconditionally NRE and CTD with no popup.
+            //
+            // Fix: walk every Hero, find any whose PartyBelongedTo's
+            // ActualClan disagrees with Hero.Clan, and re-point
+            // MobileParty.ActualClan. Setting ActualClan triggers
+            // vanilla's WarPartyComponent.OnClanChange(old, new) which
+            // moves the entry between collections via the engine's
+            // intended sync hook. Idempotent; future loads after the
+            // sweep find no mismatches.
+            try
+            {
+                int reconciled = 0;
+                foreach (var hero in Hero.AllAliveHeroes)
+                {
+                    if (hero == null) continue;
+                    var mp = hero.PartyBelongedTo;
+                    if (mp == null || hero.Clan == null) continue;
+                    if (mp.ActualClan == hero.Clan) continue;
+                    // Only reconcile when this hero is the party's
+                    // leader. Member-only heroes don't own the party
+                    // and shouldn't drag ActualClan with them.
+                    if (mp.LeaderHero != hero) continue;
+                    try { mp.ActualClan = hero.Clan; reconciled++; } catch { }
+                }
+                if (reconciled > 0)
+                {
+                    BannerKings.Utils.Logs.Kingdom(() =>
+                        $"knight-party clan retrofit: reconciled {reconciled} parties whose ActualClan disagreed with leader Hero.Clan (legacy v1.9.10.10 heal)");
+                }
+            }
+            catch { /* never block load on retrofit */ }
+
             BKItems.Instance.AdjustPrices();
         }
 
