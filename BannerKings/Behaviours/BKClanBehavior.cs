@@ -832,6 +832,24 @@ namespace BannerKings.Behaviours
 
             if (clan.IsUnderMercenaryService) return;
 
+            // v1.9.10.19 — grace period at campaign start. Kingdoms with
+            // no active wars at game creation (vanilla 1.4 Battania,
+            // Khuzait, Nord) were hitting this branch on the very first
+            // daily clan tick and losing every non-leader / non-de-jure-
+            // titled companion party — vanilla then auto-recruited
+            // smaller replacement parties via ClanVariablesCampaignBehavior,
+            // leaving those three kingdoms with permanently fewer troops
+            // (~6k missing per user report). Skip the dismissal during
+            // the first 30 in-game days so the starting clan roster has
+            // time to be valuable. After 30 days, the feature works as
+            // intended — peaceful AI clans save money on parties they
+            // don't need.
+            if (Campaign.Current?.Models?.CampaignTimeModel != null
+                && Campaign.Current.Models.CampaignTimeModel.CampaignStartTime.ElapsedDaysUntilNow < 30f)
+            {
+                return;
+            }
+
             if (!FactionHelper.GetEnemyKingdoms(kingdom).Any())
             {
                 List<MobileParty> toDismiss = new List<MobileParty>();
