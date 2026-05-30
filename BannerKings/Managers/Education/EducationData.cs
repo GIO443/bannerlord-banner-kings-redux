@@ -251,6 +251,15 @@ namespace BannerKings.Managers.Education
             var result = LANGUAGE_RATE * rate;
             if (float.IsNaN(result) || float.IsInfinity(result) || result < 0f) result = 0f;
             if (result > 0.05f) result = 0.05f;
+            // v1.9.10.18 — hard floor at this layer. Regardless of what
+            // the rate computation produced upstream (NaN, negative,
+            // zero from clamped factors, etc.), if we reached here the
+            // player has BOTH a current language and an instructor set
+            // and they MUST see daily progress. The 25% of base
+            // LANGUAGE_RATE floor gives ~2% per in-game month even in
+            // the worst-case rate path — visible in the UI immediately.
+            const float MIN_DAILY = 0.001f;
+            if (result < MIN_DAILY) result = MIN_DAILY;
             languages[language] += result;
             if (languages[language] >= 1f)
             {
@@ -409,35 +418,24 @@ namespace BannerKings.Managers.Education
             {
                 float rate = CurrentLanguageLearningRate.ResultNumber;
                 GainLanguageFluency(CurrentLanguage, rate);
-                // v1.9.10.16 — visible-in-F2 trace for the player so a
-                // "no progress after a month" report has a concrete
-                // per-day rate to look at. One line per day.
-                if (hero == Hero.MainHero)
-                {
-                    try
-                    {
-                        TaleWorlds.Library.Debug.Print(
-                            "[BK] Lang tick: " + CurrentLanguage.Name + " from " + LanguageInstructor.Name
-                            + " rate=" + rate.ToString("0.0000")
-                            + " fluency=" + (languages.ContainsKey(CurrentLanguage) ? languages[CurrentLanguage] : 0f).ToString("0.0000"),
-                            color: TaleWorlds.Library.Debug.DebugColor.Yellow);
-                    }
-                    catch { }
-                }
             }
             else if (hero == Hero.MainHero && (CurrentLanguage != null || LanguageInstructor != null))
             {
-                // Half-state — language picked but instructor missing,
-                // or vice versa. Surface it so we know which side
-                // dropped.
+                // v1.9.10.18 — half-state surfacing as an in-game
+                // message so users can SEE what dropped (Debug.Print
+                // only goes to the IDE debugger / Debug.log file). One
+                // of CurrentLanguage / LanguageInstructor went null
+                // between pick and tick — neither should ever happen
+                // through normal play, so seeing this in F2 narrows
+                // the root cause immediately.
                 try
                 {
-                    TaleWorlds.Library.Debug.Print(
-                        "[BK] Lang tick: half-state. CurrentLanguage="
+                    InformationManager.DisplayMessage(new InformationMessage(
+                        "[BK] Language half-state: lang="
                         + (CurrentLanguage?.Name?.ToString() ?? "null")
-                        + " LanguageInstructor="
+                        + " instructor="
                         + (LanguageInstructor?.Name?.ToString() ?? "null"),
-                        color: TaleWorlds.Library.Debug.DebugColor.Yellow);
+                        Color.FromUint(Utils.TextHelper.COLOR_LIGHT_YELLOW)));
                 }
                 catch { }
             }
