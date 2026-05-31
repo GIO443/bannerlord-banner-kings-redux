@@ -770,6 +770,29 @@ namespace BannerKings.Utils
         /// the economic layer and the feudal layer agree on who holds the land.
         /// A null owner resets the parcel to abstract-local ownership.
         /// </summary>
+        /// <summary>
+        /// v1.9.10.28 — ensure a BetterEconomy estate parcel has non-zero
+        /// Quality and Size so the BK estate bound to it produces something.
+        /// Some seeding paths (a fresh village under a new Lordship grant,
+        /// the Indebted Lord campaign start, NPC-knighted clans on a
+        /// village that BE never previously visited) leave the parcel
+        /// at default 0 / 0 — the bound BK estate then shows no income
+        /// despite the player owning the title. This sets a modest
+        /// baseline (Quality 1.0, Size 1.0 = parcel value 1.0) without
+        /// stomping any non-zero values already in place.
+        /// </summary>
+        public static void EnsureMinimumEstateParcel(EstateRecord record,
+            float minQuality = 1f, float minSize = 1f)
+        {
+            if (record == null) return;
+            try
+            {
+                if (record.Quality < minQuality) record.Quality = minQuality;
+                if (record.Size < minSize) record.Size = minSize;
+            }
+            catch { /* defensive — never break estate binding on a BE field setter throw */ }
+        }
+
         public static void SetEstateOwner(EstateRecord record, Hero owner)
         {
             if (record == null)

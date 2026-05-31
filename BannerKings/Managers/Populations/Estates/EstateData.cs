@@ -310,6 +310,13 @@ namespace BannerKings.Managers.Populations.Estates
                 var record = BannerKings.Utils.BetterEconomyBridge.GetEstateById(Settlement, parcelId);
                 if (record != null)
                 {
+                    // v1.9.10.28 — guarantee baseline Quality / Size so the
+                    // bound BK estate produces something on first tick.
+                    // Some BE seeding paths (fresh Lordship grant village,
+                    // Indebted Lord start, NPC-knighted clan) leave the
+                    // parcel at 0 / 0 — the BK estate would then show no
+                    // income despite the player owning the title.
+                    BannerKings.Utils.BetterEconomyBridge.EnsureMinimumEstateParcel(record);
                     BannerKings.Utils.BetterEconomyBridge.SetEstateOwner(record, estate.Owner);
                 }
             }
