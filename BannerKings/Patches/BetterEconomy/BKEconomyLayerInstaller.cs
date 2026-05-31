@@ -488,22 +488,37 @@ namespace BannerKings.Patches.BetterEconomy
             try
             {
                 float strength = BannerKings.Settings.BannerKingsSettings.Instance?.BKEconomyLayerStrength ?? 0.5f;
-                if (strength <= 0f) return;
-                if (strength >= 0.999f && strength <= 1.001f)
+                if (strength > 0f)
                 {
-                    BannerKings.Models.Vanilla.BKProsperityModel.ApplyBKProsperityDeltas(fortification, ref __result);
-                    return;
+                    if (strength >= 0.999f && strength <= 1.001f)
+                    {
+                        BannerKings.Models.Vanilla.BKProsperityModel.ApplyBKProsperityDeltas(fortification, ref __result);
+                    }
+                    else
+                    {
+                        var before = __result.ResultNumber;
+                        BannerKings.Models.Vanilla.BKProsperityModel.ApplyBKProsperityDeltas(fortification, ref __result);
+                        var bkDelta = __result.ResultNumber - before;
+                        if (bkDelta != 0f)
+                        {
+                            __result.Add((strength - 1f) * bkDelta,
+                                new TaleWorlds.Localization.TextObject("{=!}BK economy layer strength"));
+                        }
+                    }
                 }
-                // Capture the BK delta as the difference, scale, re-apply.
-                var before = __result.ResultNumber;
-                BannerKings.Models.Vanilla.BKProsperityModel.ApplyBKProsperityDeltas(fortification, ref __result);
-                var bkDelta = __result.ResultNumber - before;
-                if (bkDelta != 0f)
-                {
-                    // Adjust to apply only `strength` fraction of the delta.
-                    __result.Add((strength - 1f) * bkDelta,
-                        new TaleWorlds.Localization.TextObject("{=!}BK economy layer strength"));
-                }
+
+                // v1.9.10.25 — final positive-only growth dampener. Scales
+                // the FULL post-BK prosperity tick (BE base + BK delta) by
+                // the MCM Prosperity Growth Multiplier when the net change
+                // is positive. Negative ticks (raids, starvation, sieges)
+                // pass through unchanged so penalties still bite.
+                float growth = BannerKings.Settings.BannerKingsSettings.Instance?.ProsperityGrowthMultiplier ?? 0.5f;
+                if (growth >= 0.999f && growth <= 1.001f) return;
+                float final = __result.ResultNumber;
+                if (final <= 0f) return;
+                if (growth < 0f) growth = 0f;
+                __result.Add((growth - 1f) * final,
+                    new TaleWorlds.Localization.TextObject("{=!}BK prosperity growth multiplier"));
             }
             catch
             {
