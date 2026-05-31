@@ -522,6 +522,15 @@ modifier with you (+8 to +25 by support strength) for 5 years.
 
 ## Religion
 
+> **As of v1.9.10.21 the religion system is being moved to **Banner Kings
+> Content Expansion (BKCE)**.** The MCM toggle **Enable Religion System
+> (legacy)** now defaults to OFF — the seven faiths are no longer seeded,
+> the religion HUD widget is hidden, and the religion campaign behaviour
+> is silent. Existing saves still load with their religion state preserved
+> but inert. To keep playing with the legacy in-BK religion system until
+> BKCE ships, flip the toggle back ON in MCM → Performance and restart.
+> The recipes below describe the legacy system as it ran when enabled.
+
 **Q: How do I see what faith my character is in?**
 Open the character page → there's a religion tab/panel showing your
 current faith, its main god, the secondary cults, your current piety,
