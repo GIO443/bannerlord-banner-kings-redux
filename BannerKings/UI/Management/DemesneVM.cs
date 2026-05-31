@@ -246,27 +246,37 @@ namespace BannerKings.UI.Management
                 DeJure = new HeroVM(title.deJure);
             }
 
-            LandInfo.Add(new InformationElement(new TextObject("{=FT5kL9k5}Acreage:").ToString(), landData.Acreage + " acres",
-                new TextObject("{=thVdn5fm}Current quantity of usable acres in this region").ToString()));
-            LandInfo.Add(new InformationElement(new TextObject("{=56YOTTBC}Farmland:").ToString(), landData.Farmland + " acres",
-                new TextObject("{=ABrCGWep}Acres in this region used as farmland, the main source of food in most places")
-                    .ToString()));
-            LandInfo.Add(new InformationElement(new TextObject("{=RsRkc9dF}Pastureland:").ToString(), landData.Pastureland + " acres",
-                new TextObject("{=864UHkZw}Acres in this region used as pastureland, to raise cattle and other animals. These output meat and animal products such as butter and cheese")
-                    .ToString()));
-            LandInfo.Add(new InformationElement(new TextObject("{=bwEtOiYF}Woodland:").ToString(), landData.Woodland + " acres",
-                new TextObject("{=MJYam3iu}Acres in this region used as woodland, kept for hunting, foraging of berries and materials like wood")
-                    .ToString()));
+            // v1.9.10.27 — BK land readouts (acreage / farmland / pastureland /
+            // woodland breakdown, terrain type / fertility / difficulty)
+            // gated behind the "Show Legacy Land UI" MCM toggle (default
+            // OFF). Values still drive BK internal models (population
+            // growth, food when BE doesn't own that slot, estate policy AI)
+            // but they aren't directly player-actionable and read as BK
+            // jargon to players coming from vanilla / BetterEconomy.
+            if (global::BannerKings.Settings.BannerKingsSettings.Instance.ShowLegacyLandUI)
+            {
+                LandInfo.Add(new InformationElement(new TextObject("{=FT5kL9k5}Acreage:").ToString(), landData.Acreage + " acres",
+                    new TextObject("{=thVdn5fm}Current quantity of usable acres in this region").ToString()));
+                LandInfo.Add(new InformationElement(new TextObject("{=56YOTTBC}Farmland:").ToString(), landData.Farmland + " acres",
+                    new TextObject("{=ABrCGWep}Acres in this region used as farmland, the main source of food in most places")
+                        .ToString()));
+                LandInfo.Add(new InformationElement(new TextObject("{=RsRkc9dF}Pastureland:").ToString(), landData.Pastureland + " acres",
+                    new TextObject("{=864UHkZw}Acres in this region used as pastureland, to raise cattle and other animals. These output meat and animal products such as butter and cheese")
+                        .ToString()));
+                LandInfo.Add(new InformationElement(new TextObject("{=bwEtOiYF}Woodland:").ToString(), landData.Woodland + " acres",
+                    new TextObject("{=MJYam3iu}Acres in this region used as woodland, kept for hunting, foraging of berries and materials like wood")
+                        .ToString()));
 
-            TerrainInfo.Add(new InformationElement(new TextObject("{=zRUcs9ct}Type:").ToString(), landData.Terrain.ToString(),
-                new TextObject("{=EPerAMda}The local terrain type. Dictates fertility and terrain difficulty.").ToString()));
-            TerrainInfo.Add(new InformationElement(new TextObject("{=n5kVRwat}Fertility:").ToString(), FormatValue(landData.Fertility),
-                new TextObject("{=UMZTmCeE}How fertile the region is. This depends solely on the local terrain type - harsher environments like deserts are less fertile than plains and grassy hills")
-                    .ToString()));
-            TerrainInfo.Add(new InformationElement(new TextObject("{=XKe1Q6Db}Terrain Difficulty:").ToString(),
-                FormatValue(landData.Difficulty),
-                new TextObject("{=TVp8DsE9}Represents how difficult it is to create new usable acres. Like fertility, depends on terrain, but is not strictly correlated to it")
-                    .ToString()));
+                TerrainInfo.Add(new InformationElement(new TextObject("{=zRUcs9ct}Type:").ToString(), landData.Terrain.ToString(),
+                    new TextObject("{=EPerAMda}The local terrain type. Dictates fertility and terrain difficulty.").ToString()));
+                TerrainInfo.Add(new InformationElement(new TextObject("{=n5kVRwat}Fertility:").ToString(), FormatValue(landData.Fertility),
+                    new TextObject("{=UMZTmCeE}How fertile the region is. This depends solely on the local terrain type - harsher environments like deserts are less fertile than plains and grassy hills")
+                        .ToString()));
+                TerrainInfo.Add(new InformationElement(new TextObject("{=XKe1Q6Db}Terrain Difficulty:").ToString(),
+                    FormatValue(landData.Difficulty),
+                    new TextObject("{=TVp8DsE9}Represents how difficult it is to create new usable acres. Like fertility, depends on terrain, but is not strictly correlated to it")
+                        .ToString()));
+            }
 
             if (data.MineralData != null)
             {
@@ -282,13 +292,16 @@ namespace BannerKings.UI.Management
                 }
             }
 
-            WorkforceInfo.Add(new InformationElement(new TextObject("{=p7yrSOcC}Available Workforce:").ToString(),
-                landData.AvailableWorkForce.ToString(),
-                new TextObject("{=1mJgkKHB}The amount of productive workers in this region, able to work the land").ToString()));
-            WorkforceInfo.Add(new InformationElement(new TextObject("{=vaT0rnKq}Workforce Saturation:").ToString(),
-                FormatValue(landData.WorkforceSaturation),
-                new TextObject("{=1KB6Hbpm}Represents how many workers there are in correlation to the amount needed to fully utilize the acreage. Saturation over 100% indicates more workers than the land needs, while under 100% means not all acres are producing output")
-                    .ToString()));
+            if (global::BannerKings.Settings.BannerKingsSettings.Instance.ShowLegacyLandUI)
+            {
+                WorkforceInfo.Add(new InformationElement(new TextObject("{=p7yrSOcC}Available Workforce:").ToString(),
+                    landData.AvailableWorkForce.ToString(),
+                    new TextObject("{=1mJgkKHB}The amount of productive workers in this region, able to work the land").ToString()));
+                WorkforceInfo.Add(new InformationElement(new TextObject("{=vaT0rnKq}Workforce Saturation:").ToString(),
+                    FormatValue(landData.WorkforceSaturation),
+                    new TextObject("{=1KB6Hbpm}Represents how many workers there are in correlation to the amount needed to fully utilize the acreage. Saturation over 100% indicates more workers than the land needs, while under 100% means not all acres are producing output")
+                        .ToString()));
+            }
 
             if (HasTown)
             {

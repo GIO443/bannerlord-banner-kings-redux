@@ -35,6 +35,10 @@ namespace BannerKings.Settings
         [SettingPropertyGroup("{=FnRzVf4Q}Performance")]
         public float ProsperityGrowthMultiplier { get; set; } = 0.3f;
 
+        [SettingProperty("Show Legacy Land UI", RequireRestart = false, HintText = "v1.9.10.27 — when ON, settlement Management → Demesne shows the BK land-model readouts (Acreage / Farmland / Pastureland / Woodland breakdown, Fertility / Terrain Difficulty, Workforce / Workforce Saturation) and the Estate panel shows the cluster's Industry Fit row. These values still drive BK internal models (population growth, food calculations when BetterEconomy doesn't own them, AI estate-policy decisions) but they aren't directly player-actionable and read as BK jargon to players coming from vanilla / Bannerlord Living Economy. Flip back ON if you want the detail. Default: OFF.")]
+        [SettingPropertyGroup("{=FnRzVf4Q}Performance")]
+        public bool ShowLegacyLandUI { get; set; } = false;
+
         [SettingProperty("Enable Religion System (legacy)", RequireRestart = true, HintText = "v1.9.10.21 — the religion subsystem (faiths, divinities, doctrines, preachers, piety, holy wars, the religion HUD widget) is being moved to Banner Kings Content Expansion (BKCE). Default is now OFF: BK doesn't seed the seven default religions, doesn't register the religion campaign behavior, and doesn't surface piety in the map bar. The save-deser type definitions remain in the tree so existing saves still load cleanly with their religion state preserved but inert; ReligionsManager.PostInitialize garbage-collects orphan religions when BKCE isn't installed. You can flip this back ON to keep using the legacy in-BK religion system until BKCE ships. Default: OFF.")]
         [SettingPropertyGroup("{=FnRzVf4Q}Performance")]
         public bool EnableReligion { get; set; } = false;

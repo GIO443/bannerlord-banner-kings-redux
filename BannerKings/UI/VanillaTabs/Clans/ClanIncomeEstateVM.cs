@@ -312,9 +312,12 @@ namespace BannerKings.UI.VanillaTabs.Clans
                         demandBand, false,
                         new BasicTooltipViewModel(() => "Multiplier applied to yield based on how well this village class supplies the bound town's industry.")));
 
-                    ItemProperties.Add(new SelectableItemPropertyVM("Cluster fit",
-                        ec.IndustryFit.ToString("0.00"), false,
-                        new BasicTooltipViewModel(() => "Aggregate score of bound-village fit to town industry. ≥0.75 healthy; ≤0.25 mismatched.")));
+                    if (global::BannerKings.Settings.BannerKingsSettings.Instance.ShowLegacyLandUI)
+                    {
+                        ItemProperties.Add(new SelectableItemPropertyVM("Cluster fit",
+                            ec.IndustryFit.ToString("0.00"), false,
+                            new BasicTooltipViewModel(() => "Aggregate score of bound-village fit to town industry. ≥0.75 healthy; ≤0.25 mismatched.")));
+                    }
 
                     if (ClusterFoodTracker.IsClusterStagnant(clusterTown))
                     {

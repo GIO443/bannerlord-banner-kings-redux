@@ -530,10 +530,16 @@ namespace BannerKings.UI.Estates
                 demandBand,
                 new TextObject("{=BKEstate_IndustryDemandTooltip}How well this village class supplies the bound town's industry. Multiplied into yield.").ToString()));
 
-            ClusterInfo.Add(new InformationElement(
-                new TextObject("{=BKEstate_ClusterFit}Cluster fit:").ToString(),
-                $"{cluster.IndustryFit:0.00}",
-                new TextObject("{=BKEstate_ClusterFitTooltip}Aggregate score of how well bound villages match the town's industry. ≥0.75 = healthy; ≤0.25 = mismatched.").ToString()));
+            // v1.9.10.27 — cluster fit row gated by "Show Legacy Land UI".
+            // The metric still drives EstatePolicyAI's choice gating, but
+            // it's BK-jargon for players and not directly actionable.
+            if (global::BannerKings.Settings.BannerKingsSettings.Instance.ShowLegacyLandUI)
+            {
+                ClusterInfo.Add(new InformationElement(
+                    new TextObject("{=BKEstate_ClusterFit}Cluster fit:").ToString(),
+                    $"{cluster.IndustryFit:0.00}",
+                    new TextObject("{=BKEstate_ClusterFitTooltip}Aggregate score of how well bound villages match the town's industry. ≥0.75 = healthy; ≤0.25 = mismatched.").ToString()));
+            }
 
             if (ClusterFoodTracker.IsClusterStagnant(clusterTown))
             {
