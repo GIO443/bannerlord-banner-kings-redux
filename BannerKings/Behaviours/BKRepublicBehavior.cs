@@ -33,7 +33,11 @@ namespace BannerKings.Behaviours
                 var title = BannerKingsConfig.Instance.TitleManager.GetSovereignTitle(kingdom);
                 if (title?.Contract == null)
                 {
-                    return;
+                    // v1.9.10.23 — was `return` (exits the entire daily
+                    // tick on the FIRST kingdom without a contract,
+                    // skipping every kingdom after it). Continue so the
+                    // remaining kingdoms still tick.
+                    continue;
                 }
 
                 var government = title.Contract.Government;

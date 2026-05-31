@@ -74,8 +74,18 @@ namespace BannerKings.Models.BKModels.Abstract
 
         public HashSet<Hero> GetSuccessionCandidates(Hero currentLeader, FeudalTitle title)
         {
-            Succession succession = title.Contract.Succession;
-            return succession.GetSuccessionCandidates(currentLeader, title); ;
+            // v1.9.10.23 — was unconditional `title.Contract.Succession`
+            // deref. User CTD 2026-05-30 (crash.htm) hit this during
+            // BKRepublicBehavior.DailyTick → kingdom.AddDecision →
+            // KingdomElection.Setup → BKKingElectionDecision
+            // .DetermineInitialCandidates → here. Some sovereign title
+            // had Contract but no Succession set (mid-transition, new
+            // kingdom, or BK migration edge). Return an empty set so
+            // KingdomElection.Setup completes with no candidates rather
+            // than crashing the entire daily tick.
+            Succession succession = title?.Contract?.Succession;
+            if (succession == null) return new HashSet<Hero>();
+            return succession.GetSuccessionCandidates(currentLeader, title);
         }
 
         public List<Hero> GetInheritanceCandidates(Hero currentLeader)
