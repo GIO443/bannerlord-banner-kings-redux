@@ -71,36 +71,60 @@ namespace BannerKings.Components
 
         public override void TickHourly()
         {
-            var behavior = Behavior;
-            if (behavior == AiBehavior.EscortParty)
+            // v1.9.10.29 — defensive guards for null Escort, null
+            // HomeSettlement, and BE estate state changes. User reports
+            // estate retinues crash and "always follow"; both converge
+            // on a null Escort field after the player party changes
+            // state (siege, captured, party-leader change). Vanilla's
+            // SetMoveEscortParty(null) NREs deep inside the AI pipeline,
+            // and the EscortParty branch keeps firing without ever
+            // falling through to the GoToSettlement reset.
+            try
             {
-                MobileParty.SetMoveEscortParty(Escort, MobileParty.NavigationType.Default, false);
-                if (MobileParty.CurrentSettlement != null) LeaveSettlementAction.ApplyForParty(MobileParty);
-            }
-            else if (behavior == AiBehavior.GoToSettlement || behavior == AiBehavior.Hold)
-            {
-                MobileParty.SetMoveGoToSettlement(HomeSettlement, MobileParty.NavigationType.Default, false);
-                // Arrival check #1: pathfind distance.
-                var dist = TaleWorlds.CampaignSystem.Campaign.Current.Models.MapDistanceModel.GetDistance(Party.MobileParty, HomeSettlement, false, MobileParty.NavigationType.Default, out _);
-                if (dist <= 2f && dist >= 0f && !float.IsNaN(dist) && !float.IsInfinity(dist))
+                // Escort gone → revert to Hold so the retinue goes home
+                // instead of NREing on a null escort target.
+                if (Behavior == AiBehavior.EscortParty
+                    && (Escort == null || !Escort.IsActive))
                 {
-                    EnterSettlementAction.ApplyForParty(Party.MobileParty, HomeSettlement);
+                    Behavior = AiBehavior.Hold;
+                    Escort = null;
                 }
-                // Arrival check #2: straight-line proximity. Pathfind can
-                // return NaN/Infinity/values that never decay below 2 in
-                // certain coastal / island-edge tiles even when the party
-                // is geometrically next to the gate. Without this fallback
-                // estate retinues orbited their home gate forever.
-                else if ((float.IsNaN(dist) || float.IsInfinity(dist) || dist < 0f)
-                         && Party.MobileParty.GetPosition2D.Distance(HomeSettlement.GatePosition.ToVec2()) <= 3f)
-                {
-                    EnterSettlementAction.ApplyForParty(Party.MobileParty, HomeSettlement);
-                }
-            }
 
-            if (MobileParty.CurrentSettlement == null && Behavior != AiBehavior.EscortParty) 
+                if (HomeSettlement == null) return;
+
+                var behavior = Behavior;
+                if (behavior == AiBehavior.EscortParty && Escort != null && Escort.IsActive)
+                {
+                    MobileParty.SetMoveEscortParty(Escort, MobileParty.NavigationType.Default, false);
+                    if (MobileParty.CurrentSettlement != null) LeaveSettlementAction.ApplyForParty(MobileParty);
+                }
+                else if (behavior == AiBehavior.GoToSettlement || behavior == AiBehavior.Hold
+                         || behavior == AiBehavior.EscortParty /* fell-through escort with no valid Escort */)
+                {
+                    MobileParty.SetMoveGoToSettlement(HomeSettlement, MobileParty.NavigationType.Default, false);
+                    var dist = TaleWorlds.CampaignSystem.Campaign.Current.Models.MapDistanceModel.GetDistance(Party.MobileParty, HomeSettlement, false, MobileParty.NavigationType.Default, out _);
+                    if (dist <= 2f && dist >= 0f && !float.IsNaN(dist) && !float.IsInfinity(dist))
+                    {
+                        EnterSettlementAction.ApplyForParty(Party.MobileParty, HomeSettlement);
+                    }
+                    else if ((float.IsNaN(dist) || float.IsInfinity(dist) || dist < 0f)
+                             && Party.MobileParty.GetPosition2D.Distance(HomeSettlement.GatePosition.ToVec2()) <= 3f)
+                    {
+                        EnterSettlementAction.ApplyForParty(Party.MobileParty, HomeSettlement);
+                    }
+                }
+
+                if (MobileParty.CurrentSettlement == null && Behavior != AiBehavior.EscortParty)
+                {
+                    MobileParty.SetMoveGoToSettlement(HomeSettlement, MobileParty.NavigationType.Default, false);
+                }
+            }
+            catch
             {
-                MobileParty.SetMoveGoToSettlement(HomeSettlement, MobileParty.NavigationType.Default, false);
+                // Defensive — never throw out of an hourly tick. A
+                // single bad retinue tick shouldn't kill the whole
+                // tick chain. The retinue self-corrects on the next
+                // hour after the underlying state is fixed.
             }
         }
     }
