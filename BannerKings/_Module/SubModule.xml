@@ -4,7 +4,7 @@
         xsi:noNamespaceSchemaLocation="https://raw.githubusercontent.com/BUTR/Bannerlord.XmlSchemas/master/SubModule.xsd">
 	<Id value="BannerKings.Redux" />
 	<Name value="Banner Kings — Redux" />
-	<Version value="v1.9.10.21" />
+	<Version value="v1.9.10.22" />
 	<Official value="false" />
 	<DefaultModule value="true" />
 	<ModuleCategory value="Singleplayer" />
@@ -18,7 +18,6 @@
 		<DependedModule Id="Sandbox" />
 		<DependedModule Id="StoryMode" />
 		<DependedModule Id="CustomBattle" />
-		<DependedModule Id="BetterEconomy" />
 	</DependedModules>
 	<!-- Community Dependency Metadata -->
 	<DependedModuleMetadatas>
@@ -31,9 +30,9 @@
 		<DependedModuleMetadata id="Sandbox" order="LoadBeforeThis" />
 		<DependedModuleMetadata id="StoryMode" order="LoadBeforeThis" />
 		<DependedModuleMetadata id="CustomBattle" order="LoadBeforeThis" />
-		<!-- Bannerlord Living Economy: hard dependency, loads before BK so BK's
-		     Harmony patches resolve against its assembly. -->
-		<DependedModuleMetadata id="BetterEconomy" order="LoadBeforeThis" />
+		<!-- Bannerlord Living Economy: load-before BK so BK's Harmony patches
+		     resolve against its assembly when present. -->
+		<DependedModuleMetadata id="BetterEconomy" order="LoadBeforeThis" optional="true" />
 		<!-- Optional cooperator mods: load BK before, then yield to them at runtime
 		     via BannerKings.Utils.ModCompat. Listed here so the launcher orders them
 		     correctly when both are installed. -->
