@@ -179,11 +179,15 @@ namespace BannerKings.UI.Extensions.Encyclopedia
 
             if (!addedFields)
             {
-                var rel = BannerKingsConfig.Instance.ReligionsManager.GetHeroReligion(clan.Leader);
-                if (rel != null)
+                // v1.9.10.26 — skip the Faith row when religion is off.
+                if (BannerKings.Settings.BannerKingsSettings.Instance.EnableReligion)
                 {
-                    clanPageVM.ClanInfo.Add(new StringPairItemVM(new TextObject("{=OKw2P9m1}Faith:").ToString(),
-                        rel.Faith.GetFaithName().ToString()));
+                    var rel = BannerKingsConfig.Instance.ReligionsManager?.GetHeroReligion(clan.Leader);
+                    if (rel != null)
+                    {
+                        clanPageVM.ClanInfo.Add(new StringPairItemVM(new TextObject("{=OKw2P9m1}Faith:").ToString(),
+                            rel.Faith.GetFaithName().ToString()));
+                    }
                 }
 
                 /*ExplainedNumber influenceChange = BannerKingsConfig.Instance.InfluenceModel.CalculateInfluenceChange(clan, true);

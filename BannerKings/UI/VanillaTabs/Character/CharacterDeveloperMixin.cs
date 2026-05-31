@@ -94,15 +94,24 @@ namespace BannerKings.UI.VanillaTabs.Character
         public string DecisionsText => new TextObject("{=GMNhGSUb}Decisions").ToString();
 
         [DataSourceProperty]
-        public string FaithText => new TextObject("{=OKw2P9m1}Faith").ToString();
+        public string FaithText => BannerKings.Settings.BannerKingsSettings.Instance.EnableReligion
+            ? new TextObject("{=OKw2P9m1}Faith").ToString()
+            : string.Empty;
 
         public override void OnRefresh()
         {
             Education = new EducationVM(characterDeveloper.CurrentCharacter.Hero, characterDeveloper);
             Education.RefreshValues();
-            Religion = new ReligionVM(BannerKingsConfig.Instance.ReligionsManager
-                .GetHeroReligion(characterDeveloper.CurrentCharacter.Hero), characterDeveloper.CurrentCharacter.Hero);
-            Religion.RefreshValues();
+            // v1.9.10.26 — skip religion VM construction when religion is
+            // off (BKCE retirement, v1.9.10.21). OpenFaith already null-
+            // guards on DefaultReligions.All but the Religion property
+            // was getting a stale VM anyway.
+            if (BannerKings.Settings.BannerKingsSettings.Instance.EnableReligion)
+            {
+                Religion = new ReligionVM(BannerKingsConfig.Instance.ReligionsManager
+                    .GetHeroReligion(characterDeveloper.CurrentCharacter.Hero), characterDeveloper.CurrentCharacter.Hero);
+                Religion.RefreshValues();
+            }
         }
 
         [DataSourceMethod]

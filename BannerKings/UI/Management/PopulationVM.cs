@@ -31,7 +31,12 @@ namespace BannerKings.UI.Management
                 militaryVM = new MilitaryVM(data, settlement, false);
                 religionVM = new ReligionVM(data, settlement, false);
                 IsOverviewSelected = true;
-                IsReligionAvailable = data.ReligionData?.Religions != null;
+                // v1.9.10.26 — also hide the Religion settlement tab when
+                // the BK religion subsystem is OFF (BKCE retirement,
+                // v1.9.10.21). Previously the tab still rendered with
+                // empty data when religion was disabled.
+                IsReligionAvailable = global::BannerKings.Settings.BannerKingsSettings.Instance.EnableReligion
+                    && data.ReligionData?.Religions != null;
             }
 
             [DataSourceProperty]

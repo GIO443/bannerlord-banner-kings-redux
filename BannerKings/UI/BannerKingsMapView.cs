@@ -100,10 +100,13 @@ namespace BannerKings.UI
                 case "cultures":
                     return (new CultureTabVM(), "CultureTabWindow");
                 case "religions":
+                    if (!BannerKings.Settings.BannerKingsSettings.Instance.EnableReligion) return (null, "ReligionPopup");
                     return (new ReligionVM(data), "ReligionPopup");
                 case "campaignStart":
                     return new ValueTuple<BannerKingsViewModel, string>(new CampaignStartVM(), "CampaignStartPopup");
                 case "religionStart":
+                    if (!BannerKings.Settings.BannerKingsSettings.Instance.EnableReligion)
+                        return new ValueTuple<BannerKingsViewModel, string>(null, "ReligionStartPopup");
                     return new ValueTuple<BannerKingsViewModel, string>(new ReligionStartVM(), "ReligionStartPopup");
                 case "marriage":
                     return new ValueTuple<BannerKingsViewModel, string>(new MarriageContractProposalVM(Hero.OneToOneConversationHero),
