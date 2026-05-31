@@ -171,7 +171,9 @@ namespace BannerKings.Patches.BetterEconomy
         {
             try
             {
-                float delta = BannerKings.Models.Vanilla.BKVillageProductionModel.CalculateBKVillageProductionDelta(village, item);
+                float strength = BannerKings.Settings.BannerKingsSettings.Instance?.BKEconomyLayerStrength ?? 0.5f;
+                if (strength <= 0f) return;
+                float delta = BannerKings.Models.Vanilla.BKVillageProductionModel.CalculateBKVillageProductionDelta(village, item) * strength;
                 if (delta != 0f)
                 {
                     __result.AddFactor(delta, new TaleWorlds.Localization.TextObject("{=!}BK contributions"));
@@ -237,7 +239,9 @@ namespace BannerKings.Patches.BetterEconomy
         {
             try
             {
-                __result += BannerKings.Models.Vanilla.BKEconomyModel.CalculateBKMercantilismDelta(settlement);
+                float strength = BannerKings.Settings.BannerKingsSettings.Instance?.BKEconomyLayerStrength ?? 0.5f;
+                if (strength <= 0f) return;
+                __result += BannerKings.Models.Vanilla.BKEconomyModel.CalculateBKMercantilismDelta(settlement) * strength;
                 if (__result < 0f) __result = 0f;
                 if (__result > 1f) __result = 1f;
             }
@@ -250,7 +254,9 @@ namespace BannerKings.Patches.BetterEconomy
         {
             try
             {
-                __result += BannerKings.Models.Vanilla.BKEconomyModel.CalculateBKProductionEfficiencyDelta(settlement);
+                float strength = BannerKings.Settings.BannerKingsSettings.Instance?.BKEconomyLayerStrength ?? 0.5f;
+                if (strength <= 0f) return;
+                __result += BannerKings.Models.Vanilla.BKEconomyModel.CalculateBKProductionEfficiencyDelta(settlement) * strength;
                 if (__result < 0f) __result = 0f;
             }
             catch { }
@@ -262,7 +268,9 @@ namespace BannerKings.Patches.BetterEconomy
         {
             try
             {
-                __result += BannerKings.Models.Vanilla.BKEconomyModel.CalculateBKProductionQualityDelta(settlement);
+                float strength = BannerKings.Settings.BannerKingsSettings.Instance?.BKEconomyLayerStrength ?? 0.5f;
+                if (strength <= 0f) return;
+                __result += BannerKings.Models.Vanilla.BKEconomyModel.CalculateBKProductionQualityDelta(settlement) * strength;
                 if (__result < 0f) __result = 0f;
                 if (__result > 2f) __result = 2f;
             }
@@ -321,7 +329,9 @@ namespace BannerKings.Patches.BetterEconomy
         {
             try
             {
-                __result += BannerKings.Models.Vanilla.BKEconomyModel.CalculateBKTradePowerDelta(settlement);
+                float strength = BannerKings.Settings.BannerKingsSettings.Instance?.BKEconomyLayerStrength ?? 0.5f;
+                if (strength <= 0f) return;
+                __result += BannerKings.Models.Vanilla.BKEconomyModel.CalculateBKTradePowerDelta(settlement) * strength;
                 if (__result < 0f) __result = 0f;
             }
             catch
@@ -477,7 +487,23 @@ namespace BannerKings.Patches.BetterEconomy
         {
             try
             {
+                float strength = BannerKings.Settings.BannerKingsSettings.Instance?.BKEconomyLayerStrength ?? 0.5f;
+                if (strength <= 0f) return;
+                if (strength >= 0.999f && strength <= 1.001f)
+                {
+                    BannerKings.Models.Vanilla.BKProsperityModel.ApplyBKProsperityDeltas(fortification, ref __result);
+                    return;
+                }
+                // Capture the BK delta as the difference, scale, re-apply.
+                var before = __result.ResultNumber;
                 BannerKings.Models.Vanilla.BKProsperityModel.ApplyBKProsperityDeltas(fortification, ref __result);
+                var bkDelta = __result.ResultNumber - before;
+                if (bkDelta != 0f)
+                {
+                    // Adjust to apply only `strength` fraction of the delta.
+                    __result.Add((strength - 1f) * bkDelta,
+                        new TaleWorlds.Localization.TextObject("{=!}BK economy layer strength"));
+                }
             }
             catch
             {

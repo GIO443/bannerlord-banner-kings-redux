@@ -27,6 +27,10 @@ namespace BannerKings.Settings
         [SettingPropertyGroup("{=FnRzVf4Q}Performance")]
         public float TelepathyDelayMultiplier { get; set; } = 1f;
 
+        [SettingPropertyFloatingInteger("BK Economy Layer Strength", minValue: 0f, maxValue: 2f, "#0%", RequireRestart = false, HintText = "v1.9.10.24 — scales BK's economy postfix contributions on top of Bannerlord Living Economy: prosperity (Public Works innovation, council Steward / Castellan, capital, well-fed, craftsmen / serfs / slaves population mix, stability, satisfactions, demesne laws), TradePower (capital, harbor / port, sea-trade network, council Steward, militarism penalty), Mercantilism (government type + Encourage Mercantilism decision), and the per-settlement Production Efficiency / Quality deltas. Lower if prosperity grows too fast or price disparities feel extreme. 0% disables BK contributions entirely (pure BE). Default: 50% (half of the pre-v1.9.10.24 stacking).")]
+        [SettingPropertyGroup("{=FnRzVf4Q}Performance")]
+        public float BKEconomyLayerStrength { get; set; } = 0.5f;
+
         [SettingProperty("Enable Religion System (legacy)", RequireRestart = true, HintText = "v1.9.10.21 — the religion subsystem (faiths, divinities, doctrines, preachers, piety, holy wars, the religion HUD widget) is being moved to Banner Kings Content Expansion (BKCE). Default is now OFF: BK doesn't seed the seven default religions, doesn't register the religion campaign behavior, and doesn't surface piety in the map bar. The save-deser type definitions remain in the tree so existing saves still load cleanly with their religion state preserved but inert; ReligionsManager.PostInitialize garbage-collects orphan religions when BKCE isn't installed. You can flip this back ON to keep using the legacy in-BK religion system until BKCE ships. Default: OFF.")]
         [SettingPropertyGroup("{=FnRzVf4Q}Performance")]
         public bool EnableReligion { get; set; } = false;
