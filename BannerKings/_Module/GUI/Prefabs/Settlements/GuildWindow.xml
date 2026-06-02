@@ -22,7 +22,7 @@
 
 										<ListPanel WidthSizePolicy="StretchToParent" HeightSizePolicy="CoverChildren" StackLayout.LayoutMethod="HorizontalLeftToRight" MarginTop="20" DoNotAcceptEvents="true">
 											<Children>
-												<ListPanel WidthSizePolicy="StretchToParent" HeightSizePolicy="CoverChildren"  StackLayout.LayoutMethod="VerticalBottomToTop" DoNotAcceptEvents="true">
+												<ListPanel WidthSizePolicy="StretchToParent" HeightSizePolicy="CoverChildren"  StackLayout.LayoutMethod="Vertical" DoNotAcceptEvents="true">
 													<Children>
 
 														<Widget WidthSizePolicy="CoverChildren" HeightSizePolicy="Fixed" SuggestedHeight="110" MarginTop="20" HorizontalAlignment="Center" Sprite="StdAssets\top_header">
@@ -52,7 +52,7 @@
 													</Children>
 												</ListPanel>
 
-												<ListPanel WidthSizePolicy="StretchToParent" HeightSizePolicy="CoverChildren" StackLayout.LayoutMethod="VerticalBottomToTop">
+												<ListPanel WidthSizePolicy="StretchToParent" HeightSizePolicy="CoverChildren" StackLayout.LayoutMethod="Vertical">
 													<Children>
 
 														<ButtonWidget WidthSizePolicy="Fixed" HeightSizePolicy="Fixed" SuggestedHeight="48" SuggestedWidth="200" MarginTop="15" HorizontalAlignment="Center" VerticalAlignment="Top" Brush="ButtonBrush2" Command.Click="OnUsurpPress" IsEnabled="@UsurpEnabled">

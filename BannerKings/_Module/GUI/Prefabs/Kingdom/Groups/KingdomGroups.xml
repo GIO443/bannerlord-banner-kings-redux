@@ -32,7 +32,7 @@
 				  <Children>
 
 					<!-- Left Panel -->
-					<BrushListPanel WidthSizePolicy="CoverChildren" HeightSizePolicy="StretchToParent" VerticalAlignment="Bottom" MarginLeft="0" MarginTop="6" MarginBottom="9" Brush="Frame1Brush" StackLayout.LayoutMethod="VerticalBottomToTop">
+					<BrushListPanel WidthSizePolicy="CoverChildren" HeightSizePolicy="StretchToParent" VerticalAlignment="Bottom" MarginLeft="0" MarginTop="6" MarginBottom="9" Brush="Frame1Brush" StackLayout.LayoutMethod="Vertical">
 					  <Children>
 
 						<!-- Header Horizontal Section -->
@@ -57,7 +57,7 @@
 														<NavigationScopeTargeter ScopeID="KingdomDiplomacyWarsScope" ScopeParent="..\WarsListClipRect" ScopeMovements="Vertical" DoNotAutoNavigateAfterSort="true" />
 														<Widget Id="WarsListClipRect" WidthSizePolicy="CoverChildren" HeightSizePolicy="StretchToParent" ClipContents="true">
 															<Children>
-									<NavigatableListPanel Id="WarsList" WidthSizePolicy="CoverChildren" HeightSizePolicy="CoverChildren" StackLayout.LayoutMethod="VerticalBottomToTop" MinIndex="0" StepSize="1000">
+									<NavigatableListPanel Id="WarsList" WidthSizePolicy="CoverChildren" HeightSizePolicy="CoverChildren" StackLayout.LayoutMethod="Vertical" MinIndex="0" StepSize="1000">
 									  <Children>
 
 										<PartyHeaderToggleWidget DoNotPassEventsToChildren="true" WidthSizePolicy="Fixed" HeightSizePolicy="Fixed" SuggestedWidth="!DiplomacyToggle.Width" SuggestedHeight="!DiplomacyToggle.Height" HorizontalAlignment="Left" VerticalAlignment="Top" Brush="Kingdom.Policy.Toggle.Tuple" CollapseIndicator="Description\CollapseIndicator" ListPanel="..\PlayerWarsParentWidget\PlayerWarsList" RenderLate="true" WidgetToClose="..\PlayerWarsParentWidget">
@@ -77,7 +77,7 @@
 
 											<!-- Player Wars List -->
 											<NavigationTargetSwitcher FromTarget="..\." ToTarget="..\InterestGroupsList" />
-											<NavigatableListPanel Id="InterestGroupsList" DataSource="{InterestGroups}" WidthSizePolicy="CoverChildren" HeightSizePolicy="CoverChildren" StackLayout.LayoutMethod="VerticalBottomToTop" UseSelfIndexForMinimum="true">
+											<NavigatableListPanel Id="InterestGroupsList" DataSource="{InterestGroups}" WidthSizePolicy="CoverChildren" HeightSizePolicy="CoverChildren" StackLayout.LayoutMethod="Vertical" UseSelfIndexForMinimum="true">
 											  <ItemTemplate>
 												<GroupsTuple IsSelected="@IsSelected" />
 											  </ItemTemplate>
@@ -102,7 +102,7 @@
 
 											<!-- Other Wars List -->
 											<NavigationTargetSwitcher FromTarget="..\." ToTarget="..\RadicalGroupsList" />
-											<NavigatableListPanel Id="RadicalGroupsList" DataSource="{RadicalGroups}" WidthSizePolicy="CoverChildren" HeightSizePolicy="CoverChildren" HorizontalAlignment="Center" StackLayout.LayoutMethod="VerticalBottomToTop" UseSelfIndexForMinimum="true">
+											<NavigatableListPanel Id="RadicalGroupsList" DataSource="{RadicalGroups}" WidthSizePolicy="CoverChildren" HeightSizePolicy="CoverChildren" HorizontalAlignment="Center" StackLayout.LayoutMethod="Vertical" UseSelfIndexForMinimum="true">
 											  <ItemTemplate>
 												<GroupsTuple IsSelected="@IsSelected" />
 											  </ItemTemplate>
@@ -177,7 +177,7 @@
 												<Children>
 												
 													<ListPanel WidthSizePolicy="CoverChildren" HeightSizePolicy="CoverChildren" HorizontalAlignment="Center" SuggestedHeight="150"
-															   VerticalAlignment="Bottom" StackLayout.LayoutMethod="VerticalBottomToTop" MarginBottom="29" DoNotAcceptEvents="false">
+															   VerticalAlignment="Bottom" StackLayout.LayoutMethod="Vertical" MarginBottom="29" DoNotAcceptEvents="false">
 														<Children>
 														
 															<RichTextWidget WidthSizePolicy="CoverChildren" HeightSizePolicy="CoverChildren"
@@ -241,7 +241,7 @@
 																VerticalAlignment="Center" HorizontalAlignment="Center" Command.HoverBegin="ExecuteBeginHint"
 																Command.HoverEnd="ExecuteEndHint" />
 															<ListPanel HorizontalAlignment="Center" HeightSizePolicy="CoverChildren" WidthSizePolicy="Fixed"
-																SuggestedWidth="250" StackLayout.LayoutMethod="VerticalBottomToTop">
+																SuggestedWidth="250" StackLayout.LayoutMethod="Vertical">
 																<Children>
 																	<RichTextWidget WidthSizePolicy="StretchToParent" HeightSizePolicy="CoverChildren"
 																		HorizontalAlignment="Center" Brush="Clan.Leader.Text" Brush.FontSize="24" Text="@Definition"
@@ -274,7 +274,7 @@
 																VerticalAlignment="Center" HorizontalAlignment="Center" Command.HoverBegin="ExecuteBeginHint"
 																Command.HoverEnd="ExecuteEndHint" />
 															<ListPanel HorizontalAlignment="Center" HeightSizePolicy="CoverChildren" WidthSizePolicy="Fixed"
-																SuggestedWidth="250" StackLayout.LayoutMethod="VerticalBottomToTop">
+																SuggestedWidth="250" StackLayout.LayoutMethod="Vertical">
 																<Children>
 																	<RichTextWidget WidthSizePolicy="StretchToParent" HeightSizePolicy="CoverChildren"
 																		HorizontalAlignment="Center" Brush="Clan.Leader.Text" Brush.FontSize="20" Text="@Definition"
@@ -418,7 +418,7 @@
 														VerticalAlignment="Center" HorizontalAlignment="Center" Command.HoverBegin="ExecuteBeginHint"
 														Command.HoverEnd="ExecuteEndHint" />
 													<ListPanel HorizontalAlignment="Center" HeightSizePolicy="CoverChildren" WidthSizePolicy="Fixed"
-														SuggestedWidth="250" StackLayout.LayoutMethod="VerticalBottomToTop">
+														SuggestedWidth="250" StackLayout.LayoutMethod="Vertical">
 														<Children>
 															<RichTextWidget WidthSizePolicy="StretchToParent" HeightSizePolicy="CoverChildren"
 																HorizontalAlignment="Center" Brush="Clan.Leader.Text" Brush.FontSize="20" Text="@ChanceHeader"
@@ -436,7 +436,7 @@
 												<Children>
 												
 													<ListPanel WidthSizePolicy="CoverChildren" HeightSizePolicy="CoverChildren" HorizontalAlignment="Center" SuggestedHeight="150"
-															   VerticalAlignment="Bottom" StackLayout.LayoutMethod="VerticalBottomToTop" MarginBottom="29" DoNotAcceptEvents="false">
+															   VerticalAlignment="Bottom" StackLayout.LayoutMethod="Vertical" MarginBottom="29" DoNotAcceptEvents="false">
 														<Children>
 														
 															<RichTextWidget WidthSizePolicy="CoverChildren" HeightSizePolicy="CoverChildren"
@@ -500,7 +500,7 @@
 																VerticalAlignment="Center" HorizontalAlignment="Center" Command.HoverBegin="ExecuteBeginHint"
 																Command.HoverEnd="ExecuteEndHint" />
 															<ListPanel HorizontalAlignment="Center" HeightSizePolicy="CoverChildren" WidthSizePolicy="Fixed"
-																SuggestedWidth="250" StackLayout.LayoutMethod="VerticalBottomToTop">
+																SuggestedWidth="250" StackLayout.LayoutMethod="Vertical">
 																<Children>
 																	<RichTextWidget WidthSizePolicy="StretchToParent" HeightSizePolicy="CoverChildren"
 																		HorizontalAlignment="Center" Brush="Clan.Leader.Text" Brush.FontSize="24" Text="@Definition"

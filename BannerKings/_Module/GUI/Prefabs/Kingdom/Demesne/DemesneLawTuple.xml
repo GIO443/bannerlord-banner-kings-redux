@@ -5,7 +5,7 @@
 		<Widget WidthSizePolicy="StretchToParent" HeightSizePolicy="StretchToParent" >
 			<Children>
 				<ListPanel WidthSizePolicy="StretchToParent" HeightSizePolicy="CoverChildren"
-						   SuggestedWidth="200" StackLayout.LayoutMethod="VerticalBottomToTop" >
+						   SuggestedWidth="200" StackLayout.LayoutMethod="Vertical" >
 					<Children>
 						<RichTextWidget WidthSizePolicy="CoverChildren" HeightSizePolicy="Fixed" HorizontalAlignment="Center"
 										SuggestedHeight="5" Brush="TownManagement.Project.Name.Text" Text="@NameText"

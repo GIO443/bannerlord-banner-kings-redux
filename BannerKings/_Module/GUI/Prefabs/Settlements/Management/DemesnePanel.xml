@@ -53,7 +53,7 @@
 															  MinIndex="0" StepSize="1000">
 											<Children>							
 												<ListPanel WidthSizePolicy="StretchToParent" HeightSizePolicy="CoverChildren"
-																   StackLayout.LayoutMethod="VerticalBottomToTop" DoNotAcceptEvents="true" MarginTop="35" MarginBottom="30">
+																   StackLayout.LayoutMethod="Vertical" DoNotAcceptEvents="true" MarginTop="35" MarginBottom="30">
 													<Children>
 														<Widget WidthSizePolicy="CoverChildren" HeightSizePolicy="Fixed" SuggestedHeight="110" MarginRight="30"
 																HorizontalAlignment="Center" Sprite="StdAssets\top_header">
@@ -115,7 +115,7 @@
 												</ListPanel>
 
 												<ListPanel WidthSizePolicy="StretchToParent" HeightSizePolicy="CoverChildren" VerticalAlignment="Center"
-														   StackLayout.LayoutMethod="VerticalBottomToTop" DoNotAcceptEvents="true" MarginTop="35" MarginBottom="30">
+														   StackLayout.LayoutMethod="Vertical" DoNotAcceptEvents="true" MarginTop="35" MarginBottom="30">
 													<Children>
 														<GridWidget DataSource="{LandInfo}" WidthSizePolicy="StretchToParent" HorizontalAlignment="Left"
 																	MarginLeft="50" HeightSizePolicy="CoverChildren" DefaultCellWidth="150" DefaultCellHeight="30"
@@ -152,7 +152,7 @@
 														<Widget WidthSizePolicy="StretchToParent" HeightSizePolicy="CoverChildren" IsHidden="@IsVillage">
 															<Children>
 																<ListPanel WidthSizePolicy="StretchToParent" HeightSizePolicy="CoverChildren"
-																		   StackLayout.LayoutMethod="VerticalBottomToTop">
+																		   StackLayout.LayoutMethod="Vertical">
 																	<Children>
 																		<RichTextWidget WidthSizePolicy="CoverChildren" HeightSizePolicy="Fixed" HorizontalAlignment="Center"
 																						SuggestedHeight="5" Brush="TownManagement.Project.Name.Text" Text="@WorkforcePolicyText"

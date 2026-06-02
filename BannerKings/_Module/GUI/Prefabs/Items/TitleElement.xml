@@ -22,7 +22,7 @@
 				           StackLayout.LayoutMethod="HorizontalLeftToRight" HorizontalAlignment="Center">
 					<Children>
 						<ListPanel Id="ButtonContainer" WidthSizePolicy="CoverChildren" HeightSizePolicy="CoverChildren"
-						           StackLayout.LayoutMethod="VerticalBottomToTop" HorizontalAlignment="Center">
+						           StackLayout.LayoutMethod="Vertical" HorizontalAlignment="Center">
 							<Children>
 
 								<ButtonWidget Command.Click="ExecuteLink" WidthSizePolicy="Fixed" HeightSizePolicy="Fixed" SuggestedHeight="200"

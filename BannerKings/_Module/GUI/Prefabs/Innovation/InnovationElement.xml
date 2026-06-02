@@ -25,7 +25,7 @@
 											Command.HoverEnd="ExecuteEndHint" />
 						
 						<ListPanel WidthSizePolicy="StretchToParent" HeightSizePolicy="CoverChildren" SuggestedHeight="100" DoNotAcceptEvents="true"
-						   StackLayout.LayoutMethod="VerticalBottomToTop" HorizontalAlignment="Center" MarginLeft="20" MarginRight="20" MarginBottom="10" MarginTop="10" >
+						   StackLayout.LayoutMethod="Vertical" HorizontalAlignment="Center" MarginLeft="20" MarginRight="20" MarginBottom="10" MarginTop="10" >
 							<Children>
 
 								<TextWidget WidthSizePolicy="CoverChildren" HeightSizePolicy="CoverChildren" DoNotAcceptEvents="true" HorizontalAlignment="Center" 

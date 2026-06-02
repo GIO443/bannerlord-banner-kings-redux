@@ -54,11 +54,11 @@
 															  MinIndex="0" StepSize="1000">
 											<Children>							
 												<ListPanel WidthSizePolicy="StretchToParent" HeightSizePolicy="CoverChildren"
-																   StackLayout.LayoutMethod="VerticalBottomToTop" DoNotAcceptEvents="true" MarginTop="35" MarginBottom="30">
+																   StackLayout.LayoutMethod="Vertical" DoNotAcceptEvents="true" MarginTop="35" MarginBottom="30">
 													<Children>
 
 														<!-- Column header for the population breakdown below. With
-														     VerticalBottomToTop, XML-first child renders at the visual
+														     Vertical, XML-first child renders at the visual
 														     BOTTOM, so a header placed here ends up directly under the
 														     rows it labels. Mirrors PopulationClassElement (100/80). -->
 														<ListPanel WidthSizePolicy="Fixed" HeightSizePolicy="CoverChildren" SuggestedWidth="200"
@@ -194,11 +194,11 @@
 												     so labels don't bleed visually into each other on narrower
 												     aspect ratios. -->
 												<ListPanel WidthSizePolicy="StretchToParent" HeightSizePolicy="CoverChildren"
-														   StackLayout.LayoutMethod="VerticalBottomToTop" MaxHeight="645" MarginLeft="48">
+														   StackLayout.LayoutMethod="Vertical" MaxHeight="645" MarginLeft="48">
 													<Children>
 
 														<!-- Column header for the culture rows below. Mirrors CultureElement
-														     (100/80/80, MarginLeft 10). Same VerticalBottomToTop trick:
+														     (100/80/80, MarginLeft 10). Same Vertical trick:
 														     header XML-first => visually directly under the rows. -->
 														<ListPanel WidthSizePolicy="Fixed" HeightSizePolicy="CoverChildren" SuggestedWidth="260"
 															  HorizontalAlignment="Center" MarginRight="80"

@@ -17,7 +17,7 @@
 					<Children>
 
 
-						<ListPanel WidthSizePolicy="CoverChildren" HeightSizePolicy="CoverChildren" StackLayout.LayoutMethod="VerticalBottomToTop">
+						<ListPanel WidthSizePolicy="CoverChildren" HeightSizePolicy="CoverChildren" StackLayout.LayoutMethod="Vertical">
 							<Children>
 								<Widget WidthSizePolicy="StretchToParent" HeightSizePolicy="Fixed" SuggestedHeight="115"  Sprite="StdAssets\top_header">
 									<Children>

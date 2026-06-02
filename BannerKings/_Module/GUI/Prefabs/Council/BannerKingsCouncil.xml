@@ -10,7 +10,7 @@
 						<Widget Id="Rect" WidthSizePolicy="CoverChildren" HeightSizePolicy="StretchToParent" ClipContents="true">
 							<Children>
 								<ListPanel Id="VerticalList" WidthSizePolicy="StretchToParent" HeightSizePolicy="CoverChildren" SuggestedWidth="1050"
-								           MarginLeft="10" StackLayout.LayoutMethod="VerticalBottomToTop"
+								           MarginLeft="10" StackLayout.LayoutMethod="Vertical"
 								           DoNotAcceptEvents="false">
 									<Children>
 
@@ -28,7 +28,7 @@
 												<Widget WidthSizePolicy="StretchToParent" HeightSizePolicy="CoverChildren">
 													<Children>
 														<ListPanel WidthSizePolicy="StretchToParent" HeightSizePolicy="CoverChildren"
-																   StackLayout.LayoutMethod="VerticalBottomToTop">
+																   StackLayout.LayoutMethod="Vertical">
 															<Children>
 																<RichTextWidget WidthSizePolicy="StretchToParent" HeightSizePolicy="Fixed" HorizontalAlignment="Center"
 																				SuggestedHeight="5" Brush="TownManagement.Project.Name.Text" Text="@ExtravaganceText"
@@ -44,7 +44,7 @@
 												<Widget WidthSizePolicy="StretchToParent" HeightSizePolicy="CoverChildren">
 													<Children>
 														<ListPanel WidthSizePolicy="StretchToParent" HeightSizePolicy="CoverChildren"
-																   StackLayout.LayoutMethod="VerticalBottomToTop">
+																   StackLayout.LayoutMethod="Vertical">
 															<Children>
 																<RichTextWidget WidthSizePolicy="StretchToParent" HeightSizePolicy="Fixed" HorizontalAlignment="Center"
 																				SuggestedHeight="5" Brush="TownManagement.Project.Name.Text" Text="@ServantsText"
@@ -65,7 +65,7 @@
 												<Widget WidthSizePolicy="StretchToParent" HeightSizePolicy="CoverChildren">
 													<Children>
 														<ListPanel WidthSizePolicy="StretchToParent" HeightSizePolicy="CoverChildren"
-																   StackLayout.LayoutMethod="VerticalBottomToTop">
+																   StackLayout.LayoutMethod="Vertical">
 															<Children>
 																<RichTextWidget WidthSizePolicy="StretchToParent" HeightSizePolicy="Fixed" HorizontalAlignment="Center"
 																				SuggestedHeight="5" Brush="TownManagement.Project.Name.Text" Text="@LodgingsText"
@@ -81,7 +81,7 @@
 												<!--<Widget WidthSizePolicy="StretchToParent" HeightSizePolicy="CoverChildren">
 													<Children>
 														<ListPanel WidthSizePolicy="StretchToParent" HeightSizePolicy="CoverChildren"
-																   StackLayout.LayoutMethod="VerticalBottomToTop">
+																   StackLayout.LayoutMethod="Vertical">
 															<Children>
 																<RichTextWidget WidthSizePolicy="StretchToParent" HeightSizePolicy="Fixed" HorizontalAlignment="Center"
 																				SuggestedHeight="5" Brush="TownManagement.Project.Name.Text" Text="@SecurityText"
@@ -97,7 +97,7 @@
 												<Widget WidthSizePolicy="StretchToParent" HeightSizePolicy="CoverChildren">
 													<Children>
 														<ListPanel WidthSizePolicy="StretchToParent" HeightSizePolicy="CoverChildren"
-																   StackLayout.LayoutMethod="VerticalBottomToTop">
+																   StackLayout.LayoutMethod="Vertical">
 															<Children>
 																<RichTextWidget WidthSizePolicy="StretchToParent" HeightSizePolicy="Fixed" HorizontalAlignment="Center"
 																				SuggestedHeight="5" Brush="TownManagement.Project.Name.Text" Text="@SuppliesText"
@@ -133,7 +133,7 @@
 										            SuggestedHeight="350" DefaultCellWidth="210" DefaultCellHeight="400" ColumnCount="3">
 											<ItemTemplate>
 												<!-- Position title -> portrait button -> hero name -> current task -> stats.
-												     Was VerticalBottomToTop with @NameText abs-positioned inside the toggle
+												     Was Vertical with @NameText abs-positioned inside the toggle
 												     (VerticalAlignment="Bottom" PositionYOffset="40"), which painted the
 												     hero name straight onto the @Title widget below the portrait. Now
 												     each label gets its own layout slot in natural reading order. -->
@@ -285,7 +285,7 @@
 												                        PositionXOffset="-50" DoNotUseCustomScale="true" />
 
 												<ListPanel HorizontalAlignment="Center" HeightSizePolicy="CoverChildren" WidthSizePolicy="Fixed"
-												           MarginTop="20" SuggestedWidth="600" StackLayout.LayoutMethod="VerticalBottomToTop">
+												           MarginTop="20" SuggestedWidth="600" StackLayout.LayoutMethod="Vertical">
 													<Children>
 														<RichTextWidget DataSource="{CurrentCharacter}" WidthSizePolicy="CoverChildren"
 														                HeightSizePolicy="CoverChildren" HorizontalAlignment="Left" MarginLeft="10"

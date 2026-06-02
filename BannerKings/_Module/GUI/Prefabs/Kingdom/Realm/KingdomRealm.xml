@@ -12,7 +12,7 @@
 						<Widget Id="Rect" WidthSizePolicy="CoverChildren" HeightSizePolicy="StretchToParent" ClipContents="true">
 							<Children>
 
-								<ListPanel Id="VerticalList" WidthSizePolicy="StretchToParent" HeightSizePolicy="CoverChildren" StackLayout.LayoutMethod="VerticalBottomToTop">
+								<ListPanel Id="VerticalList" WidthSizePolicy="StretchToParent" HeightSizePolicy="CoverChildren" StackLayout.LayoutMethod="Vertical">
 									<Children>
 
 										<Standard.DropdownWithHorizontalControl Parameter.SelectorDataSource="{KingdomSelector}" MarginTop="10"
@@ -24,7 +24,7 @@
 														MarginBottom="15" />
 
 										<ListPanel WidthSizePolicy="CoverChildren" HeightSizePolicy="CoverChildren" HorizontalAlignment="Center"
-												   VerticalAlignment="Center" StackLayout.LayoutMethod="VerticalBottomToTop" MarginBottom="10">
+												   VerticalAlignment="Center" StackLayout.LayoutMethod="Vertical" MarginBottom="10">
 											<Children>
 												<ToggleButtonWidget DoNotPassEventsToChildren="true" WidthSizePolicy="Fixed" HeightSizePolicy="Fixed"
 														SuggestedWidth="340" SuggestedHeight="90" HorizontalAlignment="Center" Brush="TownManagement.Governor"
@@ -45,7 +45,7 @@
 										<!-- Politics dashboard: Crown Authority / Legitimacy / War Fatigue / Transition.
 										     Each is a BKFillBar kit component bound to a BKFillBarVM on the VM. -->
 										<ListPanel WidthSizePolicy="CoverChildren" HeightSizePolicy="CoverChildren" HorizontalAlignment="Center"
-												   VerticalAlignment="Center" StackLayout.LayoutMethod="VerticalBottomToTop" MarginTop="15" MarginBottom="10"
+												   VerticalAlignment="Center" StackLayout.LayoutMethod="Vertical" MarginTop="15" MarginBottom="10"
 												   IsVisible="@HasDiplomacy">
 											<Children>
 
@@ -90,7 +90,7 @@
 											<Children>
 
 												<ListPanel WidthSizePolicy="CoverChildren" HeightSizePolicy="CoverChildren" HorizontalAlignment="Center" SuggestedHeight="150"
-														   VerticalAlignment="Bottom" StackLayout.LayoutMethod="VerticalBottomToTop" MarginBottom="29" DoNotAcceptEvents="false">
+														   VerticalAlignment="Bottom" StackLayout.LayoutMethod="Vertical" MarginBottom="29" DoNotAcceptEvents="false">
 													<Children>
 														<RichTextWidget WidthSizePolicy="CoverChildren" HeightSizePolicy="CoverChildren"
 																		HorizontalAlignment="Center" Brush="Clan.Leader.Text" Brush.FontSize="22" Text="@HeirText"

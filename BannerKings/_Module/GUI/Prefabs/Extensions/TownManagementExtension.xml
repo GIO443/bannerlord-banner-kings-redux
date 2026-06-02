@@ -33,7 +33,7 @@
 											<Children>
 												<Widget HorizontalAlignment="Center" HeightSizePolicy="CoverChildren" WidthSizePolicy="CoverChildren" MarginBottom="50">
 													<Children>
-														<ListPanel WidthSizePolicy="StretchToParent" HeightSizePolicy="CoverChildren" VerticalAlignment="Top" MarginTop="5" StackLayout.LayoutMethod="VerticalBottomToTop">
+														<ListPanel WidthSizePolicy="StretchToParent" HeightSizePolicy="CoverChildren" VerticalAlignment="Top" MarginTop="5" StackLayout.LayoutMethod="Vertical">
 															<Children>
 															
 																<RichTextWidget DataSource="{..}" WidthSizePolicy="CoverChildren" HeightSizePolicy="CoverChildren" HorizontalAlignment="Center" Brush="TownManagement.Queue.Index.Text" IsVisible="@MissingPolicy" Text="@MissingPolicyText" MarginTop="30" />
@@ -49,7 +49,7 @@
 																	<ItemTemplate>
 																		<Widget WidthSizePolicy="StretchToParent" HeightSizePolicy="Fixed" SuggestedWidth="95" SuggestedHeight="96" VerticalAlignment="Bottom" DoNotPassEventsToChildren="true">
 																			<Children>
-																				<ListPanel WidthSizePolicy="CoverChildren" HeightSizePolicy="CoverChildren" StackLayout.LayoutMethod="VerticalBottomToTop">
+																				<ListPanel WidthSizePolicy="CoverChildren" HeightSizePolicy="CoverChildren" StackLayout.LayoutMethod="Vertical">
 																					<Children>
 																						<ImageIdentifierWidget DataSource="{Visual}" WidthSizePolicy="Fixed" HeightSizePolicy="Fixed" SuggestedWidth="85" SuggestedHeight="45" HorizontalAlignment="Center" AdditionalArgs="@AdditionalArgs" ImageId="@Id" TextureProviderName="@TextureProviderName"/>
 																						<Widget WidthSizePolicy="Fixed" HeightSizePolicy="Fixed" SuggestedWidth="90" SuggestedHeight="24" VerticalAlignment="Bottom" Sprite="Crafting\number_background" Color="#EFAB6BFF" >
@@ -166,10 +166,10 @@
 
 										<Widget Id="ClipRect" WidthSizePolicy="StretchToParent" HeightSizePolicy="StretchToParent" ClipContents="true">
 											<Children>
-												<ListPanel Id="QueueList" WidthSizePolicy="CoverChildren" HeightSizePolicy="CoverChildren" HorizontalAlignment="Center" StackLayout.LayoutMethod="VerticalBottomToTop">
+												<ListPanel Id="QueueList" WidthSizePolicy="CoverChildren" HeightSizePolicy="CoverChildren" HorizontalAlignment="Center" StackLayout.LayoutMethod="Vertical">
 													<Children>
 
-														<ListPanel DataSource="{CurrentDevelopmentQueue}" WidthSizePolicy="CoverChildren" HeightSizePolicy="CoverChildren" HorizontalAlignment="Center" StackLayout.LayoutMethod="VerticalBottomToTop">
+														<ListPanel DataSource="{CurrentDevelopmentQueue}" WidthSizePolicy="CoverChildren" HeightSizePolicy="CoverChildren" HorizontalAlignment="Center" StackLayout.LayoutMethod="Vertical">
 															<ItemTemplate>
 																<DevelopmentItemVisualWidget WidthSizePolicy="Fixed" HeightSizePolicy="Fixed" SuggestedWidth="56" SuggestedHeight="56" MarginBottom="5" IsDaily="false" SpriteCode="@VisualCode" UseSmallVariant="true">
 																	<Children>

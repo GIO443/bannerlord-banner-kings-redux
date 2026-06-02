@@ -40,7 +40,7 @@
 					<Children>
 
 						<!-- Left Panel -->
-						<BrushListPanel WidthSizePolicy="CoverChildren" HeightSizePolicy="StretchToParent" VerticalAlignment="Bottom" MarginLeft="0" MarginTop="6" MarginBottom="9" Brush="Frame1Brush" StackLayout.LayoutMethod="VerticalBottomToTop">
+						<BrushListPanel WidthSizePolicy="CoverChildren" HeightSizePolicy="StretchToParent" VerticalAlignment="Bottom" MarginLeft="0" MarginTop="6" MarginBottom="9" Brush="Frame1Brush" StackLayout.LayoutMethod="Vertical">
 						  <Children>
 
 							<!-- Header Horizontal Section -->
@@ -64,7 +64,7 @@
 									<NavigationScopeTargeter ScopeID="KingdomDiplomacyWarsScope" ScopeParent="..\WarsListClipRect" ScopeMovements="Vertical" DoNotAutoNavigateAfterSort="true" />
 									<Widget Id="WarsListClipRect" WidthSizePolicy="CoverChildren" HeightSizePolicy="StretchToParent" ClipContents="true">
 									  <Children>
-										<NavigatableListPanel Id="WarsList" WidthSizePolicy="CoverChildren" HeightSizePolicy="CoverChildren" StackLayout.LayoutMethod="VerticalBottomToTop" MinIndex="0" StepSize="1000">
+										<NavigatableListPanel Id="WarsList" WidthSizePolicy="CoverChildren" HeightSizePolicy="CoverChildren" StackLayout.LayoutMethod="Vertical" MinIndex="0" StepSize="1000">
 										  <Children>
 
 											<PartyHeaderToggleWidget DoNotPassEventsToChildren="true" WidthSizePolicy="Fixed" HeightSizePolicy="Fixed" SuggestedWidth="!DiplomacyToggle.Width" SuggestedHeight="!DiplomacyToggle.Height" HorizontalAlignment="Left" VerticalAlignment="Top" Brush="Kingdom.Policy.Toggle.Tuple" CollapseIndicator="Description\CollapseIndicator" ListPanel="..\PlayerWarsParentWidget\PlayerWarsList" RenderLate="true" WidgetToClose="..\PlayerWarsParentWidget">
@@ -82,7 +82,7 @@
 											  <Children>
 
 												<NavigationTargetSwitcher FromTarget="..\." ToTarget="..\InterestGroupsList" />
-												<NavigatableListPanel Id="InterestGroupsList" DataSource="{Family}" WidthSizePolicy="CoverChildren" HeightSizePolicy="CoverChildren" StackLayout.LayoutMethod="VerticalBottomToTop" UseSelfIndexForMinimum="true">
+												<NavigatableListPanel Id="InterestGroupsList" DataSource="{Family}" WidthSizePolicy="CoverChildren" HeightSizePolicy="CoverChildren" StackLayout.LayoutMethod="Vertical" UseSelfIndexForMinimum="true">
 												  <ItemTemplate>
 													<CourtierTuple IsSelected="@IsSelected" />
 												  </ItemTemplate>
@@ -106,7 +106,7 @@
 
 												<!-- Other Wars List -->
 												<NavigationTargetSwitcher FromTarget="..\." ToTarget="..\OtherWarsList" />
-												<NavigatableListPanel Id="OtherWarsList" DataSource="{Guests}" WidthSizePolicy="CoverChildren" HeightSizePolicy="CoverChildren" HorizontalAlignment="Center" StackLayout.LayoutMethod="VerticalBottomToTop" UseSelfIndexForMinimum="true">
+												<NavigatableListPanel Id="OtherWarsList" DataSource="{Guests}" WidthSizePolicy="CoverChildren" HeightSizePolicy="CoverChildren" HorizontalAlignment="Center" StackLayout.LayoutMethod="Vertical" UseSelfIndexForMinimum="true">
 												  <ItemTemplate>
 													<CourtierTuple IsSelected="@IsSelected" />
 												  </ItemTemplate>
@@ -130,7 +130,7 @@
 
 												<!-- Other Wars List -->
 												<NavigationTargetSwitcher FromTarget="..\." ToTarget="..\OtherWarsList" />
-												<NavigatableListPanel Id="OtherWarsList" DataSource="{Courtiers}" WidthSizePolicy="CoverChildren" HeightSizePolicy="CoverChildren" HorizontalAlignment="Center" StackLayout.LayoutMethod="VerticalBottomToTop" UseSelfIndexForMinimum="true">
+												<NavigatableListPanel Id="OtherWarsList" DataSource="{Courtiers}" WidthSizePolicy="CoverChildren" HeightSizePolicy="CoverChildren" HorizontalAlignment="Center" StackLayout.LayoutMethod="Vertical" UseSelfIndexForMinimum="true">
 												  <ItemTemplate>
 													<CourtierTuple IsSelected="@IsSelected" />
 												  </ItemTemplate>

@@ -40,7 +40,7 @@
 										        MarginBottom="7" MarginLeft="9" MarginRight="9" ClipContents="true">
 											<Children>
 												<ListPanel Id="OrderList" WidthSizePolicy="CoverChildren" HeightSizePolicy="StretchToParent"
-												           StackLayout.LayoutMethod="VerticalBottomToTop">
+												           StackLayout.LayoutMethod="Vertical">
 													<Children>
 														<ListPanel DataSource="{Options}" WidthSizePolicy="CoverChildren" HeightSizePolicy="StretchToParent"
 														           StackLayout.LayoutMethod="HorizontalLeftToRight">

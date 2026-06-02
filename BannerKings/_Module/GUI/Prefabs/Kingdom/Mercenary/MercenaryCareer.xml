@@ -12,7 +12,7 @@
 						<Widget Id="Rect" WidthSizePolicy="CoverChildren" HeightSizePolicy="StretchToParent" ClipContents="true">
 							<Children>
 							
-								<ListPanel Id="VerticalList" WidthSizePolicy="StretchToParent" HeightSizePolicy="CoverChildren" StackLayout.LayoutMethod="VerticalBottomToTop">
+								<ListPanel Id="VerticalList" WidthSizePolicy="StretchToParent" HeightSizePolicy="CoverChildren" StackLayout.LayoutMethod="Vertical">
 									<Children>
 									
 									
@@ -24,7 +24,7 @@
 												   VerticalAlignment="Center" StackLayout.LayoutMethod="HorizontalLeftToRight" MarginTop="30" DoNotAcceptEvents="false">
 											<Children>
 											
-												<ListPanel WidthSizePolicy="StretchToParent" HeightSizePolicy="CoverChildren" StackLayout.LayoutMethod="VerticalBottomToTop"
+												<ListPanel WidthSizePolicy="StretchToParent" HeightSizePolicy="CoverChildren" StackLayout.LayoutMethod="Vertical"
 														   MarginTop="20">
 													<Children>
 														<RichTextWidget WidthSizePolicy="StretchToParent" HeightSizePolicy="CoverChildren"
@@ -40,7 +40,7 @@
 													</Children>
 												</ListPanel>
 												
-												<ListPanel WidthSizePolicy="StretchToParent" HeightSizePolicy="CoverChildren" StackLayout.LayoutMethod="VerticalBottomToTop"
+												<ListPanel WidthSizePolicy="StretchToParent" HeightSizePolicy="CoverChildren" StackLayout.LayoutMethod="Vertical"
 														   MarginTop="20">
 													<Children>
 														<RichTextWidget WidthSizePolicy="StretchToParent" HeightSizePolicy="CoverChildren"
@@ -64,7 +64,7 @@
 												   VerticalAlignment="Center" StackLayout.LayoutMethod="HorizontalLeftToRight" MarginTop="30" DoNotAcceptEvents="false">
 											<Children>
 											
-												<ListPanel WidthSizePolicy="StretchToParent" HeightSizePolicy="CoverChildren" StackLayout.LayoutMethod="VerticalBottomToTop"
+												<ListPanel WidthSizePolicy="StretchToParent" HeightSizePolicy="CoverChildren" StackLayout.LayoutMethod="Vertical"
 														   MarginTop="20">
 													<Children>
 														<RichTextWidget WidthSizePolicy="StretchToParent" HeightSizePolicy="CoverChildren"
@@ -81,7 +81,7 @@
 												</ListPanel>
 											
 											
-												<ListPanel WidthSizePolicy="StretchToParent" HeightSizePolicy="CoverChildren" StackLayout.LayoutMethod="VerticalBottomToTop"
+												<ListPanel WidthSizePolicy="StretchToParent" HeightSizePolicy="CoverChildren" StackLayout.LayoutMethod="Vertical"
 														   MarginTop="20">
 													<Children>
 														<RichTextWidget WidthSizePolicy="StretchToParent" HeightSizePolicy="CoverChildren"
@@ -98,7 +98,7 @@
 												</ListPanel>
 											
 											
-												<ListPanel WidthSizePolicy="StretchToParent" HeightSizePolicy="CoverChildren" StackLayout.LayoutMethod="VerticalBottomToTop"
+												<ListPanel WidthSizePolicy="StretchToParent" HeightSizePolicy="CoverChildren" StackLayout.LayoutMethod="Vertical"
 														   MarginTop="20">
 													<Children>
 														<RichTextWidget WidthSizePolicy="StretchToParent" HeightSizePolicy="CoverChildren"
@@ -139,7 +139,7 @@
 														WidthSizePolicy="StretchToParent" VerticalAlignment="Center" DoNotPassEventsToChildren="true">
 													<Children>
 														<ListPanel HorizontalAlignment="Center" HeightSizePolicy="CoverChildren" WidthSizePolicy="StretchToParent"
-															SuggestedWidth="150" StackLayout.LayoutMethod="VerticalBottomToTop">
+															SuggestedWidth="150" StackLayout.LayoutMethod="Vertical">
 															<Children>
 																<RichTextWidget WidthSizePolicy="StretchToParent" HeightSizePolicy="CoverChildren"
 																	HorizontalAlignment="Center" Brush="Clan.Leader.Text" Brush.FontSize="30" Text="@Name"
@@ -176,7 +176,7 @@
 												   MarginTop="40">
 											<Children>
 											
-												<ListPanel WidthSizePolicy="StretchToParent" HeightSizePolicy="CoverChildren" StackLayout.LayoutMethod="VerticalBottomToTop">
+												<ListPanel WidthSizePolicy="StretchToParent" HeightSizePolicy="CoverChildren" StackLayout.LayoutMethod="Vertical">
 													<Children>
 														<RichTextWidget WidthSizePolicy="CoverChildren" HeightSizePolicy="CoverChildren" MarginTop="25"
 																		HorizontalAlignment="Center" Brush="Clan.Leader.Text" Brush.FontSize="30" Text="@LevyCharacterText"
@@ -209,7 +209,7 @@
 													</Children>
 												</ListPanel>
 											
-												<ListPanel WidthSizePolicy="StretchToParent" HeightSizePolicy="CoverChildren" StackLayout.LayoutMethod="VerticalBottomToTop">
+												<ListPanel WidthSizePolicy="StretchToParent" HeightSizePolicy="CoverChildren" StackLayout.LayoutMethod="Vertical">
 													<Children>
 														<RichTextWidget WidthSizePolicy="CoverChildren" HeightSizePolicy="CoverChildren" MarginTop="25"
 																		HorizontalAlignment="Center" Brush="Clan.Leader.Text" Brush.FontSize="30" Text="@ProfessionalCharacterText"
