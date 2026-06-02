@@ -58,34 +58,51 @@ namespace BannerKings.Behaviours.Diag
             var town = settlement.Town;
             if (town == null) return;
 
+            // Header line: stocks + net daily change.
             float foodChange = 0f;
+            TaleWorlds.CampaignSystem.ExplainedNumber foodChangeEx = default;
             try
             {
-                foodChange = TaleWorlds.CampaignSystem.Campaign.Current.Models.SettlementFoodModel
-                    .CalculateTownFoodStocksChange(town, false).ResultNumber;
+                foodChangeEx = TaleWorlds.CampaignSystem.Campaign.Current.Models.SettlementFoodModel
+                    .CalculateTownFoodStocksChange(town, true);
+                foodChange = foodChangeEx.ResultNumber;
             }
             catch { }
 
-            int boundCount = 0;
-            float boundProduction = 0f;
+            string kind = settlement.IsCastle ? "castle" : "town";
+            BannerKings.Utils.Logs.Economy(() =>
+                $"food[{kind}] {settlement.StringId} ({settlement.Name})"
+                + $" stocks={town.FoodStocks:F0}/{town.FoodStocksUpperLimit():F0}"
+                + $" change={foodChange:+0.00;-0.00;0.00}/d"
+                + $" prosperity={town.Prosperity:F0}"
+                + $" militia={town.Militia:F0}"
+                + $" garrison={town.GarrisonParty?.MemberRoster?.TotalManCount ?? 0}");
+
+            // Source-of-truth breakdown: every Add/AddFactor line that
+            // vanilla SettlementFoodModel attached to the change figure.
+            // This is where the BE consumption deltas + bound-village
+            // supply + garrison draw + prosperity draw all surface
+            // individually.
+            TryDumpExplanationLines(foodChangeEx, prefix:
+                $"  food[{kind}] {settlement.StringId} change-explained:");
+
+            // Per-village contribution. Each bound village's total
+            // estimated daily production (this is the figure the village
+            // SENDS to the bound town's food pool, plus other goods).
             if (town.Villages != null)
             {
                 foreach (var v in town.Villages)
                 {
                     if (v == null) continue;
-                    boundCount++;
-                    boundProduction += EstimateVillageProduction(v);
+                    float vProd = EstimateVillageProduction(v);
+                    string raidedFlag = (v.VillageState == Village.VillageStates.Looted
+                                        || v.VillageState == Village.VillageStates.BeingRaided) ? " RAIDED" : "";
+                    BannerKings.Utils.Logs.Economy(() =>
+                        $"  food[{kind}] {settlement.StringId} bound-village"
+                        + $" {v.Settlement?.StringId ?? "?"} ({v.Name})"
+                        + $" production={vProd:F2}/d hearth={v.Hearth:F0}{raidedFlag}");
                 }
             }
-
-            BannerKings.Utils.Logs.Economy(() =>
-                $"food[{(settlement.IsCastle ? "castle" : "town")}] {settlement.StringId} ({settlement.Name})"
-                + $" stocks={town.FoodStocks:F0}/{town.FoodStocksUpperLimit():F0}"
-                + $" change={foodChange:+0.00;-0.00;0.00}/d"
-                + $" prosperity={town.Prosperity:F0}"
-                + $" militia={town.Militia:F0}"
-                + $" boundVillages={boundCount}"
-                + $" boundProduction={boundProduction:F2}/d");
         }
 
         private static void TraceVillage(Settlement settlement)
@@ -93,15 +110,47 @@ namespace BannerKings.Behaviours.Diag
             var village = settlement.Village;
             if (village == null) return;
 
-            float production = EstimateVillageProduction(village);
+            float totalProduction = EstimateVillageProduction(village);
             string boundTown = village.Bound?.Name?.ToString() ?? "?";
+            bool raided = village.VillageState == Village.VillageStates.Looted
+                       || village.VillageState == Village.VillageStates.BeingRaided;
 
             BannerKings.Utils.Logs.Economy(() =>
                 $"food[village] {settlement.StringId} ({settlement.Name})"
                 + $" hearth={village.Hearth:F0}"
-                + $" production={production:F2}/d"
-                + $" raided={(village.VillageState == Village.VillageStates.Looted || village.VillageState == Village.VillageStates.BeingRaided)}"
-                + $" bound={boundTown}");
+                + $" production={totalProduction:F2}/d"
+                + $" raided={raided}"
+                + $" bound={boundTown}"
+                + $" villageType={village.VillageType?.StringId ?? "?"}");
+
+            // Per-item breakdown with BE-postfixed daily amounts +
+            // ExplainedNumber lines (which include the BK contribution
+            // factor from the BetterEconomyLayerInstaller postfix on
+            // CalculateDailyProductionAmount).
+            try
+            {
+                var model = TaleWorlds.CampaignSystem.Campaign.Current.Models.VillageProductionCalculatorModel;
+                if (model != null && village.VillageType?.Productions != null)
+                {
+                    foreach (var prod in village.VillageType.Productions)
+                    {
+                        var item = prod.Item1;
+                        if (item == null) continue;
+                        TaleWorlds.CampaignSystem.ExplainedNumber amount = default;
+                        try { amount = model.CalculateDailyProductionAmount(village, item); } catch { continue; }
+
+                        BannerKings.Utils.Logs.Economy(() =>
+                            $"  food[village] {settlement.StringId} item"
+                            + $" {item.StringId} ({item.Name})"
+                            + $" amount={amount.ResultNumber:F2}/d"
+                            + $" base={prod.Item2:F2}");
+
+                        TryDumpExplanationLines(amount, prefix:
+                            $"    food[village] {settlement.StringId} {item.StringId} explained:");
+                    }
+                }
+            }
+            catch { }
         }
 
         private static float EstimateVillageProduction(Village village)
@@ -111,11 +160,6 @@ namespace BannerKings.Behaviours.Diag
                 var model = TaleWorlds.CampaignSystem.Campaign.Current.Models.VillageProductionCalculatorModel;
                 if (model == null) return 0f;
 
-                // Sum the production amounts of every item this village
-                // produces. Each entry from VillageTypeProductions is an
-                // (item, baseAmount) tuple; the model's daily-amount
-                // override (BE-postfixed in current BK builds) gives the
-                // actual production figure used by the engine.
                 float total = 0f;
                 if (village.VillageType?.Productions != null)
                 {
@@ -133,6 +177,34 @@ namespace BannerKings.Behaviours.Diag
                 return total;
             }
             catch { return 0f; }
+        }
+
+        // ExplainedNumber.GetExplanations() returns each contributing
+        // line vanilla / BE / BK attached (e.g. "Hearths +5.00",
+        // "BK contributions ×0.20"). Logging each line one-per-row makes
+        // the breakdown grep-friendly later.
+        private static void TryDumpExplanationLines(TaleWorlds.CampaignSystem.ExplainedNumber en, string prefix)
+        {
+            try
+            {
+                // ExplainedNumber.GetExplanations() returns a single
+                // newline-joined string; split it back into per-line
+                // entries so each contributing factor is on its own
+                // grep-friendly row.
+                string blob = en.GetExplanations();
+                if (string.IsNullOrEmpty(blob)) return;
+                var lines = blob.Split('\n');
+                int idx = 0;
+                foreach (var raw in lines)
+                {
+                    if (string.IsNullOrWhiteSpace(raw)) continue;
+                    var trimmed = raw.Trim();
+                    var captured = trimmed;
+                    int i = idx++;
+                    BannerKings.Utils.Logs.Economy(() => $"{prefix} [{i}] {captured}");
+                }
+            }
+            catch { }
         }
     }
 }
