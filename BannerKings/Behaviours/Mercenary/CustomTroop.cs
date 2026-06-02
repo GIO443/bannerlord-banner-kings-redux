@@ -23,6 +23,11 @@ namespace BannerKings.Behaviours.Mercenary
         private static readonly MethodInfo BasicCharacter_InitializeHeroBasicCharacterOnAfterLoad = AccessTools.Method(typeof(BasicCharacterObject), "InitializeHeroBasicCharacterOnAfterLoad");
         private static readonly MethodInfo BasicCharacter_SetName = AccessTools.Method(typeof(BasicCharacterObject), "SetName");
         private static readonly FieldInfo MBEquipmentRoster_Equipments = AccessTools.Field(typeof(MBEquipmentRoster), "_equipments");
+        // v1.9.10.31 — clear hero-flag fields after the hero-init copy so
+        // custom troops aren't treated as heroes in battle (would name
+        // each spawned soldier on screen).
+        private static readonly FieldInfo CharacterObject_IsHero = AccessTools.Field(typeof(CharacterObject), "_isHero");
+        private static readonly FieldInfo CharacterObject_HeroObject = AccessTools.Field(typeof(CharacterObject), "_heroObject");
 
         internal CustomTroop(CharacterObject character)
         {
@@ -51,9 +56,26 @@ namespace BannerKings.Behaviours.Mercenary
             Character.Age = reference.Age;
             BasicCharacter_InitializeHeroBasicCharacterOnAfterLoad.Invoke(Character, new object[] { (reference as BasicCharacterObject) });
 
+            // v1.9.10.31 — InitializeHeroBasicCharacterOnAfterLoad is a
+            // hero-init path; it copies fields including (in some
+            // versions) the IsHero flag and HeroObject reference from the
+            // template. For custom troops we want a generic soldier, not
+            // a hero — otherwise battle UI shows each spawned troop's
+            // name floating above their head like a lord. Reflectively
+            // clear both fields back to non-hero defaults right after the
+            // copy. Wrapped in try-catch so a vanilla field rename
+            // doesn't kill character creation.
+            try { CharacterObject_IsHero?.SetValue(Character, false); } catch { }
+            try { CharacterObject_HeroObject?.SetValue(Character, null); } catch { }
+
             BasicCharacterObject basicCharacter = (BasicCharacterObject)Character;
             basicCharacter.Level = reference.Level;
-            BasicCharacter_Occupation.SetValue(Character, Occupation.Mercenary);
+            // v1.9.10.31 — Occupation.Mercenary is the COMPANION-mercenary
+            // occupation (hero wanderers serving for pay), not the
+            // generic-troop one. Soldier is correct for non-hero combat
+            // troops; this is what vanilla recruit / militia / culture
+            // troop templates use.
+            BasicCharacter_Occupation.SetValue(Character, Occupation.Soldier);
 
             BasicCharacter_UpgradeTargets.SetValue(Character, new CharacterObject[0]);
         }

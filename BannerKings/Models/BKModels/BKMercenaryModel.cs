@@ -36,9 +36,17 @@ namespace BannerKings.Models.BKModels
         }
         public override IEnumerable<ItemCategory> GetLevyCategories()
         {
+            // v1.9.10.31 — widened: previously only tier-2 weapons +
+            // LightArmor + Shield2 + Horse(1-2). Users picking
+            // equipment for a Levy mercenary saw almost nothing in
+            // weapon slots because tier-1 categories were excluded
+            // entirely and there's no Polearms2 in the original list.
+            // Include tier-1 melee / ranged / shield + Polearms 1-2.
             yield return DefaultItemCategories.Garment;
             yield return DefaultItemCategories.LightArmor;
+            yield return DefaultItemCategories.MeleeWeapons1;
             yield return DefaultItemCategories.MeleeWeapons2;
+            yield return DefaultItemCategories.RangedWeapons1;
             yield return DefaultItemCategories.RangedWeapons2;
             yield return DefaultItemCategories.Horse;
             yield return DefaultItemCategories.Shield2;
@@ -59,13 +67,21 @@ namespace BannerKings.Models.BKModels
 
         public override IEnumerable<ItemCategory> GetProCategories()
         {
+            // v1.9.10.31 — widened: previously only MediumArmor +
+            // LightArmor; HeavyArmor missing entirely so Pro troops
+            // couldn't equip top-tier body armor. Polearm and tier-5
+            // weapons also missing. HorseEquipment5 added for
+            // completeness.
+            yield return DefaultItemCategories.HeavyArmor;
             yield return DefaultItemCategories.MediumArmor;
             yield return DefaultItemCategories.LightArmor;
             yield return DefaultItemCategories.Garment;
             yield return DefaultItemCategories.MeleeWeapons3;
-            yield return DefaultItemCategories.RangedWeapons3;
             yield return DefaultItemCategories.MeleeWeapons4;
+            yield return DefaultItemCategories.MeleeWeapons5;
+            yield return DefaultItemCategories.RangedWeapons3;
             yield return DefaultItemCategories.RangedWeapons4;
+            yield return DefaultItemCategories.RangedWeapons5;
             yield return DefaultItemCategories.Horse;
             yield return DefaultItemCategories.WarHorse;
             yield return DefaultItemCategories.Shield3;
@@ -73,6 +89,7 @@ namespace BannerKings.Models.BKModels
             yield return DefaultItemCategories.HorseEquipment2;
             yield return DefaultItemCategories.HorseEquipment3;
             yield return DefaultItemCategories.HorseEquipment4;
+            yield return DefaultItemCategories.HorseEquipment5;
             yield return DefaultItemCategories.Arrows;
         }
 
