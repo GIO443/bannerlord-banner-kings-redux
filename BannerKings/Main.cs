@@ -164,6 +164,11 @@ namespace BannerKings
             // menu condition checks the MCM toggle); when EnableTelepathy
             // is false the option is hidden and no save state accrues.
             campaignStarter.AddBehavior(new BKTelepathyBehavior());
+            // v1.9.10.35 — daily food production / consumption trace into
+            // BK_economy.txt. Gated by MCM "Log Economy Decisions" toggle
+            // inside the behavior itself; unconditional registration so
+            // flipping the toggle mid-session takes effect without restart.
+            campaignStarter.AddBehavior(new BannerKings.Behaviours.Diag.BKFoodTraceBehavior());
 
             // BK's workshop system is retired — Bannerlord Living Economy owns
             // workshop production (WorkshopProductionPatch). BKWorkshopBehavior
