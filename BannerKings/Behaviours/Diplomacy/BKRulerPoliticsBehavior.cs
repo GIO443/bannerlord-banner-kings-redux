@@ -1,10 +1,14 @@
 using System.Collections.Generic;
+using System.Linq;
 using BannerKings.Behaviours.Diplomacy.Groups;
 using BannerKings.Extensions;
+using BannerKings.Managers.Kingdoms.Contract;
 using BannerKings.Managers.Titles;
+using BannerKings.Managers.Titles.Laws;
 using BannerKings.Settings;
 using TaleWorlds.CampaignSystem;
 using TaleWorlds.CampaignSystem.CharacterDevelopment;
+using TaleWorlds.CampaignSystem.Election;
 using TaleWorlds.Core;
 using TaleWorlds.Library;
 
@@ -63,6 +67,24 @@ namespace BannerKings.Behaviours.Diplomacy
             RunWeekly(() => EvaluateRevocations(ruler, kingdom),
                 GetType().Name + ".Revoke",
                 false);
+
+            // v1.9.10.34 — AI demesne-law proposing. Vanilla
+            // KingdomDecisionProposalBehavior doesn't know about BK's
+            // demesne law decisions, so previously no AI ever proposed
+            // a law change — only the player ever queued
+            // BKDemesneLawDecision via the kingdom screen. User report:
+            // "I want AI clans to scheme... propose votes to change
+            // laws". This weekly tick picks a random law category in
+            // the realm's sovereign contract and, with modest cadence,
+            // queues a BKDemesneLawDecision proposing a different law
+            // in that category. Vanilla election then runs through
+            // BKDemesneLawDecision.DetermineSupport, which already
+            // takes Centralism / authoritarian-vs-egalitarian lean
+            // into account, so AI clans actually vote based on their
+            // political disposition rather than rubber-stamping.
+            RunWeekly(() => EvaluateLawProposals(ruler, kingdom),
+                GetType().Name + ".LawProposal",
+                false);
         }
 
         private void EvaluateRevocations(Hero ruler, Kingdom kingdom)
@@ -108,6 +130,56 @@ namespace BannerKings.Behaviours.Diplomacy
                     $"{ruler.Clan.Name} (ruler of {kingdom.Name}) revokes {title.FullName} from {vassalClan.Name} "
                     + $"(threat={threat:F0}, threshold={threshold:F0})");
                 return; // one revoke per ruler per fire — political restraint
+            }
+        }
+
+        // v1.9.10.34 — AI ruler proposes a demesne law change. ~12%
+        // chance per week → on average ~6 proposals per kingdom per
+        // year, which is a noticeable cadence without being spam. Skips
+        // when one is already pending so the queue doesn't pile up.
+        private void EvaluateLawProposals(Hero ruler, Kingdom kingdom)
+        {
+            if (MBRandom.RandomFloat > 0.12f) return;
+
+            var sovereign = BannerKingsConfig.Instance.TitleManager.GetSovereignTitle(kingdom);
+            if (sovereign?.Contract?.DemesneLaws == null) return;
+
+            // Don't pile up — at most one law decision pending per kingdom.
+            foreach (var pending in kingdom.UnresolvedDecisions)
+            {
+                if (pending is BKDemesneLawDecision) return;
+            }
+
+            // Pick a random currently-enacted law.
+            var enactedSnapshot = sovereign.Contract.DemesneLaws.ToList();
+            if (enactedSnapshot.Count == 0) return;
+            var currentLaw = enactedSnapshot.GetRandomElement();
+            if (currentLaw == null) return;
+
+            // Find alternative laws of the same type from the realm's
+            // adequate set (respects government + culture restrictions).
+            var adequate = DefaultDemesneLaws.Instance.GetAdequateLaws(sovereign);
+            if (adequate == null || adequate.Count == 0) return;
+            var candidates = adequate
+                .Where(l => l != null && l.LawType == currentLaw.LawType && l.StringId != currentLaw.StringId)
+                .ToList();
+            if (candidates.Count == 0) return;
+
+            var proposedLaw = candidates.GetRandomElement();
+            if (proposedLaw == null) return;
+
+            try
+            {
+                var decision = new BKDemesneLawDecision(ruler.Clan, sovereign, currentLaw);
+                decision.UpdateDecision(proposedLaw);
+                kingdom.AddDecision(decision, false);
+                Utils.Logs.Politics(() =>
+                    $"{ruler.Clan.Name} (ruler of {kingdom.Name}) proposes law change: {currentLaw.Name} → {proposedLaw.Name}");
+            }
+            catch
+            {
+                // Defensive — a bad law slot or DefaultDemesneLaws
+                // edge case shouldn't crash the weekly tick.
             }
         }
 
