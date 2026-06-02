@@ -1133,8 +1133,21 @@ namespace BannerKings.Behaviours.Diplomacy
                 }
                 else
                 {
+                    // v1.9.10.33 — was: AI kingdoms preemptively bought
+                    // 3-year truces with peaceful neighbors here. Vanilla's
+                    // GetRandomWarDecision then never produced a war
+                    // proposal for any pair under truce, so over years
+                    // every kingdom accumulated truces with every potential
+                    // target and no AI war votes ever started (user report:
+                    // Vlandia sat at peace for 30 years, "no one seemed to
+                    // be starting any votes at all"). Truces are meant to
+                    // EXIT a war into a stable peace window, not to suppress
+                    // wars that would otherwise happen — gate on
+                    // currently-at-war so the truce-buy only fires when
+                    // there's an actual conflict to wind down.
                     TextObject truceReason;
-                    if (BannerKingsConfig.Instance.KingdomDecisionModel.IsTruceAllowed(kingdom, target, out truceReason) &&
+                    if (kingdom.IsAtWarWith(target)
+                        && BannerKingsConfig.Instance.KingdomDecisionModel.IsTruceAllowed(kingdom, target, out truceReason) &&
                         MBRandom.RandomFloat < MBRandom.RandomFloat)
                     {
                         if (kingdom.RulingClan.Gold >= BannerKingsConfig.Instance.DiplomacyModel.GetTruceDenarCost(kingdom, target)

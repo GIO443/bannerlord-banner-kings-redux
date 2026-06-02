@@ -35,6 +35,10 @@ namespace BannerKings.Settings
         [SettingPropertyGroup("{=FnRzVf4Q}Performance")]
         public float ProsperityGrowthMultiplier { get; set; } = 0.3f;
 
+        [SettingPropertyFloatingInteger("Militia Growth Multiplier", minValue: 0f, maxValue: 2f, "#0%", RequireRestart = false, HintText = "v1.9.10.33 — scales the FINAL daily militia change (vanilla base + BK contributions). Lower if militias balloon to thousands in long campaigns (a save where prosperity already accumulated before v1.9.10.25's multiplier was added will keep producing huge manpower-driven militia growth even with prosperity now capped). Negative militia change (raids, sieges) passes through unchanged. 0% freezes militia growth entirely; 100% restores the pre-multiplier baseline. Default: 50%.")]
+        [SettingPropertyGroup("{=FnRzVf4Q}Performance")]
+        public float MilitiaGrowthMultiplier { get; set; } = 0.5f;
+
         [SettingProperty("Show Legacy Land UI", RequireRestart = false, HintText = "v1.9.10.27 — when ON, settlement Management → Demesne shows the BK land-model readouts (Acreage / Farmland / Pastureland / Woodland breakdown, Fertility / Terrain Difficulty, Workforce / Workforce Saturation) and the Estate panel shows the cluster's Industry Fit row. These values still drive BK internal models (population growth, food calculations when BetterEconomy doesn't own them, AI estate-policy decisions) but they aren't directly player-actionable and read as BK jargon to players coming from vanilla / Bannerlord Living Economy. Flip back ON if you want the detail. Default: OFF.")]
         [SettingPropertyGroup("{=FnRzVf4Q}Performance")]
         public bool ShowLegacyLandUI { get; set; } = false;

@@ -152,6 +152,28 @@ namespace BannerKings.Models.Vanilla
                 }
             }
 
+            // v1.9.10.33 — final positive-only growth dampener. Scales
+            // the FULL militia change (vanilla base + BK contributions) by
+            // the MCM Militia Growth Multiplier when the net change is
+            // positive. Negative ticks (raids, sieges) pass through
+            // unchanged so penalties still bite. Same shape as the
+            // prosperity dampener in BKEconomyLayerInstaller.
+            try
+            {
+                float growth = BannerKings.Settings.BannerKingsSettings.Instance?.MilitiaGrowthMultiplier ?? 0.5f;
+                if (growth < 0.999f || growth > 1.001f)
+                {
+                    float final = baseResult.ResultNumber;
+                    if (final > 0f)
+                    {
+                        if (growth < 0f) growth = 0f;
+                        baseResult.Add((growth - 1f) * final,
+                            new TextObject("{=!}BK militia growth multiplier"));
+                    }
+                }
+            }
+            catch { }
+
             return baseResult;
         }
 
