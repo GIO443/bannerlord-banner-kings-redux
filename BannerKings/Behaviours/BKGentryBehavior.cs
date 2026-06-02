@@ -687,17 +687,24 @@ namespace BannerKings.Behaviours
 
         private Equipment GetEquipmentIfPossible(CultureObject culture, bool civillian = false, bool female = false)
         {
-            var source = from e in MBObjectManager.Instance.GetObjectTypeList<MBEquipmentRoster>()
-                         where e.EquipmentCulture == culture
-                         select e;
-            if (source == null)
+            // v1.9.10.30 — null-guard on the roster list: user crash 2026-06-01
+            // (crash.htm) NRE'd inside the Where lambda because
+            // MBObjectManager.GetObjectTypeList<MBEquipmentRoster>() contains
+            // at least one null entry on certain mod combos. Fires from
+            // BKGentryBehavior.OnGameCreatedFollowUp → InitializeGentry →
+            // GetEquipmentIfPossible during character-creation finalize,
+            // killing the campaign launch with no popup branch.
+            var source = (from e in MBObjectManager.Instance.GetObjectTypeList<MBEquipmentRoster>()
+                          where e != null && e.EquipmentCulture == culture
+                          select e).ToList();
+            if (source.Count == 0)
             {
                 return null;
             }
 
-            var roster = (from e in source where e.EquipmentCulture == culture select e).ToList()
-                .GetRandomElementWithPredicate(x => 
+            var roster = source.GetRandomElementWithPredicate(x =>
                 {
+                    if (x == null) return false;
                     // 1.4 EquipmentCategories dropped the Medium/Civilian roster
                     // flags; the civilian-vs-battle split is selected per-Equipment.
                     bool noble = x.EquipmentCategories.HasFlag(EquipmentCategories.IsLordTemplate);
@@ -710,7 +717,7 @@ namespace BannerKings.Behaviours
                 return null;
             }
 
-            return roster.AllEquipments.GetRandomElement();
+            return roster.AllEquipments?.GetRandomElement();
         }
 
         private void OnSessionLaunched(CampaignGameStarter starter)
