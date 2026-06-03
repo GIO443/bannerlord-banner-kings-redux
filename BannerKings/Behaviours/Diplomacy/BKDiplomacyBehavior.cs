@@ -344,6 +344,44 @@ namespace BannerKings.Behaviours.Diplomacy
             {
                 war.PostInitialize();
             }
+
+            // v1.9.10.42 — load-time truce clamp. Pre-v1.9.10.33 BK was
+            // preemptively buying 3-year truces with peaceful neighbors,
+            // and even after v1.9.10.33 paid truces ran 3 years. Existing
+            // saves carry those stale long truces — IsInTruce blocks any
+            // war proposal against the held kingdom, so old saves see
+            // no AI war activity. Clamp every Truces entry to a max of
+            // 1 year remaining so the new short-truce behaviour applies
+            // retroactively without manual save-editing. A fresh truce
+            // added by AI after this point (1y by default) is already
+            // <= the clamp and passes through unchanged.
+            try
+            {
+                const float oneYearDays = 365f;
+                foreach (var diplomacy in kingdomDiplomacies.Values)
+                {
+                    if (diplomacy.Truces == null) continue;
+                    var keys = new List<Kingdom>(diplomacy.Truces.Keys);
+                    int clamped = 0;
+                    foreach (var k in keys)
+                    {
+                        var expiry = diplomacy.Truces[k];
+                        if (expiry.IsFuture && expiry.RemainingDaysFromNow > oneYearDays)
+                        {
+                            diplomacy.Truces[k] = CampaignTime.DaysFromNow(oneYearDays);
+                            clamped++;
+                        }
+                    }
+                    if (clamped > 0)
+                    {
+                        var diploRef = diplomacy;
+                        int clampedCount = clamped;
+                        BannerKings.Utils.Logs.Kingdom(() =>
+                            $"truce-clamp: {diploRef.Kingdom?.Name} {clampedCount} truce(s) shortened to <= 1y");
+                    }
+                }
+            }
+            catch { /* never block load on a diagnostic sweep */ }
         }
 
         private void OnDailyTick()
@@ -1153,7 +1191,16 @@ namespace BannerKings.Behaviours.Diplomacy
                         if (kingdom.RulingClan.Gold >= BannerKingsConfig.Instance.DiplomacyModel.GetTruceDenarCost(kingdom, target)
                             .ResultNumber * 3f)
                         {
-                            ConsiderTruce(kingdom, target, 3f);
+                            // v1.9.10.42 — was 3 years. AI kingdoms binding
+                            // themselves to multi-year no-arms windows after
+                            // every wind-down was the single biggest reason
+                            // no one was declaring war — once a kingdom
+                            // exited a war with X via paid truce, X was off
+                            // the table for ~3 years no matter how good the
+                            // CB or how weak X became. 1 year matches the
+                            // vanilla PeaceDeclarationDate cooldown plus a
+                            // small extension for the "paid for it" weight.
+                            ConsiderTruce(kingdom, target, 1f);
                             break;
                         }
                     }

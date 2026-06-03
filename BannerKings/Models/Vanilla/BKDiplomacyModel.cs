@@ -920,7 +920,17 @@ namespace BannerKings.Models.Vanilla
 
                         if (justifications.Count == 0)
                         {
-                            result.Add(-2000f, new TextObject("{=!}No war justifications"));
+                            // v1.9.10.42 — was -2000. Every downstream
+                            // strategic term scales by Abs(baseNumber),
+                            // so a -2000 baseline made the existing-war
+                            // penalty (-Abs(base) × ~2 per other enemy)
+                            // alone ~ -4000+ — second-front wars were
+                            // mathematically impossible without a CB,
+                            // and most kingdom pairs have no CB available
+                            // in mid-campaign. -500 keeps the no-CB
+                            // discount real but doesn't crush every
+                            // strategic factor by sheer magnitude.
+                            result.Add(-500f, new TextObject("{=!}No war justifications"));
                         }
                     }
                     else
@@ -962,7 +972,16 @@ namespace BannerKings.Models.Vanilla
                     {
                         WarStats enemyStats = CalculateWarStats(factionDeclaresWar, enemyKingdom);
                         float enemyScore = enemyStats.Strength + enemyStats.ValueOfSettlements - (enemyStats.TotalStrengthOfEnemies * 1.25f);
-                        float f = 2f - (attackerScore / (enemyScore * 5f));
+                        // v1.9.10.42 — was `f = 2 - (attacker/enemy×5)`,
+                        // typically 1.6-2.0 per existing enemy. Combined
+                        // with the no-CB baseline this made any third
+                        // war (or even second against an even-strength
+                        // foe) infeasible. New formula `clamp(1 - ..., 0.25, 1)`
+                        // halves the worst-case penalty while still
+                        // making strong kingdoms pay SOMETHING per open
+                        // front (0.25 floor) so the dominant power
+                        // doesn't stack 4 simultaneous wars at zero cost.
+                        float f = MathF.Clamp(1f - (attackerScore / (enemyScore * 5f)), 0.25f, 1f);
                         result.Add(-MathF.Abs(baseNumber) * f, new TextObject("{=epNrP2AT}Existing war with {FACTION}")
                         .SetTextVariable("FACTION", enemyKingdom.Name));
                     }
@@ -1060,7 +1079,15 @@ namespace BannerKings.Models.Vanilla
                     totalWarScore, -1f, 1f) * 2f : 0f;
                 result.Add(MathF.Abs(baseNumber) * (war.Attacker == factionDeclaresWar ? -score : score));
 
-                float fatigue = BannerKingsConfig.Instance.WarModel.CalculateFatigue(war, factionDeclaresWar).ResultNumber * 4f;
+                // v1.9.10.42 — was × 4. Same logic as the per-existing-
+                // war softening: fatigue × 4 + casus-belli amplification
+                // was making any war past ~10% fatigue feel like the
+                // worst possible idea to the AI, so kingdoms wound down
+                // their existing wars and then sat at peace indefinitely
+                // because the residual fatigue still discouraged
+                // declaring new ones. × 2 still discourages multi-front
+                // dogpile but lets fresh wars start.
+                float fatigue = BannerKingsConfig.Instance.WarModel.CalculateFatigue(war, factionDeclaresWar).ResultNumber * 2f;
                 result.Add(MathF.Abs(baseNumber) * -fatigue, new TextObject("{=Nxrd7yym}Fatigue over this war"));
             }
             else
@@ -1088,7 +1115,7 @@ namespace BannerKings.Models.Vanilla
                                 : 0f;
                             result.Add(MathF.Abs(baseNumber) * (allyWar.Attacker == factionDeclaresWar ? -score : score));
 
-                            float fatigue = BannerKingsConfig.Instance.WarModel.CalculateFatigue(allyWar, factionDeclaresWar).ResultNumber * 4f;
+                            float fatigue = BannerKingsConfig.Instance.WarModel.CalculateFatigue(allyWar, factionDeclaresWar).ResultNumber * 2f;
                             result.Add(MathF.Abs(baseNumber) * -fatigue, new TextObject("{=Nxrd7yym}Fatigue over this war"));
                         }
                     }
