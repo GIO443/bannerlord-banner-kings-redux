@@ -137,10 +137,24 @@ namespace BannerKings.Patches.BetterEconomy
             var targets = new List<Type>(subs) { baseType };
             var postfix = new HarmonyMethod(AccessTools.Method(
                 typeof(BKEconomyLayerInstaller), nameof(VillageProductionPostfix)));
+            // v1.9.10.40 — soft-cap postfix runs after the BK-contribution
+            // postfix above so it clamps the FULL result (vanilla + BE +
+            // BK), not the pre-BK intermediate. Two separate Patch calls
+            // → Harmony preserves install order in the postfix chain.
+            var capPostfix = new HarmonyMethod(AccessTools.Method(
+                typeof(BKEconomyLayerInstaller), nameof(VillageProductionSoftCapPostfix)));
 
             int patched = 0;
             foreach (var target in targets)
             {
+                // v1.9.10.40 — exclude BK's own dormant VillageProduction
+                // model from the patch loop. It's not registered when BE
+                // is the hard-dep, but it does appear in FindNonAbstract
+                // Subclasses, and patching it would mean the soft-cap
+                // fires recursively if any legacy code ever invokes BK's
+                // override directly.
+                if (target.FullName == "BannerKings.Models.Vanilla.BKVillageProductionModel") continue;
+
                 // The single-item overload — two-arg (Village, ItemObject).
                 var m = AccessTools.Method(target, "CalculateDailyProductionAmount",
                     new[] { typeof(TaleWorlds.CampaignSystem.Settlements.Village), typeof(TaleWorlds.Core.ItemObject) });
@@ -149,6 +163,7 @@ namespace BannerKings.Patches.BetterEconomy
                 try
                 {
                     harmony.Patch(m, postfix: postfix);
+                    harmony.Patch(m, postfix: capPostfix);
                     patched++;
                 }
                 catch (Exception ex)
@@ -160,7 +175,7 @@ namespace BannerKings.Patches.BetterEconomy
             if (patched > 0)
             {
                 BannerKings.Utils.Logs.MajorEvent(() =>
-                    $"[BK] BetterEconomyLayer: installed VillageProduction.CalculateDailyProductionAmount postfix on {patched} concrete model(s) — BK SlavesHardLabor mining / cavalry warhorse offset / RitterIronHorses perk multipliers now apply on top of BE.");
+                    $"[BK] BetterEconomyLayer: installed VillageProduction.CalculateDailyProductionAmount postfix on {patched} concrete model(s) — BK SlavesHardLabor mining / cavalry warhorse offset / RitterIronHorses perk multipliers now apply on top of BE; soft-cap postfix dampens the steady-state to ~base × VillageProductionMultiplier.");
             }
         }
 
@@ -180,6 +195,60 @@ namespace BannerKings.Patches.BetterEconomy
                 }
             }
             catch { }
+        }
+
+        // v1.9.10.40 — soft-cap on the final per-item daily production.
+        // Player observation: with BE's hearth-based scaling + BK's
+        // postfix chain on top, healthy villages were producing 1.5-3.0×
+        // their VillageType base amount in steady state. The downstream
+        // effect was towns gaining +2000-5000/d food and capping their
+        // food stocks every tick, which in turn over-fed prosperity and
+        // ran away. Goal: ~20-30% above baseline at peace; war / raids /
+        // mismanagement still pull steady state down via their existing
+        // (untouched) penalty paths.
+        //
+        // Implementation: look up the item's base figure in the village's
+        // VillageType.Productions tuple list, compute target = base × mult,
+        // and if the computed result is above target, compress the
+        // excess by 80% (overage × 0.20). A 3× village at default 1.30
+        // settles around 1.64× base; a 2× village around 1.44×; a
+        // baseline village (≤ 1.30×) passes through unchanged.
+        //
+        // No clamp at zero — negative ticks (raids, ruined fields)
+        // already pass via base game; we only dampen positive excess.
+        public static void VillageProductionSoftCapPostfix(
+            TaleWorlds.CampaignSystem.Settlements.Village village,
+            TaleWorlds.Core.ItemObject item,
+            ref TaleWorlds.CampaignSystem.ExplainedNumber __result)
+        {
+            try
+            {
+                if (village?.VillageType?.Productions == null || item == null) return;
+                float mult = BannerKings.Settings.BannerKingsSettings.Instance?.VillageProductionMultiplier ?? 1.30f;
+                if (mult >= 2.99f) return; // effectively disabled
+                if (mult < 0.5f) mult = 0.5f;
+
+                float baseAmount = 0f;
+                foreach (var prod in village.VillageType.Productions)
+                {
+                    if (prod.Item1 == item) { baseAmount = prod.Item2; break; }
+                }
+                if (baseAmount <= 0f) return;
+
+                float result = __result.ResultNumber;
+                float target = baseAmount * mult;
+                if (result <= target) return;
+
+                float excess = result - target;
+                // 80% compression of overage (keep 20%).
+                float dampened = target + excess * 0.20f;
+                float delta = dampened - result;
+                __result.Add(delta, new TaleWorlds.Localization.TextObject("{=!}BK production soft-cap"));
+            }
+            catch
+            {
+                // Never throw from a daily-tick postfix.
+            }
         }
 
         // ----- POSTFIXES: GetMercantilism / GetProductionEfficiency / GetProductionQuality -----

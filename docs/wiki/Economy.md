@@ -247,3 +247,18 @@ Per-estate cooldown: 60 in-game days before the same estate can be flipped again
 | `bannerkings.test_dispatch_food_caravan <from> <to> <amount>` | Manual food caravan dispatch. |
 
 All cheats require dev console enabled (vanilla launch option `-developer`).
+
+---
+
+## Tuning production overgrowth
+
+If your saves show towns permanently sitting at maxed food stocks and runaway prosperity (20-30k by the first season), village production is overshooting baseline. The default v1.9.10.40 cap targets ~1.3× the per-item base amount you'd see for that village type — well-developed villages can still earn a bit more, but the explosive 2-3× steady state that fed unchecked prosperity is dampened.
+
+Open **MCM → Banner Kings → Balancing**:
+
+- **Village Production Soft-Cap (× base)** — target multiple of the item's base amount. Default `1.30` (= +30%). Excess above this is compressed to 20% of its raw magnitude, so a village that would naturally produce 3× still nets ~1.64×. Raise toward `3.00` to disable; lower toward `1.00` if you want production hugged tighter to baseline.
+- **Prosperity Growth Multiplier** — dampens the final positive prosperity tick. Default `0.30` (= +30% of the raw growth). Together with the production cap, this keeps healthy peacetime towns climbing slowly rather than exploding.
+
+What "baseline" means: for any village's VillageType, BK reads the per-item base figure from its production list — e.g. a `wheat_farm` village has grain at 50, a `fisherman` village has fish at 28, a `sheep_farm` village has sheep at 4. With the default cap, those settle around 65, 36, and 5.2 respectively at steady state, instead of 80-150 / 60-100 / 10-13 like uncapped.
+
+How to verify: turn on **MCM → Diagnostics → Log Economy Decisions** and watch `%LOCALAPPDATA%\BannerKings\ModLogs\BK_economy.txt`. Every in-game day you'll see `food[village] <id> item <X> amount=X/d base=Y` rows; the `amount/base` ratio should mostly sit in 1.0–1.5 with the cap on. Towns' `food[town] ... change=` should sit in the +500 to +1500/d band at peace.

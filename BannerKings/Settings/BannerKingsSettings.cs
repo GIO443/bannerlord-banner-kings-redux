@@ -210,6 +210,12 @@ namespace BannerKings.Settings
         [SettingPropertyGroup("{=P8UecnYf}Balancing")]
         public float EofVillageProductionBoost { get; set; } = 1.30f;
 
+        [SettingPropertyFloatingInteger("Village Production Soft-Cap (× base)", minValue: 0.5f, maxValue: 3.0f, "0.00",
+            RequireRestart = false,
+            HintText = "Target steady-state for daily village production, expressed as a multiple of the item's base amount in its VillageType. When the computed daily output (vanilla + BetterEconomy + BK contributions) exceeds base × this value, the excess is compressed to 20% of its raw size — so a 3.0× village at default 1.30 becomes 1.30 + (1.70 × 0.20) = 1.64× base. Hearth growth, perks and investments still matter, but the explosive 2-3× steady state that caps town stocks and drives runaway prosperity is dampened. Set to 3.00 to effectively disable. Default: 1.30 (target ~30% above baseline, with diminishing returns above)")]
+        [SettingPropertyGroup("{=P8UecnYf}Balancing")]
+        public float VillageProductionMultiplier { get; set; } = 1.30f;
+
         [SettingPropertyFloatingInteger("Militia Cap (% of population)", minValue: 0.005f, maxValue: 0.10f, "0.000",
             RequireRestart = false,
             HintText = "Fraction of a settlement's BK population that contributes to the militia cap, on top of a small per-type baseline (Village=20, Town=100, Castle=200). Lower values → smaller militia equilibrium. Previous BK default was 0.10 (10%), which landed at ~4000 militia in 40k-population towns. New default 0.01 (1%) lands roughly in the 200-850 range for towns. Default: 0.01.")]
