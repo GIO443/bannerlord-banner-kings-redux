@@ -52,7 +52,7 @@
 														        WidthSizePolicy="CoverChildren" MarginTop="10" MarginBottom="100">
 															<Children>
 																<ListPanel WidthSizePolicy="Fixed" HeightSizePolicy="CoverChildren" SuggestedWidth="1000"
-																           StackLayout.LayoutMethod="Vertical" DoNotAcceptEvents="true">
+																           StackLayout.LayoutMethod="VerticalBottomToTop" DoNotAcceptEvents="true">
 																	<Children>
 
 																		<Standard.DropdownWithHorizontalControl Id="SelectionOption" VerticalAlignment="Center"
@@ -105,7 +105,7 @@
 																							VerticalAlignment="Center" HorizontalAlignment="Center" Command.HoverBegin="ExecuteBeginHint"
 																							Command.HoverEnd="ExecuteEndHint" />
 																						<ListPanel HorizontalAlignment="Center" HeightSizePolicy="CoverChildren" WidthSizePolicy="Fixed"
-																							SuggestedWidth="250" StackLayout.LayoutMethod="Vertical">
+																							SuggestedWidth="250" StackLayout.LayoutMethod="VerticalBottomToTop">
 																							<Children>
 																								<RichTextWidget WidthSizePolicy="StretchToParent" HeightSizePolicy="CoverChildren"
 																									HorizontalAlignment="Center" Brush="Clan.Leader.Text" Brush.FontSize="20" Text="@Name"
@@ -128,7 +128,7 @@
 																					VerticalAlignment="Center" HorizontalAlignment="Center" Command.HoverBegin="ExecuteBeginHint"
 																					Command.HoverEnd="ExecuteEndHint" />
 																				<ListPanel HorizontalAlignment="Center" HeightSizePolicy="CoverChildren" WidthSizePolicy="Fixed"
-																					SuggestedWidth="750" StackLayout.LayoutMethod="Vertical">
+																					SuggestedWidth="750" StackLayout.LayoutMethod="VerticalBottomToTop">
 																					<Children>
 																						<RichTextWidget WidthSizePolicy="StretchToParent" HeightSizePolicy="CoverChildren"
 																							HorizontalAlignment="Center" Brush="Clan.Leader.Text" Brush.FontSize="26" Text="@InductionText"
@@ -156,7 +156,7 @@
 																					WidthSizePolicy="StretchToParent" VerticalAlignment="Center" DoNotPassEventsToChildren="true">
 																					<Children>
 																						<ListPanel HorizontalAlignment="Center" HeightSizePolicy="CoverChildren" WidthSizePolicy="Fixed"
-																							SuggestedWidth="350" StackLayout.LayoutMethod="Vertical">
+																							SuggestedWidth="350" StackLayout.LayoutMethod="VerticalBottomToTop">
 																							<Children>
 																								<RichTextWidget WidthSizePolicy="StretchToParent" HeightSizePolicy="CoverChildren"
 																									HorizontalAlignment="Center" Brush="Clan.Leader.Text" Brush.FontSize="20" Text="@Name"
@@ -192,7 +192,7 @@
 																					WidthSizePolicy="StretchToParent" VerticalAlignment="Center" DoNotPassEventsToChildren="true">
 																					<Children>
 																						<ListPanel HorizontalAlignment="Center" HeightSizePolicy="CoverChildren" WidthSizePolicy="Fixed"
-																							SuggestedWidth="350" StackLayout.LayoutMethod="Vertical">
+																							SuggestedWidth="350" StackLayout.LayoutMethod="VerticalBottomToTop">
 																							<Children>
 																								<RichTextWidget WidthSizePolicy="StretchToParent" HeightSizePolicy="CoverChildren"
 																									HorizontalAlignment="Center" Brush="Clan.Leader.Text" Brush.FontSize="30" Text="@Name"
@@ -226,7 +226,7 @@
 																					WidthSizePolicy="StretchToParent" VerticalAlignment="Center" DoNotPassEventsToChildren="true">
 																					<Children>
 																						<ListPanel HorizontalAlignment="Center" HeightSizePolicy="CoverChildren" WidthSizePolicy="Fixed"
-																							SuggestedWidth="350" StackLayout.LayoutMethod="Vertical">
+																							SuggestedWidth="350" StackLayout.LayoutMethod="VerticalBottomToTop">
 																							<Children>
 																								<RichTextWidget WidthSizePolicy="StretchToParent" HeightSizePolicy="CoverChildren"
 																									HorizontalAlignment="Center" Brush="Clan.Leader.Text" Brush.FontSize="30" Text="@Name"
@@ -258,7 +258,7 @@
 																			SuggestedHeight="350" DefaultCellWidth="350" DefaultCellHeight="120" ColumnCount="3" MarginTop="10">
 																			<ItemTemplate>
 																				<ListPanel HorizontalAlignment="Center" HeightSizePolicy="CoverChildren"
-																					WidthSizePolicy="StretchToParent" StackLayout.LayoutMethod="Vertical">
+																					WidthSizePolicy="StretchToParent" StackLayout.LayoutMethod="VerticalBottomToTop">
 																					<Children>
 																						<RichTextWidget WidthSizePolicy="StretchToParent" HeightSizePolicy="Fixed" SuggestedHeight="40"
 																							HorizontalAlignment="Center" Brush="Clan.Leader.Text" Brush.FontSize="32" Text="@Name">

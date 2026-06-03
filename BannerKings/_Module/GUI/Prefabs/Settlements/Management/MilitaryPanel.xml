@@ -54,7 +54,7 @@
 															  MinIndex="0" StepSize="1000">
 											<Children>							
 												<ListPanel WidthSizePolicy="StretchToParent" HeightSizePolicy="CoverChildren"
-																   StackLayout.LayoutMethod="Vertical" DoNotAcceptEvents="true" MarginTop="35" MarginBottom="30">
+																   StackLayout.LayoutMethod="VerticalBottomToTop" DoNotAcceptEvents="true" MarginTop="35" MarginBottom="30">
 													<Children>
 
 														<GridWidget DataSource="{ManpowerInfo}" WidthSizePolicy="CoverChildren" HorizontalAlignment="Left"
@@ -115,7 +115,7 @@
 													</Children>
 												</ListPanel>
 												<ListPanel WidthSizePolicy="StretchToParent" HeightSizePolicy="CoverChildren"
-														   StackLayout.LayoutMethod="Vertical" MarginTop="35">
+														   StackLayout.LayoutMethod="VerticalBottomToTop" MarginTop="35">
 													<Children>
 
 														<ListPanel WidthSizePolicy="Fixed" HeightSizePolicy="CoverChildren" SuggestedWidth="320"
@@ -210,7 +210,7 @@
 														<Widget WidthSizePolicy="StretchToParent" HeightSizePolicy="CoverChildren">
 															<Children>
 																<ListPanel WidthSizePolicy="StretchToParent" HeightSizePolicy="CoverChildren"
-																		   StackLayout.LayoutMethod="Vertical">
+																		   StackLayout.LayoutMethod="VerticalBottomToTop">
 																	<Children>
 																		<RichTextWidget WidthSizePolicy="StretchToParent" HeightSizePolicy="Fixed" HorizontalAlignment="Center"
 																						SuggestedHeight="5" Brush="TownManagement.Project.Name.Text" Text="@MilitiaPolicyText"
@@ -226,7 +226,7 @@
 														<Widget WidthSizePolicy="StretchToParent" IsHidden="@IsVillage" HeightSizePolicy="CoverChildren">
 															<Children>
 																<ListPanel WidthSizePolicy="StretchToParent" HeightSizePolicy="CoverChildren"
-																		   StackLayout.LayoutMethod="Vertical">
+																		   StackLayout.LayoutMethod="VerticalBottomToTop">
 																	<Children>
 																		<RichTextWidget WidthSizePolicy="StretchToParent" HeightSizePolicy="Fixed" HorizontalAlignment="Center"
 																						SuggestedHeight="5" Brush="TownManagement.Project.Name.Text" Text="@GarrisonPolicyText"
@@ -241,7 +241,7 @@
 														<Widget WidthSizePolicy="StretchToParent" HeightSizePolicy="CoverChildren">
 															<Children>
 																<ListPanel WidthSizePolicy="StretchToParent" HeightSizePolicy="CoverChildren"
-																		   StackLayout.LayoutMethod="Vertical">
+																		   StackLayout.LayoutMethod="VerticalBottomToTop">
 																	<Children>
 																		<RichTextWidget WidthSizePolicy="StretchToParent" HeightSizePolicy="Fixed" HorizontalAlignment="Center"
 																						SuggestedHeight="5" Brush="TownManagement.Project.Name.Text" Text="@DraftingPolicyText"

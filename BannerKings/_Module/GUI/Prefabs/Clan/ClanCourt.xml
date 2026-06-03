@@ -52,7 +52,7 @@
 						<BrushListPanel VisualDefinition="LeftPanel" WidthSizePolicy="CoverChildren" HeightSizePolicy="StretchToParent"
 						                HorizontalAlignment="Left" VerticalAlignment="Bottom" MarginLeft="54" MarginTop="6"
 						                MarginBottom="9" PositionXOffset="-400" Brush="Frame1Brush"
-						                StackLayout.LayoutMethod="Vertical">
+						                StackLayout.LayoutMethod="VerticalBottomToTop">
 							<Children>
 
 								<!--Horizontal Header Section-->
@@ -97,7 +97,7 @@
 													<Children>
 
 														<NavigatableListPanel Id="ClanElementsListPanel" WidthSizePolicy="CoverChildren"
-														                      HeightSizePolicy="CoverChildren" StackLayout.LayoutMethod="Vertical"
+														                      HeightSizePolicy="CoverChildren" StackLayout.LayoutMethod="VerticalBottomToTop"
 														                      MinIndex="0" StepSize="1000">
 															<Children>
 
@@ -127,7 +127,7 @@
 																<!--Family List-->
 																<NavigatableListPanel Id="FamilyList" DataSource="{Family}" WidthSizePolicy="CoverChildren"
 																	HeightSizePolicy="CoverChildren" HorizontalAlignment="Right"
-																	StackLayout.LayoutMethod="Vertical" UseSelfIndexForMinimum="true">
+																	StackLayout.LayoutMethod="VerticalBottomToTop" UseSelfIndexForMinimum="true">
 																	<ItemTemplate>
 																		<ClanLordTuple />
 																	</ItemTemplate>
@@ -156,7 +156,7 @@
 
 																<NavigatableListPanel Id="CompanionsList" DataSource="{Guests}" WidthSizePolicy="CoverChildren"
 																	HeightSizePolicy="CoverChildren" HorizontalAlignment="Right"
-																	StackLayout.LayoutMethod="Vertical" UseSelfIndexForMinimum="true">
+																	StackLayout.LayoutMethod="VerticalBottomToTop" UseSelfIndexForMinimum="true">
 																	<ItemTemplate>
 																		<ClanLordTuple />
 																	</ItemTemplate>
@@ -185,7 +185,7 @@
 
 																<NavigatableListPanel Id="CompanionsList" DataSource="{Courtiers}" WidthSizePolicy="CoverChildren"
 																	HeightSizePolicy="CoverChildren" HorizontalAlignment="Right"
-																	StackLayout.LayoutMethod="Vertical" UseSelfIndexForMinimum="true">
+																	StackLayout.LayoutMethod="VerticalBottomToTop" UseSelfIndexForMinimum="true">
 																	<ItemTemplate>
 																		<ClanLordTuple />
 																	</ItemTemplate>

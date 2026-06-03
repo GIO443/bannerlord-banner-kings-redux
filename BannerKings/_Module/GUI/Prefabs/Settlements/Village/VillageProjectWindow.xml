@@ -79,7 +79,7 @@
 																			<Children>
 																				<Widget HorizontalAlignment="Center" HeightSizePolicy="CoverChildren" WidthSizePolicy="CoverChildren" MarginBottom="50">
 																					<Children>
-																						<ListPanel WidthSizePolicy="StretchToParent" HeightSizePolicy="CoverChildren" VerticalAlignment="Top" MarginTop="5" StackLayout.LayoutMethod="Vertical">
+																						<ListPanel WidthSizePolicy="StretchToParent" HeightSizePolicy="CoverChildren" VerticalAlignment="Top" MarginTop="5" StackLayout.LayoutMethod="VerticalBottomToTop">
 																							<Children>
 																							
 																							<GridWidget DataSource="{AvailableProjects}" WidthSizePolicy="CoverChildren"
@@ -226,12 +226,12 @@
 																        ClipContents="true">
 																	<Children>
 																		<ListPanel Id="QueueList" WidthSizePolicy="CoverChildren" HeightSizePolicy="CoverChildren"
-																			HorizontalAlignment="Center" StackLayout.LayoutMethod="Vertical">
+																			HorizontalAlignment="Center" StackLayout.LayoutMethod="VerticalBottomToTop">
 																			<Children>
 
 																				<ListPanel DataSource="{CurrentDevelopmentQueue}" WidthSizePolicy="CoverChildren"
 																					HeightSizePolicy="CoverChildren" HorizontalAlignment="Center"
-																					StackLayout.LayoutMethod="Vertical">
+																					StackLayout.LayoutMethod="VerticalBottomToTop">
 																					<ItemTemplate>
 																						<DevelopmentItemVisualWidget WidthSizePolicy="Fixed" HeightSizePolicy="Fixed" SuggestedWidth="56"
 																							SuggestedHeight="56" MarginBottom="5" IsDaily="false" SpriteCode="@VisualCode"

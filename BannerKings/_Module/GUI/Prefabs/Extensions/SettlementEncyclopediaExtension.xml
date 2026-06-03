@@ -4,7 +4,7 @@
     <Constant Name="Encyclopedia.SubPage.Element.Height" BrushLayer="Default" BrushName="Encyclopedia.SubPage.Element" BrushValueType="Height" />
   </Constants>
 	<Window>
-		<ListPanel WidthSizePolicy="CoverChildren" HeightSizePolicy="CoverChildren" StackLayout.LayoutMethod="Vertical">
+		<ListPanel WidthSizePolicy="CoverChildren" HeightSizePolicy="CoverChildren" StackLayout.LayoutMethod="VerticalBottomToTop">
 			<Children>
 				<EncyclopediaDivider MarginTop="30" Parameter.Title="@WorkshopsText" Parameter.ItemList="..\WorkshopsGrid"/>
 				<GridWidget Id="WorkshopsGrid" DataSource="{Workshops}" WidthSizePolicy="CoverChildren" HeightSizePolicy="CoverChildren" SuggestedWidth="350" SuggestedHeight="350" DefaultCellWidth="100" DefaultCellHeight="100" HorizontalAlignment="Left" ColumnCount="7" MarginTop="10" MarginLeft="15">

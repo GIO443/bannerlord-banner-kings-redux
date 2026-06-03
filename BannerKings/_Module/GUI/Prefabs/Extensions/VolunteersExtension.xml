@@ -28,7 +28,7 @@
             </Widget>
 
             
-			<ListPanel WidthSizePolicy="StretchToParent" HeightSizePolicy="CoverChildren" VerticalAlignment="Top" MarginLeft="20" StackLayout.LayoutMethod="Vertical">
+			<ListPanel WidthSizePolicy="StretchToParent" HeightSizePolicy="CoverChildren" VerticalAlignment="Top" MarginLeft="20" StackLayout.LayoutMethod="VerticalBottomToTop">
 			  <Children>
 					
 				<ScrollbarWidget HeightSizePolicy ="Fixed" WidthSizePolicy="StretchToParent" Id="VolunteerListScrollbar" SuggestedHeight="15" MinValue="0" MaxValue="100" MarginTop="15" 

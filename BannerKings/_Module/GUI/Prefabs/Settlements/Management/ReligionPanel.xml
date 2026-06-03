@@ -54,7 +54,7 @@
 															  MinIndex="0" StepSize="1000">
 											<Children>							
 												<ListPanel WidthSizePolicy="StretchToParent" HeightSizePolicy="CoverChildren"
-																   StackLayout.LayoutMethod="Vertical" DoNotAcceptEvents="true" MarginTop="35" MarginBottom="30">
+																   StackLayout.LayoutMethod="VerticalBottomToTop" DoNotAcceptEvents="true" MarginTop="35" MarginBottom="30">
 													<Children>
 
 														<GridWidget DataSource="{NotablesList}" WidthSizePolicy="StretchToParent"
@@ -118,7 +118,7 @@
 												</ListPanel>
 
 												<ListPanel WidthSizePolicy="StretchToParent" HeightSizePolicy="CoverChildren"
-														   StackLayout.LayoutMethod="Vertical" MaxHeight="645">
+														   StackLayout.LayoutMethod="VerticalBottomToTop" MaxHeight="645">
 													<Children>
 
 														<GridWidget DataSource="{ReligionList}" WidthSizePolicy="StretchToParent"

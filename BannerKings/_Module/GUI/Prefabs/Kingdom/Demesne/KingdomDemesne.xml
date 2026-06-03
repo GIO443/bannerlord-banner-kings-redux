@@ -12,7 +12,7 @@
 						<Widget Id="Rect" WidthSizePolicy="CoverChildren" HeightSizePolicy="StretchToParent" ClipContents="true">
 							<Children>
 							
-								<ListPanel Id="VerticalList" WidthSizePolicy="StretchToParent" HeightSizePolicy="CoverChildren" StackLayout.LayoutMethod="Vertical">
+								<ListPanel Id="VerticalList" WidthSizePolicy="StretchToParent" HeightSizePolicy="CoverChildren" StackLayout.LayoutMethod="VerticalBottomToTop">
 									<Children>
 									
 										<Standard.DropdownWithHorizontalControl Parameter.SelectorDataSource="{KingdomSelector}" MarginTop="10"
@@ -27,7 +27,7 @@
 											<Children>
 
 												<ListPanel WidthSizePolicy="CoverChildren" HeightSizePolicy="CoverChildren" HorizontalAlignment="Center" SuggestedHeight="150"
-														   VerticalAlignment="Bottom" StackLayout.LayoutMethod="Vertical" MarginRight="15" MarginLeft="15" DoNotAcceptEvents="false">
+														   VerticalAlignment="Bottom" StackLayout.LayoutMethod="VerticalBottomToTop" MarginRight="15" MarginLeft="15" DoNotAcceptEvents="false">
 													<Children>
 														<RichTextWidget WidthSizePolicy="CoverChildren" HeightSizePolicy="CoverChildren"
 																HorizontalAlignment="Center" Brush="Clan.Leader.Text" Brush.FontSize="22" Text="@GovernmentText"
@@ -50,7 +50,7 @@
 												</ListPanel>
 											
 												<ListPanel WidthSizePolicy="CoverChildren" HeightSizePolicy="CoverChildren" HorizontalAlignment="Center" SuggestedHeight="150"
-														   VerticalAlignment="Bottom" StackLayout.LayoutMethod="Vertical"  MarginRight="15" MarginLeft="15" DoNotAcceptEvents="false">
+														   VerticalAlignment="Bottom" StackLayout.LayoutMethod="VerticalBottomToTop"  MarginRight="15" MarginLeft="15" DoNotAcceptEvents="false">
 													<Children>
 														<RichTextWidget WidthSizePolicy="CoverChildren" HeightSizePolicy="CoverChildren"
 																HorizontalAlignment="Center" Brush="Clan.Leader.Text" Brush.FontSize="22" Text="@SuccessionText"
@@ -73,7 +73,7 @@
 												</ListPanel>
 												
 												<ListPanel WidthSizePolicy="CoverChildren" HeightSizePolicy="CoverChildren" HorizontalAlignment="Center" SuggestedHeight="150"
-														   VerticalAlignment="Bottom" StackLayout.LayoutMethod="Vertical"  MarginRight="15" MarginLeft="15" DoNotAcceptEvents="false">
+														   VerticalAlignment="Bottom" StackLayout.LayoutMethod="VerticalBottomToTop"  MarginRight="15" MarginLeft="15" DoNotAcceptEvents="false">
 													<Children>
 														<RichTextWidget WidthSizePolicy="CoverChildren" HeightSizePolicy="CoverChildren"
 																HorizontalAlignment="Center" Brush="Clan.Leader.Text" Brush.FontSize="22" Text="@InheritanceText"
@@ -96,7 +96,7 @@
 												</ListPanel>
 												
 												<ListPanel WidthSizePolicy="CoverChildren" HeightSizePolicy="CoverChildren" HorizontalAlignment="Center" SuggestedHeight="150"
-														   VerticalAlignment="Bottom" StackLayout.LayoutMethod="Vertical"  MarginRight="15" MarginLeft="15" DoNotAcceptEvents="false">
+														   VerticalAlignment="Bottom" StackLayout.LayoutMethod="VerticalBottomToTop"  MarginRight="15" MarginLeft="15" DoNotAcceptEvents="false">
 													<Children>
 														<RichTextWidget WidthSizePolicy="CoverChildren" HeightSizePolicy="CoverChildren"
 																HorizontalAlignment="Center" Brush="Clan.Leader.Text" Brush.FontSize="22" Text="@GenderLawText"
@@ -126,7 +126,7 @@
 											<Children>
 
 												<ListPanel WidthSizePolicy="CoverChildren" HeightSizePolicy="CoverChildren" HorizontalAlignment="Center" SuggestedHeight="150"
-														   VerticalAlignment="Bottom" StackLayout.LayoutMethod="Vertical" MarginRight="15" MarginLeft="15" DoNotAcceptEvents="false">
+														   VerticalAlignment="Bottom" StackLayout.LayoutMethod="VerticalBottomToTop" MarginRight="15" MarginLeft="15" DoNotAcceptEvents="false">
 													<Children>
 														<RichTextWidget WidthSizePolicy="CoverChildren" HeightSizePolicy="CoverChildren"
 																HorizontalAlignment="Center" Brush="Clan.Leader.Text" Brush.FontSize="22" Text="@TaxText"
@@ -147,7 +147,7 @@
 												</ListPanel>
 
 												<ListPanel WidthSizePolicy="CoverChildren" HeightSizePolicy="CoverChildren" HorizontalAlignment="Center" SuggestedHeight="150"
-														   VerticalAlignment="Bottom" StackLayout.LayoutMethod="Vertical" MarginRight="15" MarginLeft="15" DoNotAcceptEvents="false">
+														   VerticalAlignment="Bottom" StackLayout.LayoutMethod="VerticalBottomToTop" MarginRight="15" MarginLeft="15" DoNotAcceptEvents="false">
 													<Children>
 														<RichTextWidget WidthSizePolicy="CoverChildren" HeightSizePolicy="CoverChildren"
 																HorizontalAlignment="Center" Brush="Clan.Leader.Text" Brush.FontSize="22" Text="@ConquestText"
@@ -188,7 +188,7 @@
 											<Children>
 											
 												<ListPanel WidthSizePolicy="CoverChildren" HeightSizePolicy="CoverChildren" HorizontalAlignment="Center" SuggestedHeight="150"
-														   VerticalAlignment="Bottom" StackLayout.LayoutMethod="Vertical" MarginBottom="29" DoNotAcceptEvents="false">
+														   VerticalAlignment="Bottom" StackLayout.LayoutMethod="VerticalBottomToTop" MarginBottom="29" DoNotAcceptEvents="false">
 													<Children>
 													
 														<RichTextWidget WidthSizePolicy="CoverChildren" HeightSizePolicy="CoverChildren"
