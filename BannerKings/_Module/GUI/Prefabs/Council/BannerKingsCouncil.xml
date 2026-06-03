@@ -21,22 +21,6 @@
 												<InformationElement />
 											</ItemTemplate>
 										</GridWidget>
-
-										<!-- v1.9.10.37: auto-purchase toggle. Hidden for non-player clans
-										     so vassal / minor-clan inspectable views don't show it. -->
-										<ButtonWidget WidthSizePolicy="Fixed" HeightSizePolicy="Fixed" SuggestedWidth="340" SuggestedHeight="50"
-										              MarginLeft="60" MarginTop="15" HorizontalAlignment="Left"
-										              IsVisible="@IsAutoPurchaseVisible"
-										              Brush="Popup.RegularButton.Brush"
-										              Command.Click="ExecuteToggleAutoPurchase"
-										              HintWidget.HintLabel="@AutoPurchaseHint">
-											<Children>
-												<TextWidget WidthSizePolicy="StretchToParent" HeightSizePolicy="StretchToParent"
-												            HorizontalAlignment="Center" VerticalAlignment="Center"
-												            Brush="Popup.RegularButton.Text"
-												            Text="@AutoPurchaseToggleText" />
-											</Children>
-										</ButtonWidget>
 										
 										<ListPanel Id="ExpensesList" WidthSizePolicy="StretchToParent" HeightSizePolicy="CoverChildren" IsHidden="@SelectorsHidden"
 												   StackLayout.LayoutMethod="HorizontalLeftToRight" MarginBottom="40" MarginTop="40" DoNotAcceptEvents="true">

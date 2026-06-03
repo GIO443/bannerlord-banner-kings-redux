@@ -15,7 +15,6 @@ using TaleWorlds.CampaignSystem.ViewModelCollection;
 using TaleWorlds.CampaignSystem.ViewModelCollection.CharacterDeveloper;
 using TaleWorlds.CampaignSystem.ViewModelCollection.ClanManagement;
 using TaleWorlds.Core;
-using TaleWorlds.Core.ViewModelCollection.Information;
 using TaleWorlds.Core.ViewModelCollection.Selector;
 using TaleWorlds.Library;
 using TaleWorlds.Localization;
@@ -81,38 +80,6 @@ namespace BannerKings.UI.Court
         [DataSourceProperty] public string LodgingsText => new TextObject("{=TqMRp818}Lodgings").ToString();
         [DataSourceProperty] public bool PlayerOwned => council.Owner == Hero.MainHero;
         [DataSourceProperty] public bool DisableButtons => !PlayerOwned;
-
-        // v1.9.10.37 — auto-purchase toggle on the Court tab. When ON,
-        // CourtGrace fires a weekly buy-only pass that tops up the
-        // stash with the items the seasonal consume tick needs (wines,
-        // textiles, etc.). User asked for this — manual buying every
-        // season was tedious. Bound to a ButtonWidget in the Court
-        // prefab; label flips between Enable / Disable based on
-        // current state.
-        [DataSourceProperty]
-        public bool IsAutoPurchaseOn => council?.CourtGrace?.AutoPurchase == true;
-
-        [DataSourceProperty]
-        public bool IsAutoPurchaseVisible => council != null
-            && council.Clan == Clan.PlayerClan
-            && council.CourtGrace != null;
-
-        [DataSourceProperty]
-        public string AutoPurchaseToggleText => IsAutoPurchaseOn
-            ? new TextObject("{=BKcourt_autopurchase_off}Disable auto-purchase").ToString()
-            : new TextObject("{=BKcourt_autopurchase_on}Enable auto-purchase").ToString();
-
-        [DataSourceProperty]
-        public HintViewModel AutoPurchaseHint => new HintViewModel(
-            new TextObject("{=BKcourt_autopurchase_hint}When enabled, your court will automatically buy the goods it needs for its seasonal consumption (Servants / Extravagance / Lodgings / Security) once a week, from whatever town your court is located in. The seasonal consume tick still runs unchanged on the first day of each season — the auto-buy just keeps the stash topped up so the consume finds what it needs."));
-
-        public void ExecuteToggleAutoPurchase()
-        {
-            if (council?.CourtGrace == null || council.Clan != Clan.PlayerClan) return;
-            council.CourtGrace.SetAutoPurchase(!council.CourtGrace.AutoPurchase);
-            OnPropertyChangedWithValue(IsAutoPurchaseOn, nameof(IsAutoPurchaseOn));
-            OnPropertyChangedWithValue(AutoPurchaseToggleText, nameof(AutoPurchaseToggleText));
-        }
      
         public override void RefreshValues()
         {
