@@ -490,17 +490,28 @@ namespace BannerKings.Patches
             {
                 Kingdom kingdom = (Kingdom)__instance.Settlement.MapFaction;
                 List<SettlementClaimantDecision.ClanAsDecisionOutcome> list = new List<SettlementClaimantDecision.ClanAsDecisionOutcome>();
+                List<SettlementClaimantDecision.ClanAsDecisionOutcome> fallback = new List<SettlementClaimantDecision.ClanAsDecisionOutcome>();
                 foreach (Clan clan in kingdom.Clans)
                 {
                     if (clan != __instance.ClanToExclude && !clan.IsUnderMercenaryService && !clan.IsEliminated && !clan.Leader.IsDead)
                     {
+                        // v1.9.10.41 — fallback list of all otherwise-eligible
+                        // clans (mercs / eliminated / dead leaders still excluded)
+                        // used when the peerage filter empties the main list.
+                        // Without this, a small kingdom or a freshly-captured
+                        // fief whose only peerage-capable clans are filtered
+                        // out by ClanToExclude leaves the decision with zero
+                        // candidates → IsAllowed false → no vote → settlement
+                        // stays IsOwnerUnassigned forever.
+                        fallback.Add(new SettlementClaimantDecision.ClanAsDecisionOutcome(clan));
+
                         var peerage = BannerKingsConfig.Instance.CourtManager.GetCouncil(clan).Peerage;
                         if (peerage == null || !peerage.CanHaveFief) continue;
 
                         list.Add(new SettlementClaimantDecision.ClanAsDecisionOutcome(clan));
                     }
                 }
-                __result = list;
+                __result = list.Count > 0 ? (IEnumerable<DecisionOutcome>)list : fallback;
                 return false;
             }
 
@@ -522,7 +533,14 @@ namespace BannerKings.Patches
             [HarmonyPatch("IsAllowed")]
             private static bool IsAllowedPrefix(SettlementClaimantDecision __instance, ref bool __result)
             {
-                __result = __instance.DetermineInitialCandidates().Count() > 2;
+                // v1.9.10.41 — was `> 2`, which blocked the vote in every
+                // small-kingdom scenario plus any 2-candidate edge after
+                // ClanToExclude filtering. Now `>= 1`: as long as the
+                // candidate list has someone, the decision proceeds. The
+                // candidate-list fallback in DetermineInitialCandidates
+                // guarantees a list of at least 1 whenever any non-merc,
+                // non-eliminated, living-leader clan exists in the kingdom.
+                __result = __instance.DetermineInitialCandidates().Count() >= 1;
                 return false;
             }
 

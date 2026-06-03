@@ -102,6 +102,19 @@
   at fatigue=1.0, so both sides of a stalemate get a mild push toward
   peace while decisive losers still get the strong push. Wars that
   used to sit at 90% mutual fatigue forever should now wind down.
+- **"Captured castle has no ownership vote and can't be granted"** —
+  fixed in v1.9.10.41. BK's `SettlementClaimantDecision` patch filtered
+  candidate clans by `Peerage.CanHaveFief`, then required *more than
+  two* eligible clans for the vote to even appear. In small kingdoms,
+  or after the prior owner was excluded, that gate routinely failed →
+  no decision queued → settlement stayed `IsOwnerUnassigned` forever,
+  and the Kingdom screen's "Grant Fief" path was equally stuck because
+  it dispatches through the same decision. Now: if the peerage filter
+  empties the candidate list, BK falls back to every otherwise-eligible
+  clan (still excluding mercenaries, eliminated clans, and clans with
+  dead leaders), and the IsAllowed gate requires only `>= 1` candidate.
+  After capture, the decision should appear in Kingdom → Decisions
+  within the normal 1-3 in-game day window.
 - **"War Support says 0% but nobody votes for peace"** — fixed in
   v1.9.10.2. The kingdom screen's *War Support* % runs BK's full
   decision model (war fatigue, war score, casus belli expiry), so it
