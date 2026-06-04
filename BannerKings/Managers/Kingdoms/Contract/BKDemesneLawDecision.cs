@@ -36,7 +36,19 @@ namespace BannerKings.Managers.Kingdoms.Contract
         public override void ApplyChosenOutcome(DecisionOutcome chosenOutcome)
         {
             var outcome = chosenOutcome as DemesneLawDecisionOutcome;
-            Title.EnactLaw(outcome.Law);
+            if (outcome == null || outcome.Law == null) return;
+
+            // Re-resolve to the canonical, fully-initialized law before enacting.
+            // outcome.Law is the decision's saved ProposedLaw, whose Name /
+            // Effects / weights are NOT persisted (only set in Initialize via
+            // PostInitialize, which a decision field never gets). After a vote
+            // that resolves across a save/load, that law is a null-named husk;
+            // EnactLaw's GetCopy would then copy the husk into the contract,
+            // leaving the law change invisible/inert until the next reload re-
+            // binds it. Same root cause as the contract-aspect fix in
+            // BKContractChangeDecision.
+            DemesneLaw law = DefaultDemesneLaws.Instance.GetById(outcome.Law) ?? outcome.Law;
+            Title.EnactLaw(law);
 
             // Politics rework — a new law lands on the realm's factions: a
             // group that shuns it grows restless, one that backed it eases.

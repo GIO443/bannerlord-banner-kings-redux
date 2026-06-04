@@ -4,6 +4,7 @@ using BannerKings.Managers.Institutions.Religions;
 using BannerKings.Managers.Titles;
 using BannerKings.Managers.Titles.Governments;
 using BannerKings.Utils.Models;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using TaleWorlds.CampaignSystem;
@@ -232,18 +233,39 @@ namespace BannerKings.Behaviours.Diplomacy
             DissolveTradePact(otherKingdom, new TextObject("{=yrTObrmg}War has broken out!"));
         }
 
+        // Per-day memo for GetTargetKingdomCasusBelli, which walks AllTitles ×
+        // Kingdom.Clans for the FiefClaim claimant path. GetAvailableCasusBelli is
+        // hit once per voting clan inside GetScoreOfDeclaringWar (DetermineSupport
+        // iterates every clan) plus on every diplomacy-screen refresh — so without
+        // memoisation the same (attacker, target) pair recomputes that walk dozens
+        // of times a day. Static + Concurrent so it survives save/load (static
+        // fields aren't deserialised to null) and is safe across the campaign and
+        // UI threads (see feedback on Dictionary thread races). Per-day staleness
+        // matches the war-score cache; claims/fiefs change slowly.
+        private static int _cbCacheDay = -1;
+        private static readonly ConcurrentDictionary<(Kingdom, Kingdom), List<CasusBelli>> _cbCache
+            = new ConcurrentDictionary<(Kingdom, Kingdom), List<CasusBelli>>();
+
         public List<CasusBelli> GetAvailableCasusBelli(Kingdom targetKingdom = null)
         {
             if (targetKingdom != null)
             {
-                return GetTargetKingdomCasusBelli(targetKingdom);
+                int day = (int)CampaignTime.Now.ToDays;
+                if (_cbCacheDay != day)
+                {
+                    _cbCache.Clear();
+                    _cbCacheDay = day;
+                }
+
+                return _cbCache.GetOrAdd((Kingdom, targetKingdom), key => GetTargetKingdomCasusBelli(key.Item2));
             }
 
             var list = new List<CasusBelli>();
             foreach (var kingdom in Kingdom.All)
             {
                 if (kingdom == Kingdom || !Kingdom.GetStanceWith(kingdom).IsNeutral || HasValidTruce(kingdom)) continue;
-                list.AddRange(GetTargetKingdomCasusBelli(kingdom));
+                // Route through the cached per-target path.
+                list.AddRange(GetAvailableCasusBelli(kingdom));
             }
 
             return list;
@@ -278,6 +300,15 @@ namespace BannerKings.Behaviours.Diplomacy
                             foreach (Clan clan in Kingdom.Clans)
                             {
                                 if (clan.IsUnderMercenaryService) continue;
+
+                                // Fast path: only a clan that actually holds a
+                                // claim on this title can justify a claim war.
+                                // Skip the GetCopy/SetInstanceData allocation for
+                                // the (overwhelmingly common) no-claim pairs — this
+                                // is what made the AllTitles × Clans walk expensive
+                                // once FiefClaim went claimant-based.
+                                ClaimType claim = title.GetHeroClaim(clan.Leader);
+                                if (claim == ClaimType.None || claim == ClaimType.Ongoing) continue;
 
                                 CasusBelli c = justification.GetCopy();
                                 c.SetInstanceData(Kingdom,

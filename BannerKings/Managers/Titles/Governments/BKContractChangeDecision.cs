@@ -27,25 +27,81 @@ namespace BannerKings.Managers.Titles.Governments
 
         public override void ApplyChosenOutcome(DecisionOutcome chosenOutcome)
         {
-            if ((chosenOutcome as ContractDecisionOutcome).ShouldDecisionBeEnforced)
-            {
-                Title.ChangeContract(Proposed.Government);
-                Title.ChangeContract(Proposed.Succession);
-                Title.ChangeContract(Proposed.Inheritance);
-                Title.ChangeContract(Proposed.GenderLaw);
+            var outcome = chosenOutcome as ContractDecisionOutcome;
+            bool enforce = outcome != null && outcome.ShouldDecisionBeEnforced;
 
-                // Apply the proposed ContractAspects (Conquest / Taxes). These
-                // live in a separate list from the four core aspects and were
-                // previously omitted here — so a voted Conquest/Taxes change
-                // (e.g. "Conquest by Might") passed the vote but was never
-                // written to the contract.
-                if (Proposed.ContractAspects != null)
+            // Diagnostic (MCM → Diagnostics → Log Kingdom Decisions). Records
+            // whether the winning outcome enforces the change and exactly which
+            // aspects the proposed contract carries — so a "won the vote but the
+            // law didn't change" report can be pinned to the right step.
+            BannerKings.Utils.Logs.Kingdom(() => string.Format(
+                "[ContractChange] {0} apply on {1}: enforce={2}, proposedAspects=[{3}], coreGov={4}",
+                Kingdom != null ? Kingdom.Name.ToString() : "?",
+                Title != null ? Title.FullName.ToString() : "?",
+                enforce,
+                Proposed != null && Proposed.ContractAspects != null
+                    ? string.Join(",", Proposed.ContractAspects.Where(a => a != null).Select(a => a.StringId))
+                    : "<null>",
+                Proposed != null && Proposed.Government != null ? Proposed.Government.StringId : "<null>"));
+
+            if (!enforce) return;
+
+            // Each ChangeContract recurses through every vassal title. Wrap each
+            // independently so a failure on one branch can't abort the rest of
+            // the apply (and gets logged) — the contract aspect must land even if
+            // an unrelated core-aspect propagation hiccups.
+            ApplyOne(() => Title.ChangeContract(Proposed.Government), "government");
+            ApplyOne(() => Title.ChangeContract(Proposed.Succession), "succession");
+            ApplyOne(() => Title.ChangeContract(Proposed.Inheritance), "inheritance");
+            ApplyOne(() => Title.ChangeContract(Proposed.GenderLaw), "genderLaw");
+
+            // Apply the proposed ContractAspects (Conquest / Taxes). These live in
+            // a separate list from the four core aspects and were omitted here
+            // before v1.9.11.3 — so a voted Conquest/Taxes change (e.g. "Conquest
+            // by Might") passed the vote but was never written to the contract.
+            if (Proposed.ContractAspects != null)
+            {
+                foreach (var aspect in Proposed.ContractAspects)
                 {
-                    foreach (var aspect in Proposed.ContractAspects)
-                    {
-                        if (aspect != null) Title.ChangeContract(aspect);
-                    }
+                    if (aspect == null) continue;
+                    // Apply the canonical, fully-initialized aspect (bound Name +
+                    // effect delegates) instead of the husk from the deserialized
+                    // Proposed contract, so the change is correct on the sovereign
+                    // AND every vassal title it propagates to — see the re-bind
+                    // note below for why the husk happens.
+                    var resolved = DefaultContractAspects.Instance.GetById(aspect) ?? aspect;
+                    ApplyOne(() => Title.ChangeContract(resolved), "aspect:" + aspect.StringId);
                 }
+            }
+
+            // Re-bind the contract's aspects from their registries. THIS is the
+            // fix for "won the vote but the law didn't change": Name / description
+            // / effect-delegate fields are NOT persisted (only set in Initialize
+            // via PostInitialize). Proposed is a decision field whose
+            // PostInitialize never runs, so when a vote resolves after a save/load
+            // (the common case — votes take days) its aspects deserialize with
+            // null Name and null delegates. Applying that copy leaves the change
+            // invisible in the Demesne UI and functionally inert. Re-binding the
+            // live contract restores both. Idempotent in-session (the applied
+            // aspects are already the initialized singletons).
+            ApplyOne(() => Title.Contract.PostInitialize(Kingdom,
+                Title.deJure != null ? Title.deJure.Culture : null), "rebind-contract");
+
+            BannerKings.Utils.Logs.Kingdom(() => string.Format(
+                "[ContractChange] post-apply aspects on {0}: [{1}]",
+                Title != null ? Title.FullName.ToString() : "?",
+                Title != null && Title.Contract != null && Title.Contract.ContractAspects != null
+                    ? string.Join(",", Title.Contract.ContractAspects.Where(a => a != null).Select(a => a.StringId))
+                    : "<null>"));
+        }
+
+        private void ApplyOne(Action apply, string label)
+        {
+            try { apply(); }
+            catch (Exception e)
+            {
+                BannerKings.Utils.Logs.Kingdom(() => string.Format(
+                    "[ContractChange] FAILED applying {0}: {1}: {2}", label, e.GetType().Name, e.Message));
             }
         }
 
