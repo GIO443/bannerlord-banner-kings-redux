@@ -2,7 +2,7 @@
 
 <base xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema" type="string">
 	<titles autoGenerate="true">
-		<kingdom faction="vlandia" government="Tribal" succession="WilundingElective" inheritance="Seniority" genderLaw="Agnatic" deJure="lord_4_1">
+		<kingdom faction="vlandia" government="Feudal" succession="WilundingElective" inheritance="Seniority" genderLaw="Agnatic" deJure="lord_4_1">
 			<duchy name="{=kS1GtIuD}Sargotha" deJure="lord_4_1">
 				<county settlement="town_V1" deJure="lord_4_1">
 					<barony settlement="castle_V7" deJure="lord_4_1" />

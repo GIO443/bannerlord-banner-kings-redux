@@ -132,7 +132,7 @@ Objective: Capture 1 or more fiefs of the enemy's culture.</description>
 
   <casus_belli id="fief_claim" behavior="FiefClaim"
                conquest="1.2" raid="1" capture="1" declare_war_score="5000"
-               requires_fief="true" requires_claimant="false">
+               requires_fief="false" requires_claimant="true">
     <name>Claim Fief</name>
     <description>Conquer a fief claimed by your realm. The benefactor of the conquest will always be the claimant, regardless of other ownership procedures.
 
@@ -153,9 +153,9 @@ Objective: Capture the selected target.</description>
                conquest="1.3" raid="1" capture="1" declare_war_score="2500"
                requires_fief="false" requires_claimant="false">
     <name>Suppress Threat</name>
-    <description>Liberate a fief of your people from the rule of foreigners. Any town or castle that is mostly composed by our culture is reason enough for us to rule it rather than foreigners.
+    <description>Strike a neighbouring realm whose strength rivals our own before it grows into an existential danger. A powerful kingdom on our doorstep is reason enough to march.
 
-Objective: Capture the selected target.</description>
+Objective: Capture 1 or more fiefs of the enemy's culture.</description>
     <objective>Conquer a fief</objective>
     <war_declared_text>The {ATTACKER} marches to war! They claim {DEFENDER} are an existential threat.</war_declared_text>
     <trait_weights>

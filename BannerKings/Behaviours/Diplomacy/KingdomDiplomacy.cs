@@ -290,6 +290,14 @@ namespace BannerKings.Behaviours.Diplomacy
                             }
                         }
                     }
+
+                    // Claimant-based CBs (e.g. FiefClaim) are fully instanced in
+                    // the loop above. Without this continue they fell through to
+                    // the fief-less SetInstanceData below, which left Title null
+                    // and made the per-clan adequacy check dereference a null
+                    // title — so the claim CB never surfaced. (This missing
+                    // continue is why FiefClaim was dead.)
+                    continue;
                 }
 
                 justification.SetInstanceData(Kingdom, targetKingdom);
