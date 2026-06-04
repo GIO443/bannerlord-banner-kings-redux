@@ -545,6 +545,24 @@ namespace BannerKings.Managers.Titles
                 }
             }
         }
+
+        // ContractAspects-list aspects (Conquest, Taxes). AddAspect upserts by
+        // aspect type. Propagates to vassals like the core-aspect overloads so a
+        // sovereign-level contract change is realm-wide. Without this overload,
+        // BKContractChangeDecision could only ever apply the four core aspects and
+        // a voted Conquest/Taxes change silently did nothing.
+        public void ChangeContract(ContractAspect aspect)
+        {
+            if (aspect == null) return;
+            Contract.AddAspect(aspect);
+            if (Vassals is {Count: > 0})
+            {
+                foreach (var vassal in Vassals)
+                {
+                    vassal.ChangeContract(aspect);
+                }
+            }
+        }
     }
 
     public enum TitleType

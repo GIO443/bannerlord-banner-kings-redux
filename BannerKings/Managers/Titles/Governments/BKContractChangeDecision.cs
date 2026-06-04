@@ -33,6 +33,19 @@ namespace BannerKings.Managers.Titles.Governments
                 Title.ChangeContract(Proposed.Succession);
                 Title.ChangeContract(Proposed.Inheritance);
                 Title.ChangeContract(Proposed.GenderLaw);
+
+                // Apply the proposed ContractAspects (Conquest / Taxes). These
+                // live in a separate list from the four core aspects and were
+                // previously omitted here — so a voted Conquest/Taxes change
+                // (e.g. "Conquest by Might") passed the vote but was never
+                // written to the contract.
+                if (Proposed.ContractAspects != null)
+                {
+                    foreach (var aspect in Proposed.ContractAspects)
+                    {
+                        if (aspect != null) Title.ChangeContract(aspect);
+                    }
+                }
             }
         }
 
@@ -149,7 +162,29 @@ namespace BannerKings.Managers.Titles.Governments
             if (Title.Contract.Government != Proposed.Government) return Proposed.Government;
             if (Title.Contract.Succession != Proposed.Succession) return Proposed.Succession;
             if (Title.Contract.Inheritance != Proposed.Inheritance) return Proposed.Inheritance;
-            else return Proposed.GenderLaw;
+            if (Title.Contract.GenderLaw != Proposed.GenderLaw) return Proposed.GenderLaw;
+
+            // Conquest / Taxes (ContractAspects list): return the proposed aspect
+            // whose same-type counterpart in the current contract differs. Without
+            // this the method fell through to GenderLaw, so the vote screen showed
+            // the wrong law and DetermineSupport scored the wrong aspect's weights.
+            var changed = GetChangedAspect();
+            return changed ?? Proposed.GenderLaw;
+        }
+
+        // The proposed ContractAspects entry that differs from the current one of
+        // the same type (null if no list-aspect changed).
+        private ContractAspect GetChangedAspect()
+        {
+            if (Proposed.ContractAspects == null) return null;
+            foreach (var proposed in Proposed.ContractAspects)
+            {
+                if (proposed == null) continue;
+                var current = Title.Contract.ContractAspects?
+                    .FirstOrDefault(x => x.AspectType == proposed.AspectType);
+                if (current == null || current.StringId != proposed.StringId) return proposed;
+            }
+            return null;
         }
 
         private TextObject GetCurrent()
@@ -157,7 +192,16 @@ namespace BannerKings.Managers.Titles.Governments
             if (Title.Contract.Government != Proposed.Government) return Title.Contract.Government.Name;
             if (Title.Contract.Succession != Proposed.Succession) return Title.Contract.Succession.Name;
             if (Title.Contract.Inheritance != Proposed.Inheritance) return Title.Contract.Inheritance.Name;
-            else return Title.Contract.GenderLaw.Name;
+            if (Title.Contract.GenderLaw != Proposed.GenderLaw) return Title.Contract.GenderLaw.Name;
+
+            var changed = GetChangedAspect();
+            if (changed != null)
+            {
+                var current = Title.Contract.ContractAspects?
+                    .FirstOrDefault(x => x.AspectType == changed.AspectType);
+                return current != null ? current.Name : TextObject.GetEmpty();
+            }
+            return Title.Contract.GenderLaw.Name;
         }
 
         private TextObject GetDifference() => GetAspect().Name;

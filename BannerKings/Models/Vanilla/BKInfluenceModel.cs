@@ -349,6 +349,18 @@ namespace BannerKings.Models.Vanilla
                 baseResult.AddFactor(0.1f * (baseResult.ResultNumber > 0f ? 1f : -1f), council.Peerage.Name);
             }
 
+            // MCM player influence boost. Applied last so it scales the net
+            // result. Player clan only, and only while the net change is
+            // positive — the slider boosts GAIN and must never deepen a loss.
+            if (clan == Clan.PlayerClan)
+            {
+                float boost = BannerKingsSettings.Instance.PlayerInfluenceGain;
+                if (boost > 1f && baseResult.ResultNumber > 0f)
+                {
+                    baseResult.AddFactor(boost - 1f, new TextObject("{=BKplayerInfBoost}Player Influence Gain (MCM)"));
+                }
+            }
+
             return baseResult;
         }
 

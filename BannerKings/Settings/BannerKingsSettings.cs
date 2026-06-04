@@ -169,6 +169,10 @@ namespace BannerKings.Settings
         [SettingPropertyGroup("{=P8UecnYf}Balancing")]
         public float PartySizes { get; set; } = 2f;
 
+        [SettingPropertyFloatingInteger("Player Influence Gain", minValue: 1f, maxValue: 5f, "#0%", RequireRestart = false, HintText = "Boosts the PLAYER clan's daily influence gain by the selected amount (shows as a 'Player Influence Gain (MCM)' line in the influence tooltip). Only applies while the net daily change is positive, so it never deepens an influence loss. AI clans are unaffected. 100% = no boost (vanilla BK). Default: 100%.")]
+        [SettingPropertyGroup("{=P8UecnYf}Balancing")]
+        public float PlayerInfluenceGain { get; set; } = 1f;
+
         // AlternateLeveling MCM toggle removed in v1.6.9.26. The formula gave
         // ~8K cumulative XP for skill level 100 (vs ~250K vanilla), letting a
         // single battle push a skill from 1 to 100. The toggle's default was
