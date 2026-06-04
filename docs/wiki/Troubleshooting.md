@@ -103,26 +103,30 @@
   peace while decisive losers still get the strong push. Wars that
   used to sit at 90% mutual fatigue forever should now wind down.
 - **"No one is declaring war / kingdoms sit at peace for decades"** —
-  fixed in v1.9.10.42. Three things compounded: (1) pre-v1.9.10.33 BK
-  was buying preemptive 3-year truces with peaceful neighbors and
-  those stale truces survive in old saves, (2) paid truces ran 3 years
-  even after the v1.9.10.33 gate so each war-end locked the pair out
-  of conflict for a third of a typical campaign, (3) BK's
-  `GetScoreOfDeclaringWar` formula scaled every strategic term by
-  `Abs(baseNumber)` and the no-casus-belli baseline was `-2000`, so
-  the per-existing-war penalty crushed any second-front consideration
-  (~`-4000` per active enemy). Now: AI-purchased truces last 1 year;
-  a load-time clamp shortens every existing truce in your save to a
-  max of 1 year remaining (look for `truce-clamp:` lines in
-  `BK_kingdom.txt`); no-CB baseline is `-500`; per-existing-war
-  penalty factor is clamped to `[0.25, 1.0]` (was effectively `[0, 2.0]`)
-  so the per-enemy penalty caps at `-Abs(baseNumber)` × 1 instead of
-  × 2, but a much-stronger attacker still pays at least × 0.25 per
-  open front so the dominant power doesn't dogpile 4 wars at once;
-  fatigue multiplier on direct and ally wars is `× 2` not `× 4`. Net
-  effect: kingdoms with one active war can still
-  consider another reasonable target, and mid-campaign peace eras
-  break up naturally within in-game weeks rather than decades.
+  the real fix landed in **v1.9.11.1**. If you saw the diplomacy screen
+  report high *War Support* (even 100%) yet no AI war ever started, this
+  was the cause. BK replaces vanilla's war/peace scoring with its own
+  scale (`GetScoreOfDeclaringWar` returns small numbers centred on zero:
+  negative = don't, positive = do), but it never replaced the matching
+  *decision threshold*. Vanilla's default threshold is roughly the target
+  kingdom's total settlement value ÷ 6 — tens of thousands of points,
+  calibrated to vanilla's own scoring. The game discards any war proposal
+  that scores below the threshold **before it is ever put to a vote**, so
+  BK's small scores never cleared the bar and every AI war was thrown out
+  pre-vote. (The *War Support* % is a separate calculation that ignores
+  this threshold — hence the "100% support but no war" disconnect.)
+  v1.9.11.1 overrides the threshold to `0` so a net-positive war appetite
+  is enough to put the war to a vote, and reworks the no-justification
+  scoring so a kingdom with a clear strategic edge (much stronger, or a
+  weak isolated neighbour) will declare an opportunistic war even without
+  a formal casus belli, while evenly-matched neighbours stay at peace
+  unless they have one. Earlier partial fixes (v1.9.10.33 / .42) had
+  shortened AI-bought truces to 1 year and softened the per-existing-war
+  penalty — those still apply — but the threshold mismatch was the
+  dominant blocker. **Note:** "no truces forming" was a *symptom* of this,
+  not a separate bug — truces are bought to wind down an existing war, so
+  with no wars there were no truces. Once wars resume, truces reappear.
+  After updating you should see fresh wars begin within in-game weeks.
 - **"Captured castle has no ownership vote and can't be granted"** —
   fixed in v1.9.10.41. BK's `SettlementClaimantDecision` patch filtered
   candidate clans by `Peerage.CanHaveFief`, then required *more than

@@ -815,6 +815,30 @@ namespace BannerKings.Models.Vanilla
             return GetScoreOfDeclaringWar(factionDeclaresWar, factionDeclaredWar, (IFaction)evaluatingClan, out warReason, null).ResultNumber * 10f;
         }
 
+        // v1.9.11.0 — THE reason AI kingdoms stopped declaring war (user report:
+        // zero wars + zero truces across a multi-year campaign; diplomacy screen
+        // showed "war support 100%" yet a war-score tooltip of ~-4839).
+        //
+        // BK replaces vanilla's entire war/peace scoring with its OWN scale:
+        // GetScoreOfDeclaringWar/Peace return small BK-scale numbers (×10), centred
+        // on 0 — negative = don't, positive = do. But BK never overrode this
+        // threshold, so it stayed at vanilla's default
+        // GetValueOfSettlementsForFaction(target)/6 — tens of thousands of points,
+        // calibrated to vanilla's prize-proportional benefit score (which BK threw
+        // away). KingdomDecisionProposalBehavior.GetRandomWarDecision gates on
+        // `DeclareWarBarterable.GetValueForFaction(clan) < GetDecisionMakingThreshold`
+        // and returns null below it — so BK's small scores NEVER cleared the bar and
+        // every AI war proposal was discarded before it could be voted on. (The
+        // "war support %" the player sees is a separate likelihood path that doesn't
+        // consult this threshold, hence the 100%-support-but-no-war disconnect.)
+        //
+        // On BK's scale the correct cut is 0: propose war when net appetite is
+        // positive. The war-appetite calibration lives in GetScoreOfDeclaringWar.
+        public override float GetDecisionMakingThreshold(IFaction consideringFaction)
+        {
+            return 0f;
+        }
+
         public override float GetScoreOfDeclaringPeace(IFaction factionDeclaresPeace, IFaction factionDeclaredPeace)
         {
             TextObject peaceReason;
@@ -887,6 +911,12 @@ namespace BannerKings.Models.Vanilla
             }
 
             float baseNumber = 0f;
+            // v1.9.11.0 — scale: the points-per-unit magnitude every strategic
+            // term is multiplied by. Declared here (outer scope) so it spans the
+            // post-diplomacy strategic block too; assigned its floored value once
+            // baseNumber is known. Stays 0 for non-kingdom pairs, preserving the
+            // previous Abs(0)=0 (strategic terms inert) behaviour for those.
+            float scale = 0f;
 
             WarStats attackerStats = CalculateWarStats(factionDeclaresWar, factionDeclaredWar);
             float attackerScore = attackerStats.Strength + attackerStats.ValueOfSettlements - (attackerStats.TotalStrengthOfEnemies * 1.25f);
@@ -930,7 +960,17 @@ namespace BannerKings.Models.Vanilla
                             // in mid-campaign. -500 keeps the no-CB
                             // discount real but doesn't crush every
                             // strategic factor by sheer magnitude.
-                            result.Add(-500f, new TextObject("{=!}No war justifications"));
+                            //
+                            // v1.9.11.0 — -500 → -200. With the strategic-scale
+                            // floor below (scale = Max(Abs(base), 600)), a -500
+                            // penalty still buried every opportunistic no-CB war
+                            // (strategic sum rarely exceeds ~0.7 → 600×0.7=420 <
+                            // 500). -200 lets a clear strategic edge (strong vs
+                            // weak/isolated neighbour) carry an unjustified war
+                            // positive, while equals or attacking-up stay
+                            // negative. CB wars are unaffected (they set a
+                            // positive baseNumber instead of this penalty).
+                            result.Add(-200f, new TextObject("{=!}No war justifications"));
                         }
                     }
                     else
@@ -953,16 +993,29 @@ namespace BannerKings.Models.Vanilla
                     // war on the rare roll of a CB-eligible neighbour.
                     baseNumber = result.ResultNumber;
 
+                    // v1.9.11.0 — strategic-factor scale. Every strategic term
+                    // below is a dimensionless ratio (threat share, strength
+                    // ratio, fief ratio, fatigue) turned into score points by
+                    // multiplying a magnitude. That magnitude used to be
+                    // Abs(baseNumber) directly: with no casus belli, baseNumber is
+                    // a flat negative penalty, so the strategic terms were scaled
+                    // by the penalty's own size and could never sum past it — an
+                    // opportunistic war was mathematically impossible without a CB.
+                    // Floor the scale so strategic merit has a real, CB-independent
+                    // voice; a strong justification (large positive baseNumber)
+                    // still scales the strategic terms up further.
+                    scale = MathF.Max(baseNumber < 0f ? -baseNumber : baseNumber, 600f);
+
                     // Trade pact discourages war by 25% of the score so far.
                     // Must run after baseNumber is set — when this Add() sat
                     // above the casus-belli block, baseNumber was still 0 and
                     // the penalty never applied.
                     if (diplomacy.HasTradePact(defenderKingdom))
                     {
-                        result.Add(MathF.Abs(baseNumber) * -0.25f, new TextObject("{=DPK2KdUk}Trade pact between both realms"));
+                        result.Add(scale * -0.25f, new TextObject("{=DPK2KdUk}Trade pact between both realms"));
                     }
 
-                    result.Add(MathF.Abs(baseNumber) * -diplomacy.Fatigue, new TextObject("{=Rdmm1Kmh}General war fatigue of {FACTION}")
+                    result.Add(scale * -diplomacy.Fatigue, new TextObject("{=Rdmm1Kmh}General war fatigue of {FACTION}")
                         .SetTextVariable("FACTION", diplomacy.Kingdom.Name));
                 }
 
@@ -982,7 +1035,7 @@ namespace BannerKings.Models.Vanilla
                         // front (0.25 floor) so the dominant power
                         // doesn't stack 4 simultaneous wars at zero cost.
                         float f = MathF.Clamp(1f - (attackerScore / (enemyScore * 5f)), 0.25f, 1f);
-                        result.Add(-MathF.Abs(baseNumber) * f, new TextObject("{=epNrP2AT}Existing war with {FACTION}")
+                        result.Add(-scale * f, new TextObject("{=epNrP2AT}Existing war with {FACTION}")
                         .SetTextVariable("FACTION", enemyKingdom.Name));
                     }
                 }
@@ -1006,20 +1059,20 @@ namespace BannerKings.Models.Vanilla
 
             if (factionDeclaresWar.Fiefs.Count == 1 || factionDeclaredWar.CurrentTotalStrength >= factionDeclaresWar.CurrentTotalStrength * 1.4f)
             {
-                result.Add(-MathF.Abs(baseNumber) * 1.2f, new TextObject("{=fvd0nAa3}Defensive stance against {FACTION}")
+                result.Add(-scale * 1.2f, new TextObject("{=fvd0nAa3}Defensive stance against {FACTION}")
                     .SetTextVariable("FACTION", factionDeclaredWar.Name));
             }
 
             if (evaluatingClan != null)
             {
                 float relations = evaluatingClan.Leader.GetRelation(factionDeclaredWar.Leader);
-                result.Add(MathF.Abs(baseNumber) * (-relations / 100f), new TextObject("{=nnYfQnWv}{HERO1}`s opinion of {HERO2}")
+                result.Add(scale * (-relations / 100f), new TextObject("{=nnYfQnWv}{HERO1}`s opinion of {HERO2}")
                     .SetTextVariable("HERO1", evaluatingClan.Leader.Name)
                 .SetTextVariable("HERO2", factionDeclaredWar.Leader.Name));
             }
 
             float threatFactor = CalculateThreatFactor(factionDeclaresWar, factionDeclaredWar);
-            result.Add(MathF.Abs(baseNumber) * threatFactor * 2f, new TextObject("{=ew3Ga8Lu}{THREAT}% threat relative to possible enemies")
+            result.Add(scale * threatFactor * 2f, new TextObject("{=ew3Ga8Lu}{THREAT}% threat relative to possible enemies")
                 .SetTextVariable("THREAT", (threatFactor * 100f).ToString("0.0")));
 
             float attackerStrength = factionDeclaresWar.CurrentTotalStrength;
@@ -1030,17 +1083,17 @@ namespace BannerKings.Models.Vanilla
             }
 
             float strengthFactor = defenderStrength > 0f ? (attackerStrength / defenderStrength) - 1f : 0f;
-            result.Add(MathF.Abs(baseNumber) * MathF.Clamp(strengthFactor * 0.6f, -2f, 0.5f), new TextObject("{=KcLdYKrY}Difference in strength"));
+            result.Add(scale * MathF.Clamp(strengthFactor * 0.6f, -2f, 0.5f), new TextObject("{=KcLdYKrY}Difference in strength"));
 
             /*if (factionDeclaredWar.Fiefs.Count < factionDeclaresWar.Fiefs.Count / 2f)
             {
                 float fiefFactor = factionDeclaredWar.Fiefs.Count / factionDeclaresWar.Fiefs.Count;
-                result.Add(-MathF.Abs(baseNumber) * (2f - fiefFactor), new TextObject("{=SRN3KdjF}Unworthy opponent"));
+                result.Add(-scale * (2f - fiefFactor), new TextObject("{=SRN3KdjF}Unworthy opponent"));
             }*/
 
             if (defenderStrength >= attackerStrength * 1.5f)
             {
-                result.Add(MathF.Abs(baseNumber) * MathF.Clamp(strengthFactor * 0.5f, -5f, -0.4f), new TextObject("{=Z7AW5i79}Enemy significantly stronger"));
+                result.Add(scale * MathF.Clamp(strengthFactor * 0.5f, -5f, -0.4f), new TextObject("{=Z7AW5i79}Enemy significantly stronger"));
             }
 
             float attackerFiefs = factionDeclaresWar.Fiefs.Count;
@@ -1053,16 +1106,16 @@ namespace BannerKings.Models.Vanilla
                     // -Abs(baseNumber): a flat penalty, consistent with every
                     // sibling term. Was -baseNumber, which inverts to a bonus
                     // when baseNumber is negative (the no-casus-belli case).
-                    result.Add(-MathF.Abs(baseNumber), new TextObject("{=7ix3cKGX}{FACTION} should defend its few fiefs rather than attacking")
+                    result.Add(-scale, new TextObject("{=7ix3cKGX}{FACTION} should defend its few fiefs rather than attacking")
                         .SetTextVariable("FACTION", factionDeclaresWar.Name));
                 }
             }
 
             float fiefsFactor = defenderFiefs > 0f ? (attackerFiefs / defenderFiefs) - 1f : 0f;
-            result.Add(MathF.Abs(baseNumber) * MathF.Clamp(fiefsFactor * 0.1f, -2f, 2f), new TextObject("{=MvV0HUdo}Difference in controlled fiefs"));
+            result.Add(scale * MathF.Clamp(fiefsFactor * 0.1f, -2f, 2f), new TextObject("{=MvV0HUdo}Difference in controlled fiefs"));
 
             if (defenderFiefs >= attackerFiefs * 2f)
-                result.Add(-MathF.Abs(baseNumber), new TextObject("{=bwVkTDdv}{FACTION1} controls more than twice the fiefs than {FACTION2}")
+                result.Add(-scale, new TextObject("{=bwVkTDdv}{FACTION1} controls more than twice the fiefs than {FACTION2}")
                     .SetTextVariable("FACTION1", factionDeclaredWar.Name)
                     .SetTextVariable("FACTION2", factionDeclaresWar.Name));
 
@@ -1077,7 +1130,7 @@ namespace BannerKings.Models.Vanilla
                 float totalWarScore = war.TotalWarScore.ResultNumber;
                 float score = totalWarScore != 0f ? MathF.Clamp(war.CalculateWarScore(war.Attacker, false).ResultNumber /
                     totalWarScore, -1f, 1f) * 2f : 0f;
-                result.Add(MathF.Abs(baseNumber) * (war.Attacker == factionDeclaresWar ? -score : score));
+                result.Add(scale * (war.Attacker == factionDeclaresWar ? -score : score));
 
                 // v1.9.10.42 — was × 4. Same logic as the per-existing-
                 // war softening: fatigue × 4 + casus-belli amplification
@@ -1088,7 +1141,7 @@ namespace BannerKings.Models.Vanilla
                 // declaring new ones. × 2 still discourages multi-front
                 // dogpile but lets fresh wars start.
                 float fatigue = BannerKingsConfig.Instance.WarModel.CalculateFatigue(war, factionDeclaresWar).ResultNumber * 2f;
-                result.Add(MathF.Abs(baseNumber) * -fatigue, new TextObject("{=Nxrd7yym}Fatigue over this war"));
+                result.Add(scale * -fatigue, new TextObject("{=Nxrd7yym}Fatigue over this war"));
             }
             else
             {
@@ -1113,10 +1166,10 @@ namespace BannerKings.Models.Vanilla
                             float score = totalAlly != 0f
                                 ? MathF.Clamp(allyWar.CalculateWarScore(allyWar.Attacker, false).ResultNumber / totalAlly, -1f, 1f) * 2f
                                 : 0f;
-                            result.Add(MathF.Abs(baseNumber) * (allyWar.Attacker == factionDeclaresWar ? -score : score));
+                            result.Add(scale * (allyWar.Attacker == factionDeclaresWar ? -score : score));
 
                             float fatigue = BannerKingsConfig.Instance.WarModel.CalculateFatigue(allyWar, factionDeclaresWar).ResultNumber * 2f;
-                            result.Add(MathF.Abs(baseNumber) * -fatigue, new TextObject("{=Nxrd7yym}Fatigue over this war"));
+                            result.Add(scale * -fatigue, new TextObject("{=Nxrd7yym}Fatigue over this war"));
                         }
                     }
                 }
@@ -1127,7 +1180,7 @@ namespace BannerKings.Models.Vanilla
                     {
                         float distance = TaleWorlds.CampaignSystem.Campaign.Current.Models.MapDistanceModel.GetDistance(border.Item1, border.Item2, false, false, MobileParty.NavigationType.All);
                         float factor = (TaleWorlds.CampaignSystem.Campaign.Current.GetAverageDistanceBetweenClosestTwoTownsWithNavigationType(MobileParty.NavigationType.All) / distance) - 1f;
-                        float baseAbs = MathF.Abs(baseNumber);
+                        float baseAbs = scale;
                         result.Add(MathF.Clamp(baseAbs * factor * 2f, baseAbs * -2f, 0f), new TextObject("{=fiHYU8X3}Distance between realms"));
                     }
                 }
@@ -1142,7 +1195,7 @@ namespace BannerKings.Models.Vanilla
                 Hero leader = evaluating.Leader;
                 float traits = leader.GetTraitLevel(DefaultTraits.Valor) - leader.GetTraitLevel(DefaultTraits.Mercy) +
                     leader.GetTraitLevel(BKTraits.Instance.AptitudeViolence);
-                result.Add(MathF.Abs(baseNumber) * (traits / 4f));
+                result.Add(scale * (traits / 4f));
 
                 float enemies = 1f;
                 if (evaluating.Kingdom != null) enemies += FactionHelper.GetEnemyKingdoms(evaluating.Kingdom).Count();
@@ -1152,12 +1205,12 @@ namespace BannerKings.Models.Vanilla
                 // line 903. With result.BaseNumber this gold penalty was dead.
                 if (gold < 50000)
                 {
-                    result.Add(MathF.Abs(baseNumber) * -0.8f, new TextObject("{=BKwarGoldLow}{HERO} cannot afford a war")
+                    result.Add(scale * -0.8f, new TextObject("{=BKwarGoldLow}{HERO} cannot afford a war")
                         .SetTextVariable("HERO", leader.Name));
                 }
                 else if (gold < 100000)
                 {
-                    result.Add(MathF.Abs(baseNumber) * -0.4f, new TextObject("{=BKwarGoldLow}{HERO} cannot afford a war")
+                    result.Add(scale * -0.4f, new TextObject("{=BKwarGoldLow}{HERO} cannot afford a war")
                         .SetTextVariable("HERO", leader.Name));
                 }
             }
