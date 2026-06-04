@@ -281,6 +281,30 @@ can't bootstrap its own troop tree inside your fief. Watch the settlement's
 culture breakdown in the population panel — the engine-side culture follows
 the majority, not the current plurality.
 
+## Recruitment
+
+**Q: What decides which troops I recruit from notables?**
+Your settlement's **culture and population** decide the base recruits, and your
+**government type and demesne laws** shift the *mix* of basic versus elite
+(noble) troops. Imperial realms field a larger share of elite/noble troops,
+Tribal realms lean on cheap serf levies, and the military-service demesne laws
+(`Nobles Military Service Duties`, `Serfs Military Service Duties`, etc.) push
+those shares up or down. Open a settlement's volunteer list to see the troops a
+notable currently offers; raise the noble share (Imperial government, noble
+service law) and you'll see more elite recruits appear over the following days.
+
+**Q: I run Adonnay's Troop Changer and/or De Re Militari — how do they interact
+with this?**
+Cleanly, and by design. When ATC is installed it owns the troop **rosters**
+(which historical units each faction/culture/clan offers), while Banner Kings
+still owns the **policy** — your government and laws set how often a notable
+offers an elite versus a basic troop, and ATC then picks the actual unit from
+its elite or basic list for that role. De Re Militari's troops flow through the
+same path (it ships an ATC config). With neither installed, BK recruits the
+culture's troops directly. Either way your recruit caps, manpower limits, and
+draft speed are still BK's (relationship, Drafting demesne laws, draft policy,
+Marshal task). See [Installing → Other mods](Installing#other-mods).
+
 ## Estates
 
 **Q: How does estate income work?**

@@ -78,6 +78,26 @@ with both versions named. If you can't tell which mod is at fault, BK's
 [Troubleshooting](Troubleshooting) page has a triage approach (look at
 crash logs, isolate by disabling halves of the load order).
 
+### Adonnay's Troop Changer + De Re Militari (historical troops)
+
+These two are explicitly integrated. **De Re Militari (DRM)** is a data-only
+historical troop/item/culture overhaul; BK reads its redefined troops by
+reference, so DRM's kit shows up in recruitment automatically. **Adonnay's
+Troop Changer (ATC)** controls *which* troops each faction/culture/clan
+recruits via its config (and DRM ships an ATC config).
+
+When ATC is installed, Banner Kings hands it the troop **rosters** but keeps
+ownership of the **recruitment policy**: your government type and demesne laws
+decide how often a notable offers an *elite* troop versus a *basic* one.
+Concretely — an Imperial realm fields more elite/noble troops, a Tribal realm
+leans on cheap levy, and the military-service demesne laws shift the mix — all
+drawn from ATC/DRM's historical troop lists. See
+[Player Guide → Recruitment](Player-Guide#recruitment) for what to expect
+in-game.
+
+Both should load **before** Banner Kings; the launcher does this for you (BK
+declares the dependency), so just enable all three.
+
 ## Recommended load order
 
 The launcher will sort this automatically if you've enabled all of them:
@@ -87,6 +107,7 @@ Harmony → ButterLib → UIExtenderEx → MCM
 Native → SandBoxCore → SandBox → StoryMode → CustomBattle
 NavalDLC (if installed)
 Bannerlord Living Economy
+Adonnay's Troop Changer + De Re Militari (if installed)
 Banner Kings — Redux
 Other gameplay mods
 Bannerlord Tweaks / cosmetic mods / etc.

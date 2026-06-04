@@ -247,6 +247,19 @@ namespace BannerKings.Models.Vanilla
 
         public override CharacterObject GetBasicVolunteer(Hero sellerHero)
         {
+            // Adonnay's Troop Changer integration: ATC owns the troop rosters, so
+            // pull the displayed volunteer from ATC's config. The basic-vs-elite
+            // role ATC resolves is BK-driven (see AtcBridge: BK patches ATC's
+            // NotableShouldGiveEliteTroop with the gov/law noble share). This keeps
+            // the recruit list shown to the player consistent with what ATC's
+            // recruit hook hands over. Null result → fall through to BK's own
+            // population / culture recruit selection below.
+            if (BannerKings.Utils.AtcBridge.Available)
+            {
+                var atcTroop = BannerKings.Utils.AtcBridge.GetFactionRecruit(sellerHero);
+                if (atcTroop != null) return atcTroop;
+            }
+
             var settlement = sellerHero.CurrentSettlement;
             PopulationData data = BannerKingsConfig.Instance.PopulationManager.GetPopData(settlement);
             if (data == null) return base.GetBasicVolunteer(sellerHero);

@@ -114,6 +114,26 @@ namespace BannerKings.Utils
         public const string ShokuhoId = "Shokuho";
         public const string ShokuhoAsm = "Shokuho";
 
+        // Adonnay's Troop Changer (ATC) — https://www.nexusmods.com/mountandblade2bannerlord/mods/477
+        // Code mod: registers ATCVolunteerProductionModel (VolunteerModel slot) and
+        // Harmony-patches RecruitmentCampaignBehavior.GetRecruitVolunteerFromIndividual.
+        // BK does NOT yield here — it loads AFTER ATC (LoadBeforeThis in SubModule.xml)
+        // so BK keeps the VolunteerModel slot (demesne-law recruit caps, manpower
+        // gating, draft efficiency) and reflectively patches ATCConfig.NotableShould-
+        // GiveEliteTroop so BK government/laws drive the basic-vs-elite ratio while ATC
+        // picks the actual troop from its roster config. See BannerKings.Utils.AtcBridge.
+        public const string AdonnaysTroopChangerId = "AdonnaysTroopChanger";
+        public const string AdonnaysTroopChangerAsm = "AdonnaysTroopChanger";
+
+        // De Re Militari (DRM) — historical troop/item/culture overhaul.
+        // Data-only (empty <SubModules>, no DLL): redefines troop objects in place,
+        // adds new troops/items/crafting, patches cultures via XSLT. No code conflict —
+        // BK reads culture/troop objects by reference and automatically gets DRM kit.
+        // Detection is module-id only (no assembly to probe). DRM ships an ATC config
+        // assigning its troops per faction, so when ATC is also present DRM rosters flow
+        // through the ATC integration above.
+        public const string DeReMilitariId = "DeReMilitari";
+
         private static readonly ConcurrentDictionary<string, bool> _cache = new();
 
         private static MethodInfo _getModulesMethod;
@@ -191,6 +211,14 @@ namespace BannerKings.Utils
         /// <summary>True if the Shokuho Sengoku-era total-conversion module is loaded.</summary>
         public static bool Shokuho
             => IsLoaded(ShokuhoId, ShokuhoAsm);
+
+        /// <summary>True if Adonnay's Troop Changer is loaded.</summary>
+        public static bool AdonnaysTroopChanger
+            => IsLoaded(AdonnaysTroopChangerId, AdonnaysTroopChangerAsm);
+
+        /// <summary>True if De Re Militari (data-only troop/item overhaul) is loaded.</summary>
+        public static bool DeReMilitari
+            => IsLoaded(DeReMilitariId);
 
         // ----- internals -----
 

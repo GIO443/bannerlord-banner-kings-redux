@@ -88,6 +88,18 @@ namespace BannerKings
                         $"[BK] TraceVanillaDailyTickParty install failed: {ex.GetType().Name}: {ex.Message}",
                         color: TaleWorlds.Library.Debug.DebugColor.Yellow);
                 }
+
+                // Adonnay's Troop Changer soft integration: inject BK's government /
+                // demesne-law noble share as ATC's basic-vs-elite recruit ratio. No-op
+                // when ATC is absent; reflective + guarded so an ATC API change can't
+                // break BK init.
+                try { BannerKings.Utils.AtcBridge.InstallPatches(harmony); }
+                catch (System.Exception ex)
+                {
+                    TaleWorlds.Library.Debug.Print(
+                        $"[BK] AtcBridge install failed: {ex.GetType().Name}: {ex.Message}",
+                        color: TaleWorlds.Library.Debug.DebugColor.Yellow);
+                }
             }
 
             // Register the BK icon placeholders globally so any TextObject in BK

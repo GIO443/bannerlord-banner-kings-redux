@@ -4,7 +4,7 @@
         xsi:noNamespaceSchemaLocation="https://raw.githubusercontent.com/BUTR/Bannerlord.XmlSchemas/master/SubModule.xsd">
 	<Id value="BannerKings.Redux" />
 	<Name value="Banner Kings — Redux" />
-	<Version value="v1.9.10.42" />
+	<Version value="v1.9.11.0" />
 	<Official value="false" />
 	<DefaultModule value="true" />
 	<ModuleCategory value="Singleplayer" />
@@ -60,6 +60,17 @@
 		     not auto-load into a Shokuho save; LoadAfterThis is declared so the
 		     ModCompat.Shokuho probe sees the module list at BK init time. -->
 		<DependedModuleMetadata id="Shokuho" order="LoadAfterThis" optional="true" />
+		<!-- Adonnay's Troop Changer + De Re Militari: load BEFORE BK (unlike the
+		     cooperators above). ATC registers its own VolunteerModel and patches
+		     the recruit hook; BK must register its VolunteerModel AFTER ATC so BK
+		     keeps owning recruitment policy (demesne-law recruit caps, manpower
+		     gating, draft efficiency) while ATC owns the troop rosters. Loading ATC
+		     first also guarantees its assembly is present when BK reflectively
+		     patches ATCConfig.NotableShouldGiveEliteTroop (see AtcBridge). DeReMilitari
+		     is data-only (troop trees / items / cultures) and load-before so its
+		     XML/XSLT edits apply before BK reads culture troop objects. -->
+		<DependedModuleMetadata id="AdonnaysTroopChanger" order="LoadBeforeThis" optional="true" />
+		<DependedModuleMetadata id="DeReMilitari" order="LoadBeforeThis" optional="true" />
 	</DependedModuleMetadatas>
 	<!-- Community Dependency Metadata -->
 	<SubModules>
