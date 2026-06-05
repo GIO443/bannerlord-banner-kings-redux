@@ -345,6 +345,48 @@ boost off.
 
 ---
 
+## How captured fiefs are distributed
+
+When a kingdom takes a settlement, ownership is decided by an **ownership
+vote** (the vanilla claimant decision, with BK's scoring layered on top).
+Each candidate clan gets a merit score, and the realm's **Conquest law**
+shifts it:
+
+- **Conquest by Might** — the clan that captured the fief gets a large
+  bonus, so conquerors tend to keep what they take.
+- **Conquest by Claim** — the de jure title-holder / legal claimant is
+  favoured.
+- **Distributed Conquest** — clans that already own a lot are penalised,
+  spreading land toward fief-poor clans.
+
+**Over-fief lords are now deprioritized, and vassals vote along their own
+lines.** Previously an AI king could win every ownership vote for himself
+and end up sitting on far more towns and castles than his demesne limit
+allows while landless vassals got nothing. Two things drove that: the
+vanilla vote amplifies a candidate's vote *for itself*, so the king kept
+re-electing himself; and ordinary vassals cast a flat merit vote that
+defaulted to the crown. As of v1.9.11.9:
+
+- **Any candidate already over its demesne limit gets reduced support**,
+  scaling with how far over it is (roughly half support at 2× the limit,
+  a third at 3×). This is a soft deprioritization, not a veto — the king
+  still appears as a candidate and can still win a fief when he's
+  genuinely the best home for it, but a bloated ruler no longer
+  out-polls needier peers.
+- **Vassals lean toward lords they're aligned with** — by personal
+  relation and, more strongly, by shared interest-group membership — so
+  blocs push land toward their own members along ideological lines
+  instead of rubber-stamping the ruler.
+
+Combined with the **Conquest by Might** conqueror bonus, captured fiefs
+now tend to flow to the conqueror or an under-limit vassal rather than
+piling onto an already-bloated king. To see why a fief went where it
+did, open the ownership decision and read each candidate's score
+breakdown; the conquest law shows up as a named line (e.g. `Last
+conquered by … (Conquest by Might)`).
+
+---
+
 ## See also
 
 - [Player Guide](Player-Guide) — the action buttons in the BK UI

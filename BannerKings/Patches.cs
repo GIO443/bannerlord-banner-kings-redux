@@ -544,6 +544,62 @@ namespace BannerKings.Patches
                 return false;
             }
 
+            // v1.9.11.x — make the captured-fief vote actually distribute land
+            // instead of letting the king hoard it. The merit penalty in
+            // CalculateHeroFiefScore wasn't enough because vanilla DetermineSupport
+            // (a) amplifies a candidate's vote for ITSELF (settlement-value bonus
+            // + a flat x2), so a ruling clan re-elects itself onto fief after fief
+            // past its demesne limit, and (b) gates each voter's relation lean
+            // behind the Calculating trait, so ordinary vassals cast a pure-merit
+            // vote and back the ruler by default. This postfix layers two soft
+            // adjustments on vanilla's result — it never excludes the king, only
+            // deprioritizes him.
+            [HarmonyPostfix]
+            [HarmonyPatch("DetermineSupport")]
+            private static void DetermineSupportPostfix(SettlementClaimantDecision __instance,
+                Clan clan, DecisionOutcome possibleOutcome, ref float __result)
+            {
+                try
+                {
+                    var outcome = possibleOutcome as SettlementClaimantDecision.ClanAsDecisionOutcome;
+                    if (outcome?.Clan?.Leader == null || clan?.Leader == null) return;
+                    Clan candidate = outcome.Clan;
+
+                    // (1) Soft over-demesne deprioritization. Scale DOWN positive
+                    // support for ANY candidate already over its demesne limit,
+                    // proportional to the excess (2x over -> ~half, 3x over ->
+                    // ~third), floored so it stays a deprioritization, not a veto.
+                    // Applies to every voter — including the candidate's own
+                    // self-vote — so a bloated king stops out-polling needier
+                    // peers but can still win when he is genuinely the best option.
+                    float limit = BannerKingsConfig.Instance.StabilityModel.CalculateDemesneLimit(candidate.Leader).ResultNumber;
+                    float current = BannerKingsConfig.Instance.StabilityModel.CalculateCurrentDemesne(candidate).ResultNumber;
+                    if (__result > 0f && limit > 0f && current > limit)
+                        __result *= TaleWorlds.Library.MathF.Clamp(limit / current, 0.15f, 1f);
+
+                    // (2) Ungated factional / relational lean for non-self votes.
+                    // Vassals push land toward lords they are aligned with — by
+                    // personal relation, and more strongly by shared interest-group
+                    // membership — rather than rubber-stamping the crown. The
+                    // ruling clan's self-vote is untouched by this term.
+                    if (candidate != clan)
+                    {
+                        __result += clan.Leader.GetRelation(candidate.Leader) * 2f;
+
+                        var bk = TaleWorlds.CampaignSystem.Campaign.Current
+                            .GetCampaignBehavior<BannerKings.Behaviours.Diplomacy.BKDiplomacyBehavior>();
+                        var diplo = bk?.GetKingdomDiplomacy(__instance.Settlement.MapFaction as Kingdom);
+                        if (diplo != null)
+                        {
+                            var voterGroup = diplo.GetHeroGroup(clan.Leader);
+                            if (voterGroup != null && voterGroup == diplo.GetHeroGroup(candidate.Leader))
+                                __result += 200f;
+                        }
+                    }
+                }
+                catch { /* never break a kingdom vote */ }
+            }
+
             /* [HarmonyPostfix]
              [HarmonyPatch("ShouldBeCancelledInternal")]
              private static void ShouldBeCancelledInternalPostfix(SettlementClaimantDecision __instance, ref bool __result)
