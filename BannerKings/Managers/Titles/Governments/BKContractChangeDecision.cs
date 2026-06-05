@@ -17,10 +17,40 @@ namespace BannerKings.Managers.Titles.Governments
         [SaveableProperty(100)] public FeudalTitle Title { get; private set; }
         [SaveableProperty(101)] public FeudalContract Proposed { get; private set; }
 
+        // Display names of the aspect being changed, captured AT CONSTRUCTION.
+        // Every Get*Text method (choose title, support description, outcome
+        // popup, the decision panel summary) derives its "{CHANGE} replacing
+        // {CURRENT}" text from GetDifference()/GetCurrent(), which diff
+        // Title.Contract against Proposed LIVE. By the time the outcome popup
+        // renders, ApplyChosenOutcome has already mutated Title.Contract to
+        // equal Proposed, so the diff collapses — both sides fall through to
+        // Proposed.GenderLaw and the popup reads "agnatic to agnatic" while the
+        // panel shows a stale aspect (reported symptom). The aspect Name is
+        // also not persisted, so a husked Proposed after save/load can't
+        // re-derive it either. Capturing both names at construction — when the
+        // contract still differs and the live aspects' Names are bound — makes
+        // all the text stable regardless of apply timing or reload. Plain
+        // strings persist cleanly; null on an old in-flight save falls back to
+        // the live diff below.
+        [SaveableProperty(102)] public string CapturedChangeName { get; private set; }
+        [SaveableProperty(103)] public string CapturedCurrentName { get; private set; }
+
         public BKContractChangeDecision(FeudalTitle title, FeudalContract proposed, Clan proposerClan) : base(proposerClan)
         {
             Title = title;
             Proposed = proposed;
+
+            // Snapshot the from/to names now, before any apply mutates the
+            // contract. Defensive: a malformed proposal must not throw out of
+            // the ctor.
+            try
+            {
+                var change = GetAspect();
+                CapturedChangeName = change != null && change.Name != null ? change.Name.ToString() : null;
+                var current = GetCurrentLive();
+                CapturedCurrentName = current != null ? current.ToString() : null;
+            }
+            catch { /* leave captured names null → live fallback */ }
         }
 
         public override bool IsKingsVoteAllowed => false;
@@ -261,7 +291,22 @@ namespace BannerKings.Managers.Titles.Governments
             return null;
         }
 
+        // Current ("from") law name. Prefers the value captured at construction
+        // (stable across apply + reload); falls back to the live diff for votes
+        // already in-flight when an old save predating the capture loads.
         private TextObject GetCurrent()
+        {
+            // Render the captured string through a placeholder so any markup
+            // metacharacters ({ } \) in a modded/XML aspect name stay literal.
+            if (!string.IsNullOrEmpty(CapturedCurrentName))
+                return new TextObject("{NAME}").SetTextVariable("NAME", CapturedCurrentName);
+            return GetCurrentLive();
+        }
+
+        // Live computation of the "from" law name by diffing the current
+        // contract against the proposal. Correct ONLY before ApplyChosenOutcome
+        // mutates the contract — see the capture note on the fields.
+        private TextObject GetCurrentLive()
         {
             if (Title.Contract.Government != Proposed.Government) return Title.Contract.Government.Name;
             if (Title.Contract.Succession != Proposed.Succession) return Title.Contract.Succession.Name;
@@ -278,7 +323,15 @@ namespace BannerKings.Managers.Titles.Governments
             return Title.Contract.GenderLaw.Name;
         }
 
-        private TextObject GetDifference() => GetAspect().Name;
+        // Proposed ("to") law name. Prefers the construction-time capture for
+        // the same stability reasons as GetCurrent.
+        private TextObject GetDifference()
+        {
+            if (!string.IsNullOrEmpty(CapturedChangeName))
+                return new TextObject("{NAME}").SetTextVariable("NAME", CapturedChangeName);
+            var aspect = GetAspect();
+            return aspect != null && aspect.Name != null ? aspect.Name : TextObject.GetEmpty();
+        }
 
         public class ContractDecisionOutcome : DecisionOutcome
         {

@@ -89,6 +89,20 @@
   14-in-game-day cooldown per (kingdom, target) pair after BK queues
   a peace decision, and a stronger vote-push curve so the proposals
   that do get queued actually carry.
+- **"Voted to change a demesne law, won the vote, but it shows the old
+  law / the popup says 'X to X'"** — fixed in v1.9.11.8. The law change
+  itself was applying correctly all along (the aspect's hover tooltip
+  showed the new law); the bug was display-only. The kingdom-decision
+  text built its "{NEW} replacing {OLD}" line by comparing the realm's
+  current contract against the proposal *live* — but the outcome popup
+  and the decision panel render *after* the change has already been
+  applied, so the comparison found no difference and printed the new
+  law on both sides ("Agnatic to Agnatic") or a stale aspect name. The
+  from→to names are now captured when the proposal is made, so the
+  popup and panel read correctly regardless of when they render.
+  (Earlier fixes in this chain: v1.9.11.3 made the aspects actually
+  apply, v1.9.11.4 fixed the post-reload re-bind, v1.9.11.6 fixed the
+  vote scoring for leanless laws.)
 - **"Random hard freeze (must force-quit), often around a peace deal,
   ~a day after loading"** — fixed in v1.9.11.7. BK's per-kingdom truce
   and trade-pact records were a plain dictionary/list read by the
