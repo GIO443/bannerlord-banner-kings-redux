@@ -161,9 +161,11 @@ namespace BannerKings.UI.Extensions
                 // IsInTruce is paid-truce-only now (the BK Truces dict) —
                 // the natural post-peace window is vanilla's. When a truce
                 // shows, the dict carries its explicit expiry.
+                // Route through the lock-guarded accessor — this runs on the UI
+                // thread and must not touch the raw Truces dict while the
+                // campaign thread mutates it (Dictionary thread-race → hang).
                 if (bkDiplomacy.IsInTruce(targetKingdom)
-                    && bkDiplomacy.Truces != null
-                    && bkDiplomacy.Truces.TryGetValue(targetKingdom, out var until))
+                    && bkDiplomacy.TryGetTruceExpiry(targetKingdom, out var until))
                 {
                     TruceText = until.ToString();
                 }

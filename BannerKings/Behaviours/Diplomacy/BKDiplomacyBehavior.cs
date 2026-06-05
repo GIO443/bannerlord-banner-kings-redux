@@ -360,18 +360,11 @@ namespace BannerKings.Behaviours.Diplomacy
                 const float oneYearDays = 365f;
                 foreach (var diplomacy in kingdomDiplomacies.Values)
                 {
-                    if (diplomacy.Truces == null) continue;
-                    var keys = new List<Kingdom>(diplomacy.Truces.Keys);
-                    int clamped = 0;
-                    foreach (var k in keys)
-                    {
-                        var expiry = diplomacy.Truces[k];
-                        if (expiry.IsFuture && expiry.RemainingDaysFromNow > oneYearDays)
-                        {
-                            diplomacy.Truces[k] = CampaignTime.DaysFromNow(oneYearDays);
-                            clamped++;
-                        }
-                    }
+                    // Mutate through the lock-guarded helper so no code outside
+                    // KingdomDiplomacy ever touches the raw Truces dict (the
+                    // thread-race surface). Single-threaded at load, but kept
+                    // uniform so a future off-load caller stays safe.
+                    int clamped = diplomacy.ClampTrucesToMaxRemaining(oneYearDays);
                     if (clamped > 0)
                     {
                         var diploRef = diplomacy;

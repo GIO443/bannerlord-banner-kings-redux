@@ -89,6 +89,18 @@
   14-in-game-day cooldown per (kingdom, target) pair after BK queues
   a peace decision, and a stronger vote-push curve so the proposals
   that do get queued actually carry.
+- **"Random hard freeze (must force-quit), often around a peace deal,
+  ~a day after loading"** — fixed in v1.9.11.7. BK's per-kingdom truce
+  and trade-pact records were a plain dictionary/list read by the
+  diplomacy screen and the influence-cap tooltip (UI thread) while the
+  campaign thread wrote them on peace deals, war declarations and the
+  daily cleanup. A read landing during a write's internal resize could
+  corrupt the collection and spin a CPU core forever — a hard hang with
+  no crash report. The v1.9.11.1 war fix made the AI sign far more
+  truces/peaces, so a long-latent race started firing regularly (and
+  reverting that version made it rare again, which is why it looked
+  like a peace-deal bug). All access is now serialised. No save changes;
+  existing saves are unaffected.
 - **"Wars never end / forever-war stalemates"** — extended in v1.9.10.6.
   v1.9.10.2 fixed *decisively losing* kingdoms (war fatigue past 0.6
   with a clearly negative war score) — that vote now passes. But many

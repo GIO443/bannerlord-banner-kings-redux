@@ -190,15 +190,36 @@ namespace BannerKings.Behaviours.Diplomacy
         // every AI war declaration was suppressed. Removed: vanilla already
         // gates war re-declaration on PeaceDeclarationDate, so the natural
         // post-peace cooldown is vanilla's job. BK keeps only paid truces.
+        // Truces (Dictionary) and TradePacts (List) are read on the UI thread
+        // (KingdomDiplomacyMixin truce label, BKInfluenceModel trade-pact
+        // influence-cap term — both computed on diplomacy-screen / clan-screen
+        // refresh) while the campaign thread writes them on peace deals
+        // (AddTruce), war (DissolveTruce/DissolveTradePact via OnWar) and the
+        // daily Update cleanup. A plain Dictionary/List read during a writer's
+        // resize corrupts the bucket chain → FindEntry spins forever → hard
+        // hang (the classic BK Dictionary thread-race; here it surfaces "on
+        // peace deals" because the v1.9.11.1 war fix multiplied truce/peace
+        // churn). The field TYPES stay Dictionary/List for save compat (their
+        // SaveDefiner container definitions are registered for those exact
+        // instantiations); instead every access is serialised under this lock.
+        // Static so it is always initialised (a private instance field would
+        // be null on a deserialised KingdomDiplomacy, NRE-ing the lock); the
+        // ops are infrequent so cross-instance contention is negligible.
+        // INVARIANT: never call engine/UI code (MBInformationManager,
+        // ChangeRelationAction, DissolveX) while holding it — collect under the
+        // lock, fire side-effects after release.
+        private static readonly object DiploSync = new object();
+
         public bool IsInTruce(Kingdom kingdom)
         {
             if (kingdom == null || kingdom == Kingdom) return false;
 
             // BK paid-extension layer (player buys a longer truce, AI
             // accepts an offer).
-            if (Truces.ContainsKey(kingdom))
+            lock (DiploSync)
             {
-                return Truces[kingdom].RemainingHoursFromNow > 0f;
+                if (Truces.TryGetValue(kingdom, out var expiry))
+                    return expiry.RemainingHoursFromNow > 0f;
             }
 
             return false;
@@ -209,21 +230,68 @@ namespace BannerKings.Behaviours.Diplomacy
         // directly.
         public bool HasValidTruce(Kingdom kingdom) => IsInTruce(kingdom);
 
-        public void AddTruce(Kingdom otherKingdom, float years)
+        // Lock-guarded read for the UI thread (KingdomDiplomacyMixin) so it
+        // never touches the raw Truces dictionary while the campaign thread
+        // mutates it.
+        public bool TryGetTruceExpiry(Kingdom kingdom, out CampaignTime expiry)
         {
-            if (Truces.ContainsKey(otherKingdom))
+            lock (DiploSync)
             {
-                Truces.Remove(otherKingdom);
+                return Truces.TryGetValue(kingdom, out expiry);
+            }
+        }
+
+        // Lock-guarded snapshot for cross-thread readers (BKInfluenceModel)
+        // that need to enumerate the pacts off the campaign thread.
+        public List<Kingdom> GetTradePactsSnapshot()
+        {
+            lock (DiploSync)
+            {
+                return new List<Kingdom>(TradePacts);
+            }
+        }
+
+        // Lock-guarded bulk clamp used by the load-time stale-truce sweep.
+        // Returns the number of entries shortened. Keeps Truces mutation
+        // encapsulated so no caller outside this class touches the raw dict.
+        public int ClampTrucesToMaxRemaining(float maxRemainingDays)
+        {
+            int clamped = 0;
+            lock (DiploSync)
+            {
+                if (Truces == null) return 0;
+                foreach (var k in new List<Kingdom>(Truces.Keys))
+                {
+                    var expiry = Truces[k];
+                    if (expiry.IsFuture && expiry.RemainingDaysFromNow > maxRemainingDays)
+                    {
+                        Truces[k] = CampaignTime.DaysFromNow(maxRemainingDays);
+                        clamped++;
+                    }
+                }
             }
 
-            Truces.Add(otherKingdom, CampaignTime.YearsFromNow(years));
+            return clamped;
+        }
+
+        public void AddTruce(Kingdom otherKingdom, float years)
+        {
+            lock (DiploSync)
+            {
+                // Indexer assignment both adds and overwrites — no separate
+                // ContainsKey/Remove dance (and no transient resize from it).
+                Truces[otherKingdom] = CampaignTime.YearsFromNow(years);
+            }
         }
 
         public void AddPact(Kingdom otherKingdom)
         {
-            if (!TradePacts.Contains(otherKingdom))
+            lock (DiploSync)
             {
-                TradePacts.Add(otherKingdom);
+                if (!TradePacts.Contains(otherKingdom))
+                {
+                    TradePacts.Add(otherKingdom);
+                }
             }
         }
 
@@ -339,21 +407,31 @@ namespace BannerKings.Behaviours.Diplomacy
             return list;
         }
 
-        public bool HasTradePact(Kingdom kingdom) => TradePacts.Contains(kingdom);
+        public bool HasTradePact(Kingdom kingdom)
+        {
+            lock (DiploSync)
+            {
+                return TradePacts.Contains(kingdom);
+            }
+        }
 
         public void DissolveTradePact(Kingdom kingdom, TextObject reason)
         {
-            if (HasTradePact(kingdom))
+            bool removed;
+            lock (DiploSync)
             {
-                TradePacts.Remove(kingdom);
-                if (kingdom.MapFaction == Hero.MainHero.MapFaction || Kingdom.MapFaction == Hero.MainHero.MapFaction)
-                {
-                    MBInformationManager.AddQuickInformation(new TextObject("{=S4Owp9cp}The trade pact with {KINGDOM} has ended. {REASON}")
-                        .SetTextVariable("REASON", reason),
-                        0,
-                        null,
-                        null, Utils.Helpers.GetKingdomDecisionSound());
-                }
+                removed = TradePacts.Remove(kingdom);
+            }
+
+            // Notify outside the lock — never call engine/UI code while holding
+            // DiploSync (see invariant on the lock declaration).
+            if (removed && (kingdom.MapFaction == Hero.MainHero.MapFaction || Kingdom.MapFaction == Hero.MainHero.MapFaction))
+            {
+                MBInformationManager.AddQuickInformation(new TextObject("{=S4Owp9cp}The trade pact with {KINGDOM} has ended. {REASON}")
+                    .SetTextVariable("REASON", reason),
+                    0,
+                    null,
+                    null, Utils.Helpers.GetKingdomDecisionSound());
             }
         }
 
@@ -384,17 +462,23 @@ namespace BannerKings.Behaviours.Diplomacy
 
         public void DissolveTruce(Kingdom kingdom, TextObject reason)
         {
-            if (HasValidTruce(kingdom))
+            bool wasValid;
+            lock (DiploSync)
             {
+                // Notify only if the truce was still active, but always remove
+                // the entry (cleaning expired keys is strictly safer than the
+                // old HasValidTruce-gated remove, which leaked stale entries).
+                wasValid = Truces.TryGetValue(kingdom, out var expiry) && expiry.RemainingHoursFromNow > 0f;
                 Truces.Remove(kingdom);
-                if (kingdom.MapFaction == Hero.MainHero.MapFaction || Kingdom.MapFaction == Hero.MainHero.MapFaction)
-                {
-                    MBInformationManager.AddQuickInformation(new TextObject("{=95csqL0K}The truce with {KINGDOM} has ended. {REASON}")
-                        .SetTextVariable("REASON", reason),
-                        0,
-                        null,
-                        null, Utils.Helpers.GetKingdomDecisionSound());
-                }
+            }
+
+            if (wasValid && (kingdom.MapFaction == Hero.MainHero.MapFaction || Kingdom.MapFaction == Hero.MainHero.MapFaction))
+            {
+                MBInformationManager.AddQuickInformation(new TextObject("{=95csqL0K}The truce with {KINGDOM} has ended. {REASON}")
+                    .SetTextVariable("REASON", reason),
+                    0,
+                    null,
+                    null, Utils.Helpers.GetKingdomDecisionSound());
             }
         }
 
@@ -439,10 +523,14 @@ namespace BannerKings.Behaviours.Diplomacy
         public void Update()
         {
             var trucesToDelete = new List<Kingdom>();
-            foreach (var truce in Truces) if (truce.Value.RemainingDaysFromNow < 1f)
-                    trucesToDelete.Add(truce.Key);
+            lock (DiploSync)
+            {
+                foreach (var truce in Truces) if (truce.Value.RemainingDaysFromNow < 1f)
+                        trucesToDelete.Add(truce.Key);
+            }
 
             AddFatigue(-0.005f);
+            // DissolveTruce takes the lock itself — call it after releasing.
             foreach (var kingdom in trucesToDelete) DissolveTruce(kingdom, new TextObject("{=zW5K0UcD}The agreed time has expired."));
 
 
@@ -525,10 +613,12 @@ namespace BannerKings.Behaviours.Diplomacy
             }
 
             var pactsToDelete = new List<Kingdom>();
-            foreach (Kingdom partner in TradePacts)
+            // Snapshot under the lock; WillAcceptTrade / DissolveTradePactForcefully
+            // must run outside it (they call models and engine/UI code).
+            foreach (Kingdom partner in GetTradePactsSnapshot())
                 if (!BannerKingsConfig.Instance.DiplomacyModel.WillAcceptTrade(partner, Kingdom))
                     pactsToDelete.Add(partner);
-  
+
             foreach (Kingdom partner in pactsToDelete)
                 DissolveTradePactForcefully(partner);
         }

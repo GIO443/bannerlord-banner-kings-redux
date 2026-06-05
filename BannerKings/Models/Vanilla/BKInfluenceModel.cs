@@ -130,7 +130,10 @@ namespace BannerKings.Models.Vanilla
                     var diplomacy = TaleWorlds.CampaignSystem.Campaign.Current.GetCampaignBehavior<BKDiplomacyBehavior>().GetKingdomDiplomacy(clan.Kingdom);
                     if (diplomacy != null)
                     {
-                        foreach (var pact in diplomacy.TradePacts)
+                        // Snapshot under the diplomacy lock — this can run on the
+                        // UI thread (influence cap shown on screen) while the
+                        // campaign thread mutates TradePacts (List thread-race).
+                        foreach (var pact in diplomacy.GetTradePactsSnapshot())
                         {
                             result.AddFactor(-0.075f, new TextObject("{=kiBf4bre}Trade pact with {KINGDOM}")
                                 .SetTextVariable("KINGDOM", pact.Name));
@@ -349,15 +352,25 @@ namespace BannerKings.Models.Vanilla
                 baseResult.AddFactor(0.1f * (baseResult.ResultNumber > 0f ? 1f : -1f), council.Peerage.Name);
             }
 
-            // MCM player influence boost. Applied last so it scales the net
-            // result. Player clan only, and only while the net change is
-            // positive — the slider boosts GAIN and must never deepen a loss.
+            // MCM influence boosts. Applied last so they scale the net result.
+            // Both only apply while the net change is positive — the sliders
+            // boost GAIN and must never deepen a loss. Player and AI are split so
+            // each can be tuned independently; a clan is one or the other, so the
+            // two blocks are mutually exclusive.
             if (clan == Clan.PlayerClan)
             {
                 float boost = BannerKingsSettings.Instance.PlayerInfluenceGain;
                 if (boost > 1f && baseResult.ResultNumber > 0f)
                 {
                     baseResult.AddFactor(boost - 1f, new TextObject("{=BKplayerInfBoost}Player Influence Gain (MCM)"));
+                }
+            }
+            else
+            {
+                float boost = BannerKingsSettings.Instance.AIInfluenceGain;
+                if (boost > 1f && baseResult.ResultNumber > 0f)
+                {
+                    baseResult.AddFactor(boost - 1f, new TextObject("{=BKaiInfBoost}AI Influence Gain (MCM)"));
                 }
             }
 

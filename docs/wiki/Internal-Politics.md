@@ -324,6 +324,27 @@ every couple of weeks at most.
 
 ---
 
+## Tuning influence gain (MCM)
+
+Every political action above is paid for in **influence**, so if gains
+feel too slow you can scale them in **MCM → Banner Kings → Balancing**:
+
+- **Player Influence Gain** — boosts *your* clan's daily influence gain.
+  Default **100%** (no boost).
+- **AI Influence Gain** — boosts *every other* clan's daily influence
+  gain, so the AI can actually afford votes, annexations, and title
+  actions. Default **200%** (AI clans gain influence roughly twice as
+  fast as base BK).
+
+Both sliders only apply while a clan's **net daily change is positive** —
+they boost gain and never deepen a loss — and they take effect with no
+restart. To check a slider is working, open a clan's influence tooltip:
+a boosted clan shows a `Player Influence Gain (MCM)` or `AI Influence
+Gain (MCM)` line in the breakdown. Set a slider to 100% to turn its
+boost off.
+
+---
+
 ## See also
 
 - [Player Guide](Player-Guide) — the action buttons in the BK UI
