@@ -152,6 +152,24 @@ namespace BannerKings.Managers.Titles.Governments
             result += aspect.Egalitarian * (hero.GetTraitLevel(DefaultTraits.Egalitarian) - 10f);
             result += aspect.Oligarchic * (hero.GetTraitLevel(DefaultTraits.Oligarchic) - 10f);
 
+            // Gender laws (Agnatic/Cognatic/Enatic) and the Conquest/Taxes contract
+            // aspects carry NO ideological lean — all three weights are 0 in data —
+            // so the trait terms above sum to 0 and every clan scores the vote 0.
+            // A zero-support vote never resolves toward change: it sticks at the
+            // status quo, so those three (and only those three — Government /
+            // Succession / Inheritance / demesne laws DO have weights) silently fail
+            // to enact. Give leanless aspects a proposer-favouring baseline so the
+            // proposing clan can carry the change, with the realm leaning mildly by
+            // relation to the proposer.
+            if (hero != null && aspect != null
+                && aspect.Authoritarian == 0f && aspect.Egalitarian == 0f && aspect.Oligarchic == 0f)
+            {
+                if (clan == ProposerClan) result = 2f;
+                else if (ProposerClan?.Leader != null)
+                    result = hero.GetRelation(ProposerClan.Leader) >= 0 ? 0.5f : -0.5f;
+                else result = 0.3f;
+            }
+
             if (aspect is Government)
             {
                 if (clan == Kingdom.RulingClan && outcome.ShouldDecisionBeEnforced)
