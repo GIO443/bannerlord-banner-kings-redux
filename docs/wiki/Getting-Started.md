@@ -99,9 +99,10 @@ condensed onboarding:
    read each one's bonuses (the picker tooltip now shows them at the top).
    Skill values matter: you need at least 15 in each of the lifestyle's two
    skills to start.
-3. **Visit a tavern in any cultural capital and find the book seller.** Buy
-   one book in a language you understand. Books grant slow skill XP that
-   accumulates while you carry them.
+3. **Find a tavern book seller** (roughly one town in four has one) and buy
+   a book in a language you understand. Books are expensive (~30,000) but
+   grant slow skill XP that accumulates while you carry them — worth it once
+   you can afford one.
 4. **Skip estates until you have a clan tier 2.** They're expensive and take
    time to pay off. Start with a workshop in an active town for steady early
    income. *(Workshops are handled by Bannerlord Living Economy, a required

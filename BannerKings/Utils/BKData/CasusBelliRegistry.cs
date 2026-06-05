@@ -102,18 +102,26 @@ namespace BannerKings.Utils.BKData
                 IsInvalid = war => false,
                 IsAdequate = (faction1, faction2, casusBelli) =>
                 {
-                    if (faction2.Fiefs.Count > 0 && faction1.Fiefs.Count > 0)
-                    {
-                        War possibleWar = new War(faction1, faction2, null);
-                        if (possibleWar.DefenderFront != null && possibleWar.AttackerFront != null)
-                        {
-                            bool strength = faction2.CurrentTotalStrength >= (faction1.CurrentTotalStrength * 0.8f);
-                            float distance = TaleWorlds.CampaignSystem.Campaign.Current.Models.MapDistanceModel.GetDistance(possibleWar.DefenderFront.Settlement, possibleWar.AttackerFront.Settlement, false, false, MobileParty.NavigationType.Default);
-                            float factor = distance / TaleWorlds.CampaignSystem.Campaign.Current.GetAverageDistanceBetweenClosestTwoTownsWithNavigationType(MobileParty.NavigationType.Default);
-                            return strength && factor <= 2f;
-                        }
+                    if (faction2.Fiefs.Count == 0 || faction1.Fiefs.Count == 0) return false;
 
-                    } return false;
+                    // Cheap gate FIRST. The result is `strength && distance<=2`, so a
+                    // target that fails the strength test can never qualify — bail
+                    // before building the (expensive) War, whose ctor runs
+                    // RecalculateFronts (a navmesh fortification scan over all
+                    // settlements) plus a pathfind. This predicate runs for every
+                    // (attacker, target) pair when casus belli are enumerated.
+                    bool strength = faction2.CurrentTotalStrength >= (faction1.CurrentTotalStrength * 0.8f);
+                    if (!strength) return false;
+
+                    War possibleWar = new War(faction1, faction2, null);
+                    if (possibleWar.DefenderFront != null && possibleWar.AttackerFront != null)
+                    {
+                        float distance = TaleWorlds.CampaignSystem.Campaign.Current.Models.MapDistanceModel.GetDistance(possibleWar.DefenderFront.Settlement, possibleWar.AttackerFront.Settlement, false, false, MobileParty.NavigationType.Default);
+                        float factor = distance / TaleWorlds.CampaignSystem.Campaign.Current.GetAverageDistanceBetweenClosestTwoTownsWithNavigationType(MobileParty.NavigationType.Default);
+                        return factor <= 2f;
+                    }
+
+                    return false;
                 },
                 ShowAsOption = kingdom => true,
             };

@@ -441,8 +441,13 @@ contributes per tick. Pure cavalry play barely advances a Cataphract
 because Polearm doesn't tick when you don't melee.
 
 **Q: Where do I get books?**
-Tavern book sellers (one in every cultural capital tavern) or as quest
-rewards.
+Tavern book sellers, or as quest rewards. Sellers are now common — roughly
+one town in four has one (look in the tavern; the seller's stock is local-
+culture-leaning, so a book in a language you read is usually nearby). Open
+the Banner Kings settlement actions / talk to the seller to browse their
+~6-book stock. Books are **expensive** (about 30,000{GOLD_ICON} each) but no
+longer a one-in-the-world pilgrimage — buy when you can afford the skill or
+focus boost.
 
 **Q: I see "Jomsviking" / "Drakkar Captain" / "Sjofarandi" in the
 lifestyle list — what are those?**

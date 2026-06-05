@@ -14,6 +14,13 @@ namespace BannerKings.Managers.Goals.Decisions
         private BKEducationBehavior behavior;
         private BookType book;
 
+        // Book-seller markup over the item's trade value. Book items are
+        // initialised with Value = 1000, so this lands each book at ~30,000
+        // gold: expensive (a serious mid-game purchase) but attainable now that
+        // sellers are common. Was * 1000 — i.e. 1,000,000 gold per book — which
+        // made them effectively unbuyable on top of being rare.
+        private const int PriceMultiplier = 30;
+
         public AcquireBookDecision(Hero fulfiller = null) : base("goal_acquire_book", fulfiller)
         {
             behavior = TaleWorlds.CampaignSystem.Campaign.Current.GetCampaignBehavior<BKEducationBehavior>();
@@ -65,7 +72,7 @@ namespace BannerKings.Managers.Goals.Decisions
             {
                 var item = element.EquipmentElement.Item;
                 var book = allBooks.FirstOrDefault(x => x.Item == element.EquipmentElement.Item);
-                var price = book.Item.Value * 1000;
+                var price = book.Item.Value * PriceMultiplier;
 
                 TextObject hint = new TextObject("{=jAdG0wG9}{DESCRIPTION}\n{GOLD_AMOUNT}{GOLD_ICON}\nLanguage: {LANGUAGE}\n{SKILL}\n{TRAIT}")
                         .SetTextVariable("DESCRIPTION", book.Description)
@@ -105,7 +112,7 @@ namespace BannerKings.Managers.Goals.Decisions
         public override void ApplyGoal()
         {
             var fulfiller = GetFulfiller();
-            fulfiller.ChangeHeroGold(-book.Item.Value * 1000);
+            fulfiller.ChangeHeroGold(-book.Item.Value * PriceMultiplier);
             fulfiller.PartyBelongedTo.ItemRoster.AddToCounts(book.Item, 1);
         }
 

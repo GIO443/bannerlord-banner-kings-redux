@@ -462,7 +462,33 @@ namespace BannerKings.Models.Vanilla
             return explainedNumber;
         }
 
+        private int _milClassesDay = -1;
+        private readonly System.Collections.Concurrent.ConcurrentDictionary<Settlement, List<ValueTuple<PopType, float>>> _milClassesCache
+            = new System.Collections.Concurrent.ConcurrentDictionary<Settlement, List<ValueTuple<PopType, float>>>();
+
+        // v1.9.11.5 — per-day memo. GetMilitaryClasses is O(all titles in the world)
+        // (it reads the sovereign title / settlement government, both of which scan
+        // every title), and it was being called per-notable by the ATC elite-check
+        // patch, per-troop in manpower typing (MilitaryData.GetCharacterManpowerType),
+        // and per-settlement on the daily population tick — so the title walk ran
+        // thousands of times a day. The class mix only shifts on law / government /
+        // mandate changes, so caching per settlement per day is safe. ConcurrentDictionary
+        // because the recruitment/UI threads can both reach this.
         public override List<ValueTuple<PopType, float>> GetMilitaryClasses(Settlement settlement)
+        {
+            if (settlement == null) return ComputeMilitaryClasses(settlement);
+
+            int day = (int)CampaignTime.Now.ToDays;
+            if (_milClassesDay != day)
+            {
+                _milClassesCache.Clear();
+                _milClassesDay = day;
+            }
+
+            return _milClassesCache.GetOrAdd(settlement, ComputeMilitaryClasses);
+        }
+
+        private List<ValueTuple<PopType, float>> ComputeMilitaryClasses(Settlement settlement)
         {
             var list = new List<ValueTuple<PopType, float>>(4);
             float militarism = GetMilitarism(settlement).ResultNumber;

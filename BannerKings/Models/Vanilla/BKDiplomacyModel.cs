@@ -7,6 +7,7 @@ using BannerKings.Managers.Institutions.Religions.Faiths;
 using BannerKings.Managers.Titles.Governments;
 using BannerKings.Managers.Titles;
 using BannerKings.Utils.Models;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using TaleWorlds.CampaignSystem;
@@ -48,6 +49,33 @@ namespace BannerKings.Models.Vanilla
         private static readonly Dictionary<ValueTuple<IFaction, IFaction, IFaction, CasusBelli>, float> _warScoreCache
             = new Dictionary<ValueTuple<IFaction, IFaction, IFaction, CasusBelli>, float>();
         private static int _warScoreCacheDay = -1;
+
+        // v1.9.11.5 — per-day memo for the clan-INDEPENDENT heavy terms of the war
+        // score. The score cache above keys on evaluatingClan (to capture the cheap
+        // relations / personality / trait-gold deltas), which dragged these
+        // expensive, clan-independent computations into a per-voting-clan recompute:
+        // GetBorder is O(fiefs1 x fiefs2) navmesh pathfinds, CalculateWarStats is
+        // O(fiefs) called once per other enemy, CalculateThreatFactor is O(kingdoms).
+        // CalculateSupport / KingdomElection evaluate the score for every clan in the
+        // realm, so without this the border pathfind ran N times per pair per day.
+        // Keyed on the faction pair, cleared per day. ConcurrentDictionary because
+        // both the campaign-AI and UI threads reach this.
+        private static int _pairCacheDay = -1;
+        private static readonly ConcurrentDictionary<(IFaction, IFaction), float> _threatFactorCache = new();
+        private static readonly ConcurrentDictionary<(IFaction, IFaction), WarStats> _warStatsCache = new();
+        private static readonly ConcurrentDictionary<(IFaction, IFaction), ValueTuple<Settlement, Settlement>> _borderCache = new();
+
+        private static void EnsurePairCacheDay()
+        {
+            int day = (int)CampaignTime.Now.ToDays;
+            if (_pairCacheDay != day)
+            {
+                _threatFactorCache.Clear();
+                _warStatsCache.Clear();
+                _borderCache.Clear();
+                _pairCacheDay = day;
+            }
+        }
 
         public override int GetCharmExperienceFromRelationGain(Hero hero, float relationChange, ChangeRelationAction.ChangeRelationDetail detail)
         {
@@ -857,6 +885,13 @@ namespace BannerKings.Models.Vanilla
 
         public float CalculateThreatFactor(IFaction attacker, IFaction threat)
         {
+            if (attacker == null || threat == null) return ComputeThreatFactor(attacker, threat);
+            EnsurePairCacheDay();
+            return _threatFactorCache.GetOrAdd((attacker, threat), k => ComputeThreatFactor(k.Item1, k.Item2));
+        }
+
+        private float ComputeThreatFactor(IFaction attacker, IFaction threat)
+        {
             float totalThreat = 0f;
             foreach (Kingdom k in Kingdom.All)
             {
@@ -1233,6 +1268,13 @@ namespace BannerKings.Models.Vanilla
 
         private ValueTuple<Settlement, Settlement> GetBorder(IFaction faction1, IFaction faction2)
         {
+            if (faction1 == null || faction2 == null) return ComputeBorder(faction1, faction2);
+            EnsurePairCacheDay();
+            return _borderCache.GetOrAdd((faction1, faction2), k => ComputeBorder(k.Item1, k.Item2));
+        }
+
+        private ValueTuple<Settlement, Settlement> ComputeBorder(IFaction faction1, IFaction faction2)
+        {
             float distance = float.MaxValue;
             Settlement border1 = null;
             Settlement border2 = null;
@@ -1270,6 +1312,16 @@ namespace BannerKings.Models.Vanilla
         }
 
         private WarStats CalculateWarStats(IFaction faction, IFaction targetFaction)
+        {
+            if (faction == null) return ComputeWarStats(faction, targetFaction);
+            EnsurePairCacheDay();
+            // targetFaction may be null (it only excludes one enemy from the
+            // enemy-strength sum); use the faction itself as a stand-in key so the
+            // tuple never carries a null second element.
+            return _warStatsCache.GetOrAdd((faction, targetFaction ?? faction), k => ComputeWarStats(k.Item1, targetFaction));
+        }
+
+        private WarStats ComputeWarStats(IFaction faction, IFaction targetFaction)
         {
             Clan rulingClan = faction.IsClan ? (faction as Clan) : (faction as Kingdom).RulingClan;
             float valueOfSettlements = faction.Fiefs.Sum((Town f) => (float)(f.IsTown ? 2000 : 1000) + f.Prosperity * 0.33f) * 50f;

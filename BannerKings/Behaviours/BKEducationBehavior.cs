@@ -291,26 +291,48 @@ namespace BannerKings.Behaviours
         {
             var templates = CharacterObject.All.Where(x =>
                 x.Occupation == Occupation.Special && x.StringId.Contains("bannerkings_bookseller_")).ToList();
-            foreach (var character in templates)
+            if (templates.Count == 0)
             {
-                if (bookSellers.Keys.Any(x => x.Culture == character.Culture))
-                {
-                    continue;
-                }
+                return;
+            }
 
-                var currentSettlements = new List<Settlement>();
-                foreach (var seller in bookSellers.Keys)
-                {
-                    currentSettlements.Add(seller.StayingInSettlement);
-                }
+            // Fill up to DesiredSellerCount, one seller per town, spread across
+            // the map. Multiple sellers per culture are allowed now (was capped
+            // at one per culture) — a Vlandian town gets a Vlandian seller, etc.,
+            // so each region has local-language books within reach.
+            var occupied = new HashSet<Settlement>();
+            foreach (var seller in bookSellers.Keys)
+            {
+                if (seller.StayingInSettlement != null) occupied.Add(seller.StayingInSettlement);
+            }
 
-                var town = Town.AllTowns.GetRandomElementWithPredicate(x => !currentSettlements.Contains(x.Settlement)
-                                                                            && x.Culture == character.Culture);
-                if (town?.Settlement == null)
-                {
-                    continue;
-                }
+            int target = DesiredSellerCount();
 
+            // Build the candidate pool ONCE, then drain it (pick-and-swap-remove,
+            // O(1) per pick). The earlier form called GetRandomElementWithPredicate
+            // — an O(towns) scan — inside the loop, making a spawn cycle O(towns^2).
+            // Prefer towns whose culture has a matching template (local-language
+            // books); fall back to any free town only if the preferred pool runs out.
+            var preferred = new List<Town>();
+            var fallback = new List<Town>();
+            foreach (var t in Town.AllTowns)
+            {
+                if (t.Settlement == null || occupied.Contains(t.Settlement)) continue;
+                if (templates.Any(tpl => tpl.Culture == t.Culture)) preferred.Add(t);
+                else fallback.Add(t);
+            }
+
+            while (bookSellers.Count < target)
+            {
+                var pool = preferred.Count > 0 ? preferred : fallback;
+                if (pool.Count == 0) break; // every town already hosts a seller
+
+                int i = MBRandom.RandomInt(pool.Count);
+                var town = pool[i];
+                pool[i] = pool[pool.Count - 1];
+                pool.RemoveAt(pool.Count - 1);
+
+                var character = templates.FirstOrDefault(t => t.Culture == town.Culture) ?? templates.GetRandomElement();
                 var randomSettlement = town.Settlement;
                 var hero = HeroCreator.CreateSpecialHero(character, randomSettlement, null, null,
                     TaleWorlds.CampaignSystem.Campaign.Current.Models.AgeModel.HeroComesOfAge + 10 + MBRandom.RandomInt(60));
@@ -343,7 +365,7 @@ namespace BannerKings.Behaviours
             // results.Count plateaus and the loop never terminates. 64
             // attempts is enough for any realistic culture book pool.
             int bookIter = 0;
-            while (results.Count < 4 && bookIter++ < 64)
+            while (results.Count < 6 && bookIter++ < 64)
             {
                 results.Add(MBRandom.ChooseWeighted(candidates).Item);
             }
@@ -359,7 +381,11 @@ namespace BannerKings.Behaviours
 
         private int DesiredSellerCount()
         {
-            return (int) (Town.AllTowns.Count / 15f);
+            // ~1 book seller per 4 towns (was 1 per 15, which left only a
+            // handful on the whole map and made books effectively unobtainable
+            // without a long pilgrimage). Books stay expensive; they're just
+            // findable now.
+            return (int) (Town.AllTowns.Count / 4f);
         }
 
         private void OnGameLoaded(CampaignGameStarter campaignGameStarter)
