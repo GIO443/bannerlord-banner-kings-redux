@@ -39,11 +39,13 @@ namespace BannerKings.CampaignContent
                 AddProductions(DefaultVillageTypes.Lumberjack, "Lumberjack",
                     ("mead", 2f));
 
-                // Coastal fisheries.
-                AddProductions(DefaultVillageTypes.Fisherman, "Fisherman",
-                    ("garum", 2f),
-                    ("WhaleMeat", 1.5f),
-                    ("PurpleDye", 0.05f));
+                // Coastal villages are deliberately left VANILLA. The base game
+                // balances fisheries/whalers around just their native fish +
+                // whale oil. BK used to stack high-value marine luxuries (garum,
+                // whale meat, Purple Dye) on top, which made port towns run away
+                // to ~10x inland prosperity. Those additions are removed and the
+                // vanilla fish / whale-oil bases are untouched — coastal balance
+                // reverts to the base game.
 
                 // Aserai desert luxuries.
                 AddProductions(DefaultVillageTypes.DateFarm, "DateFarm",

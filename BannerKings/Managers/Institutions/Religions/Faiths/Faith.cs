@@ -100,12 +100,16 @@ namespace BannerKings.Managers.Institutions.Religions.Faiths
             stances[faith] = stance;
         }
 
-        public void AddPreset(int rank, CharacterObject preset) => presets[rank] = preset;
+        public void AddPreset(int rank, CharacterObject preset) => (presets ??= new Dictionary<int, CharacterObject>())[rank] = preset;
             
 
         public CharacterObject GetPreset(int rank)
         {
-            if (presets.ContainsKey(rank)) return presets[rank];
+            // presets is not a SaveableField and is only filled in the ctor /
+            // DefaultFaiths.Initialize — a save-restored faith that bypassed
+            // that path has presets == null. Guard the deref (this NRE crashed
+            // the daily religion tick via GenerateClergyman → GetPreset).
+            if (presets != null && presets.ContainsKey(rank)) return presets[rank];
             return null;
         }
 

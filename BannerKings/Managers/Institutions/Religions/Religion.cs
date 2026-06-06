@@ -212,8 +212,11 @@ namespace BannerKings.Managers.Institutions.Religions
                 return clergyman;
             }
 
-            throw new BannerKingsException(string.Format("No preset found for faith with id [{0}] at clergy rank [{1}]",
-                Faith.GetId(), rank));
+            // No preacher AND no preset for this rank (e.g. a save-restored
+            // faith whose presets never repopulated). Generating clergy is
+            // non-critical — bail and let the next daily tick retry rather than
+            // throwing out of the settlement tick and crashing the campaign.
+            return null;
         }
 
         public void SetClergyName(Hero hero, TextObject title)
