@@ -340,6 +340,10 @@ namespace BannerKings.Settings
         [SettingPropertyGroup("{=!}Diplomacy")]
         public float CharmXpMultiplier { get; set; } = 0.5f;
 
+        [SettingPropertyInteger("{=!}Max Active Dilemmas", 1, 4, "0", RequireRestart = false, HintText = "{=!}How many realm dilemmas (claim contests, law disputes, etc.) can run at once in a single kingdom. The rest wait in a queue and promote as slots free. Higher = more simultaneous political drama (and a bit more processing). Default: 2.")]
+        [SettingPropertyGroup("{=!}Politics")]
+        public int MaxActiveDilemmas { get; set; } = 2;
+
         [SettingProperty("{=!}Enable Politics Rework", RequireRestart = false,
             HintText = "{=!}Master toggle for the inside-kingdom politics rework: Crown Authority (a kingdom-wide centralisation track, 0 Decentralised .. 4 Absolute, bounded by each government type and changed through a voted kingdom decision), ruler legitimacy, government-transition pressure, and vassal politics. When OFF, BK kingdom politics behaves exactly as before. Default: true.")]
         [SettingPropertyGroup("{=!}Politics")]

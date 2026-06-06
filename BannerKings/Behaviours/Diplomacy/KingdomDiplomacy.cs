@@ -1,3 +1,4 @@
+using BannerKings.Behaviours.Diplomacy.Dilemmas;
 using BannerKings.Behaviours.Diplomacy.Groups;
 using BannerKings.Behaviours.Diplomacy.Wars;
 using BannerKings.Managers.Institutions.Religions;
@@ -29,6 +30,20 @@ namespace BannerKings.Behaviours.Diplomacy
         [SaveableProperty(9)] public int CrownAuthority { get; private set; }
         [SaveableProperty(10)] public int GovernmentTransitionPressure { get; private set; }
         [SaveableProperty(11)] private CampaignTime LastPoliticsProposal { get; set; }
+
+        // --- Dilemma engine state (Phase 1) -----------------------------------
+        // Per-kingdom queue/slot system: at most MaxActiveDilemmas run at once;
+        // the rest wait in PendingDilemmas and promote (urgency-scored) as slots
+        // free. Cooldowns are keyed by composite strings (type id, and
+        // "type|initiatorClan|targetClan" for the pair lock) so the table stays a
+        // save-friendly Dictionary<string,CampaignTime>. All access is serialised
+        // under the existing DiploSync lock — these lists are read on the UI
+        // thread (realm-tab panel) and written on the campaign thread, the same
+        // race class as Truces/TradePacts.
+        [SaveableProperty(12)] public List<Dilemma> ActiveDilemmas { get; private set; }
+        [SaveableProperty(13)] public List<Dilemma> PendingDilemmas { get; private set; }
+        [SaveableProperty(14)] public Dictionary<string, CampaignTime> DilemmaCooldowns { get; private set; }
+        [SaveableProperty(15)] public CampaignTime DilemmaBreatherUntil { get; set; }
         public float LegitimacyChange
         {
             get
@@ -65,6 +80,9 @@ namespace BannerKings.Behaviours.Diplomacy
             Truces = new Dictionary<Kingdom, CampaignTime>();
             Groups = new List<InterestGroup>(4);
             RadicalGroups = new List<RadicalGroup>();
+            ActiveDilemmas = new List<Dilemma>();
+            PendingDilemmas = new List<Dilemma>();
+            DilemmaCooldowns = new Dictionary<string, CampaignTime>();
         }
 
         public void PostInitialize()
@@ -90,6 +108,13 @@ namespace BannerKings.Behaviours.Diplomacy
             {
                 RadicalGroups = new List<RadicalGroup>();
             }
+
+            // Old saves predating the dilemma engine deserialize these as null.
+            if (ActiveDilemmas == null) ActiveDilemmas = new List<Dilemma>();
+            if (PendingDilemmas == null) PendingDilemmas = new List<Dilemma>();
+            if (DilemmaCooldowns == null) DilemmaCooldowns = new Dictionary<string, CampaignTime>();
+            foreach (var d in ActiveDilemmas) d?.PostInitialize();
+            foreach (var d in PendingDilemmas) d?.PostInitialize();
 
             foreach (var group in RadicalGroups)
             {
@@ -249,6 +274,71 @@ namespace BannerKings.Behaviours.Diplomacy
             {
                 return new List<Kingdom>(TradePacts);
             }
+        }
+
+        // --- Dilemma queue accessors (all lock-guarded; UI reads off-thread) ---
+
+        public List<Dilemma> GetActiveDilemmasSnapshot()
+        {
+            lock (DiploSync) { return new List<Dilemma>(ActiveDilemmas); }
+        }
+
+        public List<Dilemma> GetPendingDilemmasSnapshot()
+        {
+            lock (DiploSync) { return new List<Dilemma>(PendingDilemmas); }
+        }
+
+        public int ActiveDilemmaCount
+        {
+            get { lock (DiploSync) { return ActiveDilemmas.Count; } }
+        }
+
+        public void EnqueueDilemma(Dilemma dilemma)
+        {
+            if (dilemma == null) return;
+            lock (DiploSync)
+            {
+                dilemma.State = (int)DilemmaState.Pending;
+                if (!PendingDilemmas.Contains(dilemma)) PendingDilemmas.Add(dilemma);
+            }
+        }
+
+        public void ActivateDilemma(Dilemma dilemma, CampaignTime dueDate)
+        {
+            if (dilemma == null) return;
+            lock (DiploSync)
+            {
+                PendingDilemmas.Remove(dilemma);
+                dilemma.State = (int)DilemmaState.Active;
+                dilemma.DueDate = dueDate;
+                dilemma.ActivatedAt = CampaignTime.Now;
+                if (!ActiveDilemmas.Contains(dilemma)) ActiveDilemmas.Add(dilemma);
+            }
+        }
+
+        public void RemoveDilemma(Dilemma dilemma)
+        {
+            if (dilemma == null) return;
+            lock (DiploSync)
+            {
+                ActiveDilemmas.Remove(dilemma);
+                PendingDilemmas.Remove(dilemma);
+            }
+        }
+
+        public bool IsDilemmaOnCooldown(string key)
+        {
+            if (string.IsNullOrEmpty(key)) return false;
+            lock (DiploSync)
+            {
+                return DilemmaCooldowns.TryGetValue(key, out var until) && until.IsFuture;
+            }
+        }
+
+        public void SetDilemmaCooldown(string key, CampaignTime until)
+        {
+            if (string.IsNullOrEmpty(key)) return;
+            lock (DiploSync) { DilemmaCooldowns[key] = until; }
         }
 
         // Lock-guarded bulk clamp used by the load-time stale-truce sweep.

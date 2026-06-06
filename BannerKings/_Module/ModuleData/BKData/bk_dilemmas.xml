@@ -1,0 +1,87 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  BK DILEMMAS — moddable contest framework (Phase 1).
+
+  A "dilemma" is a two-sided push/pull contest in a kingdom that resolves on a
+  strength ratio at a timer. Each <dilemma> row is the DATA half (tunable);
+  its logic is a C# DilemmaHandler resolved by the `behavior` attribute against
+  DilemmaRegistry (the CODE half). A data-only mod reuses an existing `behavior`
+  key and retunes the numbers; a code mod registers a new handler in its
+  SubModule and adds a row pointing at it.
+
+  Drop your own ModuleData/BKData/bk_dilemmas.xml in YOUR module to add or
+  override rows — BK scans every installed module, last-writer-wins per id.
+
+  ATTRIBUTES
+    id                       unique id (override target).
+    behavior                 DilemmaRegistry key (the C# handler). Required.
+    timer_days               window length before timed resolution.
+    min_deliberation_days    earliest the contest may resolve EARLY (strong
+                             short-circuit / backfire / uncontested-fizzle).
+                             Until this many days pass, only the timer can end
+                             it — guarantees a join + lever window so a lopsided
+                             opening can't auto-complete on day one.
+    min_initiator_influence  reserved (initiator influence gate).
+    t_strong / t_win / t_partial / t_fail
+                             For-side ratio band cutoffs:
+                               R >= t_strong   -> Strong (short-circuits, takeable)
+                               R >= t_win      -> Win   (at timer)
+                               R >= t_partial  -> Partial / compromise (at timer)
+                               R >= t_fail     -> Fail  (status quo)
+                               R <  t_fail     -> Backfire (initiator loses face, short-circuits)
+    cooldown_days            this dilemma type can't recur in the realm for N days.
+    pair_cooldown_days       initiator<->target pairing locked out for N days.
+    backfire_cooldown_days   harsher lockout on the initiator after a backfire.
+    lever_money / lever_influence / lever_negotiation
+                             which levers are available (money/influence spend, player negotiation).
+    governments              comma-separated Government StringIds allowed (empty = all).
+    peers_only               restrict participation to full-peerage clans (reserved).
+
+  CHILD <weights>
+    military.<gov>="m"       per-government military coefficient in the clan
+                             weight blend  weight = clout*(1-m) + military*m.
+    military.default="m"     fallback when a government isn't listed.
+
+  CHILD <name>/<description>  inline display text (loc-id auto-derived).
+-->
+<dilemmas>
+
+  <!-- Reference dilemma. Phase-1 scaffold to exercise the engine end to end;
+       replaced when real demands (claim/title/council/law/...) are ported in
+       Phase 2. A lord petitions the realm; backers rally, rivals resist; on
+       success the petitioner gains renown and goodwill, on backfire loses face. -->
+  <dilemma id="petition" behavior="petition"
+           timer_days="20"
+           min_deliberation_days="7"
+           min_initiator_influence="0"
+           t_strong="0.75" t_win="0.65" t_partial="0.50" t_fail="0.25"
+           cooldown_days="60" pair_cooldown_days="180" backfire_cooldown_days="365"
+           lever_money="true" lever_influence="true" lever_negotiation="true"
+           governments=""
+           peers_only="true">
+    <weights military.tribal="0.6" military.dictatorship="0.5" military.feudal="0.3"
+             military.imperial="0.2" military.republic="0.15" military.default="0.3"/>
+    <name>Realm Petition</name>
+    <description>A lord petitions the realm for favour. Their backers rally support while rivals resist; the outcome turns on who carries the most weight when the matter comes to a head.</description>
+  </dilemma>
+
+  <!-- Press a title claim. Requires the initiator to already hold a valid claim
+       on the contested title. Strong (>=75%) seizes it now; 65-75% transfers at
+       the timer; the contested 50-65% middle is handed to the ruler to uphold or
+       deny; below that it fails, and a rout backfires (relation hit + cooldown). -->
+  <dilemma id="title_claim" behavior="claim"
+           timer_days="30"
+           min_deliberation_days="7"
+           min_initiator_influence="0"
+           t_strong="0.75" t_win="0.65" t_partial="0.50" t_fail="0.25"
+           cooldown_days="120" pair_cooldown_days="365" backfire_cooldown_days="730"
+           lever_money="true" lever_influence="true" lever_negotiation="true"
+           governments=""
+           peers_only="true">
+    <weights military.tribal="0.6" military.dictatorship="0.5" military.feudal="0.3"
+             military.imperial="0.2" military.republic="0.15" military.default="0.3"/>
+    <name>Title Claim</name>
+    <description>A claimant presses a standing claim on a title held by a rival. The realm's lords take sides; if the claimant musters overwhelming weight the title changes hands, while a contested outcome is left to the ruler to settle.</description>
+  </dilemma>
+
+</dilemmas>

@@ -29,6 +29,76 @@ namespace BannerKings
 {
     public static class BannerKingsCheats
     {
+        [CommandLineFunctionality.CommandLineArgumentFunction("press_claim", "bannerkings")]
+        public static string PressClaim(List<string> strings)
+        {
+            if (!CampaignCheats.CheckCheatUsage(ref CampaignCheats.ErrorType))
+            {
+                return CampaignCheats.ErrorType;
+            }
+
+            var kingdom = Hero.MainHero?.Clan?.Kingdom;
+            if (kingdom == null) return "You must belong to a kingdom to press a claim.";
+
+            var raw = strings != null ? CampaignCheats.ConcatenateString(strings) : null;
+            if (string.IsNullOrWhiteSpace(raw))
+                return "Format: bannerkings.press_claim [TitleName] — you must already hold a valid claim on it.";
+
+            var name = raw.Trim();
+            var title = BannerKingsConfig.Instance.TitleManager.GetTitleByName(name);
+            if (title == null) return $"No title found with name '{name}'.";
+            if (title.deJure == Hero.MainHero) return "You already hold that title.";
+            if (!title.HeroHasValidClaim(Hero.MainHero))
+                return $"You hold no valid claim on {name}. Fabricate or inherit a claim first.";
+
+            var behavior = TaleWorlds.CampaignSystem.Campaign.Current
+                .GetCampaignBehavior<BannerKings.Behaviours.Diplomacy.Dilemmas.BKDilemmaBehavior>();
+            if (behavior == null) return "Dilemma engine not loaded.";
+
+            var dilemma = behavior.CreateAndEnqueue(kingdom, "title_claim", Hero.MainHero, title.deJure, title);
+            if (dilemma == null) return "Failed to create the claim dilemma.";
+
+            return $"Pressing your claim on {name}. It enters the realm's dilemma queue and promotes on the next daily tick.";
+        }
+
+        [CommandLineFunctionality.CommandLineArgumentFunction("dilemmas", "bannerkings")]
+        public static string Dilemmas(List<string> strings)
+        {
+            if (!CampaignCheats.CheckCheatUsage(ref CampaignCheats.ErrorType))
+            {
+                return CampaignCheats.ErrorType;
+            }
+
+            BannerKings.Behaviours.Diplomacy.Dilemmas.DilemmaUI.ShowPlayerDilemmas();
+            return "Opened the realm dilemmas panel.";
+        }
+
+        [CommandLineFunctionality.CommandLineArgumentFunction("start_dilemma", "bannerkings")]
+        public static string StartDilemma(List<string> strings)
+        {
+            if (!CampaignCheats.CheckCheatUsage(ref CampaignCheats.ErrorType))
+            {
+                return CampaignCheats.ErrorType;
+            }
+
+            var kingdom = Hero.MainHero?.Clan?.Kingdom;
+            if (kingdom == null) return "You must belong to a kingdom to raise a dilemma.";
+
+            string typeId = (strings != null && strings.Count > 0) ? strings[0].Trim() : "petition";
+            if (BannerKings.Behaviours.Diplomacy.Dilemmas.DefaultDilemmas.Instance.GetById(typeId) == null)
+                return $"No dilemma type '{typeId}'. Known reference type: petition.";
+
+            var behavior = TaleWorlds.CampaignSystem.Campaign.Current
+                .GetCampaignBehavior<BannerKings.Behaviours.Diplomacy.Dilemmas.BKDilemmaBehavior>();
+            if (behavior == null) return "Dilemma engine not loaded.";
+
+            var dilemma = behavior.CreateAndEnqueue(kingdom, typeId, Hero.MainHero, null);
+            if (dilemma == null) return "Failed to create dilemma.";
+
+            return $"Queued '{typeId}' dilemma in {kingdom.Name} (initiator {Hero.MainHero.Name}). " +
+                   "It promotes on the next daily tick if a slot is free.";
+        }
+
         [CommandLineFunctionality.CommandLineArgumentFunction("give_title", "bannerkings")]
         public static string GiveTitle(List<string> strings)
         {

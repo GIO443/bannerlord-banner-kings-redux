@@ -232,6 +232,7 @@ namespace BannerKings
             DefaultCouncilTasks.Instance.Initialize();
             DefaultCouncilPositions.Instance.Initialize();
             DefaultDemands.Instance.Initialize();
+            BannerKings.Behaviours.Diplomacy.Dilemmas.DefaultDilemmas.Instance.Initialize();
             DefaultRadicalGroups.Instance.Initialize();
             DefaultInterestGroup.Instance.Initialize();
             DefaultCriminalSentences.Instance.Initialize();

@@ -125,6 +125,8 @@ namespace BannerKings
             AddClassDefinition(typeof(AuxiliumDuty), 52);
             AddClassDefinition(typeof(RansomDuty), 53);
             AddClassDefinition(typeof(BannerKingsTournament), 54);
+            AddClassDefinition(typeof(BannerKings.Behaviours.Diplomacy.Dilemmas.Dilemma), 1300);
+            AddClassDefinition(typeof(BannerKings.Behaviours.Diplomacy.Dilemmas.SideCommitment), 1301);
             AddClassDefinition(typeof(RepublicElectionDecision), 60);
             AddClassDefinition(typeof(BKKingElectionDecision), 62);
             AddClassDefinition(typeof(TitleData), 63);
@@ -341,6 +343,10 @@ namespace BannerKings
 
             // BKLandsLaborBehavior — per-village slave + guard quotas.
             ConstructContainerDefinition(typeof(Dictionary<Settlement, int>));
+            // Dilemma engine (Phase 1).
+            ConstructContainerDefinition(typeof(List<BannerKings.Behaviours.Diplomacy.Dilemmas.Dilemma>));
+            ConstructContainerDefinition(typeof(Dictionary<Clan, BannerKings.Behaviours.Diplomacy.Dilemmas.SideCommitment>));
+            ConstructContainerDefinition(typeof(Dictionary<string, CampaignTime>));
         }
     }
 }

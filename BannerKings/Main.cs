@@ -139,6 +139,7 @@ namespace BannerKings
             campaignStarter.AddBehavior(new BKArmyBehavior());
             campaignStarter.AddBehavior(new BKRansomBehavior());
             campaignStarter.AddBehavior(new BKTitleBehavior());
+            campaignStarter.AddBehavior(new BannerKings.Behaviours.Diplomacy.Dilemmas.BKDilemmaBehavior());
             campaignStarter.AddBehavior(new BKNotableBehavior());
             // Religion campaign behavior gated behind the MCM Religion
             // master toggle. When off, no preacher dialogue, no daily piety

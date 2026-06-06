@@ -70,7 +70,22 @@ namespace BannerKings.UI.Titles
                 else
                 {
                     var usurpData = model.GetAction(ActionType.Usurp, title, Hero.MainHero);
-                    if (title.GetHeroClaim(Hero.MainHero) != ClaimType.None)
+                    // A valid claim on a title held by someone in YOUR realm is
+                    // pressed as a dilemma — the involved, contested path. Cross-
+                    // realm claims (the dilemma is realm-internal) and not-yet-
+                    // valid claims fall back to the instant Usurp action.
+                    bool holderInRealm = title.deJure != null && title.deJure != Hero.MainHero
+                        && title.deJure.Clan?.Kingdom != null
+                        && title.deJure.Clan.Kingdom == Hero.MainHero.Clan?.Kingdom;
+                    if (holderInRealm && title.HeroHasValidClaim(Hero.MainHero))
+                    {
+                        var pressButton = new DecisionElement().SetAsButtonOption(new TextObject("{=BKpressClaim}Press Claim").ToString(),
+                            () => PressClaim(title),
+                            new TextObject("{=BKpressClaimHint}Press your claim before the realm. Your peers take sides over a deliberation window; muster enough weight and the title changes hands — a contested result is left to the ruler to settle."));
+                        pressButton.Enabled = true;
+                        Decisions.Add(pressButton);
+                    }
+                    else if (title.GetHeroClaim(Hero.MainHero) != ClaimType.None)
                     {
                         var usurpButton = new DecisionElement().SetAsButtonOption(new TextObject("{=L3Jzg76z}Usurp").ToString(),
                             () => UIHelper.ShowActionPopup(usurpData, this));
@@ -118,6 +133,23 @@ namespace BannerKings.UI.Titles
                 }
 
                 Hint = new BasicTooltipViewModel(() => UIHelper.GetTitleTooltip(title, actions));
+            }
+        }
+
+        private void PressClaim(FeudalTitle pressedTitle)
+        {
+            var kingdom = Hero.MainHero?.Clan?.Kingdom;
+            var bk = TaleWorlds.CampaignSystem.Campaign.Current
+                .GetCampaignBehavior<BannerKings.Behaviours.Diplomacy.Dilemmas.BKDilemmaBehavior>();
+            if (kingdom == null || bk == null || pressedTitle?.deJure == null) return;
+
+            var dilemma = bk.CreateAndEnqueue(kingdom, "title_claim", Hero.MainHero, pressedTitle.deJure, pressedTitle);
+            if (dilemma != null)
+            {
+                InformationManager.DisplayMessage(new InformationMessage(
+                    new TextObject("{=BKpressClaimMsg}You press your claim on {TITLE}. It enters the realm's dilemma queue.")
+                        .SetTextVariable("TITLE", pressedTitle.FullName).ToString(),
+                    Color.FromUint(BannerKings.Utils.TextHelper.COLOR_LIGHT_BLUE)));
             }
         }
 

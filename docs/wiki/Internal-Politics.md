@@ -387,6 +387,63 @@ conquered by … (Conquest by Might)`).
 
 ---
 
+## Realm Dilemmas (experimental — for testers)
+
+A **dilemma** is an ongoing, two-sided contest in a kingdom — the realm's lords
+take sides over a deliberation window, and it resolves on the balance of
+weight behind each side. It's gated behind **MCM → Banner Kings → Politics →
+Enable Politics Rework** (the same master toggle as the rest of the politics
+systems); turn that off and no dilemmas occur.
+
+**Where to see them.** Open **Kingdom → BannerKings → Groups**. Active dilemmas
+appear in their own **Dilemmas (N)** section in the left list alongside Interest
+and Radical Groups. Select one to see the **For / Against** push-pull bar, who
+raised it and against whom, and the time remaining. You can also list/inspect
+them from the console with `campaign.bannerkings.dilemmas`.
+
+**Taking part.** On a selected dilemma, **Support** and **Oppose** spend
+influence to add your clan's weight to that side. AI clans pick a side by
+relation, faction, ambition and government, and spend their own spare resources
+on it over the window — so the bar moves as the realm deliberates.
+
+**How a contest is weighed.** Each clan contributes `clout × (1 − m) +
+military × m`, where `m` (the military coefficient) rises for martial
+governments — a Tribal realm is settled by swords, a Republic by standing.
+A minimum deliberation window keeps a lopsided opening from auto-completing
+before others can weigh in, and undecided clans can be swayed onto a clearly
+leading side.
+
+**How it resolves** (For-side share of committed weight):
+
+- **≥ 75%** — carries overwhelmingly, resolved immediately.
+- **65–75%** — carries when the timer ends.
+- **50–65%** — contested: the **ruler decides** (for things the crown controls),
+  or it goes to a power-struggle outcome for radical demands.
+- **25–50%** — fails; the status quo holds.
+- **< 25%** — backfires: the instigator loses standing, with a cooldown before
+  they can try again.
+
+**Title claims.** The first full dilemma is the **title claim**. You must
+*already hold a valid claim* on a title held by a fellow realm member; then the
+title screen shows a **Press Claim** button (replacing the instant Usurp for
+in-realm targets). Win the contest and the title changes hands; a contested
+result is left to the ruler to uphold or deny. Ambitious AI vassals do the same
+— they fabricate claims on rivals' titles and press them once the claims mature,
+so claim disputes arise on their own. (Cross-realm claims still use the old
+instant Usurp.)
+
+**Pacing.** At most a couple of dilemmas run in a realm at once (tunable via
+**MCM → Banner Kings → Balancing → Max Active Dilemmas**); the rest queue and
+promote as slots free. Because AI claims must be fabricated and then mature
+(~1 year) before they can be pressed, AI-driven claim dilemmas ramp up over time
+rather than appearing immediately.
+
+> This system is new and under active development — feedback from testers is
+> exactly what it's for. If anything misbehaves, the Politics Rework toggle
+> disables it cleanly.
+
+---
+
 ## See also
 
 - [Player Guide](Player-Guide) — the action buttons in the BK UI

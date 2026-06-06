@@ -1,6 +1,9 @@
+using BannerKings.Behaviours.Diplomacy.Dilemmas;
 using BannerKings.Extensions;
+using BannerKings.Managers.Titles;
 using BannerKings.Managers.Titles.Governments;
 using BannerKings.Settings;
+using System.Collections.Generic;
 using TaleWorlds.CampaignSystem;
 using TaleWorlds.CampaignSystem.Actions;
 using TaleWorlds.Core;
@@ -188,10 +191,28 @@ namespace BannerKings.Behaviours.Diplomacy
                 default:                               // Vassals — the Feudal hierarchy
                     if (treacherous && rival != null)
                     {
-                        lever = "pressing claims against a rival";
-                        ChangeRelationAction.ApplyRelationChangeBetweenHeroes(leader, rival.Leader, -mag, false);
-                        ChangeRelationAction.ApplyRelationChangeBetweenHeroes(leader, ruler, -(mag / 2 + 1), false);
-                        GainRenownAction.Apply(leader, mag, true);
+                        // If this clan actually holds a claim on one of the
+                        // rival's titles, escalate from abstract relation drift
+                        // to a real claim dilemma — the realm takes sides over it.
+                        if (TryPressClaimDilemma(clan, rival, kingdom))
+                        {
+                            lever = "pressing a claim";
+                            GainRenownAction.Apply(leader, mag, true);
+                        }
+                        else if (TryFabricateClaim(clan, rival))
+                        {
+                            // Groundwork: build a claim now, press it (above) once
+                            // it matures. The relation hit + cost are applied by
+                            // the claim action itself.
+                            lever = "fabricating a claim";
+                        }
+                        else
+                        {
+                            lever = "pressing claims against a rival";
+                            ChangeRelationAction.ApplyRelationChangeBetweenHeroes(leader, rival.Leader, -mag, false);
+                            ChangeRelationAction.ApplyRelationChangeBetweenHeroes(leader, ruler, -(mag / 2 + 1), false);
+                            GainRenownAction.Apply(leader, mag, true);
+                        }
                     }
                     else
                     {
@@ -218,6 +239,81 @@ namespace BannerKings.Behaviours.Diplomacy
                         .ToString(),
                     Color.FromUint(Utils.TextHelper.COLOR_LIGHT_RED)));
             }
+        }
+
+        // If the acting clan's leader holds a valid claim on a title the rival
+        // holds de jure, raise a title-claim dilemma in the realm queue. Returns
+        // true if one was enqueued. Skips when an identical claim dilemma is
+        // already active/pending so the cadence can't pile duplicates up.
+        private static bool TryPressClaimDilemma(Clan clan, Clan rival, Kingdom kingdom)
+        {
+            if (clan?.Leader == null || rival == null || kingdom == null) return false;
+            var tm = BannerKingsConfig.Instance.TitleManager;
+            if (tm == null) return false;
+
+            List<FeudalTitle> rivalTitles;
+            try { rivalTitles = tm.GetAllDeJure(rival); }
+            catch { return false; }
+            if (rivalTitles == null) return false;
+
+            FeudalTitle claimable = null;
+            foreach (var t in rivalTitles)
+            {
+                if (t == null || t.deJure == null || t.deJure == clan.Leader) continue;
+                if (t.HeroHasValidClaim(clan.Leader)) { claimable = t; break; }
+            }
+            if (claimable == null) return false;
+
+            var bk = Campaign.Current.GetCampaignBehavior<BKDilemmaBehavior>();
+            var diplomacy = Campaign.Current.GetCampaignBehavior<BKDiplomacyBehavior>()?.GetKingdomDiplomacy(kingdom);
+            if (bk == null || diplomacy == null) return false;
+
+            foreach (var d in diplomacy.GetActiveDilemmasSnapshot())
+                if (d != null && d.TypeId == "title_claim" && d.Title == claimable && d.Initiator == clan.Leader) return false;
+            foreach (var d in diplomacy.GetPendingDilemmasSnapshot())
+                if (d != null && d.TypeId == "title_claim" && d.Title == claimable && d.Initiator == clan.Leader) return false;
+
+            return bk.CreateAndEnqueue(kingdom, "title_claim", clan.Leader, claimable.deJure, claimable) != null;
+        }
+
+        // Start fabricating a claim on one of the rival's titles the clan
+        // doesn't already have a claim (valid or ongoing) on. Uses the same
+        // TitleAction path as the player's Claim button — paying gold / influence
+        // / renown and taking a relation hit — so it respects all the normal
+        // legality + affordability gates (action.Possible). A reserve check keeps
+        // a scheming clan from spending itself into the ground. Returns true if a
+        // claim was started; the press-claim lever picks it up once it matures.
+        private static bool TryFabricateClaim(Clan clan, Clan rival)
+        {
+            if (clan?.Leader == null || rival == null) return false;
+            var tm = BannerKingsConfig.Instance.TitleManager;
+            var model = BannerKingsConfig.Instance.TitleModel;
+            if (tm == null || model == null) return false;
+
+            List<FeudalTitle> rivalTitles;
+            try { rivalTitles = tm.GetAllDeJure(rival); }
+            catch { return false; }
+            if (rivalTitles == null) return false;
+
+            foreach (var t in rivalTitles)
+            {
+                if (t == null || t.deJure == null || t.deJure == clan.Leader) continue;
+                if (t.GetHeroClaim(clan.Leader) != ClaimType.None) continue; // already claiming / claimed
+
+                TitleAction action;
+                try { action = model.GetAction(ActionType.Claim, t, clan.Leader); }
+                catch { continue; }
+                if (action == null || !action.Possible) continue;
+
+                // Don't bankrupt the clan over a scheme — keep reserves beyond cost.
+                if (clan.Leader.Gold - action.Gold < 20000f) continue;
+                if (clan.Influence - action.Influence < 50f) continue;
+
+                try { tm.AddOngoingClaim(action); }
+                catch { continue; }
+                return true;
+            }
+            return false;
         }
 
         // A clan's loyal climb binds a handful of peers to it — the seed of
