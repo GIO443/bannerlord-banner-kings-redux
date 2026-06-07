@@ -63,8 +63,13 @@ namespace BannerKings.Behaviours.Diag
             TaleWorlds.CampaignSystem.ExplainedNumber foodChangeEx = default;
             try
             {
+                // includeDescriptions:true so GetExplanations() yields the
+                // per-factor breakdown (Population Production / Consumption /
+                // Garrison / etc.) that TryDumpExplanationLines logs below.
+                // Without it the ExplainedNumber carries no descriptions and
+                // the change-explained rows come out empty.
                 foodChangeEx = TaleWorlds.CampaignSystem.Campaign.Current.Models.SettlementFoodModel
-                    .CalculateTownFoodStocksChange(town, true);
+                    .CalculateTownFoodStocksChange(town, true, true);
                 foodChange = foodChangeEx.ResultNumber;
             }
             catch { }

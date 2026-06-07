@@ -25,6 +25,13 @@ namespace BannerKings.Models.Vanilla
         public override int NumberOfMenOnGarrisonToEatOneFood => 20;
         public override int CastleFoodStockUpperLimitBonus => 250;
 
+        // v1.9.12.1: the town's own farmland is a SMALL supplementary food
+        // source (gardens / immediate hinterland), never the main supply —
+        // bound villages feed the town (vanilla backbone). Pre-1.9.12.1 BK
+        // used the town's full self-production as the only supply, which made
+        // towns self-feeding and decoupled food from their villages.
+        private const float TownSelfProductionFactor = 0.15f;
+
         public override ExplainedNumber CalculateTownFoodStocksChange(Town town, bool includeMarketStocks = true,
             bool includeDescriptions = false)
         {
@@ -38,89 +45,40 @@ namespace BannerKings.Models.Vanilla
 
         public ExplainedNumber CalculateTownFoodChangeInternal(Town town, bool includeMarketStocks, bool includeDescriptions)
         {
-            var result = new ExplainedNumber(0f, includeDescriptions);
-            var data = BannerKingsConfig.Instance.PopulationManager.GetPopData(town.Settlement);
+            // Village-supply dominant (v1.9.12.1). The food backbone is
+            // vanilla's: bound-village supply, prosperity-scaled consumption
+            // (-prosperity / NumberOfProsperityToEatOneFood), garrison /
+            // prisoner draw, market purchases, governor perks, HuntingRights
+            // and active issues all come from base. BK previously REPLACED the
+            // bound-village supply with the town's own farmland output, which
+            // made towns self-feeding and decoupled food from their villages.
+            // We let vanilla feed the town from its villages and keep the
+            // town's own hinterland as only a small supplementary bonus.
+            var result = base.CalculateTownFoodStocksChange(town, includeMarketStocks, includeDescriptions);
 
+            var data = BannerKingsConfig.Instance.PopulationManager.GetPopData(town.Settlement);
             if (data == null)
             {
-                return base.CalculateTownFoodStocksChange(town, includeMarketStocks, includeDescriptions);
+                return result;
             }
 
-            result.Add(GetPopulationFoodConsumption(data).ResultNumber, new TextObject("{=3JzB3jVw}Population Consumption"));
-
-            float foodProduction = GetPopulationFoodProduction(data, town).ResultNumber;
-            result.Add(foodProduction, new TextObject("{=AOdwTPTa}Population Production"));
-
-            float season = (float)CampaignTime.Now.GetSeasonOfYear;
-            switch (season)
+            // Demoted town-local production: gardens / immediate hinterland —
+            // never enough on its own to feed a town. Demesne-law, fertility
+            // and efficiency factors ride inside GetPopulationFoodProduction
+            // and are scaled down along with it.
+            float localProduction = GetPopulationFoodProduction(data, town).ResultNumber;
+            if (localProduction > 0f)
             {
-                case 3f:
-                    result.Add(-0.6f * foodProduction, new TextObject("{=nwqUFaU8}Winter"));
-                    break;
-                case 1f:
-                    result.Add(1f * foodProduction, new TextObject("{=f7vOVQb7}Summer"));
-                    break;
+                result.Add(localProduction * TownSelfProductionFactor,
+                    new TextObject("{=BKlocalFarmland}Local farmland"));
             }
 
-            var garrisonParty = town.GarrisonParty;
-            var garrisonConsumption = garrisonParty != null ? garrisonParty.Party.NumberOfAllMembers : 0;
-            result.Add(-garrisonConsumption / NumberOfMenOnGarrisonToEatOneFood, new TextObject("{=o7W9qvHw}Garrison consumption"));
-
-            var prisoners = town.Settlement.Party.NumberOfPrisoners;
-            result.Add(-prisoners / (NumberOfMenOnGarrisonToEatOneFood * 2), new TextObject("{=S3ntMGX6}Prisoner rations"));
-
-            if (BannerKingsConfig.Instance.PolicyManager.IsDecisionEnacted(town.Settlement, "decision_militia_encourage"))
-            {
-                result.AddFactor(-0.25f, new TextObject("{=1aq83aPr}Conscription policy"));
-            }
-
-            var ownerClan = town.Settlement.OwnerClan;
-            if (ownerClan?.Kingdom != null &&
-                town.Settlement.OwnerClan.Kingdom.ActivePolicies.Contains(DefaultPolicies.HuntingRights))
-            {
-                result.Add(2f, DefaultPolicies.HuntingRights.Name);
-            }
-
-            var marketConsumption = 0;
-            foreach (var sellLog in town.SoldItems)
-            {
-                if (sellLog.Category.Properties == ItemCategory.Property.BonusToFoodStores)
-                {
-                    marketConsumption += sellLog.Number;
-                }
-            }
-
-            result.Add(marketConsumption, new TextObject("{=3hEk7Bdk}Market consumption"));
-
-            if (town.Governor != null)
-            {
-                if (town.IsUnderSiege)
-                {
-                    if (town.Governor.GetPerkValue(DefaultPerks.Steward.Gourmet))
-                    {
-                        result.AddFactor(DefaultPerks.Steward.Gourmet.SecondaryBonus, DefaultPerks.Steward.Gourmet.Name);
-                    }
-
-                    if (town.Governor.GetPerkValue(DefaultPerks.Medicine.TriageTent))
-                    {
-                        result.AddFactor(DefaultPerks.Medicine.TriageTent.SecondaryBonus,
-                            DefaultPerks.Medicine.TriageTent.Name);
-                    }
-                }
-
-                if (town.Governor.GetPerkValue(DefaultPerks.Roguery.DirtyFighting))
-                {
-                    result.Add(DefaultPerks.Roguery.DirtyFighting.SecondaryBonus, DefaultPerks.Roguery.DirtyFighting.Name);
-                }
-
-                if (result.ResultNumber > 0f && town.Governor.GetPerkValue(DefaultPerks.Steward.MasterOfWarcraft))
-                {
-                    result.AddFactor(-DefaultPerks.Steward.MasterOfWarcraft.SecondaryBonus,
-                        DefaultPerks.Steward.MasterOfWarcraft.Name);
-                }
-            }
-
-            GetSettlementFoodChangeDueToIssues(town, ref result);
+            // NOTE: the pre-1.9.12.1 self-production path also applied two
+            // BK-only policy modifiers (decision_ration, decision_militia_
+            // encourage). They acted on BK's per-class consumption term, which
+            // vanilla now owns; re-applying them correctly needs isolating
+            // vanilla's consumption line, so they are intentionally not wired
+            // into town food this pass (TODO: re-layer on top of base).
             return result;
         }
 
@@ -261,12 +219,6 @@ namespace BannerKings.Models.Vanilla
             }
 
             return result;
-        }
-
-        private static void GetSettlementFoodChangeDueToIssues(Town town, ref ExplainedNumber explainedNumber)
-        {
-            TaleWorlds.CampaignSystem.Campaign.Current.Models.IssueModel.GetIssueEffectsOfSettlement(DefaultIssueEffects.SettlementFood,
-                town.Settlement, ref explainedNumber);
         }
     }
 }

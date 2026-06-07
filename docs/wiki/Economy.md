@@ -198,6 +198,19 @@ Leave both ON for the default Phase 2 behaviour.
 
 ---
 
+## How a town is fed
+
+A town's daily food change is **village-supply dominant**: its bound villages
+ship food to it, and that supply — minus the town's own population draw (which
+scales with prosperity), its garrison, and market purchases — is what fills or
+drains the granary. The town's own immediate hinterland contributes only a
+small **Local farmland** bonus (hover the food figure in the town panel to see
+each line). A large, prosperous town therefore *cannot* feed itself on its own
+land: if its villages are raided, lost, or simply can't keep up with its size,
+it runs a deficit and its food stocks fall — exactly as a city should depend on
+its countryside. Protect and grow the villages around a town if you want its
+granary to stay full.
+
 ## Cluster food and stagnation
 
 Each cluster (a town + its bound villages) has an aggregated food balance. When a cluster runs a food deficit AND its food stocks drop below 25% of cap, the **stagnation counter** starts ticking. After 14 consecutive deficit days, the cluster is flagged stagnant; it stays stagnant until food stocks recover for 7+ days (hysteresis).
