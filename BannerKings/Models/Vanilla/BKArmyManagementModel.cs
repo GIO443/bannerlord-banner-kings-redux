@@ -19,6 +19,12 @@ namespace BannerKings.Models.Vanilla
 {
     public class BKArmyManagementModel : ArmyModel
     {
+        // Fraction of a clan's influence cap that constitutes the "can afford to
+        // form an army" floor. Shared by BKArmyBehavior.EvaluateCreateArmy (the
+        // daily push gate) and AddInfluenceBonusParties (the surplus-scaled
+        // invite boost) so the two never drift apart.
+        public const float ArmyFormationInfluenceFloorFactor = 0.4f;
+
         public bool CanHeroRecruitHero(Hero recruiter, Hero recruited)
         {
             return true;
@@ -41,26 +47,41 @@ namespace BannerKings.Models.Vanilla
 
                 if (armyLeader.Clan.IsUnderMercenaryService) return true;
 
-                // Suppress sub-Dukedom army creation when an army already
-                // exists in the kingdom. Empirically (BK_army_formation_audit.txt
-                // 2026-05-08): baron-tier secondary armies fire CREATE,
-                // attract zero JOINs (everyone's in the king's army), then
-                // DISPERSE for Inactivity within hours — wasting influence
-                // and leaving lower-tier nobles' parties unused instead of
-                // pooled. King and mercenaries bypass via the early returns
-                // above. Dukes (and above) can still create a second army
-                // for legitimate strategic splits. The player (Hero.MainHero)
-                // is also exempt — player agency takes precedence over AI-
-                // tuning heuristics; if the player wants to call a doomed
-                // army as a baron, that's their prerogative. The existing
-                // law-based privilege checks below still apply to the
-                // player normally.
+                // Gate sub-Dukedom secondary armies on whether the kingdom
+                // still has UNCOMMITTED war parties to fill them. The prior
+                // failure mode (BK_army_formation_audit.txt 2026-05-08) was
+                // baron-tier armies firing CREATE, attracting zero JOINs
+                // (everyone's already in the king's army), then DISPERSING for
+                // Inactivity within hours — wasting influence. But the old
+                // guard keyed on `Armies.Count > 0`, which hard-capped the
+                // WHOLE kingdom at one army regardless of how many idle parties
+                // (or how much influence) it had — so a rich, large realm could
+                // never field a second army. The real predictor of a doomed
+                // army is "no free parties to join it", not "an army exists".
+                //
+                // Vanilla's CanLordCreateArmy invites at most
+                // ceil(warParties * 0.7) - partiesAlreadyInArmies parties. If
+                // that pool is < 2, a new army would starve for JOINs, so we
+                // keep the duke-only restriction; otherwise any eligible clan
+                // may form an additional army. King and mercenaries bypass via
+                // the early returns above; the player (Hero.MainHero) is exempt
+                // — player agency over AI-tuning heuristics — and the law-based
+                // privilege checks below still apply to everyone normally.
                 if (armyLeader != Hero.MainHero
                     && kingdom.Armies != null && kingdom.Armies.Count > 0)
                 {
-                    var existingTitle = BannerKingsConfig.Instance.TitleManager.GetHighestTitle(armyLeader);
-                    if (existingTitle == null || existingTitle.TitleType > TitleType.Dukedom)
-                        return false;
+                    int warParties = kingdom.WarPartyComponents != null ? kingdom.WarPartyComponents.Count : 0;
+                    int inArmies = 0;
+                    foreach (var existingArmy in kingdom.Armies)
+                        inArmies += existingArmy.Parties != null ? existingArmy.Parties.Count : 0;
+                    int uncommitted = (int) System.Math.Ceiling(warParties * 0.7f) - inArmies;
+
+                    if (uncommitted < 2)
+                    {
+                        var existingTitle = BannerKingsConfig.Instance.TitleManager.GetHighestTitle(armyLeader);
+                        if (existingTitle == null || existingTitle.TitleType > TitleType.Dukedom)
+                            return false;
+                    }
                 }
 
                 CouncilData council = BannerKingsConfig.Instance.CourtManager.GetCouncil(kingdom.RulingClan);
@@ -117,6 +138,19 @@ namespace BannerKings.Models.Vanilla
                     }
                 }
 
+                // Influence-scaled invite boost. Vanilla caps the invite list
+                // at ceil(warParties * 0.7) - partiesInArmies and IGNORES the
+                // leader's influence beyond the 100 floor (its
+                // GetInfluenceBudgetWhileCreatingArmy result is computed and
+                // discarded). So a clan sitting on thousands of influence
+                // fields exactly the same army as one with 200 — banked
+                // influence buys nothing. Grant a modest number of extra invite
+                // slots scaled by surplus influence above the formation floor,
+                // and fill them with otherwise-eligible kingdom war parties the
+                // vanilla trim left on the table. Capped at +3 so a war chest
+                // can't over-mobilize the realm and strip the fiefs.
+                AddInfluenceBonusParties(leaderParty, kingdom, possibleArmyMembers);
+
                 foreach (MobileParty p in possibleArmyMembers)
                 {
                     if (p.LeaderHero.Clan.IsUnderMercenaryService && !CanHeroRecruitMercs(leaderParty.LeaderHero, p.LeaderHero))
@@ -131,6 +165,49 @@ namespace BannerKings.Models.Vanilla
                 possibleArmyMembers.Remove(p);
 
             return canCreate;
+        }
+
+        // Adds up to 3 extra eligible kingdom war parties to the army invite
+        // list, scaled by how far the leader's influence exceeds the formation
+        // floor (0.4 * influence cap, matching BKArmyBehavior.EvaluateCreateArmy).
+        // Each additional 30% of the cap in surplus influence buys one slot.
+        // Parties must pass the same availability test BK uses elsewhere and be
+        // within vanilla's MaximumDistanceToCallToArmy of the leader, ranked by
+        // strength so the boost pulls the most useful idle parties first.
+        private void AddInfluenceBonusParties(MobileParty leaderParty, Kingdom kingdom,
+            TaleWorlds.Library.MBList<MobileParty> possibleArmyMembers)
+        {
+            var clan = leaderParty.LeaderHero?.Clan;
+            if (clan == null) return;
+
+            float cap = BannerKingsConfig.Instance.InfluenceModel.CalculateInfluenceCap(clan).ResultNumber;
+            if (cap <= 0f) return;
+
+            float surplus = clan.Influence - cap * ArmyFormationInfluenceFloorFactor;
+            int bonusSlots = (int) (surplus / (cap * 0.3f));
+            if (bonusSlots <= 0) return;
+            if (bonusSlots > 3) bonusSlots = 3;
+
+            float maxDistance = Campaign.Current.Models.ArmyManagementCalculationModel.MaximumDistanceToCallToArmy;
+
+            var candidates = new List<MobileParty>();
+            foreach (var component in kingdom.WarPartyComponents)
+            {
+                var party = component.MobileParty;
+                if (party == null || party == leaderParty) continue;
+                if (possibleArmyMembers.Contains(party)) continue;
+                if (!party.IsAvailableForArmies()) continue;
+                if (party.LeaderHero?.Clan != null && party.LeaderHero.Clan.IsUnderMercenaryService) continue;
+                if (Helpers.DistanceHelper.GetDistanceBetweenMobilePartyToMobileParty(party, leaderParty,
+                        party.NavigationCapability, out _) >= maxDistance) continue;
+
+                candidates.Add(party);
+            }
+
+            candidates.Sort((a, b) => b.Party.EstimatedStrength.CompareTo(a.Party.EstimatedStrength));
+
+            for (int i = 0; i < bonusSlots && i < candidates.Count; i++)
+                possibleArmyMembers.Add(candidates[i]);
         }
 
         // CalculateDailyCohesionChange and DailyBeingAtArmyInfluenceAward moved to

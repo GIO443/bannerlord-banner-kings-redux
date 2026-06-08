@@ -119,7 +119,7 @@ namespace BannerKings.Behaviours
             if (party.TotalFoodAtInventory < party.MemberRoster.TotalManCount * 0.5f) return;
             BannerKingsConfig.Instance.ArmyManagementModel.CanLordCreateArmy(party, out var armyMembers);
             if (armyMembers == null || armyMembers.Count < 2) return;
-            if (leader.Clan.Influence < BannerKingsConfig.Instance.InfluenceModel.CalculateInfluenceCap(leader.Clan).ResultNumber * 0.4f) return;
+            if (leader.Clan.Influence < BannerKingsConfig.Instance.InfluenceModel.CalculateInfluenceCap(leader.Clan).ResultNumber * BKArmyManagementModel.ArmyFormationInfluenceFloorFactor) return;
 
             var (target, type) = objective.Value;
             var decision = new CallBannersGoal(leader);

@@ -666,6 +666,28 @@ runs unmodified. The result is fewer but more purposeful AI armies.
 An MCM toggle (Performance → AI Army Formation) disables the BK push
 entirely if you want pure vanilla AI behaviour.
 
+**Q: Why does a kingdom only ever field one army, even with tons of influence?**
+It no longer does. Earlier builds hard-capped a kingdom at a single
+army (only dukes and above could form a second), and the underlying
+vanilla model ignores any influence a clan banks past the ~100 floor
+when deciding how many parties to call — so a rich realm fielded the
+same small army as a poor one. Now:
+- A kingdom can form **additional armies** as long as it still has
+  uncommitted war parties to fill them (roughly: enough idle parties
+  that a new army won't immediately starve for members and disperse).
+  When nearly every party is already committed, the duke-only
+  restriction returns so the realm doesn't spawn empty armies.
+- A clan sitting on **surplus influence** (well above the amount needed
+  to form an army) now calls **up to 3 extra parties** into its army
+  beyond vanilla's normal cap, scaled by how much influence it has
+  banked — so a war chest actually buys a bigger host instead of going
+  to waste. The bonus is capped so a single rich lord can't strip the
+  whole realm's garrisons into one stack.
+
+You'll notice this most in large, wealthy kingdoms during a war: expect
+two or more purposeful armies in the field at once rather than a single
+royal stack.
+
 ## Roleplay
 
 ### How do I open a dialogue with a hero far away (telepathy)?
