@@ -56,15 +56,18 @@ namespace BannerKings.Behaviours.Mercenary
 
         public void PostInitialize()
         {
-            foreach (var pair in LevyTroops)
-            {
-                pair.Value.PostInitialize(pair.Key);
-            }
-
-            foreach (var pair in ProfessionalTroops)
-            {
-                pair.Value.PostInitialize(pair.Key);
-            }
+            // Prune-on-load. A saved custom-troop entry can become
+            // unreconstructable across modlist changes — most acutely under a
+            // total-conversion (e.g. TOR/Warhammer) that swaps the entire
+            // culture set, so a saved CultureObject key, its BasicTroop, or the
+            // CustomTroop's saved Character no longer resolves and comes back
+            // null. CustomTroop.FillCharacter then NREs at OnGameLoaded and
+            // crashes the campaign before the map loads
+            // (report.butr.link/79E515, 2026-06-08). Rebuild each dictionary
+            // keeping only fully-resolvable entries; dropped ones are recreated
+            // on demand by AddTroop when that culture next needs a merc troop.
+            LevyTroops = PruneAndInitTroops(LevyTroops);
+            ProfessionalTroops = PruneAndInitTroops(ProfessionalTroops);
 
             foreach (var list in KingdomPrivileges.Values)
             {
@@ -75,6 +78,42 @@ namespace BannerKings.Behaviours.Mercenary
                         copy.MaxLevel, copy.IsAvailable, copy.OnPrivilegeAdded);
                 }
             }
+        }
+
+        // Returns a new dictionary containing only the custom-troop entries
+        // that fully resolve and reconstruct without throwing. Entries with a
+        // null culture key, a culture whose BasicTroop is null, a null troop,
+        // or a troop whose saved Character didn't resolve are dropped (and
+        // recreated lazily by AddTroop later). Never throws — a single bad
+        // entry must not abort the load.
+        private static Dictionary<CultureObject, CustomTroop> PruneAndInitTroops(
+            Dictionary<CultureObject, CustomTroop> troops)
+        {
+            var result = new Dictionary<CultureObject, CustomTroop>();
+            if (troops == null) return result;
+
+            foreach (var pair in troops)
+            {
+                var culture = pair.Key;
+                var troop = pair.Value;
+                if (culture == null || culture.BasicTroop == null
+                    || troop == null || troop.Character == null)
+                {
+                    continue;
+                }
+
+                try
+                {
+                    troop.PostInitialize(culture);
+                    result[culture] = troop;
+                }
+                catch
+                {
+                    // Drop the entry — unreconstructable across this modlist.
+                }
+            }
+
+            return result;
         }
 
         public void Tick(float progress)

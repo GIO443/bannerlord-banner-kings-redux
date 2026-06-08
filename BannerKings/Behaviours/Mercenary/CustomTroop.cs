@@ -42,7 +42,17 @@ namespace BannerKings.Behaviours.Mercenary
                 Name = new TextObject("{=gaJDVkvHA}Placeholder").ToString();
             }
 
-            FillCharacter(culture.BasicTroop);
+            // Defense-in-depth: the caller (MercenaryCareer.PostInitialize)
+            // already prunes entries with a null culture / BasicTroop /
+            // Character, but guard here too so a direct call can't NRE on a
+            // dangling reference across modlist changes.
+            var reference = culture?.BasicTroop;
+            if (reference == null || Character == null)
+            {
+                return;
+            }
+
+            FillCharacter(reference);
             SetName(new TextObject(Name));
             SetEquipment(Character);
             SetSkills(Character, Skills);
