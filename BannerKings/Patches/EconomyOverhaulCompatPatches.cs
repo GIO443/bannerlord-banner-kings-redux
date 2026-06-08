@@ -251,17 +251,24 @@ namespace BannerKings.Patches
         // Crash-13 (2026-05-11): hard NRE in
         // BuildingsCampaignBehavior.DailyTickSettlement_Patch1 — i.e. the
         // vanilla building-progress daily tick *after* a Harmony patch was
-        // applied by a cooperator mod (EOF on this user's load list). No
-        // inner exception, source MonoMod.Utils — same family as the
-        // BLM_Function cctor poisoning the sibling finalizers already cover,
-        // but on a different patch site (this one isn't an ExplainedNumber
-        // method, so the existing finalizers can't catch it).
+        // applied by a cooperator mod. No inner exception, source
+        // MonoMod.Utils — same family as the BLM_Function cctor poisoning the
+        // sibling finalizers already cover, but on a different patch site
+        // (this one isn't an ExplainedNumber method, so the existing
+        // finalizers can't catch it).
+        //
+        // Originally seen under EOF; recurs under BetterEconomy too
+        // (Crashes/crash (1).htm, 2026-06-08: BetterEconomy + TOR load order,
+        // identical NRE at DailyTickSettlement_Patch1). The crash site is a
+        // generic vanilla daily-tick that NREs under heavy cooperator modlists
+        // regardless of WHICH economy mod is patching it, so the gate is
+        // broadened to either economy integration. Since BetterEconomy is a
+        // hard dependency, this is effectively always-on for real installs.
         //
         // Add a defensive finalizer on vanilla's DailyTickSettlement that
-        // swallows TypeInitializationException + NRE only when EOF is loaded.
-        // Cost of swallowing: the affected settlement skips ONE day of
-        // vanilla building progress. Cost of not swallowing: campaign-ending
-        // crash every day-tick. Easy trade.
+        // swallows TypeInitializationException + NRE. Cost of swallowing: the
+        // affected settlement skips ONE day of vanilla building progress. Cost
+        // of not swallowing: campaign-ending crash every day-tick. Easy trade.
         [HarmonyPatch]
         internal static class VanillaBuildingsDailyTickSafetyFinalizer
         {
@@ -269,10 +276,11 @@ namespace BannerKings.Patches
 
             private static bool Prepare()
             {
-                // Gate on EOF: this is here purely because an EOF patch on
-                // this method is throwing. Without EOF the surface doesn't
-                // exist and the finalizer is wasted overhead.
-                if (!ModCompat.EconomyOverhaul) return false;
+                // Gate on either economy integration: a cooperator patch on
+                // this method (EOF or BetterEconomy stack) is what throws.
+                // Without one the surface doesn't exist and the finalizer is
+                // wasted overhead.
+                if (!ModCompat.EconomyOverhaul && !ModCompat.BetterEconomy) return false;
                 _behType = AccessTools.TypeByName(
                     "TaleWorlds.CampaignSystem.CampaignBehaviors.BuildingsCampaignBehavior");
                 return _behType != null
