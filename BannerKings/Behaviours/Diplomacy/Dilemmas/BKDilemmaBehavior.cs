@@ -87,6 +87,7 @@ namespace BannerKings.Behaviours.Diplomacy.Dilemmas
             }
 
             Promote(diplomacy);
+            diplomacy.PruneExpiredDilemmaCooldowns();
         }
 
         private void TickActive(KingdomDiplomacy diplomacy, Dilemma dilemma)

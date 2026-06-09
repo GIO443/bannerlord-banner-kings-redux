@@ -341,6 +341,24 @@ namespace BannerKings.Behaviours.Diplomacy
             lock (DiploSync) { DilemmaCooldowns[key] = until; }
         }
 
+        // Drop expired cooldown entries. IsDilemmaOnCooldown only READS the map,
+        // so without this every (dilemma-type, clan-pair) key ever set lingered
+        // in the save forever — a slow unbounded leak. Called from the dilemma
+        // daily tick so the map stays bounded to currently-active cooldowns.
+        public void PruneExpiredDilemmaCooldowns()
+        {
+            lock (DiploSync)
+            {
+                if (DilemmaCooldowns == null || DilemmaCooldowns.Count == 0) return;
+                List<string> expired = null;
+                foreach (var pair in DilemmaCooldowns)
+                    if (!pair.Value.IsFuture)
+                        (expired ??= new List<string>()).Add(pair.Key);
+                if (expired != null)
+                    foreach (var k in expired) DilemmaCooldowns.Remove(k);
+            }
+        }
+
         // Lock-guarded bulk clamp used by the load-time stale-truce sweep.
         // Returns the number of entries shortened. Keeps Truces mutation
         // encapsulated so no caller outside this class touches the raw dict.
