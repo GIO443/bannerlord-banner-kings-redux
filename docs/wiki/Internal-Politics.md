@@ -435,6 +435,16 @@ influence to add your clan's weight to that side. AI clans pick a side by
 relation, faction, ambition and government, and spend their own spare resources
 on it over the window — so the bar moves as the realm deliberates.
 
+**Radical factions (pretender / secession) — when they form and dissolve.**
+A radical group occupies one slot per type per realm. An AI only spins one up
+when the realm actually conditions it: **predicted support must be at least
+40%** (the same headline bar shown on the group — driven by legitimacy, war
+fatigue, crown authority, etc.). A faction that loses all momentum (its
+**radicalism falls to zero**) is **dissolved outright** — members and leader
+cleared — and stays gone unless conditions again predict ≥40% support. That
+frees the slot, so if no faction is active you can start your own from the
+Groups tab. (Previously a spent faction could linger and block you.)
+
 **How a contest is weighed.** Each clan contributes `clout × (1 − m) +
 military × m`, where `m` (the military coefficient) rises for martial
 governments — a Tribal realm is settled by swords, a Republic by standing.

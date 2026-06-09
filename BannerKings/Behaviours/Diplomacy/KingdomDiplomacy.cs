@@ -641,9 +641,16 @@ namespace BannerKings.Behaviours.Diplomacy
             foreach (var group in RadicalGroups)
             {
                 group.Tick();
+                // A group whose radicalism has run out is dissolved outright —
+                // members and leader cleared — so its per-type slot frees up and
+                // the player can start their own. It only re-forms if the realm
+                // still predicts >= 40% support (the WillHeroCreateGroup gate),
+                // so a spent faction in a stable realm stays gone instead of
+                // lingering occupied.
+                if (group.Radicalism <= 0f) group.CurrentDemand.Finish();
                 if (!group.IsGroupActive) group.SetNewLeader(this);
                 if (!group.IsGroupActive) group.CurrentDemand.Finish();
-            } 
+            }
 
             foreach (var group in DefaultInterestGroup.Instance.All)
             {

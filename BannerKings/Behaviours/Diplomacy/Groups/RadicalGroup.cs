@@ -90,6 +90,11 @@ namespace BannerKings.Behaviours.Diplomacy.Groups
 
         public void SetupRadicalGroup(Hero leader, ViewModel viewModel)
         {
+            // Seed momentum so a freshly (re)formed group isn't instantly
+            // dissolved by the 0-radicalism cleanup — if this per-type slot had
+            // previously decayed to 0, its Radicalism would still read 0 here.
+            // Mirrors the field default.
+            Radicalism = 0.25f;
             AddMember(leader);
             SetLeader(leader);
             ViewModel = viewModel;

@@ -28,6 +28,15 @@ namespace BannerKings.Models.BKModels
 
             if (diplomacy.RadicalGroups.Any(x => x.Equals(group) && x.IsGroupActive)) return false;
 
+            // Pretender / secessionist factions only form when the realm
+            // actually conditions them: predicted support (PushScore — the same
+            // 0..1 value the UI bar shows: legitimacy, war fatigue, crown
+            // authority, etc.) must be at least 40%. Without this an AI spins up
+            // doomed low-support factions that occupy the single per-type slot
+            // and block the player from starting their own, and a slot that just
+            // dissolved at 0 radicalism gets re-formed immediately.
+            if (group is RadicalGroup radical && radical.PushScore < 0.4f) return false;
+
             if (group.CanHeroJoin(hero, diplomacy))
             {
                 if (group is RadicalGroup)
