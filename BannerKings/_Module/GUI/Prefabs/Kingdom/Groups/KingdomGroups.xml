@@ -52,7 +52,7 @@
 						  <Children>
 
 							<!-- Settlement List Scrollable Panel -->
-							<ScrollablePanel WidthSizePolicy="CoverChildren" HeightSizePolicy="StretchToParent" MarginLeft="3" MarginBottom="3" AutoHideScrollBars="true" ClipRect="WarsListClipRect" InnerPanel="WarsListClipRect\WarsList" VerticalScrollbar="..\WarsListScrollbar\Scrollbar">
+							<ScrollablePanel WidthSizePolicy="CoverChildren" HeightSizePolicy="StretchToParent" MarginLeft="3" MarginBottom="3" AutoHideScrollBars="true" MouseScrollAxis="Vertical" ClipRect="WarsListClipRect" InnerPanel="WarsListClipRect\WarsList" VerticalScrollbar="..\WarsListScrollbar\Scrollbar">
 							  <Children>
 														<NavigationScopeTargeter ScopeID="KingdomDiplomacyWarsScope" ScopeParent="..\WarsListClipRect" ScopeMovements="Vertical" DoNotAutoNavigateAfterSort="true" />
 														<Widget Id="WarsListClipRect" WidthSizePolicy="CoverChildren" HeightSizePolicy="StretchToParent" ClipContents="true">
@@ -157,7 +157,7 @@
 					<ScrollablePanel Id="InterestPanel" DataSource="{CurrentGroup}" WidthSizePolicy="StretchToParent" HeightSizePolicy="StretchToParent"
 				                 MarginLeft="3" MarginBottom="3" AutoHideScrollBars="true" ClipRect="Rect"
 				                 InnerPanel="Rect\VerticalList" MouseScrollAxis="Vertical"
-				                 VerticalScrollbar="..\CouncilScrollbar\Scrollbar" IsVisible="@IsInterest">
+				                 VerticalScrollbar="..\..\CouncilScrollbar\Scrollbar" IsVisible="@IsInterest">
 						<Children>
 							<Widget Id="Rect" WidthSizePolicy="CoverChildren" HeightSizePolicy="StretchToParent" ClipContents="true">
 								<Children>
@@ -396,7 +396,7 @@
 					<ScrollablePanel Id="RadicalPanel" DataSource="{CurrentGroup}" WidthSizePolicy="StretchToParent" HeightSizePolicy="StretchToParent"
 				                 MarginLeft="3" MarginBottom="3" AutoHideScrollBars="true" ClipRect="Rect"
 				                 InnerPanel="Rect\VerticalList" MouseScrollAxis="Vertical"
-				                 VerticalScrollbar="..\CouncilScrollbar\Scrollbar" IsVisible="@IsRadical">
+				                 VerticalScrollbar="..\..\CouncilScrollbar\Scrollbar" IsVisible="@IsRadical">
 						<Children>
 							<Widget Id="Rect" WidthSizePolicy="CoverChildren" HeightSizePolicy="StretchToParent" ClipContents="true">
 								<Children>
@@ -612,7 +612,7 @@
 					<ScrollablePanel Id="DilemmaPanel" DataSource="{CurrentDilemma}" WidthSizePolicy="StretchToParent" HeightSizePolicy="StretchToParent"
 				                 MarginLeft="3" MarginBottom="3" AutoHideScrollBars="true" ClipRect="DilemmaRect"
 				                 InnerPanel="DilemmaRect\DilemmaVerticalList" MouseScrollAxis="Vertical"
-				                 VerticalScrollbar="..\CouncilScrollbar\Scrollbar">
+				                 VerticalScrollbar="..\..\CouncilScrollbar\Scrollbar">
 						<Children>
 							<Widget Id="DilemmaRect" WidthSizePolicy="CoverChildren" HeightSizePolicy="StretchToParent" ClipContents="true">
 								<Children>
