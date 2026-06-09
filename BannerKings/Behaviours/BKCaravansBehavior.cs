@@ -698,11 +698,14 @@ namespace BannerKings.Behaviours
             // caravan parties per game-hour we were paying stopwatch +
             // method-call overhead just to no-op inside.
             if (caravanParty == null || !caravanParty.IsCaravan) return;
-            var __sw = Settings.BannerKingsSettings.Instance.LogHourlyTickPerf
-                ? System.Diagnostics.Stopwatch.StartNew()
-                : null;
+            var __sw = System.Diagnostics.Stopwatch.StartNew();
             try { HourlyTickPartyImpl(caravanParty); }
-            finally { if (__sw != null) { __sw.Stop(); BannerKings.Behaviours.Shipping.BKShippingBehavior.PerfRecordPublic("BKCaravans.HourlyTickParty", __sw); } }
+            finally
+            {
+                __sw.Stop();
+                BannerKings.Behaviours.Shipping.BKShippingBehavior.PerfRecordPublic("BKCaravans.HourlyTickParty", __sw);
+                BannerKings.Utils.TickTrace.WatchSlow("BKCaravans.HourlyTickParty", BannerKings.Utils.TickTrace.IdOf(caravanParty), __sw);
+            }
         }
 
         private void HourlyTickPartyImpl(MobileParty caravanParty)

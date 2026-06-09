@@ -44,11 +44,56 @@ namespace BannerKings.Utils
         public static string IdOf(Town t)
         { try { return t?.Settlement?.StringId ?? "?"; } catch { return "?"; } }
 
+        // ---- Always-on slow-handler self-detector --------------------------
+        // Independent of the LogHourlyTickPerf toggle. Every Wrap* body is
+        // timed by a dedicated Stopwatch (one StartNew + Stop per call —
+        // nanoseconds, no allocation beyond the stopwatch struct's box).
+        // If a SINGLE call exceeds SlowHandlerThresholdMs, we append one line
+        // to BK_slow.txt naming the handler and the entity StringId. Nothing
+        // is written below the threshold, so steady-state cost is just the
+        // timer; the file is created only when a genuinely slow tick happens.
+        //
+        // Why this exists: the intermittent ~10-minute "day → night" freeze
+        // never landed in any tester's manual tick_trace.txt capture (they
+        // kept submitting windows that missed it). A freeze that eventually
+        // RECOVERS is, by definition, a handler that eventually RETURNS — so
+        // a post-body timer captures it with zero tester effort. The rare/
+        // intermittent nature points at one pathological entity hitting a
+        // super-linear branch, which is exactly what handler:StringId names.
+        //
+        // Limitation: a true infinite deadlock (never returns) produces
+        // nothing here — but a 10-min freeze that the user plays through is
+        // a slow-completion, not a deadlock. Vanilla handlers BK doesn't
+        // wrap (e.g. KingdomDecisionProposalBehavior) are also out of scope;
+        // a clean BK_slow.txt during a freeze itself narrows the cause to
+        // non-BK code.
+        private const long SlowHandlerThresholdMs = 3000;
+
+        public static void WatchSlow(string handlerName, string label, System.Diagnostics.Stopwatch watch)
+        {
+            if (watch == null) return;
+            try
+            {
+                watch.Stop();
+                long ms = watch.ElapsedMilliseconds;
+                if (ms < SlowHandlerThresholdMs) return;
+                string who = string.IsNullOrEmpty(label) ? handlerName : handlerName + ":" + label;
+                BannerKings.BannerKingsCheats.AppendDiagnosticLine("slow.txt",
+                    $"SLOW {who} took {ms} ms");
+            }
+            catch { /* defensive: never throw out of a tick wrapper */ }
+        }
+
         public static Action Wrap(string handlerName, Action body) => () =>
         {
             var sw = BannerKings.Behaviours.Shipping.BKShippingBehavior.TraceEnter(handlerName);
+            var watch = System.Diagnostics.Stopwatch.StartNew();
             try { body(); }
-            finally { BannerKings.Behaviours.Shipping.BKShippingBehavior.TraceExit(handlerName, sw); }
+            finally
+            {
+                BannerKings.Behaviours.Shipping.BKShippingBehavior.TraceExit(handlerName, sw);
+                WatchSlow(handlerName, null, watch);
+            }
         };
 
         public static Action<Hero> WrapHero(string handlerName, Action<Hero> body) => h =>
@@ -67,8 +112,13 @@ namespace BannerKings.Utils
             try { label = h?.StringId; } catch { }
             var sw = BannerKings.Behaviours.Shipping.BKShippingBehavior.TraceEnter(
                 !string.IsNullOrEmpty(label) ? handlerName + ":" + label : handlerName);
+            var watch = System.Diagnostics.Stopwatch.StartNew();
             try { body(h); }
-            finally { BannerKings.Behaviours.Shipping.BKShippingBehavior.TraceExit(handlerName, sw); }
+            finally
+            {
+                BannerKings.Behaviours.Shipping.BKShippingBehavior.TraceExit(handlerName, sw);
+                WatchSlow(handlerName, label, watch);
+            }
         };
 
         public static Action<Clan> WrapClan(string handlerName, Action<Clan> body) => c =>
@@ -77,8 +127,13 @@ namespace BannerKings.Utils
             try { label = c?.StringId; } catch { }
             var sw = BannerKings.Behaviours.Shipping.BKShippingBehavior.TraceEnter(
                 !string.IsNullOrEmpty(label) ? handlerName + ":" + label : handlerName);
+            var watch = System.Diagnostics.Stopwatch.StartNew();
             try { body(c); }
-            finally { BannerKings.Behaviours.Shipping.BKShippingBehavior.TraceExit(handlerName, sw); }
+            finally
+            {
+                BannerKings.Behaviours.Shipping.BKShippingBehavior.TraceExit(handlerName, sw);
+                WatchSlow(handlerName, label, watch);
+            }
         };
 
         public static Action<MobileParty> WrapParty(string handlerName, Action<MobileParty> body) => p =>
@@ -104,8 +159,13 @@ namespace BannerKings.Utils
             try { label = p?.StringId; } catch { }
             var sw = BannerKings.Behaviours.Shipping.BKShippingBehavior.TraceEnter(
                 !string.IsNullOrEmpty(label) ? handlerName + ":" + label : handlerName);
+            var watch = System.Diagnostics.Stopwatch.StartNew();
             try { body(p); }
-            finally { BannerKings.Behaviours.Shipping.BKShippingBehavior.TraceExit(handlerName, sw); }
+            finally
+            {
+                BannerKings.Behaviours.Shipping.BKShippingBehavior.TraceExit(handlerName, sw);
+                WatchSlow(handlerName, label, watch);
+            }
         };
 
         public static Action<Settlement> WrapSettlement(string handlerName, Action<Settlement> body) => s =>
@@ -114,8 +174,13 @@ namespace BannerKings.Utils
             try { label = s?.StringId; } catch { }
             var sw = BannerKings.Behaviours.Shipping.BKShippingBehavior.TraceEnter(
                 !string.IsNullOrEmpty(label) ? handlerName + ":" + label : handlerName);
+            var watch = System.Diagnostics.Stopwatch.StartNew();
             try { body(s); }
-            finally { BannerKings.Behaviours.Shipping.BKShippingBehavior.TraceExit(handlerName, sw); }
+            finally
+            {
+                BannerKings.Behaviours.Shipping.BKShippingBehavior.TraceExit(handlerName, sw);
+                WatchSlow(handlerName, label, watch);
+            }
         };
 
         public static Action<Town> WrapTown(string handlerName, Action<Town> body) => t =>
@@ -124,8 +189,13 @@ namespace BannerKings.Utils
             try { label = t?.Settlement?.StringId; } catch { }
             var sw = BannerKings.Behaviours.Shipping.BKShippingBehavior.TraceEnter(
                 !string.IsNullOrEmpty(label) ? handlerName + ":" + label : handlerName);
+            var watch = System.Diagnostics.Stopwatch.StartNew();
             try { body(t); }
-            finally { BannerKings.Behaviours.Shipping.BKShippingBehavior.TraceExit(handlerName, sw); }
+            finally
+            {
+                BannerKings.Behaviours.Shipping.BKShippingBehavior.TraceExit(handlerName, sw);
+                WatchSlow(handlerName, label, watch);
+            }
         };
 
         // OnSettlementOwnerChangedEvent has 6 args: settlement, openToClaim,
@@ -144,8 +214,13 @@ namespace BannerKings.Utils
             try { label = settlement?.StringId; } catch { }
             var sw = BannerKings.Behaviours.Shipping.BKShippingBehavior.TraceEnter(
                 !string.IsNullOrEmpty(label) ? handlerName + ":" + label : handlerName);
+            var watch = System.Diagnostics.Stopwatch.StartNew();
             try { body(settlement, openToClaim, newOwner, oldOwner, capturerHero, detail); }
-            finally { BannerKings.Behaviours.Shipping.BKShippingBehavior.TraceExit(handlerName, sw); }
+            finally
+            {
+                BannerKings.Behaviours.Shipping.BKShippingBehavior.TraceExit(handlerName, sw);
+                WatchSlow(handlerName, label, watch);
+            }
         };
     }
 }

@@ -362,6 +362,25 @@ to a bug report. Turn it back off when you're done.
 pressure and realm government changes / usurpations, faction-tension
 escalations, Imperial donative shortfalls, and Republic mandate changes.
 
+#### Reporting a freeze (the easy way)
+
+If the game freezes for several seconds — or the long "stuck on day → night"
+freeze some players have hit — **check for `BK_slow.txt`** in the ModLogs
+folder above. As of v1.9.15.5, BK watches every one of its own tick
+handlers automatically, with **no toggle to enable**. Any single handler
+that takes longer than 3 seconds writes one line naming itself and the
+exact game entity it was processing, e.g.:
+
+```
+[14:02:11] SLOW BKShipping.TickParty:caravan_party_1138 took 41200 ms
+```
+
+That one line tells us which system and which party/hero/settlement caused
+the freeze. **Attach `BK_slow.txt` to your bug report** — it's usually all
+we need. (The file only exists if a slow tick actually happened; a missing
+file means BK's own handlers stayed fast and the cause is elsewhere — turn
+on **Log Hourly Tick Perf** and send `BK_tick_trace.txt` as the fallback.)
+
 ### Testing the politics rework
 
 To check the politics rework without waiting for a campaign to develop,

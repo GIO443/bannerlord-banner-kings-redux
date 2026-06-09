@@ -266,9 +266,7 @@ namespace BannerKings.Behaviours
 
         private void HourlyTickParty(MobileParty party)
         {
-            var __sw = BannerKings.Settings.BannerKingsSettings.Instance.LogHourlyTickPerf
-                ? System.Diagnostics.Stopwatch.StartNew()
-                : null;
+            var __sw = System.Diagnostics.Stopwatch.StartNew();
             try
             {
                 if (party.LeaderHero != null && party.LeaderHero.Clan == null)
@@ -281,7 +279,12 @@ namespace BannerKings.Behaviours
                 GoBuyFood(party);
                 HandleBandits(party);
             }
-            finally { if (__sw != null) { __sw.Stop(); BannerKings.Behaviours.Shipping.BKShippingBehavior.PerfRecordPublic("BKParty.HourlyTickParty", __sw); } }
+            finally
+            {
+                __sw.Stop();
+                BannerKings.Behaviours.Shipping.BKShippingBehavior.PerfRecordPublic("BKParty.HourlyTickParty", __sw);
+                BannerKings.Utils.TickTrace.WatchSlow("BKParty.HourlyTickParty", BannerKings.Utils.TickTrace.IdOf(party), __sw);
+            }
         }
 
         private void HandleBandits(MobileParty party)

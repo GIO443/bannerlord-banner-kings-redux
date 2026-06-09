@@ -108,11 +108,14 @@ namespace BannerKings.Behaviours
 
         private void OnPartyHourlyTick(MobileParty party)
         {
-            var __sw = BannerKings.Settings.BannerKingsSettings.Instance.LogHourlyTickPerf
-                ? System.Diagnostics.Stopwatch.StartNew()
-                : null;
+            var __sw = System.Diagnostics.Stopwatch.StartNew();
             try { TickBandits(party); }
-            finally { if (__sw != null) { __sw.Stop(); BannerKings.Behaviours.Shipping.BKShippingBehavior.PerfRecordPublic("BKBandit.OnPartyHourlyTick", __sw); } }
+            finally
+            {
+                __sw.Stop();
+                BannerKings.Behaviours.Shipping.BKShippingBehavior.PerfRecordPublic("BKBandit.OnPartyHourlyTick", __sw);
+                BannerKings.Utils.TickTrace.WatchSlow("BKBandit.OnPartyHourlyTick", BannerKings.Utils.TickTrace.IdOf(party), __sw);
+            }
         }
 
         private void OnPartyDailyTick(MobileParty party)

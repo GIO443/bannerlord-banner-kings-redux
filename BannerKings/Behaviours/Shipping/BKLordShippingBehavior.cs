@@ -348,7 +348,21 @@ namespace BannerKings.Behaviours.Shipping
         // Hourly tick: pre-emptive port redirect
         // ------------------------------------------------------------------
 
+        // Thin timing shim feeding the always-on slow-handler self-detector
+        // (BK_slow.txt). Lord redirect/pathfind has freeze history; if a
+        // single party's tick blows past the threshold this names it.
         private void TickParty(MobileParty party)
+        {
+            var __sw = System.Diagnostics.Stopwatch.StartNew();
+            try { TickPartyImpl(party); }
+            finally
+            {
+                __sw.Stop();
+                BannerKings.Utils.TickTrace.WatchSlow("BKLordShipping.TickParty", BannerKings.Utils.TickTrace.IdOf(party), __sw);
+            }
+        }
+
+        private void TickPartyImpl(MobileParty party)
         {
             if (party == null || party == MobileParty.MainParty) return;
             if (party.IsCaravan) return;

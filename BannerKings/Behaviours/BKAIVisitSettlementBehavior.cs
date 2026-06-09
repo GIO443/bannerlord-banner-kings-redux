@@ -53,11 +53,14 @@ namespace BannerKings.Behaviours
         // Token: 0x06003F0B RID: 16139 RVA: 0x00137370 File Offset: 0x00135570
         private void AiHourlyTick(MobileParty mobileParty, PartyThinkParams p)
         {
-            var __sw = BannerKings.Settings.BannerKingsSettings.Instance.LogHourlyTickPerf
-                ? System.Diagnostics.Stopwatch.StartNew()
-                : null;
+            var __sw = System.Diagnostics.Stopwatch.StartNew();
             try { AiHourlyTickImpl(mobileParty, p); }
-            finally { if (__sw != null) { __sw.Stop(); BannerKings.Behaviours.Shipping.BKShippingBehavior.PerfRecordPublic("BKAIVisitSettlement.AiHourlyTick", __sw); } }
+            finally
+            {
+                __sw.Stop();
+                BannerKings.Behaviours.Shipping.BKShippingBehavior.PerfRecordPublic("BKAIVisitSettlement.AiHourlyTick", __sw);
+                BannerKings.Utils.TickTrace.WatchSlow("BKAIVisitSettlement.AiHourlyTick", BannerKings.Utils.TickTrace.IdOf(mobileParty), __sw);
+            }
         }
 
         private void AiHourlyTickImpl(MobileParty mobileParty, PartyThinkParams p)

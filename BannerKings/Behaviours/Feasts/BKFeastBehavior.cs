@@ -205,11 +205,14 @@ namespace BannerKings.Behaviours.Feasts
         private void HourlyTickParty(MobileParty party)
         {
             if (!party.IsLordParty || party.LeaderHero == null || party.LeaderHero == Hero.MainHero) return;
-            var __sw = BannerKings.Settings.BannerKingsSettings.Instance.LogHourlyTickPerf
-                ? System.Diagnostics.Stopwatch.StartNew()
-                : null;
+            var __sw = System.Diagnostics.Stopwatch.StartNew();
             try { HourlyTickPartyImpl(party); }
-            finally { if (__sw != null) { __sw.Stop(); BannerKings.Behaviours.Shipping.BKShippingBehavior.PerfRecordPublic("BKFeast.HourlyTickParty", __sw); } }
+            finally
+            {
+                __sw.Stop();
+                BannerKings.Behaviours.Shipping.BKShippingBehavior.PerfRecordPublic("BKFeast.HourlyTickParty", __sw);
+                BannerKings.Utils.TickTrace.WatchSlow("BKFeast.HourlyTickParty", BannerKings.Utils.TickTrace.IdOf(party), __sw);
+            }
         }
 
         private void HourlyTickPartyImpl(MobileParty party)
@@ -286,11 +289,14 @@ namespace BannerKings.Behaviours.Feasts
             {
                 return;
             }
-            var __sw = BannerKings.Settings.BannerKingsSettings.Instance.LogHourlyTickPerf
-                ? System.Diagnostics.Stopwatch.StartNew()
-                : null;
+            var __sw = System.Diagnostics.Stopwatch.StartNew();
             try { OnSettlementHourlyTickImpl(settlement); }
-            finally { if (__sw != null) { __sw.Stop(); BannerKings.Behaviours.Shipping.BKShippingBehavior.PerfRecordPublic("BKFeast.OnSettlementHourlyTick", __sw); } }
+            finally
+            {
+                __sw.Stop();
+                BannerKings.Behaviours.Shipping.BKShippingBehavior.PerfRecordPublic("BKFeast.OnSettlementHourlyTick", __sw);
+                BannerKings.Utils.TickTrace.WatchSlow("BKFeast.OnSettlementHourlyTick", BannerKings.Utils.TickTrace.IdOf(settlement), __sw);
+            }
         }
 
         private void OnSettlementHourlyTickImpl(Settlement settlement)

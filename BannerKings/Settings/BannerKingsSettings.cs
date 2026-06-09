@@ -380,7 +380,7 @@ namespace BannerKings.Settings
         public bool LogShippingRedirect { get; set; } = false;
 
         [SettingProperty("{=!}Log Hourly Tick Perf", RequireRestart = false,
-            HintText = "{=!}Writes BK_hourly_perf.txt (per-game-hour handler timings, only when a handler exceeded 100ms) AND BK_tick_trace.txt (an ENTER/EXIT line per handler with a wall-clock timestamp). To capture a freeze: leave this on and play until the freeze actually happens, then send BK_tick_trace.txt — the freeze shows as a large real-time gap between two timestamps, and the line just before it is the culprit. Default: false.")]
+            HintText = "{=!}Writes BK_hourly_perf.txt (per-game-hour handler timings, only when a handler exceeded 100ms) AND BK_tick_trace.txt (an ENTER/EXIT line per handler with a wall-clock timestamp). NOTE: BK_slow.txt is written automatically even with this toggle OFF — any single tick handler that takes over 3 seconds is logged there with the handler name and entity id. If you hit a freeze, send BK_slow.txt first; it names the culprit directly. To capture a freeze manually: leave this on and play until the freeze actually happens, then send BK_tick_trace.txt — the freeze shows as a large real-time gap between two timestamps, and the line just before it is the culprit. Default: false.")]
         [SettingPropertyGroup("{=!}Diagnostics")]
         public bool LogHourlyTickPerf { get; set; } = false;
 

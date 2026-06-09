@@ -2134,9 +2134,10 @@ namespace BannerKings.Behaviours.Shipping
             // timer on parties we won't touch.
             if (!party.IsCaravan && !party.IsLordParty) return;
 
-            var sw = Settings.BannerKingsSettings.Instance.LogHourlyTickPerf
-                ? System.Diagnostics.Stopwatch.StartNew()
-                : null;
+            // Always-on watch (toggle-independent) feeds the slow-handler
+            // self-detector; PerfRecord below is still internally gated on
+            // LogHourlyTickPerf, so steady-state cost is just the timer.
+            var sw = System.Diagnostics.Stopwatch.StartNew();
 
             // Re-target caravans whose destination flipped hostile or got
             // sieged mid-trip. Without this they keep hop-routing into a
@@ -2201,7 +2202,9 @@ namespace BannerKings.Behaviours.Shipping
                     RedirectAIToShippingPort(party);
                 }
             }
-            if (sw != null) { sw.Stop(); PerfRecord("BKShipping.TickParty", sw); }
+            sw.Stop();
+            PerfRecord("BKShipping.TickParty", sw);
+            BannerKings.Utils.TickTrace.WatchSlow("BKShipping.TickParty", BannerKings.Utils.TickTrace.IdOf(party), sw);
         }
 
         // Daily naval-activity snapshot. Three signals to diagnose why
