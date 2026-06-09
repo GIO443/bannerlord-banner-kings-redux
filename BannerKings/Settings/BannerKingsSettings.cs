@@ -380,14 +380,9 @@ namespace BannerKings.Settings
         public bool LogShippingRedirect { get; set; } = false;
 
         [SettingProperty("{=!}Log Hourly Tick Perf", RequireRestart = false,
-            HintText = "{=!}Time each registered hourly handler and write a one-line summary per game-hour (only when any handler exceeded 100ms total) to BK_hourly_perf.txt. Used to diagnose the source of nightfall / hour-rollover freezes. Lightweight — a single accumulator dict and per-call stopwatch. This is the toggle to use for perf reports. Default: false.")]
+            HintText = "{=!}Writes BK_hourly_perf.txt (per-game-hour handler timings, only when a handler exceeded 100ms) AND BK_tick_trace.txt (an ENTER/EXIT line per handler with a wall-clock timestamp). To capture a freeze: leave this on and play until the freeze actually happens, then send BK_tick_trace.txt — the freeze shows as a large real-time gap between two timestamps, and the line just before it is the culprit. Default: false.")]
         [SettingPropertyGroup("{=!}Diagnostics")]
         public bool LogHourlyTickPerf { get; set; } = false;
-
-        [SettingProperty("{=!}Log Tick Trace (heavy)", RequireRestart = false,
-            HintText = "{=!}Write an ENTER/EXIT line for EVERY tick handler of EVERY hero/party/clan to BK_tick_trace.txt, to pinpoint a TRUE hang (the last ENTER with no matching EXIT). WARNING: each line is a synchronous file open/write/close, so on a large save this generates millions of writes and can make a single day-tick take many MINUTES — it is itself a freeze. Only enable briefly to catch a hard hang; use Log Hourly Tick Perf for normal profiling. Default: false.")]
-        [SettingPropertyGroup("{=!}Diagnostics")]
-        public bool LogTickTrace { get; set; } = false;
 
         [SettingProperty("{=!}Log Rescue Sweep", RequireRestart = false,
             HintText = "{=!}Append every BKShippingBehavior.UnifiedRescueSweep action (cleared at-sea, walking-water redirect, caravan reactivation, slave-caravan destruction) to BK_rescue.txt. Useful for diagnosing visible boat-on-land or caravan-on-water reports. Off by default. Default: false.")]

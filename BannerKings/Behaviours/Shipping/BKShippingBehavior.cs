@@ -123,12 +123,7 @@ namespace BannerKings.Behaviours.Shipping
         // for steady-state, but acceptable as a diagnostic.
         public static System.Diagnostics.Stopwatch TraceEnter(string handlerName)
         {
-            // Gated on its OWN toggle (not LogHourlyTickPerf): this writes a
-            // synchronous file open/write/close PER handler PER entity PER tick,
-            // which on a large save is millions of writes and turns one day-tick
-            // into a multi-minute stall — the trace becomes the freeze. The
-            // lightweight per-hour perf log (PerfRecord) stays on LogHourlyTickPerf.
-            if (!Settings.BannerKingsSettings.Instance.LogTickTrace) return null;
+            if (!Settings.BannerKingsSettings.Instance.LogHourlyTickPerf) return null;
             try
             {
                 long curHour;
