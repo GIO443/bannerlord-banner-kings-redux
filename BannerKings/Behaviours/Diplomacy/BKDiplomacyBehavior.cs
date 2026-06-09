@@ -416,54 +416,78 @@ namespace BannerKings.Behaviours.Diplomacy
             }
         }
 
+        // Times a named sub-section and feeds it to the same hourly perf trace
+        // as the top-level handlers (only when LogHourlyTickPerf is on), so the
+        // BKDiplomacy.OnDailyTick total can be apportioned to Wars / Peace /
+        // per-kingdom Update / government-transition without guessing.
+        private static void PerfSection(string name, System.Action body)
+        {
+            if (!BannerKings.Settings.BannerKingsSettings.Instance.LogHourlyTickPerf) { body(); return; }
+            var sw = System.Diagnostics.Stopwatch.StartNew();
+            try { body(); }
+            finally { sw.Stop(); BannerKings.Behaviours.Shipping.BKShippingBehavior.PerfRecordPublic(name, sw); }
+        }
+
         private void OnDailyTickImpl()
         {
-            TickKingdoms();
-            InitializeDiplomacies();
+            PerfSection("BKDiplomacy.OnDailyTick.TickKingdoms", () =>
+            {
+                TickKingdoms();
+                InitializeDiplomacies();
+            });
 
             // Government cycle runs for every realm including the player's —
             // TickKingdoms skips the player kingdom, so this is its own loop.
-            foreach (Kingdom kingdom in Kingdom.All)
+            PerfSection("BKDiplomacy.OnDailyTick.GovTransition", () =>
             {
-                ConsiderGovernmentTransition(kingdom);
-            }
-
-            var toRemove = new List<War>();
-            foreach (War war in wars)
-            {
-                if (war.CasusBelli != null && war.CasusBelli.IsInvalid(war))
+                foreach (Kingdom kingdom in Kingdom.All)
                 {
-                    toRemove.Add(war);
-                    InformationManager.DisplayMessage(new InformationMessage(
-                        new TextObject("{=!}The {CB} justification between the {ATTACKER} and {DEFENDER} has ended inconclusively.")
-                        .SetTextVariable("CB", war.CasusBelli.Name)
-                        .SetTextVariable("ATTACKER", war.Attacker.Name)
-                        .SetTextVariable("DEFENDER", war.Defender.Name)
-                        .ToString(), 
-                        Color.FromUint(Utils.TextHelper.COLOR_LIGHT_YELLOW)));
-                    continue;
+                    ConsiderGovernmentTransition(kingdom);
+                }
+            });
+
+            PerfSection("BKDiplomacy.OnDailyTick.Wars", () =>
+            {
+                var toRemove = new List<War>();
+                foreach (War war in wars)
+                {
+                    if (war.CasusBelli != null && war.CasusBelli.IsInvalid(war))
+                    {
+                        toRemove.Add(war);
+                        InformationManager.DisplayMessage(new InformationMessage(
+                            new TextObject("{=!}The {CB} justification between the {ATTACKER} and {DEFENDER} has ended inconclusively.")
+                            .SetTextVariable("CB", war.CasusBelli.Name)
+                            .SetTextVariable("ATTACKER", war.Attacker.Name)
+                            .SetTextVariable("DEFENDER", war.Defender.Name)
+                            .ToString(),
+                            Color.FromUint(Utils.TextHelper.COLOR_LIGHT_YELLOW)));
+                        continue;
+                    }
+
+                    war.Update();
+                    if (!war.Attacker.IsAtWarWith(war.Defender)) toRemove.Add(war);
                 }
 
-                war.Update();
-                if (!war.Attacker.IsAtWarWith(war.Defender)) toRemove.Add(war);
-            }
+                foreach (War war in toRemove)
+                    wars.Remove(war);
+            });
 
-            foreach (War war in toRemove)
-                wars.Remove(war);
-
-            ForceProposePeaceFromLosingSide();
+            PerfSection("BKDiplomacy.OnDailyTick.Peace", ForceProposePeaceFromLosingSide);
 
             // Was: `new Dictionary<Kingdom, KingdomDiplomacy>(kingdomDiplomacies)` —
             // a fresh defensive-copy dict allocated every daily tick (~7,300
             // dict allocations per game year). Copy to a reused list field
             // to keep the same re-entrancy safety with no allocation.
-            _diplomacyTickSnapshot ??= new List<KingdomDiplomacy>(kingdomDiplomacies.Count);
-            _diplomacyTickSnapshot.Clear();
-            _diplomacyTickSnapshot.AddRange(kingdomDiplomacies.Values);
-            foreach (var d in _diplomacyTickSnapshot)
+            PerfSection("BKDiplomacy.OnDailyTick.KingdomsUpdate", () =>
             {
-                d.Update();
-            }
+                _diplomacyTickSnapshot ??= new List<KingdomDiplomacy>(kingdomDiplomacies.Count);
+                _diplomacyTickSnapshot.Clear();
+                _diplomacyTickSnapshot.AddRange(kingdomDiplomacies.Values);
+                foreach (var d in _diplomacyTickSnapshot)
+                {
+                    d.Update();
+                }
+            });
 
             // Skip BK's truce/alliance/trade-pact AI proposals when a
             // cooperator mod owns diplomacy. The cooperator drives those
