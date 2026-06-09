@@ -58,6 +58,41 @@ namespace BannerKings.Models.BKModels
             return computed;
         }
 
+        // Per-day cache of the two expensive war-score sub-totals. The daily
+        // diplomacy tick runs CalculateWarScore for both sides of every tracked
+        // war (war.Update + ForceProposePeaceFromLosingSide -> CalculateWarScore
+        // twice), and each call recomputes CalculateTotalWarScore (fief +
+        // settlement-manpower walk) and CalculateLordsWarScore (all defender
+        // clans x all their heroes). Both depend only on `war`, so cache their
+        // result per war per in-game day. Same discipline as the manpower
+        // cache: lock guards the dict, the heavy compute runs outside the lock.
+        // Only the non-explanation path is cached (the UI tooltip path needs
+        // the per-line breakdown, and it's rare/already throttled).
+        private readonly Dictionary<War, float> _totalWarScoreCache = new Dictionary<War, float>();
+        private readonly Dictionary<War, float> _lordsWarScoreCache = new Dictionary<War, float>();
+        private double _warScoreCacheDay = -1.0;
+        private readonly object _warScoreLock = new object();
+
+        private bool TryGetWarScoreCache(Dictionary<War, float> cache, War war, out float value)
+        {
+            double today = System.Math.Floor(CampaignTime.Now.ToDays);
+            lock (_warScoreLock)
+            {
+                if (_warScoreCacheDay != today)
+                {
+                    _warScoreCacheDay = today;
+                    _totalWarScoreCache.Clear();
+                    _lordsWarScoreCache.Clear();
+                }
+                return cache.TryGetValue(war, out value);
+            }
+        }
+
+        private void StoreWarScoreCache(Dictionary<War, float> cache, War war, float value)
+        {
+            lock (_warScoreLock) { cache[war] = value; }
+        }
+
         private float GetTotalManpower(List<Settlement> settlements)
         {
             int limit = 0;
@@ -77,6 +112,9 @@ namespace BannerKings.Models.BKModels
 
         public ExplainedNumber CalculateLordsWarScore(War war, bool explanations = false)
         {
+            if (!explanations && TryGetWarScoreCache(_lordsWarScoreCache, war, out var cachedLords))
+                return new ExplainedNumber(cachedLords);
+
             var result = new ExplainedNumber(0f, explanations);
             CasusBelli justification = war.CasusBelli;
             // A CB-less war has no objective to weight the lord score by — no
@@ -94,11 +132,15 @@ namespace BannerKings.Models.BKModels
                     }
             }
 
+            if (!explanations) StoreWarScoreCache(_lordsWarScoreCache, war, result.ResultNumber);
             return result;
         }
 
         public ExplainedNumber CalculateTotalWarScore(War war, bool explanations = false)
         {
+            if (!explanations && TryGetWarScoreCache(_totalWarScoreCache, war, out var cachedTotal))
+                return new ExplainedNumber(cachedTotal);
+
             var result = new ExplainedNumber(0f, explanations);
             CasusBelli justification = war.CasusBelli;
 
@@ -134,6 +176,7 @@ namespace BannerKings.Models.BKModels
                 result.Add(GetCachedFactionManpower(war.Defender));
             }
 
+            if (!explanations) StoreWarScoreCache(_totalWarScoreCache, war, result.ResultNumber);
             return result;
         }
 

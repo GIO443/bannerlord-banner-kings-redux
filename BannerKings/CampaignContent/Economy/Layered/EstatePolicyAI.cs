@@ -30,13 +30,6 @@ namespace BannerKings.CampaignContent.Economy.Layered
         private const int EvalCadenceDays = 30;
         private const int EstateRespecCooldownDays = 60;
 
-        // Per-clan last-eval bookkeeping. In-memory; rebuilt on load
-        // (the cadence drift on first session-after-load is acceptable
-        // — better to lose 0-30 days of cadence than to add another
-        // SaveableProperty per clan).
-        private static readonly Dictionary<Clan, CampaignTime> _lastEval
-            = new Dictionary<Clan, CampaignTime>();
-
         public override void RegisterEvents()
         {
             CampaignEvents.DailyTickClanEvent.AddNonSerializedListener(this, OnDailyTickClan);
@@ -52,13 +45,16 @@ namespace BannerKings.CampaignContent.Economy.Layered
             if (clan == Clan.PlayerClan) return;  // player decides their own spec
             if (BannerKings.Settings.BannerKingsSettings.Instance?.LayeredEconomyYields != true) return;
 
-            // Cadence: 30 days between evaluations per clan. Cheap
-            // gate before the actual heuristic runs.
-            if (_lastEval.TryGetValue(clan, out var last))
-            {
-                if (last + CampaignTime.Days(EvalCadenceDays) > CampaignTime.Now) return;
-            }
-            _lastEval[clan] = CampaignTime.Now;
+            // Cadence: each clan evaluates once per 30 days, on a fixed day of
+            // the cycle derived from its id. Deterministic and stateless — the
+            // previous in-memory _lastEval dict was rebuilt empty on load, so
+            // the first day after EVERY save reload had all ~100-200 clans
+            // evaluate at once (each walking Settlement.All), a post-load
+            // day-tick freeze. The hash stagger spreads them across the 30-day
+            // window regardless of reloads.
+            int dayOfCampaign = (int)System.Math.Floor(CampaignTime.Now.ToDays);
+            int clanSlot = ((clan.StringId?.GetHashCode() ?? 0) & 0x7fffffff) % EvalCadenceDays;
+            if (dayOfCampaign % EvalCadenceDays != clanSlot) return;
 
             try { EvaluateClan(clan); }
             catch (Exception ex)

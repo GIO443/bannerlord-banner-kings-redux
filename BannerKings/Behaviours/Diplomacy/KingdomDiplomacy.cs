@@ -722,8 +722,19 @@ namespace BannerKings.Behaviours.Diplomacy
 
         private void EvaluateJoinAGroup(Hero hero)
         {
+            // Throttle the join evaluation. Update() calls this for EVERY clan
+            // lord AND every notable of every settlement, every day, and the
+            // body below evaluates CalculateHeroJoinChance (which itself sums
+            // over all kingdom clans) for each interest group — O(notables x
+            // groups x clans) per kingdom per day, the dominant daily-tick cost
+            // on large saves (a long-standing day-tick stall). A groupless hero
+            // is now evaluated only ~once a week on average, which still
+            // populates groups over time but cuts the per-day cost ~7x. (The
+            // author had a 0.05 throttle here originally; it had been removed.)
+            if (MBRandom.RandomFloat > 0.15f) return;
+
             InterestGroup currentGroup = GetHeroGroup(hero);
-            if (currentGroup == null) // && MBRandom.RandomFloat < 0.05f
+            if (currentGroup == null)
             {
                 foreach (var group in Groups)
                 {
