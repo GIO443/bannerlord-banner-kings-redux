@@ -380,9 +380,14 @@ namespace BannerKings.Settings
         public bool LogShippingRedirect { get; set; } = false;
 
         [SettingProperty("{=!}Log Hourly Tick Perf", RequireRestart = false,
-            HintText = "{=!}Time each registered hourly handler and write a one-line summary per game-hour (only when any handler exceeded 100ms total) to BK_hourly_perf.txt. Used to diagnose the source of nightfall / hour-rollover freezes. Off by default — leaves a single accumulator dict and per-call stopwatch in the hot path. Default: false.")]
+            HintText = "{=!}Time each registered hourly handler and write a one-line summary per game-hour (only when any handler exceeded 100ms total) to BK_hourly_perf.txt. Used to diagnose the source of nightfall / hour-rollover freezes. Lightweight — a single accumulator dict and per-call stopwatch. This is the toggle to use for perf reports. Default: false.")]
         [SettingPropertyGroup("{=!}Diagnostics")]
         public bool LogHourlyTickPerf { get; set; } = false;
+
+        [SettingProperty("{=!}Log Tick Trace (heavy)", RequireRestart = false,
+            HintText = "{=!}Write an ENTER/EXIT line for EVERY tick handler of EVERY hero/party/clan to BK_tick_trace.txt, to pinpoint a TRUE hang (the last ENTER with no matching EXIT). WARNING: each line is a synchronous file open/write/close, so on a large save this generates millions of writes and can make a single day-tick take many MINUTES — it is itself a freeze. Only enable briefly to catch a hard hang; use Log Hourly Tick Perf for normal profiling. Default: false.")]
+        [SettingPropertyGroup("{=!}Diagnostics")]
+        public bool LogTickTrace { get; set; } = false;
 
         [SettingProperty("{=!}Log Rescue Sweep", RequireRestart = false,
             HintText = "{=!}Append every BKShippingBehavior.UnifiedRescueSweep action (cleared at-sea, walking-water redirect, caravan reactivation, slave-caravan destruction) to BK_rescue.txt. Useful for diagnosing visible boat-on-land or caravan-on-water reports. Off by default. Default: false.")]

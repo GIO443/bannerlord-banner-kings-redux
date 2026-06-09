@@ -437,12 +437,24 @@ namespace BannerKings.Behaviours
                 : null;
             try
             {
+                // Piety is a slow daily accrual; computing CalculatePietyChange
+                // for EVERY faithful hero of EVERY religion every day was the
+                // ~350 ms/day "BKReligions.DailyTick" cost seen in the perf
+                // trace — a top daily-tick stall on large saves. Stagger by
+                // hero so each is processed one fixed day of the week and
+                // credited 7x the change: the weekly piety total is unchanged,
+                // the per-day cost drops ~7x. TickLeadership stays daily (cheap,
+                // once per religion).
+                int pietyDay = (int)System.Math.Floor(CampaignTime.Now.ToDays) % 7;
                 foreach (var religion in ReligionsManager.GetReligions())
                 {
                     religion.Faith?.FaithGroup?.TickLeadership(religion);
                     foreach (var hero in ReligionsManager.GetFaithfulHeroes(religion))
                     {
-                        ReligionsManager.AddPiety(religion, hero, BannerKingsConfig.Instance.ReligionModel.CalculatePietyChange(hero).ResultNumber);
+                        if (hero == null) continue;
+                        if (((hero.StringId?.GetHashCode() ?? 0) & 0x7fffffff) % 7 != pietyDay) continue;
+                        ReligionsManager.AddPiety(religion, hero,
+                            BannerKingsConfig.Instance.ReligionModel.CalculatePietyChange(hero).ResultNumber * 7f);
                     }
                 }
             }
