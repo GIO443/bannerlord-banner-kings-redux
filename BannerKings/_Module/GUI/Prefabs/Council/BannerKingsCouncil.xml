@@ -29,6 +29,7 @@
 										              IsVisible="@IsAutoPurchaseVisible"
 										              Brush="ButtonBrush2"
 										              UpdateChildrenStates="true"
+										              DoNotPassEventsToChildren="true"
 										              Command.Click="ExecuteToggleAutoPurchase"
 										              HintWidget.HintLabel="@AutoPurchaseHint">
 											<Children>
