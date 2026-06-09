@@ -83,22 +83,46 @@ namespace BannerKings.Behaviours
 
             RunWeekly(() =>
             {
-                var settlement = ChooseTitleToGive(hero);
-                if (settlement == null) return;
-
-                FeudalTitle title = BannerKingsConfig.Instance.TitleManager.GetTitle(settlement);
-                Hero receiver = ChooseVassalToGiftLandedTitle(hero, title);
-                if (receiver == null) return;
-
-                if (title.deJure == hero)
+                // Shed-until-compliant. Keep gifting the lowest fief away until
+                // the clan is back under its demesne limit (or nothing more can
+                // be transferred). Re-evaluate the limit every pass — each gift
+                // both lowers our demesne and may push a receiver over theirs.
+                // `handled` guards against a settlement that can't actually be
+                // transferred (e.g. a village whose title isn't de jure ours)
+                // looping forever; the 30-pass cap is a hard backstop, with the
+                // weekly cadence continuing the job next week if needed.
+                var handled = new HashSet<Settlement>();
+                int guard = 0;
+                while (guard++ < 30)
                 {
-                    if (title.TitleType == TitleType.Lordship && BannerKingsConfig.Instance.StabilityModel.IsHeroOverVassalLimit(hero))
-                        return;
+                    var cur = BannerKingsConfig.Instance.StabilityModel.CalculateCurrentDemesne(hero.Clan).ResultNumber;
+                    var lim = BannerKingsConfig.Instance.StabilityModel.CalculateDemesneLimit(hero).ResultNumber;
+                    if (cur <= lim + 0.05f) break;
 
-                    var action = BannerKingsConfig.Instance.TitleModel.GetAction(ActionType.Grant, title, hero);
-                    BannerKingsConfig.Instance.TitleManager.GrantTitle(action, receiver);
+                    // Never shed a clan down to landlessness — keep at least one
+                    // fief even when the limit is transiently very low (or 0),
+                    // and even if that fief isn't a council seat (a castle- or
+                    // village-capital clan has no town seat to protect it).
+                    if (hero.Clan.Settlements.Count <= 1) break;
+
+                    var settlement = ChooseTitleToGive(hero, true, handled);
+                    if (settlement == null) break;
+                    handled.Add(settlement);
+
+                    FeudalTitle title = BannerKingsConfig.Instance.TitleManager.GetTitle(settlement);
+                    Hero receiver = ChooseVassalToGiftLandedTitle(hero, title);
+                    if (receiver == null) continue;
+
+                    if (title != null && title.deJure == hero)
+                    {
+                        if (title.TitleType == TitleType.Lordship && BannerKingsConfig.Instance.StabilityModel.IsHeroOverVassalLimit(hero))
+                            continue;
+
+                        var action = BannerKingsConfig.Instance.TitleModel.GetAction(ActionType.Grant, title, hero);
+                        BannerKingsConfig.Instance.TitleManager.GrantTitle(action, receiver);
+                    }
+                    else if (settlement.Town != null) ChangeOwnerOfSettlementAction.ApplyByGift(settlement, receiver);
                 }
-                else if (settlement.Town != null) ChangeOwnerOfSettlementAction.ApplyByGift(settlement, receiver);
             },
             GetType().Name,
             false);
@@ -121,27 +145,49 @@ namespace BannerKings.Behaviours
             if (settlement.Culture != settlement.OwnerClan.Culture) result *= 1.5f;
 
             FeudalTitle title = BannerKingsConfig.Instance.TitleManager.GetTitle(settlement);
-            if (title.deJure == settlement.OwnerClan.Leader) result *= 0.4f;
+            if (title != null && title.deJure == settlement.OwnerClan.Leader) result *= 0.4f;
 
             return result;
         }
 
-        private Settlement ChooseTitleToGive(Hero giver, bool landed = true)
+        private Settlement ChooseTitleToGive(Hero giver, bool landed = true, ICollection<Settlement> exclude = null)
         {
-            var candidates = new List<(Settlement, float)>();
+            // Strict lowest-fief-first: shed the settlement with the smallest
+            // demesne weight (village 0.5 < castle 1 < town 2). A lord keeps his
+            // prize towns and dumps the backwater first. GetSettlementScore > 0
+            // still gates eligibility (the council-seat town scores 0 and is
+            // never given). Ties (same tier) break toward the higher shed-score
+            // — recently threatened, foreign-culture, or non-ancestral fiefs go
+            // before equally-ranked safe/ancestral ones.
+            Settlement best = null;
+            float bestWeight = float.MaxValue;
+            float bestScore = float.MinValue;
             foreach (Settlement settlement in giver.Clan.Settlements)
             {
-                var value = GetSettlementScore(settlement);
-                if (value <= 0f) continue;
-                candidates.Add(new ValueTuple<Settlement, float>(settlement, value));    
+                if (exclude != null && exclude.Contains(settlement)) continue;
+
+                float score = GetSettlementScore(settlement);
+                if (score <= 0f) continue;
+
+                float weight = BannerKingsConfig.Instance.StabilityModel.GetSettlementDemesneWight(settlement);
+                if (weight < bestWeight || (weight == bestWeight && score > bestScore))
+                {
+                    bestWeight = weight;
+                    bestScore = score;
+                    best = settlement;
+                }
             }
 
-            return MBRandom.ChooseWeighted(candidates);
+            return best;
         }
 
         public Hero ChooseVassalToGiftLandedTitle(Hero giver, FeudalTitle titleToGive)
         {
             var candidates = new List<(Hero, float)>();
+            // Receivers who would land over their own demesne limit. Used only
+            // as a fallback when no vassal has headroom — relocating the
+            // over-limit problem is still better than the giver never shedding.
+            var overLimit = new List<(Hero, float)>();
 
             if (titleToGive.TitleType != TitleType.Lordship)
             {
@@ -178,7 +224,12 @@ namespace BannerKings.Behaviours
 
                     if (BannerKingsConfig.Instance.TitleModel.GetGrantCandidates(giver).Contains(leader))
                     {
-                        candidates.Add(new ValueTuple<Hero, float>(leader, score));
+                        // Prefer a vassal who still has landed demesne headroom;
+                        // only consider over-limit vassals if nobody qualifies.
+                        if (BannerKingsConfig.Instance.StabilityModel.IsHeroOverDemesneLimit(leader))
+                            overLimit.Add(new ValueTuple<Hero, float>(leader, score));
+                        else
+                            candidates.Add(new ValueTuple<Hero, float>(leader, score));
                     }
                 }
             }
@@ -194,7 +245,9 @@ namespace BannerKings.Behaviours
                 }
             }
 
-            return MBRandom.ChooseWeighted(candidates);
+            if (candidates.Count > 0) return MBRandom.ChooseWeighted(candidates);
+            if (overLimit.Count > 0) return MBRandom.ChooseWeighted(overLimit);
+            return null;
         }
 
         private Hero ChooseVassalToGiftUnlandedTitle(Hero giver, FeudalTitle titleToGive, Dictionary<Clan, List<FeudalTitle>> vassals)

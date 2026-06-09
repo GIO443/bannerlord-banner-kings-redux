@@ -385,6 +385,21 @@ did, open the ownership decision and read each candidate's score
 breakdown; the conquest law shows up as a named line (e.g. `Last
 conquered by … (Conquest by Might)`).
 
+**AI lords over their demesne limit shed land back to their vassals.**
+The vote above governs *new* conquests; this governs land a clan already
+holds. When an AI clan leader is over its demesne limit, it grants fiefs
+away each week until it's back under — and it does so **lowest fief
+first**: a backwater village goes before a castle, a castle before a
+town, and the clan's council-seat town is never given away. The clan is
+also never stripped to landlessness — it always keeps at least one fief
+even if its limit drops very low. Recipients are chosen for relation and
+title fit, and a lord already over **his own** landed limit is skipped
+unless no vassal has room — so land flows to clans that can actually
+absorb it instead of just relocating the overflow. Because the cheapest
+fiefs go first, a deeply over-limit lord may take several weeks to fully
+comply. (Only AI clans do this automatically; the player gets a map
+notice when over limit and chooses what to grant.)
+
 ---
 
 ## Realm Dilemmas (experimental — for testers)
