@@ -400,6 +400,20 @@ fiefs go first, a deeply over-limit lord may take several weeks to fully
 comply. (Only AI clans do this automatically; the player gets a map
 notice when over limit and chooses what to grant.)
 
+When the fief being shed is a **village (Lordship)** and there's no
+existing vassal with room, the clan **knights one of its own** instead
+of forcing the land onto an overloaded lord: a capable companion (or
+other eligible non-family clan member) is granted the Lordship, becomes
+a knight, and — through the normal knighthood path — soon founds their
+own minor vassal clan around that village. This both relieves the
+demesne immediately (a fief held de jure by a non-leader clan member
+counts as zero toward the clan's demesne) and grows the realm's pool of
+small vassal houses, so a large kingdom keeps spawning fresh knightly
+clans instead of stalling. It's bounded by the clan's vassal limit and
+skips villages that already have a knight clan, so realms don't flood
+with knights. Castles and towns can't be knighted, so those still go to
+an existing vassal (an over-limit one only as a last resort).
+
 ---
 
 ## Realm Dilemmas (experimental — for testers)

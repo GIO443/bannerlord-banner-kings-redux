@@ -110,6 +110,36 @@ namespace BannerKings.Behaviours
                     handled.Add(settlement);
 
                     FeudalTitle title = BannerKingsConfig.Instance.TitleManager.GetTitle(settlement);
+
+                    // A Lordship (village) we hold de jure is shed through the
+                    // knighthood pipeline rather than handed to an existing
+                    // vassal clan: grant it to a clan member (companion-first)
+                    // who becomes a knight and, via BKKnighthoodBehavior, later
+                    // founds their own vassal clan. This is the "no existing
+                    // vassal has room, so mint a new one" path — and it relieves
+                    // the demesne immediately, because a fief whose de jure
+                    // holder is a non-leader clan member counts 0 toward the
+                    // clan's demesne (see BKStabilityModel.CalculateCurrentDemesne).
+                    // The `deJure == hero` guard also stops us re-knighting the
+                    // same village next week (its de jure is the knight now).
+                    // Skipped when the clan is already at its vassal limit — a
+                    // knight is a new vassal — falling through to a normal gift.
+                    if (title != null && title.TitleType == TitleType.Lordship && title.deJure == hero
+                        && !BannerKingsConfig.Instance.StabilityModel.IsHeroOverVassalLimit(hero))
+                    {
+                        var knight = ChooseKnightCandidate(hero);
+                        if (knight != null)
+                        {
+                            BannerKingsConfig.Instance.TitleManager.GrantKnighthood(title, knight, hero);
+                            continue;
+                        }
+                        // No one to knight this pass — fall through to the vassal
+                        // gift below (which, for a Lordship, targets companions).
+                    }
+
+                    // Castles / towns (and Lordships with no knight candidate):
+                    // hand to an existing vassal clan — one with demesne room
+                    // preferred, an over-limit lord only as a last resort.
                     Hero receiver = ChooseVassalToGiftLandedTitle(hero, title);
                     if (receiver == null) continue;
 
@@ -175,6 +205,49 @@ namespace BannerKings.Behaviours
                     bestWeight = weight;
                     bestScore = score;
                     best = settlement;
+                }
+            }
+
+            return best;
+        }
+
+        // Picks a clan member to knight when an over-limit clan sheds a
+        // Lordship and no existing vassal has room. Companions are the canonical
+        // knight source, so they're tried first; otherwise any eligible
+        // non-close-family clan hero. The core ruling family (close kin of the
+        // leader) and existing knights/title-holders are never chosen, and the
+        // candidate must be able to lead a party so the new vassal can field
+        // one. Returns null if nobody qualifies.
+        private Hero ChooseKnightCandidate(Hero leader)
+        {
+            var clan = leader.Clan;
+            if (clan == null) return null;
+
+            return PickKnightFrom(clan.Companions, leader)
+                ?? PickKnightFrom(clan.Heroes, leader);
+        }
+
+        private Hero PickKnightFrom(IEnumerable<Hero> pool, Hero leader)
+        {
+            if (pool == null) return null;
+
+            Hero best = null;
+            int bestScore = int.MinValue;
+            foreach (var hero in pool)
+            {
+                if (hero == null || hero == leader) continue;
+                if (hero.IsDead || hero.IsChild || !hero.IsActive || hero.IsPrisoner) continue;
+                // Don't yank a working governor into a brand-new clan.
+                if (hero.GovernorOf != null) continue;
+                if (BannerKings.Utils.Helpers.IsCloseFamily(hero, leader)) continue;
+                if (BannerKingsConfig.Instance.TitleManager.IsKnight(hero)) continue;
+                if (!hero.CanLeadParty()) continue;
+
+                int score = hero.GetSkillValue(DefaultSkills.Leadership) + hero.GetSkillValue(DefaultSkills.Steward);
+                if (score > bestScore)
+                {
+                    bestScore = score;
+                    best = hero;
                 }
             }
 

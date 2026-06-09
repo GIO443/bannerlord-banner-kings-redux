@@ -22,7 +22,13 @@ sub-tabs:
 - **Laws** — the realm's editable legal code: the demesne-law grid plus the
   Inheritance, Gender Law, Tax, and Conquest contract aspects.
 - **Court** — the kingdom council (Marshal, Steward, Chancellor, Spymaster,
-  Court Physician), the current holders, and their competence.
+  Court Physician), the current holders, and their competence. Your own
+  court also shows an **Enable auto-purchase** button: when on, your court
+  buys the seasonal goods it consumes (Lodgings / Servants / Supplies /
+  Security / Extravagance) once a week from the town it's seated in, so you
+  don't have to restock wine, textiles, and the like by hand each season.
+  The seasonal consume still runs as normal; the auto-buy just keeps the
+  stash topped up. Off by default; the button only appears on your own court.
 - **Groups** — interest groups and radical groups (claimant, secession, and
   the rest). Join one, lead it, or push its demands.
 - **Career** — your mercenary career. Shown only while your clan is serving

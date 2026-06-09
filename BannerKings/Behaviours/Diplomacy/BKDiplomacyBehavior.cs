@@ -133,6 +133,15 @@ namespace BannerKings.Behaviours.Diplomacy
         {
             if (justification != null)
             {
+                // DeclareWarAction fires WarDeclared → OnWarDeclared *before*
+                // this method runs, so the war may already be auto-tracked with
+                // the Invasion sentinel CB. Replace that sentinel with the real
+                // justification so there's exactly one War record carrying the
+                // true casus belli (otherwise the daily tick double-counts and
+                // the war tab's GetWar picks whichever was added first). The
+                // Invasion sentinel has no OnStart/OnFinish side effects, so
+                // discarding it needs no cleanup.
+                ReplaceTrackedWar(attacker, defender);
                 wars.Add(new War(attacker, defender, justification));
                 InformationManager.DisplayMessage(new InformationMessage(justification.WarDeclaredText.ToString()));
             }
@@ -140,9 +149,21 @@ namespace BannerKings.Behaviours.Diplomacy
 
         public void TriggerRebelWar(Kingdom attacker, Kingdom defender, RadicalDemand demand)
         {
-            //rebelling.Add(kingdom);
+            // Same sentinel-replacement as TriggerJustifiedWar — the rebellion
+            // declaration fires WarDeclared → OnWarDeclared first.
+            ReplaceTrackedWar(attacker, defender);
             wars.Add(new War(attacker, defender, DefaultCasusBelli.Instance.Rebellion, null, demand));
             InformationManager.DisplayMessage(new InformationMessage(DefaultCasusBelli.Instance.Rebellion.WarDeclaredText.ToString()));
+        }
+
+        // Removes any existing tracked War for this faction pair so an
+        // authoritative declaration (justified war / rebellion) can replace the
+        // Invasion sentinel that OnWarDeclared auto-creates. Idempotent: a no-op
+        // when nothing is tracked yet.
+        private void ReplaceTrackedWar(IFaction attacker, IFaction defender)
+        {
+            var existing = GetWar(attacker, defender);
+            if (existing != null) wars.Remove(existing);
         }
 
         public void ConsiderTruce(Kingdom proposer, Kingdom proposed, float years, bool kingdomBudget = false)
@@ -1409,6 +1430,24 @@ namespace BannerKings.Behaviours.Diplomacy
 
                 KingdomDiplomacy defenderD = GetKingdomDiplomacy(defender);
                 if (defenderD != null) defenderD.OnWar(attacker);
+
+                // Track this war so the diplomacy war tab, war-score/fatigue
+                // calcs, and the daily War.Update tick all see it. Previously
+                // only BK-justified wars (TriggerJustifiedWar), rebellions, and
+                // the one-shot session-launch SyncVanillaWarsToTracker created
+                // a War record — so any war declared mid-session by vanilla AI
+                // (or the player via the vanilla decision) had no War object.
+                // GetWar then returned null in KingdomDiplomacyMixin, hiding the
+                // entire war block (casus belli, score, objective, fronts,
+                // fatigue), and War.Update never ran so fatigue never accrued.
+                // Tag it with the Invasion sentinel CB (non-null, fief-less,
+                // NRE-safe — same choice the launch sync makes). The GetWar gate
+                // keeps it idempotent if a BK path already registered the war.
+                if (GetWar(attacker, defender) == null)
+                {
+                    if (wars == null) wars = new List<War>();
+                    wars.Add(new War(attacker, defender, DefaultCasusBelli.Instance.Invasion));
+                }
             }
 
             // Phase E: ally-pull is now vanilla's job. BL 1.3.x added a

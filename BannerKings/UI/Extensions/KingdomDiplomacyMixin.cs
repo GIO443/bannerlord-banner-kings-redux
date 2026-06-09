@@ -79,12 +79,28 @@ namespace BannerKings.UI.Extensions
             {
                 WarExists = true;
 
-                JustificationText = war.CasusBelli.Name.ToString();
-                JustificationHint = new HintViewModel(war.CasusBelli.Description);
+                // war.CasusBelli can be null (a war with no recorded casus belli
+                // — an old save, or one whose CB failed to rehydrate). Guard so a
+                // null deref can't throw out of OnRefresh and blank the whole
+                // war block. The Fief branch is likewise guarded: sentinel CBs
+                // (Invasion) carry no Fief.
+                var cb = war.CasusBelli;
+                if (cb != null)
+                {
+                    JustificationText = cb.Name.ToString();
+                    JustificationHint = new HintViewModel(cb.Description);
 
-                WarObjectiveText = war.CasusBelli.ObjectiveText != null ? war.CasusBelli.ObjectiveText.ToString() :
-                    war.CasusBelli.Fief.Name.ToString();
-                WarObjectiveHint = new HintViewModel(war.CasusBelli.Description);
+                    WarObjectiveText = cb.ObjectiveText != null ? cb.ObjectiveText.ToString() :
+                        (cb.Fief != null ? cb.Fief.Name.ToString() : new TextObject("{=bkNoObjective}No specific objective").ToString());
+                    WarObjectiveHint = new HintViewModel(cb.Description);
+                }
+                else
+                {
+                    JustificationText = new TextObject("{=bkUnjustWar}Unjustified War").ToString();
+                    JustificationHint = new HintViewModel(TextObject.GetEmpty());
+                    WarObjectiveText = new TextObject("{=bkNoObjective}No specific objective").ToString();
+                    WarObjectiveHint = new HintViewModel(TextObject.GetEmpty());
+                }
 
                 PlayerFrontHeader = new TextObject("{=CMoMTMey}{FACTION} Front")
                     .SetTextVariable("FACTION", Hero.MainHero.MapFaction.Name)

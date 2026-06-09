@@ -27,13 +27,14 @@
 										<ButtonWidget WidthSizePolicy="Fixed" HeightSizePolicy="Fixed" SuggestedWidth="340" SuggestedHeight="50"
 										              MarginLeft="60" MarginTop="15" HorizontalAlignment="Left"
 										              IsVisible="@IsAutoPurchaseVisible"
-										              Brush="Popup.RegularButton.Brush"
+										              Brush="ButtonBrush2"
+										              UpdateChildrenStates="true"
 										              Command.Click="ExecuteToggleAutoPurchase"
 										              HintWidget.HintLabel="@AutoPurchaseHint">
 											<Children>
 												<TextWidget WidthSizePolicy="StretchToParent" HeightSizePolicy="StretchToParent"
 												            HorizontalAlignment="Center" VerticalAlignment="Center"
-												            Brush="Popup.RegularButton.Text"
+												            Brush="Clan.TabControl.Text"
 												            Text="@AutoPurchaseToggleText" />
 											</Children>
 										</ButtonWidget>
