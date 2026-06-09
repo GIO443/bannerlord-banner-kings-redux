@@ -118,18 +118,21 @@ namespace BannerKings.Managers.Court.Grace
                 if (data.Clan == Clan.PlayerClan) 
                     reason = new TextObject("{=LFVNq2Uz}Your court has spent {GOLD}{GOLD_ICON} buying {ITEMS} items for its good requirements.");
 
-                Town market = data.Location;
-                if (!market.IsTown)
+                // Buy from a real TOWN market — castles (a court can be seated
+                // on one) carry no market stock, so passing data.Location as the
+                // seller bought 0 items for 0 denars. Resolve the nearest
+                // faction town and buy from it; goods still land in the court
+                // seat's own stash.
+                Town market = ResolveMarketTown();
+                if (market != null)
                 {
-                    market = BannerKings.Utils.Helpers.FindNearestTown(x => x.MapFaction == market.MapFaction);
+                    BuyGoodsAction.BuyBestToWorst(data.Location.Settlement.Stash,
+                        market,
+                        data.Clan.Leader,
+                        toBuy,
+                        data.Clan.Leader.Gold,
+                        reason);
                 }
-
-                BuyGoodsAction.BuyBestToWorst(data.Location.Settlement.Stash,
-                    data.Location,
-                    data.Clan.Leader,
-                    toBuy,
-                    data.Clan.Leader.Gold,
-                    reason);
 
                 float graceChange = 0f;
                 int totalItems = 0;
@@ -226,6 +229,13 @@ namespace BannerKings.Managers.Court.Grace
             }
             if (shortfall.Count == 0) return;
 
+            // Buy from a real TOWN market. The court seat can be a castle
+            // (no market stock), which is why the auto-purchase reported
+            // buying 0 items for 0 denars — it was buying from data.Location
+            // directly instead of resolving a town.
+            Town market = ResolveMarketTown();
+            if (market == null) return;
+
             TextObject reason = null;
             if (data.Clan == Clan.PlayerClan)
                 reason = new TextObject("{=BKcourt_auto_buy}Your court has auto-purchased {ITEMS} items toward its seasonal goods requirement ({GOLD}{GOLD_ICON}).");
@@ -234,7 +244,7 @@ namespace BannerKings.Managers.Court.Grace
             {
                 BuyGoodsAction.BuyBestToWorst(
                     data.Location.Settlement.Stash,
-                    data.Location,
+                    market,
                     data.Clan.Leader,
                     shortfall,
                     data.Clan.Leader.Gold,
@@ -246,6 +256,20 @@ namespace BannerKings.Managers.Court.Grace
                 // bad market / closed town just no-ops; next week tries
                 // again.
             }
+        }
+
+        // Resolves the town to buy court goods from. The court seat
+        // (data.Location) is used directly when it's a town; when it's a
+        // castle (no market stock) the nearest same-faction town is used so
+        // purchases don't silently buy nothing. Goods are always stored in the
+        // seat's own stash regardless of which town they were bought from.
+        private Town ResolveMarketTown()
+        {
+            var loc = data?.Location;
+            if (loc == null) return null;
+            if (loc.IsTown) return loc;
+            return BannerKings.Utils.Helpers.FindNearestTown(
+                x => x.MapFaction == loc.MapFaction, loc.Settlement);
         }
 
         private void CalculateAIExpense()

@@ -740,14 +740,6 @@ namespace BannerKings.Patches
             private static readonly System.Reflection.FieldInfo _cachedVersionField =
                 AccessTools.Field(typeof(TaleWorlds.CampaignSystem.Party.PartyBase), "_partyMemberSizeLastCheckVersion");
 
-            private static void AddSuppliesLine(ref ExplainedNumber result, float amount,
-                string surplusKey, string deficitKey)
-            {
-                if (amount == 0f) return;
-                string key = amount > 0f ? surplusKey : deficitKey;
-                result.Add(amount, new TextObject(key));
-            }
-
             private static void SyncCachedSize(TaleWorlds.CampaignSystem.Party.PartyBase party, int value)
             {
                 if (party == null) return;
@@ -806,18 +798,21 @@ namespace BannerKings.Patches
                         __result.Add(party.MobileParty.LeaderHero.GetSkillValue(DefaultSkills.Roguery) * 1.5f, DefaultSkills.Roguery.Name);
                     }
 
-                    PartySupplies supplies = TaleWorlds.CampaignSystem.Campaign.Current
-                        .GetCampaignBehavior<BKPartyNeedsBehavior>()?.GetPartySupplies(party.MobileParty);
-                    if (supplies != null && party.MobileParty.MemberRoster.TotalManCount > supplies.MinimumSoldiersThreshold)
-                    {
-                        // Need fields go negative on surplus, positive on deficit. Flip sign so a
-                        // surplus is a positive party-size buff, and label by the sign of the result so
-                        // the tooltip reads "Surplus weapon supplies +N" rather than "Lacking ... +N".
-                        AddSuppliesLine(ref __result, -supplies.WeaponsNeed, "{=!}Surplus weapon supplies", "{=7Y1M7b0R}Lacking weapon supplies");
-                        AddSuppliesLine(ref __result, -supplies.ArrowsNeed, "{=!}Surplus ammunition supplies", "{=2Luts26h}Lacking ammunition supplies");
-                        AddSuppliesLine(ref __result, -supplies.HorsesNeed, "{=!}Surplus mount supplies", "{=Ps0ugfFQ}Lacking mount supplies");
-                        AddSuppliesLine(ref __result, -supplies.ShieldsNeed, "{=!}Surplus shield supplies", "{=ut6PVJ40}Lacking shield supplies");
-                    }
+                    // Supplies no longer modify the party SIZE LIMIT. Each
+                    // supply Need is clamped to +/- the party's own troop count
+                    // (PartySupplies.cs), and the cap added -Need for weapons,
+                    // arrows, horses AND shields — so the limit could swing by
+                    // up to roughly +/- the party's own size with transient
+                    // inventory. A well-stocked lord party's cap inflated, it
+                    // recruited up to that inflated cap, then the stock depleted
+                    // and the cap crashed back down leaving it 50%+ over; and
+                    // caravans (which carry trade goods, not combat supplies)
+                    // sat at max deficit, dragging their cap below their guard
+                    // count so they read as permanently over limit. A party CAP
+                    // must be stable, so the supplies coupling is removed. The
+                    // supply system still tracks/consumes goods; it just no
+                    // longer drives the hard size cap. (Could be reworked later
+                    // to affect morale or speed instead of the cap.)
 
                     var title = BannerKingsConfig.Instance.TitleManager?.GetHighestTitle(leader);
                     if (title != null)
