@@ -17,6 +17,47 @@ namespace BannerKings.Models.BKModels
     {
         private const float TARGET_FIEF_MULTIPLIER = 5f;
 
+        // Per-day cache of GetTotalManpower(faction.Settlements). v1.9.14.0
+        // started tracking EVERY war in the world (SyncVanillaWarsToTracker +
+        // OnWarDeclared), and the daily diplomacy tick runs CalculateFatigue for
+        // BOTH factions of every tracked war. GetTotalManpower walks each
+        // faction's settlements calling the growth model, so a war-heavy map
+        // recomputed the same faction's manpower many times per day — stalling
+        // the day-tick (the "random freeze" reports). Cache per faction for the
+        // current day so each faction's settlement walk runs at most once per
+        // day. The lock guards the dictionary (the method is reachable from both
+        // the campaign-thread daily tick and the UI-thread war-tab tooltip, so a
+        // bare Dictionary here would risk a FindEntry race-freeze); the
+        // expensive compute runs OUTSIDE the lock — a duplicate compute on a
+        // race is harmless.
+        private readonly Dictionary<IFaction, float> _factionManpowerCache = new Dictionary<IFaction, float>();
+        private double _factionManpowerCacheDay = -1.0;
+        private readonly object _factionManpowerLock = new object();
+
+        private float GetCachedFactionManpower(IFaction faction)
+        {
+            // Whole-day boundary — ToDays is a continuous fractional value, so
+            // comparing it raw would invalidate the cache on every call.
+            double today = System.Math.Floor(CampaignTime.Now.ToDays);
+            lock (_factionManpowerLock)
+            {
+                if (_factionManpowerCacheDay != today)
+                {
+                    _factionManpowerCacheDay = today;
+                    _factionManpowerCache.Clear();
+                }
+                if (_factionManpowerCache.TryGetValue(faction, out var cached)) return cached;
+            }
+
+            float computed = GetTotalManpower(faction.Settlements);
+
+            lock (_factionManpowerLock)
+            {
+                _factionManpowerCache[faction] = computed;
+            }
+            return computed;
+        }
+
         private float GetTotalManpower(List<Settlement> settlements)
         {
             int limit = 0;
@@ -86,7 +127,11 @@ namespace BannerKings.Models.BKModels
 
             if (war.Defender.IsKingdomFaction)
             {
-                result.Add(GetTotalManpower(war.Defender.Settlements));
+                // Cached: CalculateTotalWarScore is on the daily peace-proposal
+                // sweep path (BKDiplomacyBehavior.ForceProposePeaceFromLosingSide
+                // → war.CalculateWarScore → here), so an uncached settlement walk
+                // here is the same per-day stall the fatigue path had.
+                result.Add(GetCachedFactionManpower(war.Defender));
             }
 
             return result;
@@ -362,7 +407,7 @@ namespace BannerKings.Models.BKModels
 
             StanceLink stance = faction.GetStanceWith(enemy);
             int casualties = stance.GetCasualties(faction);
-            result.Add(casualties / GetTotalManpower(faction.Settlements), GameTexts.FindText("str_war_casualties_inflicted"));
+            result.Add(casualties / GetCachedFactionManpower(faction), GameTexts.FindText("str_war_casualties_inflicted"));
 
             float yearsPassed = stance.WarStartDate.ElapsedYearsUntilNow;
             result.Add(yearsPassed * 0.04f, new TextObject("{=62cGPfZQ}War duration"));

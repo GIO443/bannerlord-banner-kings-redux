@@ -70,6 +70,69 @@ namespace BannerKings.UI.VanillaTabs.Kingdoms.Groups
                     item.RefreshValues();
                 }
             }
+            if (RadicalGroups != null)
+            {
+                foreach (var item in RadicalGroups)
+                {
+                    item.RefreshValues();
+                }
+            }
+            RefreshDilemmas();
+        }
+
+        // Rebuild the dilemma list from the live active set. Previously the list
+        // was populated only in the constructor, so a dilemma that promoted from
+        // Pending to Active *after* this VM was created — e.g. right after the
+        // player presses a claim / usurp, which enqueues a pending dilemma that
+        // the daily tick later promotes — never appeared until a save reload
+        // recreated the VM. Rebuilding here (RefreshValues fires on screen
+        // refresh / reopen) makes it show without a reload. Only mutate the
+        // bound list when the active set actually changed, so a routine refresh
+        // doesn't churn the list or drop the player's current selection.
+        private void RefreshDilemmas()
+        {
+            if (KingdomDiplomacy == null || Dilemmas == null) return;
+
+            var active = KingdomDiplomacy.GetActiveDilemmasSnapshot();
+
+            bool changed = active.Count != Dilemmas.Count;
+            if (!changed)
+            {
+                for (int i = 0; i < active.Count; i++)
+                {
+                    if (Dilemmas[i].Dilemma != active[i]) { changed = true; break; }
+                }
+            }
+
+            if (!changed)
+            {
+                foreach (var item in Dilemmas) item.RefreshValues();
+                return;
+            }
+
+            var selected = CurrentDilemma?.Dilemma;
+            Dilemmas.Clear();
+            DilemmaItemVM reselect = null;
+            foreach (var dilemma in active)
+            {
+                if (dilemma == null || dilemma.Type == null) continue;
+                var vm = new DilemmaItemVM(dilemma, this);
+                Dilemmas.Add(vm);
+                if (selected != null && dilemma == selected) reselect = vm;
+            }
+            DilemmasCountText = $"({Dilemmas.Count.ToString()})";
+
+            if (reselect != null)
+            {
+                SetDilemma(reselect);
+            }
+            else if (CurrentDilemma != null)
+            {
+                // The previously-selected dilemma resolved/closed away — drop
+                // the stale detail panel.
+                CurrentDilemma.IsSelected = false;
+                CurrentDilemma = null;
+            }
         }
 
         public void SetGroup(GroupItemVM group)
