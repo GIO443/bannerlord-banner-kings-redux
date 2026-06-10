@@ -1,4 +1,5 @@
 using System;
+using System.IO;
 using System.Threading;
 
 namespace BannerKings.Utils
@@ -62,6 +63,32 @@ namespace BannerKings.Utils
         }
         // Serializes timer create/dispose against concurrent SetEnabled calls.
         private static readonly object _lifecycle = new object();
+        // Serializes the synchronous file writes (watchdog thread + the
+        // campaign thread via WatchSlow can both write).
+        private static readonly object _fileLock = new object();
+
+        // Synchronous, direct-to-disk writer. Bypasses the buffered + async
+        // diagnostic queue ON PURPOSE: a freeze almost always ends in a
+        // force-quit, which kills the background writer thread before its
+        // queued lines reach disk — losing exactly the STUCK line we need.
+        // The watchdog runs on its own thread so a blocking File.AppendAllText
+        // here never touches the (frozen) campaign thread. WatchSlow calls
+        // this too so BK_slow.txt is equally force-quit-durable.
+        public static void WriteLineDirect(string filename, string line)
+        {
+            try
+            {
+                string dir = BannerKings.BannerKingsCheats.DiagnosticDir;
+                string path = Path.Combine(dir, "BK_" + filename);
+                string stamped = $"[{DateTime.Now:HH:mm:ss}] {line}{Environment.NewLine}";
+                lock (_fileLock)
+                {
+                    try { if (!Directory.Exists(dir)) Directory.CreateDirectory(dir); } catch { }
+                    File.AppendAllText(path, stamped);
+                }
+            }
+            catch { /* a freeze diagnostic must never crash its caller */ }
+        }
 
         // Stall must exceed this before the first STUCK line is written.
         // Above any legitimate handler (the slowest known-good BK daily
@@ -118,6 +145,16 @@ namespace BannerKings.Utils
                     }
                 }
             }
+            // Write an "armed" line (outside the lock) whenever detection is
+            // enabled — both when the user flips the toggle on AND at each
+            // session start (the load hook calls SetEnabled every load, after
+            // the per-save log wipe). This guarantees BK_freeze.txt EXISTS as
+            // soon as detection is on, so the user can confirm it's active and
+            // find the file. If a freeze never happens it just keeps this line.
+            if (on)
+                WriteLineDirect("freeze.txt",
+                    "freeze watchdog ARMED — this file records any BK tick handler stuck over 5s. " +
+                    "If it only ever has this line, no BK handler froze (the cause is elsewhere).");
         }
 
         // Clear any stale in-flight marker (e.g. on game unload) without
@@ -166,7 +203,7 @@ namespace BannerKings.Utils
 
                 _lastLoggedKey = key;
                 _lastLoggedTicks = now;
-                BannerKings.BannerKingsCheats.AppendDiagnosticLine("freeze.txt",
+                WriteLineDirect("freeze.txt",
                     $"STUCK {key} running {sec:0}s — campaign thread not progressing");
             }
             catch { /* a freeze diagnostic must never crash the watchdog */ }

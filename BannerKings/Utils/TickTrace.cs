@@ -80,8 +80,10 @@ namespace BannerKings.Utils
                 long ms = watch.ElapsedMilliseconds;
                 if (ms < SlowHandlerThresholdMs) return;
                 string who = string.IsNullOrEmpty(label) ? handlerName : handlerName + ":" + label;
-                BannerKings.BannerKingsCheats.AppendDiagnosticLine("slow.txt",
-                    $"SLOW {who} took {ms} ms");
+                // Direct-to-disk (force-quit durable) — same rationale as the
+                // watchdog: a freeze often ends in a kill before the buffered
+                // async writer flushes.
+                FreezeWatchdog.WriteLineDirect("slow.txt", $"SLOW {who} took {ms} ms");
             }
             catch { /* defensive: never throw out of a tick wrapper */ }
         }

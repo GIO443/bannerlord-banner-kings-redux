@@ -369,8 +369,14 @@ freeze some players have seen, especially deep into a campaign (1000+ days) —
 BK can name the culprit for you. **First, turn the detector on:** open
 **MCM → Banner Kings → Diagnostics → Enable Freeze Detection** (no restart
 needed). It's off by default because it runs a small background watcher;
-turn it on only while you're hunting a freeze. Then play until the freeze
-happens and check these files in the ModLogs folder above:
+turn it on only while you're hunting a freeze.
+
+The moment you enable it, `BK_freeze.txt` is created in the ModLogs folder
+above with a single `freeze watchdog ARMED …` line — that's your
+confirmation it's active and where the file lives. (If you don't see the
+file after enabling the toggle, the folder is
+`%LOCALAPPDATA%\BannerKings\ModLogs` — paste that into the File Explorer
+address bar.) Then play until the freeze happens and check these files:
 
 **`BK_freeze.txt` — send this one first.** A background watchdog watches what
 the game is doing. The instant the game is stuck inside one BK system for
