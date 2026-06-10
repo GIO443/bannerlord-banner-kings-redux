@@ -142,25 +142,20 @@ namespace BannerKings.Behaviours
 
             // Priority 1 — defend a friendly fief currently under siege within range.
             const float DefenseRangeSq = 350f * 350f;
-            Settlement bestDefense = null;
-            float bestDefenseDistSq = DefenseRangeSq;
+            var defense = new List<(Settlement s, float d2)>();
             foreach (var s in kingdom.Settlements)
             {
                 if (!s.IsUnderSiege) continue;
                 if (!s.IsFortification) continue;
                 float d2 = leaderPos.DistanceSquared(s.GatePosition.ToVec2());
-                if (d2 < bestDefenseDistSq)
-                {
-                    bestDefenseDistSq = d2;
-                    bestDefense = s;
-                }
+                if (d2 < DefenseRangeSq) defense.Add((s, d2));
             }
-            if (bestDefense != null) return (bestDefense, Army.ArmyTypes.Defender);
+            var pickedDefense = NearestReachable(leaderParty, defense);
+            if (pickedDefense != null) return (pickedDefense, Army.ArmyTypes.Defender);
 
             // Priority 2 — besiege an enemy fortification within range.
             const float OffenseRangeSq = 280f * 280f;
-            Settlement bestOffense = null;
-            float bestOffenseDistSq = OffenseRangeSq;
+            var offense = new List<(Settlement s, float d2)>();
             foreach (var enemy in FactionHelper.GetEnemyKingdoms(kingdom))
             {
                 foreach (var s in enemy.Settlements)
@@ -169,17 +164,45 @@ namespace BannerKings.Behaviours
                     if (s.OwnerClan == null) continue;
                     if (s.IsUnderSiege) continue; // skip already-besieged targets; another army has it
                     float d2 = leaderPos.DistanceSquared(s.GatePosition.ToVec2());
-                    if (d2 < bestOffenseDistSq)
-                    {
-                        bestOffenseDistSq = d2;
-                        bestOffense = s;
-                    }
+                    if (d2 < OffenseRangeSq) offense.Add((s, d2));
                 }
             }
-            if (bestOffense != null) return (bestOffense, Army.ArmyTypes.Besieger);
+            var pickedOffense = NearestReachable(leaderParty, offense);
+            if (pickedOffense != null) return (pickedOffense, Army.ArmyTypes.Besieger);
 
             return null;
             } finally { BannerKings.Utils.FreezeWatchdog.Exit(); }
+        }
+
+        // From straight-line-in-range candidates, return the CLOSEST one the
+        // army can actually reach — or null if none are reachable. Sorts by
+        // straight-line distance (cheap) then verifies reachability from the
+        // closest, so it normally costs 1 GetDistance call.
+        //
+        // Why this exists: FindArmyObjective used to pick the nearest fief by
+        // straight-line distance alone. On a War Sails map a land army could
+        // pick an island/coastal castle that's straight-line-close but has NO
+        // LAND ROUTE; CallBannersGoal.ApplyGoal then issued
+        // SetMoveGoToSettlement(thatCastle, NavigationType.Default) and the
+        // engine's travel pathfind HUNG (BK_freeze.txt v1.9.16.6 caught
+        // "SetMoveGoToSettlement:castle_V3" then a frozen native pathfind —
+        // the last unresolved freeze of the campaign). GetDistance is the
+        // reachability oracle: it returns a path distance (huge when
+        // unreachable) and — unlike the travel pathfind — does NOT hang
+        // (BKAIVisitSettlement's wrapped GetDistance calls never froze).
+        private const float UnreachableDistance = 50000f;
+        private static Settlement NearestReachable(MobileParty party, List<(Settlement s, float d2)> candidates)
+        {
+            if (candidates == null || candidates.Count == 0) return null;
+            candidates.Sort((a, b) => a.d2.CompareTo(b.d2));
+            foreach (var c in candidates)
+            {
+                float d;
+                try { d = Campaign.Current.Models.MapDistanceModel.GetDistance(party, c.s, false, MobileParty.NavigationType.Default, out _); }
+                catch { continue; } // can't verify → skip (never target an unverifiable fief)
+                if (d > 0f && d < UnreachableDistance) return c.s;
+            }
+            return null;
         }
 
         public void OnPartyJoinedArmyEvent(MobileParty party)
