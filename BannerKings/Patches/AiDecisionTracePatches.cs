@@ -64,8 +64,21 @@ namespace BannerKings.Patches
         [HarmonyPatch(typeof(MobileParty), nameof(MobileParty.SetMoveGoToSettlement))]
         internal static class SetMoveGoToSettlementPostfix
         {
+            // Freeze-watchdog bracket (independent of the gated trace below).
+            // A late-campaign freeze sits in a NATIVE pathfind that runs when a
+            // party commits its AI-chosen target right after the hourly think
+            // (BK_freeze.txt: campaign thread frozen, GC stopped, last marker
+            // BKArmy.AiHourlyTick — i.e. downstream of every instrumented BK
+            // handler, in vanilla movement). If the path setup hangs inside the
+            // setter, the watchdog names the TARGET settlement here.
+            private static void Prefix(MobileParty __instance, Settlement settlement)
+            {
+                BannerKings.Utils.FreezeWatchdog.Enter("MobileParty.SetMoveGoToSettlement",
+                    settlement?.StringId ?? BannerKings.Utils.TickTrace.IdOf(__instance));
+            }
             private static void Postfix(MobileParty __instance, Settlement settlement, MobileParty.NavigationType navigationType, bool isTargetingThePort)
             {
+                BannerKings.Utils.FreezeWatchdog.Exit();
                 if (!ShouldTrace(__instance)) return;
                 string targetName = settlement?.Name?.ToString() ?? "(null)";
                 bool targetHasPort = false; try { targetHasPort = settlement?.HasPort ?? false; } catch { }
@@ -76,8 +89,14 @@ namespace BannerKings.Patches
         [HarmonyPatch(typeof(MobileParty), nameof(MobileParty.SetMovePatrolAroundSettlement))]
         internal static class SetMovePatrolAroundSettlementPostfix
         {
+            private static void Prefix(MobileParty __instance, Settlement settlement)
+            {
+                BannerKings.Utils.FreezeWatchdog.Enter("MobileParty.SetMovePatrolAroundSettlement",
+                    settlement?.StringId ?? BannerKings.Utils.TickTrace.IdOf(__instance));
+            }
             private static void Postfix(MobileParty __instance, Settlement settlement, MobileParty.NavigationType navigationType, bool isTargetingThePort)
             {
+                BannerKings.Utils.FreezeWatchdog.Exit();
                 if (!ShouldTrace(__instance)) return;
                 string targetName = settlement?.Name?.ToString() ?? "(null)";
                 bool targetHasPort = false; try { targetHasPort = settlement?.HasPort ?? false; } catch { }
@@ -88,8 +107,14 @@ namespace BannerKings.Patches
         [HarmonyPatch(typeof(MobileParty), nameof(MobileParty.SetMoveDefendSettlement))]
         internal static class SetMoveDefendSettlementPostfix
         {
+            private static void Prefix(MobileParty __instance, Settlement settlement)
+            {
+                BannerKings.Utils.FreezeWatchdog.Enter("MobileParty.SetMoveDefendSettlement",
+                    settlement?.StringId ?? BannerKings.Utils.TickTrace.IdOf(__instance));
+            }
             private static void Postfix(MobileParty __instance, Settlement settlement)
             {
+                BannerKings.Utils.FreezeWatchdog.Exit();
                 if (!ShouldTrace(__instance)) return;
                 string targetName = settlement?.Name?.ToString() ?? "(null)";
                 bool targetHasPort = false; try { targetHasPort = settlement?.HasPort ?? false; } catch { }
@@ -100,8 +125,14 @@ namespace BannerKings.Patches
         [HarmonyPatch(typeof(MobileParty), nameof(MobileParty.SetMoveBesiegeSettlement))]
         internal static class SetMoveBesiegeSettlementPostfix
         {
+            private static void Prefix(MobileParty __instance, Settlement settlement)
+            {
+                BannerKings.Utils.FreezeWatchdog.Enter("MobileParty.SetMoveBesiegeSettlement",
+                    settlement?.StringId ?? BannerKings.Utils.TickTrace.IdOf(__instance));
+            }
             private static void Postfix(MobileParty __instance, Settlement settlement)
             {
+                BannerKings.Utils.FreezeWatchdog.Exit();
                 if (!ShouldTrace(__instance)) return;
                 string targetName = settlement?.Name?.ToString() ?? "(null)";
                 bool targetHasPort = false; try { targetHasPort = settlement?.HasPort ?? false; } catch { }
@@ -112,8 +143,14 @@ namespace BannerKings.Patches
         [HarmonyPatch(typeof(MobileParty), nameof(MobileParty.SetMoveEngageParty))]
         internal static class SetMoveEngagePartyPostfix
         {
+            private static void Prefix(MobileParty __instance, MobileParty mobileParty)
+            {
+                BannerKings.Utils.FreezeWatchdog.Enter("MobileParty.SetMoveEngageParty",
+                    BannerKings.Utils.TickTrace.IdOf(mobileParty ?? __instance));
+            }
             private static void Postfix(MobileParty __instance, MobileParty mobileParty)
             {
+                BannerKings.Utils.FreezeWatchdog.Exit();
                 if (!ShouldTrace(__instance)) return;
                 string targetName = mobileParty?.Name?.ToString() ?? "(null)";
                 bool targetAtSea = false; try { targetAtSea = mobileParty?.IsCurrentlyAtSea ?? false; } catch { }
@@ -126,8 +163,13 @@ namespace BannerKings.Patches
         [HarmonyPatch(typeof(MobileParty), nameof(MobileParty.SetMoveGoToPoint))]
         internal static class SetMoveGoToPointPostfix
         {
+            private static void Prefix(MobileParty __instance)
+            {
+                BannerKings.Utils.FreezeWatchdog.Enter("MobileParty.SetMoveGoToPoint", BannerKings.Utils.TickTrace.IdOf(__instance));
+            }
             private static void Postfix(MobileParty __instance, Vec2 position)
             {
+                BannerKings.Utils.FreezeWatchdog.Exit();
                 if (!ShouldTrace(__instance)) return;
                 Log($"{__instance.Name?.ToString() ?? "?"} {PartyState(__instance)} → SetMoveGoToPoint(pos=({position.X:0.0},{position.Y:0.0}))");
             }
@@ -136,8 +178,13 @@ namespace BannerKings.Patches
         [HarmonyPatch(typeof(MobileParty), nameof(MobileParty.SetMovePatrolAroundPoint))]
         internal static class SetMovePatrolAroundPointPostfix
         {
+            private static void Prefix(MobileParty __instance)
+            {
+                BannerKings.Utils.FreezeWatchdog.Enter("MobileParty.SetMovePatrolAroundPoint", BannerKings.Utils.TickTrace.IdOf(__instance));
+            }
             private static void Postfix(MobileParty __instance, Vec2 position)
             {
+                BannerKings.Utils.FreezeWatchdog.Exit();
                 if (!ShouldTrace(__instance)) return;
                 Log($"{__instance.Name?.ToString() ?? "?"} {PartyState(__instance)} → SetMovePatrolAroundPoint(pos=({position.X:0.0},{position.Y:0.0}))");
             }
@@ -148,8 +195,13 @@ namespace BannerKings.Patches
         [HarmonyPatch(typeof(MobileParty), nameof(MobileParty.SetSailAtPosition))]
         internal static class SetSailAtPositionPostfix
         {
+            private static void Prefix(MobileParty __instance)
+            {
+                BannerKings.Utils.FreezeWatchdog.Enter("MobileParty.SetSailAtPosition", BannerKings.Utils.TickTrace.IdOf(__instance));
+            }
             private static void Postfix(MobileParty __instance, Vec2 position)
             {
+                BannerKings.Utils.FreezeWatchdog.Exit();
                 if (!ShouldTrace(__instance)) return;
                 Log($"{__instance.Name?.ToString() ?? "?"} {PartyState(__instance)} → SetSailAtPosition(pos=({position.X:0.0},{position.Y:0.0}))");
             }
