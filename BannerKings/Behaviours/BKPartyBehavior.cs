@@ -266,7 +266,7 @@ namespace BannerKings.Behaviours
 
         private void HourlyTickParty(MobileParty party)
         {
-            var __sw = System.Diagnostics.Stopwatch.StartNew();
+            var __sw = BannerKings.Utils.FreezeWatchdog.TimingWanted ? System.Diagnostics.Stopwatch.StartNew() : null;
             BannerKings.Utils.FreezeWatchdog.Enter("BKParty.HourlyTickParty", BannerKings.Utils.TickTrace.IdOf(party));
             try
             {
@@ -283,9 +283,12 @@ namespace BannerKings.Behaviours
             finally
             {
                 BannerKings.Utils.FreezeWatchdog.Exit();
-                __sw.Stop();
-                BannerKings.Behaviours.Shipping.BKShippingBehavior.PerfRecordPublic("BKParty.HourlyTickParty", __sw);
-                BannerKings.Utils.TickTrace.WatchSlow("BKParty.HourlyTickParty", BannerKings.Utils.TickTrace.IdOf(party), __sw);
+                if (__sw != null)
+                {
+                    __sw.Stop();
+                    BannerKings.Behaviours.Shipping.BKShippingBehavior.PerfRecordPublic("BKParty.HourlyTickParty", __sw);
+                    BannerKings.Utils.TickTrace.WatchSlow("BKParty.HourlyTickParty", BannerKings.Utils.TickTrace.IdOf(party), __sw);
+                }
             }
         }
 

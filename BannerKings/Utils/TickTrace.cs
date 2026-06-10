@@ -44,14 +44,16 @@ namespace BannerKings.Utils
         public static string IdOf(Town t)
         { try { return t?.Settlement?.StringId ?? "?"; } catch { return "?"; } }
 
-        // ---- Always-on slow-handler self-detector --------------------------
-        // Independent of the LogHourlyTickPerf toggle. Every Wrap* body is
-        // timed by a dedicated Stopwatch (one StartNew + Stop per call —
-        // nanoseconds, no allocation beyond the stopwatch struct's box).
-        // If a SINGLE call exceeds SlowHandlerThresholdMs, we append one line
-        // to BK_slow.txt naming the handler and the entity StringId. Nothing
-        // is written below the threshold, so steady-state cost is just the
-        // timer; the file is created only when a genuinely slow tick happens.
+        // ---- Slow-handler self-detector (BK_slow.txt) ----------------------
+        // Gated behind the MCM "Enable Freeze Detection" toggle (shared with
+        // the FreezeWatchdog). When the toggle is OFF, the Wrap* watch is
+        // never even started (`FreezeWatchdog.Enabled ? StartNew() : null`) so
+        // this costs nothing; when ON, each Wrap* body is timed and a SINGLE
+        // call exceeding SlowHandlerThresholdMs appends one line to BK_slow.txt
+        // naming the handler and entity StringId. Nothing is written below the
+        // threshold. This is the post-hoc companion to BK_freeze.txt — it logs
+        // a slow handler AFTER it returns, whereas the watchdog catches a stall
+        // while it is still happening.
         //
         // Why this exists: the intermittent ~10-minute "day → night" freeze
         // never landed in any tester's manual tick_trace.txt capture (they
@@ -71,7 +73,7 @@ namespace BannerKings.Utils
 
         public static void WatchSlow(string handlerName, string label, System.Diagnostics.Stopwatch watch)
         {
-            if (watch == null) return;
+            if (watch == null || !FreezeWatchdog.Enabled) return;
             try
             {
                 watch.Stop();
@@ -87,7 +89,7 @@ namespace BannerKings.Utils
         public static Action Wrap(string handlerName, Action body) => () =>
         {
             var sw = BannerKings.Behaviours.Shipping.BKShippingBehavior.TraceEnter(handlerName);
-            var watch = System.Diagnostics.Stopwatch.StartNew();
+            var watch = FreezeWatchdog.Enabled ? System.Diagnostics.Stopwatch.StartNew() : null;
             FreezeWatchdog.Enter(handlerName, null);
             try { body(); }
             finally
@@ -114,7 +116,7 @@ namespace BannerKings.Utils
             try { label = h?.StringId; } catch { }
             var sw = BannerKings.Behaviours.Shipping.BKShippingBehavior.TraceEnter(
                 !string.IsNullOrEmpty(label) ? handlerName + ":" + label : handlerName);
-            var watch = System.Diagnostics.Stopwatch.StartNew();
+            var watch = FreezeWatchdog.Enabled ? System.Diagnostics.Stopwatch.StartNew() : null;
             FreezeWatchdog.Enter(handlerName, label);
             try { body(h); }
             finally
@@ -131,7 +133,7 @@ namespace BannerKings.Utils
             try { label = c?.StringId; } catch { }
             var sw = BannerKings.Behaviours.Shipping.BKShippingBehavior.TraceEnter(
                 !string.IsNullOrEmpty(label) ? handlerName + ":" + label : handlerName);
-            var watch = System.Diagnostics.Stopwatch.StartNew();
+            var watch = FreezeWatchdog.Enabled ? System.Diagnostics.Stopwatch.StartNew() : null;
             FreezeWatchdog.Enter(handlerName, label);
             try { body(c); }
             finally
@@ -165,7 +167,7 @@ namespace BannerKings.Utils
             try { label = p?.StringId; } catch { }
             var sw = BannerKings.Behaviours.Shipping.BKShippingBehavior.TraceEnter(
                 !string.IsNullOrEmpty(label) ? handlerName + ":" + label : handlerName);
-            var watch = System.Diagnostics.Stopwatch.StartNew();
+            var watch = FreezeWatchdog.Enabled ? System.Diagnostics.Stopwatch.StartNew() : null;
             FreezeWatchdog.Enter(handlerName, label);
             try { body(p); }
             finally
@@ -182,7 +184,7 @@ namespace BannerKings.Utils
             try { label = s?.StringId; } catch { }
             var sw = BannerKings.Behaviours.Shipping.BKShippingBehavior.TraceEnter(
                 !string.IsNullOrEmpty(label) ? handlerName + ":" + label : handlerName);
-            var watch = System.Diagnostics.Stopwatch.StartNew();
+            var watch = FreezeWatchdog.Enabled ? System.Diagnostics.Stopwatch.StartNew() : null;
             FreezeWatchdog.Enter(handlerName, label);
             try { body(s); }
             finally
@@ -199,7 +201,7 @@ namespace BannerKings.Utils
             try { label = t?.Settlement?.StringId; } catch { }
             var sw = BannerKings.Behaviours.Shipping.BKShippingBehavior.TraceEnter(
                 !string.IsNullOrEmpty(label) ? handlerName + ":" + label : handlerName);
-            var watch = System.Diagnostics.Stopwatch.StartNew();
+            var watch = FreezeWatchdog.Enabled ? System.Diagnostics.Stopwatch.StartNew() : null;
             FreezeWatchdog.Enter(handlerName, label);
             try { body(t); }
             finally
@@ -226,7 +228,7 @@ namespace BannerKings.Utils
             try { label = settlement?.StringId; } catch { }
             var sw = BannerKings.Behaviours.Shipping.BKShippingBehavior.TraceEnter(
                 !string.IsNullOrEmpty(label) ? handlerName + ":" + label : handlerName);
-            var watch = System.Diagnostics.Stopwatch.StartNew();
+            var watch = FreezeWatchdog.Enabled ? System.Diagnostics.Stopwatch.StartNew() : null;
             FreezeWatchdog.Enter(handlerName, label);
             try { body(settlement, openToClaim, newOwner, oldOwner, capturerHero, detail); }
             finally

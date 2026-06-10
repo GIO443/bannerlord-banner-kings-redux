@@ -296,15 +296,18 @@ namespace BannerKings.Behaviours
 
         public void AiHourlyTick(MobileParty mobileParty, PartyThinkParams p)
         {
-            var __sw = System.Diagnostics.Stopwatch.StartNew();
+            var __sw = BannerKings.Utils.FreezeWatchdog.TimingWanted ? System.Diagnostics.Stopwatch.StartNew() : null;
             BannerKings.Utils.FreezeWatchdog.Enter("BKArmy.AiHourlyTick", BannerKings.Utils.TickTrace.IdOf(mobileParty));
             try { AiHourlyTickImpl(mobileParty, p); }
             finally
             {
                 BannerKings.Utils.FreezeWatchdog.Exit();
-                __sw.Stop();
-                BannerKings.Behaviours.Shipping.BKShippingBehavior.PerfRecordPublic("BKArmy.AiHourlyTick", __sw);
-                BannerKings.Utils.TickTrace.WatchSlow("BKArmy.AiHourlyTick", BannerKings.Utils.TickTrace.IdOf(mobileParty), __sw);
+                if (__sw != null)
+                {
+                    __sw.Stop();
+                    BannerKings.Behaviours.Shipping.BKShippingBehavior.PerfRecordPublic("BKArmy.AiHourlyTick", __sw);
+                    BannerKings.Utils.TickTrace.WatchSlow("BKArmy.AiHourlyTick", BannerKings.Utils.TickTrace.IdOf(mobileParty), __sw);
+                }
             }
         }
 

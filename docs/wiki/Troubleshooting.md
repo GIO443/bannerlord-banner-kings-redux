@@ -364,16 +364,19 @@ escalations, Imperial donative shortfalls, and Republic mandate changes.
 
 #### Reporting a freeze (the easy way)
 
-If the game freezes for several seconds — or the long "stuck on day → night"
-freeze some players have hit, especially deep into a campaign (1000+ days) —
-BK now detects it for you, with **no toggle to enable**. Two files in the
-ModLogs folder above:
+If you hit a freeze of several seconds — or the long "stuck on day → night"
+freeze some players have seen, especially deep into a campaign (1000+ days) —
+BK can name the culprit for you. **First, turn the detector on:** open
+**MCM → Banner Kings → Diagnostics → Enable Freeze Detection** (no restart
+needed). It's off by default because it runs a small background watcher;
+turn it on only while you're hunting a freeze. Then play until the freeze
+happens and check these files in the ModLogs folder above:
 
-**`BK_freeze.txt` — send this one first.** As of v1.9.15.6 a background
-watchdog thread watches what the game is doing. The instant the game is
-stuck inside one BK system for more than ~5 seconds, it writes that system
-and the exact entity to this file *while the freeze is still happening* —
-so it works even if the freeze never recovers:
+**`BK_freeze.txt` — send this one first.** A background watchdog watches what
+the game is doing. The instant the game is stuck inside one BK system for
+more than ~5 seconds, it writes that system and the exact entity to this
+file *while the freeze is still happening* — so it works even if the freeze
+never recovers:
 
 ```
 [14:02:16] STUCK ShippingGraph.Build running 5s — campaign thread not progressing
@@ -383,17 +386,18 @@ so it works even if the freeze never recovers:
 The repeated lines (and the growing seconds count) confirm exactly which BK
 system locked up and for how long. That is usually all we need to fix it.
 
-**`BK_slow.txt` — the backup.** Logs any single BK handler that took over 3
-seconds, *after* it finishes:
+**`BK_slow.txt` — the backup** (also needs the toggle on). Logs any single
+BK handler that took over 3 seconds, *after* it finishes:
 
 ```
 [14:02:57] SLOW BKShipping.TickParty:caravan_party_1138 took 41200 ms
 ```
 
-**Attach `BK_freeze.txt` (and `BK_slow.txt` if present) to your bug report.**
-If neither file appears during a freeze, BK's own systems stayed responsive
-and the cause is elsewhere — turn on **Log Hourly Tick Perf** and send
-`BK_tick_trace.txt` as the last-resort fallback.
+**Attach `BK_freeze.txt` (and `BK_slow.txt` if present) to your bug report,
+then turn the toggle back off.** If neither file appears during a freeze,
+BK's own systems stayed responsive and the cause is elsewhere — turn on
+**Log Hourly Tick Perf** and send `BK_tick_trace.txt` as the last-resort
+fallback.
 
 ### Testing the politics rework
 

@@ -353,14 +353,17 @@ namespace BannerKings.Behaviours.Shipping
         // single party's tick blows past the threshold this names it.
         private void TickParty(MobileParty party)
         {
-            var __sw = System.Diagnostics.Stopwatch.StartNew();
+            var __sw = BannerKings.Utils.FreezeWatchdog.TimingWanted ? System.Diagnostics.Stopwatch.StartNew() : null;
             BannerKings.Utils.FreezeWatchdog.Enter("BKLordShipping.TickParty", BannerKings.Utils.TickTrace.IdOf(party));
             try { TickPartyImpl(party); }
             finally
             {
                 BannerKings.Utils.FreezeWatchdog.Exit();
-                __sw.Stop();
-                BannerKings.Utils.TickTrace.WatchSlow("BKLordShipping.TickParty", BannerKings.Utils.TickTrace.IdOf(party), __sw);
+                if (__sw != null)
+                {
+                    __sw.Stop();
+                    BannerKings.Utils.TickTrace.WatchSlow("BKLordShipping.TickParty", BannerKings.Utils.TickTrace.IdOf(party), __sw);
+                }
             }
         }
 

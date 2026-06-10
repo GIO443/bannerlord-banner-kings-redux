@@ -358,11 +358,13 @@ namespace BannerKings.Behaviours.Shipping
                     // session exception patterns stay visible.
                     try { BannerKings.BannerKingsCheats.ClearSessionDiagnostics(); } catch { }
 
-                    // Start the always-on freeze watchdog (separate thread,
-                    // names whatever handler the campaign thread is stuck in
-                    // to BK_freeze.txt). Reset clears any stale marker from a
-                    // prior session loaded in the same process.
-                    try { BannerKings.Utils.FreezeWatchdog.Reset(); BannerKings.Utils.FreezeWatchdog.EnsureStarted(); } catch { }
+                    // Sync the opt-in freeze watchdog to its MCM toggle. When
+                    // the toggle is on this starts the background thread that
+                    // names whatever handler the campaign thread is stuck in to
+                    // BK_freeze.txt; when off it stays dormant (no thread).
+                    // Reset clears any stale marker from a prior session loaded
+                    // in the same process.
+                    try { BannerKings.Utils.FreezeWatchdog.Reset(); BannerKings.Utils.FreezeWatchdog.SetEnabled(Settings.BannerKingsSettings.Instance.EnableFreezeDetection); } catch { }
 
                     // Force a graph rebuild on every save-load. The static
                     // ShippingGraph._instance cache otherwise persists across
@@ -388,7 +390,7 @@ namespace BannerKings.Behaviours.Shipping
                     try { BannerKings.BannerKingsCheats.ClearSessionDiagnostics(); } catch { }
 
                     // Start the freeze watchdog for new campaigns too.
-                    try { BannerKings.Utils.FreezeWatchdog.Reset(); BannerKings.Utils.FreezeWatchdog.EnsureStarted(); } catch { }
+                    try { BannerKings.Utils.FreezeWatchdog.Reset(); BannerKings.Utils.FreezeWatchdog.SetEnabled(Settings.BannerKingsSettings.Instance.EnableFreezeDetection); } catch { }
 
                     // Same rebuild trigger for new-game transitions. Without
                     // this the static graph carries stale Settlement object
@@ -2143,10 +2145,12 @@ namespace BannerKings.Behaviours.Shipping
             // timer on parties we won't touch.
             if (!party.IsCaravan && !party.IsLordParty) return;
 
-            // Always-on watch (toggle-independent) feeds the slow-handler
-            // self-detector; PerfRecord below is still internally gated on
-            // LogHourlyTickPerf, so steady-state cost is just the timer.
-            var sw = System.Diagnostics.Stopwatch.StartNew();
+            // Stopwatch only when a diagnostic toggle wants it (hourly-perf
+            // logger OR the freeze detector). When both are off, no timer is
+            // started — TimingWanted is a single bool/property branch.
+            var sw = BannerKings.Utils.FreezeWatchdog.TimingWanted
+                ? System.Diagnostics.Stopwatch.StartNew()
+                : null;
             BannerKings.Utils.FreezeWatchdog.Enter("BKShipping.TickParty", BannerKings.Utils.TickTrace.IdOf(party));
 
             // Re-target caravans whose destination flipped hostile or got
@@ -2212,9 +2216,12 @@ namespace BannerKings.Behaviours.Shipping
                     RedirectAIToShippingPort(party);
                 }
             }
-            sw.Stop();
-            PerfRecord("BKShipping.TickParty", sw);
-            BannerKings.Utils.TickTrace.WatchSlow("BKShipping.TickParty", BannerKings.Utils.TickTrace.IdOf(party), sw);
+            if (sw != null)
+            {
+                sw.Stop();
+                PerfRecord("BKShipping.TickParty", sw);
+                BannerKings.Utils.TickTrace.WatchSlow("BKShipping.TickParty", BannerKings.Utils.TickTrace.IdOf(party), sw);
+            }
             BannerKings.Utils.FreezeWatchdog.Exit();
         }
 

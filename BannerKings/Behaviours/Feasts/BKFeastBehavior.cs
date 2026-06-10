@@ -205,15 +205,18 @@ namespace BannerKings.Behaviours.Feasts
         private void HourlyTickParty(MobileParty party)
         {
             if (!party.IsLordParty || party.LeaderHero == null || party.LeaderHero == Hero.MainHero) return;
-            var __sw = System.Diagnostics.Stopwatch.StartNew();
+            var __sw = BannerKings.Utils.FreezeWatchdog.TimingWanted ? System.Diagnostics.Stopwatch.StartNew() : null;
             BannerKings.Utils.FreezeWatchdog.Enter("BKFeast.HourlyTickParty", BannerKings.Utils.TickTrace.IdOf(party));
             try { HourlyTickPartyImpl(party); }
             finally
             {
                 BannerKings.Utils.FreezeWatchdog.Exit();
-                __sw.Stop();
-                BannerKings.Behaviours.Shipping.BKShippingBehavior.PerfRecordPublic("BKFeast.HourlyTickParty", __sw);
-                BannerKings.Utils.TickTrace.WatchSlow("BKFeast.HourlyTickParty", BannerKings.Utils.TickTrace.IdOf(party), __sw);
+                if (__sw != null)
+                {
+                    __sw.Stop();
+                    BannerKings.Behaviours.Shipping.BKShippingBehavior.PerfRecordPublic("BKFeast.HourlyTickParty", __sw);
+                    BannerKings.Utils.TickTrace.WatchSlow("BKFeast.HourlyTickParty", BannerKings.Utils.TickTrace.IdOf(party), __sw);
+                }
             }
         }
 
@@ -291,15 +294,18 @@ namespace BannerKings.Behaviours.Feasts
             {
                 return;
             }
-            var __sw = System.Diagnostics.Stopwatch.StartNew();
+            var __sw = BannerKings.Utils.FreezeWatchdog.TimingWanted ? System.Diagnostics.Stopwatch.StartNew() : null;
             BannerKings.Utils.FreezeWatchdog.Enter("BKFeast.OnSettlementHourlyTick", BannerKings.Utils.TickTrace.IdOf(settlement));
             try { OnSettlementHourlyTickImpl(settlement); }
             finally
             {
                 BannerKings.Utils.FreezeWatchdog.Exit();
-                __sw.Stop();
-                BannerKings.Behaviours.Shipping.BKShippingBehavior.PerfRecordPublic("BKFeast.OnSettlementHourlyTick", __sw);
-                BannerKings.Utils.TickTrace.WatchSlow("BKFeast.OnSettlementHourlyTick", BannerKings.Utils.TickTrace.IdOf(settlement), __sw);
+                if (__sw != null)
+                {
+                    __sw.Stop();
+                    BannerKings.Behaviours.Shipping.BKShippingBehavior.PerfRecordPublic("BKFeast.OnSettlementHourlyTick", __sw);
+                    BannerKings.Utils.TickTrace.WatchSlow("BKFeast.OnSettlementHourlyTick", BannerKings.Utils.TickTrace.IdOf(settlement), __sw);
+                }
             }
         }
 

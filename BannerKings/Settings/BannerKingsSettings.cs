@@ -380,9 +380,28 @@ namespace BannerKings.Settings
         public bool LogShippingRedirect { get; set; } = false;
 
         [SettingProperty("{=!}Log Hourly Tick Perf", RequireRestart = false,
-            HintText = "{=!}Writes BK_hourly_perf.txt (per-game-hour handler timings, only when a handler exceeded 100ms) AND BK_tick_trace.txt (an ENTER/EXIT line per handler with a wall-clock timestamp). NOTE: BK_slow.txt is written automatically even with this toggle OFF — any single tick handler that takes over 3 seconds is logged there with the handler name and entity id. If you hit a freeze, send BK_slow.txt first; it names the culprit directly. To capture a freeze manually: leave this on and play until the freeze actually happens, then send BK_tick_trace.txt — the freeze shows as a large real-time gap between two timestamps, and the line just before it is the culprit. Default: false.")]
+            HintText = "{=!}Writes BK_hourly_perf.txt (per-game-hour handler timings, only when a handler exceeded 100ms) AND BK_tick_trace.txt (an ENTER/EXIT line per handler with a wall-clock timestamp). This is the verbose, last-resort trace — for catching a freeze, prefer 'Enable Freeze Detection' below, which is far cheaper and names the culprit directly. To capture a freeze with this: leave it on and play until the freeze actually happens, then send BK_tick_trace.txt — the freeze shows as a large real-time gap between two timestamps, and the line just before it is the culprit. Default: false.")]
         [SettingPropertyGroup("{=!}Diagnostics")]
         public bool LogHourlyTickPerf { get; set; } = false;
+
+        // Backing field for the freeze detector. The setter pushes the value
+        // into FreezeWatchdog so flipping the toggle in-game starts/stops the
+        // background watchdog thread live (RequireRestart=false). When off, no
+        // watchdog thread exists and the per-handler timing stopwatches are
+        // not started — the whole machinery costs nothing.
+        private bool _enableFreezeDetection = false;
+        [SettingProperty("{=!}Enable Freeze Detection", RequireRestart = false,
+            HintText = "{=!}Catches the rare multi-minute freeze (especially late-campaign, 1000+ days) and names the culprit for you. When ON, a lightweight background watchdog writes BK_freeze.txt the instant the game is stuck inside one BK system for more than ~5 seconds — it works even if the freeze never recovers — plus BK_slow.txt for any handler that took over 3 seconds. When OFF (default), no watchdog thread runs and no per-tick timing happens, so there is zero background cost. Turn this ON only while hunting a freeze, then send BK_freeze.txt with your report. Default: false.")]
+        [SettingPropertyGroup("{=!}Diagnostics")]
+        public bool EnableFreezeDetection
+        {
+            get => _enableFreezeDetection;
+            set
+            {
+                _enableFreezeDetection = value;
+                try { BannerKings.Utils.FreezeWatchdog.SetEnabled(value); } catch { }
+            }
+        }
 
         [SettingProperty("{=!}Log Rescue Sweep", RequireRestart = false,
             HintText = "{=!}Append every BKShippingBehavior.UnifiedRescueSweep action (cleared at-sea, walking-water redirect, caravan reactivation, slave-caravan destruction) to BK_rescue.txt. Useful for diagnosing visible boat-on-land or caravan-on-water reports. Off by default. Default: false.")]
