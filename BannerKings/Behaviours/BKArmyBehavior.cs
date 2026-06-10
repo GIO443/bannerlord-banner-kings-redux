@@ -136,6 +136,8 @@ namespace BannerKings.Behaviours
         /// </summary>
         private (Settlement target, Army.ArmyTypes type)? FindArmyObjective(MobileParty leaderParty, Kingdom kingdom)
         {
+            BannerKings.Utils.FreezeWatchdog.Enter("BKArmy.FindArmyObjective", BannerKings.Utils.TickTrace.IdOf(leaderParty));
+            try {
             var leaderPos = leaderParty.GetPosition2D;
 
             // Priority 1 — defend a friendly fief currently under siege within range.
@@ -177,6 +179,7 @@ namespace BannerKings.Behaviours
             if (bestOffense != null) return (bestOffense, Army.ArmyTypes.Besieger);
 
             return null;
+            } finally { BannerKings.Utils.FreezeWatchdog.Exit(); }
         }
 
         public void OnPartyJoinedArmyEvent(MobileParty party)

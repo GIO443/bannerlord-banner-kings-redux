@@ -340,6 +340,13 @@ namespace BannerKings.Managers
 
         public List<Hero> CalculateAllVassals(Clan clan)
         {
+            // Watchdog-instrumented: a hot title-tree walk reached from the
+            // army-AI path (CallBannersGoal.AddBanners recurses through it,
+            // BKArmyManagementModel.CalculatePartyInfluenceCost calls it). If a
+            // late-game title/estate state makes it pathological, the next
+            // BK_freeze.txt names it instead of the outer DailyTickParty.
+            BannerKings.Utils.FreezeWatchdog.Enter("TitleManager.CalculateAllVassals", BannerKings.Utils.TickTrace.IdOf(clan));
+            try {
             var set = new HashSet<Hero>();
             var behavior = TaleWorlds.CampaignSystem.Campaign.Current.GetCampaignBehavior<BKGentryBehavior>();
             foreach (var title in GetAllDeJure(clan))
@@ -390,6 +397,7 @@ namespace BannerKings.Managers
             }
 
             return set.ToList();
+            } finally { BannerKings.Utils.FreezeWatchdog.Exit(); }
         }
 
         public Dictionary<Clan, List<FeudalTitle>> CalculateVassals(Clan suzerainClan, Clan targetClan = null)

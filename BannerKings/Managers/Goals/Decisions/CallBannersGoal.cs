@@ -306,6 +306,12 @@ namespace BannerKings.Managers.Goals.Decisions
 
         public override void DoAiDecision()
         {
+            // Watchdog-instrumented: reached from BKArmy.DailyTickParty →
+            // EvaluateCreateArmy. Refresh() runs the recursive AddBanners /
+            // CalculateAllVassals vassal walk; a BK_freeze.txt capture put a
+            // multi-minute stall in this neighbourhood.
+            BannerKings.Utils.FreezeWatchdog.Enter("CallBannersGoal.DoAiDecision", BannerKings.Utils.TickTrace.IdOf(GetFulfiller()));
+            try {
             Refresh();
             Hero fulfiller = GetFulfiller();
             if (allBanners.Count < 2 || 
@@ -332,6 +338,7 @@ namespace BannerKings.Managers.Goals.Decisions
 
             if (banners.Count < 2) return;
             ApplyGoal();
+            } finally { BannerKings.Utils.FreezeWatchdog.Exit(); }
         }
         private class BannerOption
         {
