@@ -133,8 +133,11 @@ namespace BannerKings.Utils
         private static long _startTicks;            // Stopwatch.GetTimestamp at Enter
         // Last handler that STARTED, kept through Exit (unlike _handler which
         // clears on Exit). Gives the heartbeat / stall lines context: "what
-        // BK code ran most recently before the freeze".
+        // BK code ran most recently before the freeze". _lastEntity carries the
+        // StringId so the heartbeat names the exact entity (e.g. which party's
+        // hourly think hung), not just the handler.
         private static volatile string _lastHandler;
+        private static volatile string _lastEntity;
 
         // Watchdog bookkeeping (touched only by the watchdog thread, except
         // the reset on enable).
@@ -173,6 +176,7 @@ namespace BannerKings.Utils
                     _enabled = false;
                     _handler = null;
                     _lastHandler = null;
+                    _lastEntity = null;
                     _lastLoggedKey = null;
                     if (_timer != null)
                     {
@@ -200,6 +204,7 @@ namespace BannerKings.Utils
             _handler = null;
             _entity = null;
             _lastHandler = null;
+            _lastEntity = null;
             _lastLoggedKey = null;
         }
 
@@ -209,6 +214,7 @@ namespace BannerKings.Utils
             _entity = entityId;
             _startTicks = System.Diagnostics.Stopwatch.GetTimestamp();
             _lastHandler = handlerName; // sticky: kept through Exit for context
+            _lastEntity = entityId;     // sticky entity for the heartbeat
             _handler = handlerName; // set last: watchdog gates on _handler != null
         }
 
@@ -258,7 +264,7 @@ namespace BannerKings.Utils
                         WriteLineDirect("freeze.txt",
                             $"RUNTIME STALL — every managed thread was frozen for {gap:0}s " +
                             $"(full GC or OS suspension, NOT a single handler). gen2 GCs +{g2now - _lastGen2} during the stall. " +
-                            $"{MemStats()}. Last BK handler before stall: {_lastHandler ?? "(none)"}.");
+                            $"{MemStats()}. Last BK handler before stall: {(_lastHandler == null ? "(none)" : (_lastEntity != null ? _lastHandler + ":" + _lastEntity : _lastHandler))}.");
                     }
                 }
                 _lastSampleTicks = now;
@@ -292,8 +298,12 @@ namespace BannerKings.Utils
                 if (_lastHeartbeatTicks == 0 || (now - _lastHeartbeatTicks) / freq >= HeartbeatSeconds)
                 {
                     _lastHeartbeatTicks = now;
+                    string curDesc = handler == null ? "(idle)"
+                        : (_entity != null ? handler + ":" + _entity : handler);
+                    string lastDesc = _lastHandler == null ? "(none)"
+                        : (_lastEntity != null ? _lastHandler + ":" + _lastEntity : _lastHandler);
                     WriteLineDirect("freeze.txt",
-                        $"alive — {MemStats()}; current {(handler ?? "(idle)")}; last {_lastHandler ?? "(none)"}");
+                        $"alive — {MemStats()}; current {curDesc}; last {lastDesc}");
                 }
             }
             catch { /* a freeze diagnostic must never crash the watchdog */ }
