@@ -267,6 +267,7 @@ namespace BannerKings.Behaviours
         private void HourlyTickParty(MobileParty party)
         {
             var __sw = System.Diagnostics.Stopwatch.StartNew();
+            BannerKings.Utils.FreezeWatchdog.Enter("BKParty.HourlyTickParty", BannerKings.Utils.TickTrace.IdOf(party));
             try
             {
                 if (party.LeaderHero != null && party.LeaderHero.Clan == null)
@@ -281,6 +282,7 @@ namespace BannerKings.Behaviours
             }
             finally
             {
+                BannerKings.Utils.FreezeWatchdog.Exit();
                 __sw.Stop();
                 BannerKings.Behaviours.Shipping.BKShippingBehavior.PerfRecordPublic("BKParty.HourlyTickParty", __sw);
                 BannerKings.Utils.TickTrace.WatchSlow("BKParty.HourlyTickParty", BannerKings.Utils.TickTrace.IdOf(party), __sw);

@@ -217,6 +217,14 @@ namespace BannerKings.Managers.Shipping
 
         private static ShippingGraph Build()
         {
+            // Freeze-watchdog marker: Build() is an O(V²) all-pairs sweep that
+            // is rebuilt lazily after Invalidate() (called on every settlement
+            // ownership flip). On a large late-game map it is the heaviest
+            // single computation in the shipping subsystem and a prime suspect
+            // for the rare multi-minute "late-campaign" stall. If the campaign
+            // thread is stuck here, the watchdog names "ShippingGraph.Build".
+            BannerKings.Utils.FreezeWatchdog.Enter("ShippingGraph.Build", null);
+            try {
             var g = new ShippingGraph();
 
             // ---- Land edges: KNN K=3 ≤75u over fiefs (towns + castles) ----
@@ -525,6 +533,7 @@ namespace BannerKings.Managers.Shipping
             }
 
             return g;
+            } finally { BannerKings.Utils.FreezeWatchdog.Exit(); }
         }
 
         // Adds the reverse of every directed edge in the adjacency map. Idempotent

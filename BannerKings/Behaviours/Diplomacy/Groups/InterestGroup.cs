@@ -177,13 +177,25 @@ namespace BannerKings.Behaviours.Diplomacy.Groups
                 }
             }
 
-            foreach (DemandOutcome outcome in RecentOucomes)
-            {
-                if (outcome.Enabled && outcome.EndDate.IsPast)
-                {
-                    outcome.Enabled = false;
-                }
-            }
+            // Drop outcomes past their 1-year relevance window. This loop
+            // previously only flipped Enabled=false but kept the entry
+            // forever. RecentOucomes is serialized (SaveableProperty 14) and
+            // grows one entry per demand resolution, never pruned, so it
+            // compounds across save reloads. Over a long (1000+ day) campaign
+            // that turns three things pathological:
+            //   1. CanPushDemand matches the stale entry (FirstOrDefault by
+            //      Demand, ignoring Enabled) — a demand resolved once could
+            //      then NEVER be pushed again for the life of the campaign.
+            //   2. CalculateGroupSupport sums ±0.15 over EVERY historical
+            //      outcome (it doesn't check Enabled), so group support drifts
+            //      to a peg set by ancient events instead of recent ones.
+            //   3. The list is scanned on every group Tick / influence /
+            //      support calc, so per-tick cost grew without bound with age.
+            // EndDate is CampaignTime.YearsFromNow(1) at creation; once past,
+            // the outcome's cooldown and relevance are over, so remove it
+            // outright. Remaining entries are all within their year and stay
+            // Enabled=true, so the Enabled-checked reader keeps working.
+            RecentOucomes.RemoveAll(o => o.EndDate.IsPast);
         }
         
         [SaveableProperty(13)] public List<Demand> PossibleDemands { get; private set; }

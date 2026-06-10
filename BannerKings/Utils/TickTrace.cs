@@ -88,9 +88,11 @@ namespace BannerKings.Utils
         {
             var sw = BannerKings.Behaviours.Shipping.BKShippingBehavior.TraceEnter(handlerName);
             var watch = System.Diagnostics.Stopwatch.StartNew();
+            FreezeWatchdog.Enter(handlerName, null);
             try { body(); }
             finally
             {
+                FreezeWatchdog.Exit();
                 BannerKings.Behaviours.Shipping.BKShippingBehavior.TraceExit(handlerName, sw);
                 WatchSlow(handlerName, null, watch);
             }
@@ -113,9 +115,11 @@ namespace BannerKings.Utils
             var sw = BannerKings.Behaviours.Shipping.BKShippingBehavior.TraceEnter(
                 !string.IsNullOrEmpty(label) ? handlerName + ":" + label : handlerName);
             var watch = System.Diagnostics.Stopwatch.StartNew();
+            FreezeWatchdog.Enter(handlerName, label);
             try { body(h); }
             finally
             {
+                FreezeWatchdog.Exit();
                 BannerKings.Behaviours.Shipping.BKShippingBehavior.TraceExit(handlerName, sw);
                 WatchSlow(handlerName, label, watch);
             }
@@ -128,9 +132,11 @@ namespace BannerKings.Utils
             var sw = BannerKings.Behaviours.Shipping.BKShippingBehavior.TraceEnter(
                 !string.IsNullOrEmpty(label) ? handlerName + ":" + label : handlerName);
             var watch = System.Diagnostics.Stopwatch.StartNew();
+            FreezeWatchdog.Enter(handlerName, label);
             try { body(c); }
             finally
             {
+                FreezeWatchdog.Exit();
                 BannerKings.Behaviours.Shipping.BKShippingBehavior.TraceExit(handlerName, sw);
                 WatchSlow(handlerName, label, watch);
             }
@@ -160,9 +166,11 @@ namespace BannerKings.Utils
             var sw = BannerKings.Behaviours.Shipping.BKShippingBehavior.TraceEnter(
                 !string.IsNullOrEmpty(label) ? handlerName + ":" + label : handlerName);
             var watch = System.Diagnostics.Stopwatch.StartNew();
+            FreezeWatchdog.Enter(handlerName, label);
             try { body(p); }
             finally
             {
+                FreezeWatchdog.Exit();
                 BannerKings.Behaviours.Shipping.BKShippingBehavior.TraceExit(handlerName, sw);
                 WatchSlow(handlerName, label, watch);
             }
@@ -175,9 +183,11 @@ namespace BannerKings.Utils
             var sw = BannerKings.Behaviours.Shipping.BKShippingBehavior.TraceEnter(
                 !string.IsNullOrEmpty(label) ? handlerName + ":" + label : handlerName);
             var watch = System.Diagnostics.Stopwatch.StartNew();
+            FreezeWatchdog.Enter(handlerName, label);
             try { body(s); }
             finally
             {
+                FreezeWatchdog.Exit();
                 BannerKings.Behaviours.Shipping.BKShippingBehavior.TraceExit(handlerName, sw);
                 WatchSlow(handlerName, label, watch);
             }
@@ -190,9 +200,11 @@ namespace BannerKings.Utils
             var sw = BannerKings.Behaviours.Shipping.BKShippingBehavior.TraceEnter(
                 !string.IsNullOrEmpty(label) ? handlerName + ":" + label : handlerName);
             var watch = System.Diagnostics.Stopwatch.StartNew();
+            FreezeWatchdog.Enter(handlerName, label);
             try { body(t); }
             finally
             {
+                FreezeWatchdog.Exit();
                 BannerKings.Behaviours.Shipping.BKShippingBehavior.TraceExit(handlerName, sw);
                 WatchSlow(handlerName, label, watch);
             }
@@ -215,9 +227,11 @@ namespace BannerKings.Utils
             var sw = BannerKings.Behaviours.Shipping.BKShippingBehavior.TraceEnter(
                 !string.IsNullOrEmpty(label) ? handlerName + ":" + label : handlerName);
             var watch = System.Diagnostics.Stopwatch.StartNew();
+            FreezeWatchdog.Enter(handlerName, label);
             try { body(settlement, openToClaim, newOwner, oldOwner, capturerHero, detail); }
             finally
             {
+                FreezeWatchdog.Exit();
                 BannerKings.Behaviours.Shipping.BKShippingBehavior.TraceExit(handlerName, sw);
                 WatchSlow(handlerName, label, watch);
             }

@@ -109,9 +109,11 @@ namespace BannerKings.Behaviours
         private void OnPartyHourlyTick(MobileParty party)
         {
             var __sw = System.Diagnostics.Stopwatch.StartNew();
+            BannerKings.Utils.FreezeWatchdog.Enter("BKBandit.OnPartyHourlyTick", BannerKings.Utils.TickTrace.IdOf(party));
             try { TickBandits(party); }
             finally
             {
+                BannerKings.Utils.FreezeWatchdog.Exit();
                 __sw.Stop();
                 BannerKings.Behaviours.Shipping.BKShippingBehavior.PerfRecordPublic("BKBandit.OnPartyHourlyTick", __sw);
                 BannerKings.Utils.TickTrace.WatchSlow("BKBandit.OnPartyHourlyTick", BannerKings.Utils.TickTrace.IdOf(party), __sw);

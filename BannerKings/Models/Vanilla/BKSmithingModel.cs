@@ -248,6 +248,15 @@ namespace BannerKings.Models.Vanilla
                 {
                     while (metalCount > metalCap)
                     {
+                        // Progress guard (SlaughterLivestock pattern): the
+                        // outer while has no iteration cap and relies on the
+                        // inner for decrementing result[2..6]. It is safe today
+                        // because metalCount is summed exclusively from those
+                        // indices, so a decrementable element always exists.
+                        // But if a future edit ever sums metal from another
+                        // index, this would spin forever. Break the moment an
+                        // inner pass makes no progress.
+                        int before = metalCount;
                         for (var i = 0; i < result.Length; i++)
                         {
                             if (i is >= 2 and <= 6 && result[i] > 0 && metalCount > metalCap)
@@ -256,6 +265,7 @@ namespace BannerKings.Models.Vanilla
                                 metalCount--;
                             }
                         }
+                        if (metalCount == before) break;
                     }
                 }
 

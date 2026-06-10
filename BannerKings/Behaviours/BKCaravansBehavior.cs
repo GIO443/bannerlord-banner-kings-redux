@@ -699,9 +699,11 @@ namespace BannerKings.Behaviours
             // method-call overhead just to no-op inside.
             if (caravanParty == null || !caravanParty.IsCaravan) return;
             var __sw = System.Diagnostics.Stopwatch.StartNew();
+            BannerKings.Utils.FreezeWatchdog.Enter("BKCaravans.HourlyTickParty", BannerKings.Utils.TickTrace.IdOf(caravanParty));
             try { HourlyTickPartyImpl(caravanParty); }
             finally
             {
+                BannerKings.Utils.FreezeWatchdog.Exit();
                 __sw.Stop();
                 BannerKings.Behaviours.Shipping.BKShippingBehavior.PerfRecordPublic("BKCaravans.HourlyTickParty", __sw);
                 BannerKings.Utils.TickTrace.WatchSlow("BKCaravans.HourlyTickParty", BannerKings.Utils.TickTrace.IdOf(caravanParty), __sw);

@@ -354,9 +354,11 @@ namespace BannerKings.Behaviours.Shipping
         private void TickParty(MobileParty party)
         {
             var __sw = System.Diagnostics.Stopwatch.StartNew();
+            BannerKings.Utils.FreezeWatchdog.Enter("BKLordShipping.TickParty", BannerKings.Utils.TickTrace.IdOf(party));
             try { TickPartyImpl(party); }
             finally
             {
+                BannerKings.Utils.FreezeWatchdog.Exit();
                 __sw.Stop();
                 BannerKings.Utils.TickTrace.WatchSlow("BKLordShipping.TickParty", BannerKings.Utils.TickTrace.IdOf(party), __sw);
             }

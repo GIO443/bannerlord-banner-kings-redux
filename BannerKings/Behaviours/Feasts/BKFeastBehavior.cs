@@ -206,9 +206,11 @@ namespace BannerKings.Behaviours.Feasts
         {
             if (!party.IsLordParty || party.LeaderHero == null || party.LeaderHero == Hero.MainHero) return;
             var __sw = System.Diagnostics.Stopwatch.StartNew();
+            BannerKings.Utils.FreezeWatchdog.Enter("BKFeast.HourlyTickParty", BannerKings.Utils.TickTrace.IdOf(party));
             try { HourlyTickPartyImpl(party); }
             finally
             {
+                BannerKings.Utils.FreezeWatchdog.Exit();
                 __sw.Stop();
                 BannerKings.Behaviours.Shipping.BKShippingBehavior.PerfRecordPublic("BKFeast.HourlyTickParty", __sw);
                 BannerKings.Utils.TickTrace.WatchSlow("BKFeast.HourlyTickParty", BannerKings.Utils.TickTrace.IdOf(party), __sw);
@@ -290,9 +292,11 @@ namespace BannerKings.Behaviours.Feasts
                 return;
             }
             var __sw = System.Diagnostics.Stopwatch.StartNew();
+            BannerKings.Utils.FreezeWatchdog.Enter("BKFeast.OnSettlementHourlyTick", BannerKings.Utils.TickTrace.IdOf(settlement));
             try { OnSettlementHourlyTickImpl(settlement); }
             finally
             {
+                BannerKings.Utils.FreezeWatchdog.Exit();
                 __sw.Stop();
                 BannerKings.Behaviours.Shipping.BKShippingBehavior.PerfRecordPublic("BKFeast.OnSettlementHourlyTick", __sw);
                 BannerKings.Utils.TickTrace.WatchSlow("BKFeast.OnSettlementHourlyTick", BannerKings.Utils.TickTrace.IdOf(settlement), __sw);

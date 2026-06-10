@@ -358,6 +358,12 @@ namespace BannerKings.Behaviours.Shipping
                     // session exception patterns stay visible.
                     try { BannerKings.BannerKingsCheats.ClearSessionDiagnostics(); } catch { }
 
+                    // Start the always-on freeze watchdog (separate thread,
+                    // names whatever handler the campaign thread is stuck in
+                    // to BK_freeze.txt). Reset clears any stale marker from a
+                    // prior session loaded in the same process.
+                    try { BannerKings.Utils.FreezeWatchdog.Reset(); BannerKings.Utils.FreezeWatchdog.EnsureStarted(); } catch { }
+
                     // Force a graph rebuild on every save-load. The static
                     // ShippingGraph._instance cache otherwise persists across
                     // save reloads in the same Bannerlord session, which
@@ -380,6 +386,9 @@ namespace BannerKings.Behaviours.Shipping
                 {
                     // Per-save log cleaner — same rationale as on load.
                     try { BannerKings.BannerKingsCheats.ClearSessionDiagnostics(); } catch { }
+
+                    // Start the freeze watchdog for new campaigns too.
+                    try { BannerKings.Utils.FreezeWatchdog.Reset(); BannerKings.Utils.FreezeWatchdog.EnsureStarted(); } catch { }
 
                     // Same rebuild trigger for new-game transitions. Without
                     // this the static graph carries stale Settlement object
@@ -2138,6 +2147,7 @@ namespace BannerKings.Behaviours.Shipping
             // self-detector; PerfRecord below is still internally gated on
             // LogHourlyTickPerf, so steady-state cost is just the timer.
             var sw = System.Diagnostics.Stopwatch.StartNew();
+            BannerKings.Utils.FreezeWatchdog.Enter("BKShipping.TickParty", BannerKings.Utils.TickTrace.IdOf(party));
 
             // Re-target caravans whose destination flipped hostile or got
             // sieged mid-trip. Without this they keep hop-routing into a
@@ -2205,6 +2215,7 @@ namespace BannerKings.Behaviours.Shipping
             sw.Stop();
             PerfRecord("BKShipping.TickParty", sw);
             BannerKings.Utils.TickTrace.WatchSlow("BKShipping.TickParty", BannerKings.Utils.TickTrace.IdOf(party), sw);
+            BannerKings.Utils.FreezeWatchdog.Exit();
         }
 
         // Daily naval-activity snapshot. Three signals to diagnose why
