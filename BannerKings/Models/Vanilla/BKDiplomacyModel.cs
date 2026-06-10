@@ -171,6 +171,9 @@ namespace BannerKings.Models.Vanilla
 
             GetPerkEffectsOnKingdomDecisionInfluenceCost(proposingClan, ref cost);
             AddProposeDiplomacyCostEffects(proposingClan.Leader, ref cost);
+            // A diplomatic fee is never negative — perk/policy reductions or a
+            // negative influence cap must not turn a cost into a payout.
+            cost.LimitMin(0f);
             return cost;
         }
 
@@ -185,6 +188,9 @@ namespace BannerKings.Models.Vanilla
 
             GetPerkEffectsOnKingdomDecisionInfluenceCost(proposingClan, ref cost);
             AddProposeDiplomacyCostEffects(proposingClan.Leader, ref cost);
+            // A diplomatic fee is never negative — perk/policy reductions or a
+            // negative influence cap must not turn a cost into a payout.
+            cost.LimitMin(0f);
             return cost;
         }
 
@@ -204,6 +210,9 @@ namespace BannerKings.Models.Vanilla
 
             GetPerkEffectsOnKingdomDecisionInfluenceCost(proposingClan, ref cost);
             AddProposeDiplomacyCostEffects(proposingClan.Leader, ref cost);
+            // A diplomatic fee is never negative — perk/policy reductions or a
+            // negative influence cap must not turn a cost into a payout.
+            cost.LimitMin(0f);
             return cost;
         }
 
@@ -226,6 +235,9 @@ namespace BannerKings.Models.Vanilla
 
             GetPerkEffectsOnKingdomDecisionInfluenceCost(proposingClan, ref cost);
             AddProposeDiplomacyCostEffects(proposingClan.Leader, ref cost);
+            // A diplomatic fee is never negative — perk/policy reductions or a
+            // negative influence cap must not turn a cost into a payout.
+            cost.LimitMin(0f);
             return cost;
         }
 
@@ -688,6 +700,8 @@ namespace BannerKings.Models.Vanilla
            
             result.AddFactor(-peace / 100000f, new TextObject("{=hAAOEqaJ}Peace interest"));
             AddProposeDiplomacyCostEffects(proposer.Leader, ref result);
+            // A diplomatic fee is never negative (see other fee models).
+            result.LimitMin(0f);
             return result;
         }
 
@@ -711,6 +725,12 @@ namespace BannerKings.Models.Vanilla
             float relation = proposed.RulingClan.Leader.GetRelation(proposer.RulingClan.Leader) / 150f;
             result.AddFactor(-relation, new TextObject("{=BlidMNGT}Relation"));
 
+            // Floor at zero: when a war is hugely lopsided the peace term can
+            // exceed the base and flip this fee negative. The offer is framed
+            // as the proposer paying the proposed, so a negative value would
+            // drain the recipient's (often the player's) gold. Never charge a
+            // recipient who was promised a payment.
+            result.LimitMin(0f);
             return result;
         }
 
@@ -812,6 +832,12 @@ namespace BannerKings.Models.Vanilla
             float relation = proposed.RulingClan.Leader.GetRelation(proposer.RulingClan.Leader) / 150f;
             result.AddFactor(-relation, new TextObject("{=BlidMNGT}Relation"));
 
+            // Floor at zero: when a war is hugely lopsided the peace term can
+            // exceed the base and flip this fee negative. The offer is framed
+            // as the proposer paying the proposed, so a negative value would
+            // drain the recipient's (often the player's) gold. Never charge a
+            // recipient who was promised a payment.
+            result.LimitMin(0f);
             return result;
         }
 
@@ -835,6 +861,8 @@ namespace BannerKings.Models.Vanilla
             float peace = GetScoreOfDeclaringPeace(proposed, proposer);
             result.AddFactor(peace / -60000f, new TextObject("{=hAAOEqaJ}Peace interest"));
             AddProposeDiplomacyCostEffects(proposer.Leader, ref result);
+            // A diplomatic fee is never negative (see other fee models).
+            result.LimitMin(0f);
             return result;
         }
 

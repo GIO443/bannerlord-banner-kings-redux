@@ -378,19 +378,30 @@ file after enabling the toggle, the folder is
 `%LOCALAPPDATA%\BannerKings\ModLogs` — paste that into the File Explorer
 address bar.) Then play until the freeze happens and check these files:
 
-**`BK_freeze.txt` — send this one first.** A background watchdog watches what
-the game is doing. The instant the game is stuck inside one BK system for
-more than ~5 seconds, it writes that system and the exact entity to this
-file *while the freeze is still happening* — so it works even if the freeze
-never recovers:
+**`BK_freeze.txt` — send this one first (the WHOLE file).** A background
+watchdog records four kinds of line:
+
+- `alive — heap …MB, workingSet …MB …` every ~15 seconds — a heartbeat that
+  proves the watcher is running and tracks memory. A **gap** between two
+  heartbeats is itself the freeze (the game was frozen for that long).
+- `STUCK <system>:<entity> running Ns …` — a specific BK system is stuck
+  right now, named while the freeze is still happening.
+- `RUNTIME STALL — every managed thread was frozen for Ns … gen2 GCs +N …`
+  — the *entire game* (not one system) locked up, typically a long garbage
+  collection. The `gen2 GCs +N` and memory figures tell us if runaway
+  memory is the cause.
+- `ARMED …` — written once when you enable detection.
+
+Example of a system-level stall:
 
 ```
-[14:02:16] STUCK ShippingGraph.Build running 5s — campaign thread not progressing
-[14:02:26] STUCK ShippingGraph.Build running 15s — campaign thread not progressing
+[14:02:16] STUCK ShippingGraph.Build running 5s — campaign thread not progressing. heap 612MB …
+[14:02:26] STUCK ShippingGraph.Build running 15s — campaign thread not progressing. heap 640MB …
 ```
 
-The repeated lines (and the growing seconds count) confirm exactly which BK
-system locked up and for how long. That is usually all we need to fix it.
+Don't worry about reading it — just send the whole file. The lines around
+the freeze tell us exactly which BK system (or whether memory/GC) locked up
+and for how long.
 
 **`BK_slow.txt` — the backup** (also needs the toggle on). Logs any single
 BK handler that took over 3 seconds, *after* it finishes:

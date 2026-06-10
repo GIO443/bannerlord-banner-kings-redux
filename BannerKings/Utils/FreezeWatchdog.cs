@@ -27,12 +27,25 @@ namespace BannerKings.Utils
     //     sufficient. Exit() clears the marker so idle periods (paused game,
     //     between ticks) read as "nothing running" and never false-fire.
     //
-    // Output (BK_freeze.txt):
-    //   STUCK <handler>:<entity> running 5s — campaign thread not progressing
-    //   STUCK <handler>:<entity> running 15s — campaign thread not progressing
-    // The first STUCK line names the exact handler + entity that froze the
-    // game, written the moment the stall crosses the threshold — no tester
-    // timing required, and it survives even a never-returning hang.
+    // Output (BK_freeze.txt) — four line kinds:
+    //   ARMED ...                                    once, when detection turns on
+    //   alive — heap NMB ...; last handler X         heartbeat every ~15s (proof of
+    //                                                life + memory trend + black box)
+    //   STUCK <handler>:<entity> running Ns ...      an instrumented BK handler is
+    //                                                stuck right now
+    //   RUNTIME STALL — ... frozen for Ns ...        EVERY managed thread (incl. this
+    //                                                watchdog) was suspended — a full
+    //                                                GC or OS suspension, not a single
+    //                                                handler. Logged when it recovers.
+    // Why heartbeat + stall detection: a freeze can be INVISIBLE to the STUCK
+    // path two ways — (1) it is not inside an instrumented Enter/Exit handler
+    // (a Harmony patch, a replaced model, vanilla decision/save-load), so the
+    // marker is null; or (2) it is a runtime-wide GC/suspension that freezes
+    // the watchdog thread too, so it cannot write during the stall. The
+    // heartbeat's GAP localizes (1) and (2) in real time even across a force-
+    // quit, the RUNTIME STALL line catches (2) on recovery, and the memory
+    // figures expose the unbounded-allocation growth behind a late-campaign
+    // GC storm.
     //
     // OPT-IN. Off by default. Gated behind the MCM toggle
     // "Diagnostics → Enable Freeze Detection". When disabled, NO background
@@ -101,6 +114,14 @@ namespace BannerKings.Utils
         // Watchdog sample period. 1s is frequent enough to localize a
         // multi-second stall and far too coarse to cost anything.
         private const int SampleMillis = 1000;
+        // Heartbeat cadence — proof-of-life + memory trend + force-quit black
+        // box. Coarse enough to keep the file small over a long session.
+        private const double HeartbeatSeconds = 15.0;
+        // If two consecutive samples are more than this far apart in real
+        // time, the Timer thread itself was suspended — i.e. every managed
+        // thread was frozen (full GC or OS suspension). The period is 1s, so
+        // any gap past a few seconds is a genuine runtime stall.
+        private const double RuntimeStallSeconds = 4.0;
 
         // Hot-path state. volatile so the watchdog thread sees writes from
         // the campaign thread without a lock. We accept benign races: the
@@ -110,10 +131,18 @@ namespace BannerKings.Utils
         private static volatile string _handler;   // compile-time constant, no alloc
         private static volatile string _entity;     // StringId field ref, no alloc
         private static long _startTicks;            // Stopwatch.GetTimestamp at Enter
+        // Last handler that STARTED, kept through Exit (unlike _handler which
+        // clears on Exit). Gives the heartbeat / stall lines context: "what
+        // BK code ran most recently before the freeze".
+        private static volatile string _lastHandler;
 
-        // Watchdog bookkeeping (touched only by the watchdog thread).
+        // Watchdog bookkeeping (touched only by the watchdog thread, except
+        // the reset on enable).
         private static long _lastLoggedTicks;
         private static string _lastLoggedKey;
+        private static long _lastSampleTicks;       // for runtime-stall detection
+        private static long _lastHeartbeatTicks;
+        private static int _lastGen2;               // gen2 GC count at previous sample
         private static Timer _timer;
 
         // Turn the watchdog on/off. Driven by the MCM toggle's setter (live)
@@ -127,6 +156,12 @@ namespace BannerKings.Utils
                 if (on)
                 {
                     _enabled = true;
+                    // Reset cadence baselines so the first sample after enabling
+                    // doesn't read a stale _lastSampleTicks from a prior enable
+                    // and false-fire a RUNTIME STALL.
+                    _lastSampleTicks = 0;
+                    _lastHeartbeatTicks = 0;
+                    try { _lastGen2 = GC.CollectionCount(2); } catch { _lastGen2 = 0; }
                     if (_timer == null)
                     {
                         try { _timer = new Timer(Sample, null, SampleMillis, SampleMillis); }
@@ -137,6 +172,7 @@ namespace BannerKings.Utils
                 {
                     _enabled = false;
                     _handler = null;
+                    _lastHandler = null;
                     _lastLoggedKey = null;
                     if (_timer != null)
                     {
@@ -163,6 +199,7 @@ namespace BannerKings.Utils
         {
             _handler = null;
             _entity = null;
+            _lastHandler = null;
             _lastLoggedKey = null;
         }
 
@@ -171,7 +208,24 @@ namespace BannerKings.Utils
             if (!_enabled) return;
             _entity = entityId;
             _startTicks = System.Diagnostics.Stopwatch.GetTimestamp();
+            _lastHandler = handlerName; // sticky: kept through Exit for context
             _handler = handlerName; // set last: watchdog gates on _handler != null
+        }
+
+        // Compact memory snapshot for the diagnostic lines. Managed heap +
+        // process working set (catches native growth too) + GC counts. Called
+        // only from the watchdog thread at heartbeat/stall cadence, so the
+        // Process allocation is irrelevant.
+        private static string MemStats()
+        {
+            try
+            {
+                long heapMb = GC.GetTotalMemory(false) / 1048576;
+                long wsMb = 0;
+                try { using (var p = System.Diagnostics.Process.GetCurrentProcess()) wsMb = p.WorkingSet64 / 1048576; } catch { }
+                return $"heap {heapMb}MB, workingSet {wsMb}MB, GCs g0={GC.CollectionCount(0)} g1={GC.CollectionCount(1)} g2={GC.CollectionCount(2)}";
+            }
+            catch { return "mem stats unavailable"; }
         }
 
         public static void Exit()
@@ -185,26 +239,62 @@ namespace BannerKings.Utils
             try
             {
                 if (!_enabled) return;
-                string handler = _handler;
-                if (handler == null) return; // idle — no handler in flight
-
-                long start = _startTicks;
+                double freq = (double)System.Diagnostics.Stopwatch.Frequency;
                 long now = System.Diagnostics.Stopwatch.GetTimestamp();
-                double sec = (now - start) / (double)System.Diagnostics.Stopwatch.Frequency;
-                if (sec < WarnSeconds) return;
 
-                string entity = _entity;
-                string key = entity != null ? handler + ":" + entity : handler;
+                // (1) RUNTIME STALL — the Timer is set to fire every ~1s. If
+                // the gap since the previous sample is far larger, this thread
+                // (and therefore every managed thread, including the campaign
+                // thread) was suspended for that long: a full GC or an OS
+                // process suspension, NOT a single slow handler. Fires on the
+                // first sample to run after the freeze releases.
+                if (_lastSampleTicks != 0)
+                {
+                    double gap = (now - _lastSampleTicks) / freq;
+                    if (gap > RuntimeStallSeconds)
+                    {
+                        int g2now;
+                        try { g2now = GC.CollectionCount(2); } catch { g2now = _lastGen2; }
+                        WriteLineDirect("freeze.txt",
+                            $"RUNTIME STALL — every managed thread was frozen for {gap:0}s " +
+                            $"(full GC or OS suspension, NOT a single handler). gen2 GCs +{g2now - _lastGen2} during the stall. " +
+                            $"{MemStats()}. Last BK handler before stall: {_lastHandler ?? "(none)"}.");
+                    }
+                }
+                _lastSampleTicks = now;
+                try { _lastGen2 = GC.CollectionCount(2); } catch { }
 
-                // First crossing for this activity, or the periodic re-log.
-                bool firstForKey = key != _lastLoggedKey;
-                double sinceLast = (now - _lastLoggedTicks) / (double)System.Diagnostics.Stopwatch.Frequency;
-                if (!firstForKey && sinceLast < RepeatSeconds) return;
+                // (2) In-flight STUCK — an instrumented BK handler that is
+                // taking too long right now (its Exit hasn't run).
+                string handler = _handler;
+                if (handler != null)
+                {
+                    double sec = (now - _startTicks) / freq;
+                    if (sec >= WarnSeconds)
+                    {
+                        string entity = _entity;
+                        string key = entity != null ? handler + ":" + entity : handler;
+                        bool firstForKey = key != _lastLoggedKey;
+                        double sinceLast = (now - _lastLoggedTicks) / freq;
+                        if (firstForKey || sinceLast >= RepeatSeconds)
+                        {
+                            _lastLoggedKey = key;
+                            _lastLoggedTicks = now;
+                            WriteLineDirect("freeze.txt",
+                                $"STUCK {key} running {sec:0}s — campaign thread not progressing. {MemStats()}");
+                        }
+                    }
+                }
 
-                _lastLoggedKey = key;
-                _lastLoggedTicks = now;
-                WriteLineDirect("freeze.txt",
-                    $"STUCK {key} running {sec:0}s — campaign thread not progressing");
+                // (3) Heartbeat — proof of life, memory trend, and the force-
+                // quit black box (its GAP localizes a freeze that the STUCK
+                // path can't see because it's outside an instrumented handler).
+                if (_lastHeartbeatTicks == 0 || (now - _lastHeartbeatTicks) / freq >= HeartbeatSeconds)
+                {
+                    _lastHeartbeatTicks = now;
+                    WriteLineDirect("freeze.txt",
+                        $"alive — {MemStats()}; current {(handler ?? "(idle)")}; last {_lastHandler ?? "(none)"}");
+                }
             }
             catch { /* a freeze diagnostic must never crash the watchdog */ }
         }
