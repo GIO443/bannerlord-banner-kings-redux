@@ -299,7 +299,7 @@ namespace BannerKings.UI.VanillaTabs.Character.Education
             {
                 CurrentLanguageInfo.Add(new InformationElement(
                     new TextObject("{=mGnKu6GO}Not currently learning any language").ToString(), string.Empty,
-                    new TextObject("{=KBsVXEtH}Languages may be taught by your courtiers that have a good fluency, so long they understand it more than you. Languages can be actively studied on the settlement the courtier is located at.")
+                    new TextObject("{=BKlang_pick_desc}Languages are taught by fully fluent members of your court. A more skilled instructor (higher Scholarship) teaches faster, and languages related to your own come easier. Once chosen, learning continues anywhere as long as your instructor is alive.")
                         .ToString()));
             }
             else
@@ -326,7 +326,7 @@ namespace BannerKings.UI.VanillaTabs.Character.Education
                     : new TextObject("{=vW3YtyNm}None (in a mobile party)").ToString();
                 CurrentLanguageInfo.Add(new InformationElement(new TextObject("{=cqF7eA22}Instructor Location:").ToString(),
                     settlementString,
-                    new TextObject("{=sFCqysF2}Active learning can be done at the instructor's location.").ToString()));
+                    new TextObject("{=BKlang_instructor_loc}Where your instructor currently is. Learning continues regardless of location, as long as the instructor stays alive.").ToString()));
             }
 
             var languageLimit = BannerKingsConfig.Instance.EducationModel.CalculateLanguageLimit(hero);
@@ -344,7 +344,7 @@ namespace BannerKings.UI.VanillaTabs.Character.Education
             {
                 LifestyleProgressInfo.Add(new InformationElement(
                     new TextObject("{=MaV9QBJE}No lifestyle currently adopted").ToString(), string.Empty,
-                    new TextObject("{=KBsVXEtH}Languages may be taught by your courtiers that have a good fluency, so long they understand it more than you. Languages can be actively studied on the settlement the courtier is located at.")
+                    new TextObject("{=BKlife_pick_desc}A lifestyle specialises your hero around two linked skills. You need at least 15 proficiency in each to adopt one. Once adopted, invest focus points to unlock its perks. Choose one with 'Choose Lifestyle'.")
                         .ToString()));
 
                 LifestyleNameText = null;

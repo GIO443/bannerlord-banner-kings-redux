@@ -76,6 +76,47 @@ The lifestyle picker shows each lifestyle's bonuses, perks, and lore in the
 hover tooltip. Bonuses appear at the top so you can see them even on
 lifestyles you don't yet qualify for.
 
+## Languages
+
+Each culture speaks its own tongue (Calradian, Vlandic, Battanian, Sturgian,
+Khuzait, Nahasawi, Vakken, Nordic). Your hero starts fully fluent in their
+native language. Learning others raises **cultural acceptance** in foreign
+settlements you own (see [Player Guide](Player-Guide)) and lets you read books
+written in that language.
+
+**How to learn one:**
+
+1. Open the **Character** screen → **BK Education** tab.
+2. Your hero must be **leading a party** (the *Choose Language* button is
+   disabled otherwise).
+3. Click **Choose Language**. The list shows `Language – Instructor` pairs.
+   An instructor must be a **member of your court who is fully fluent** in
+   that language and who likes you enough (a friend, or in your clan).
+   If the list is empty, you have no court member who speaks a language you
+   don't already know — recruit a companion or courtier of another culture.
+4. Pick a pair and confirm. The *Current Language* block now shows your
+   fluency, the daily **learning rate**, and the instructor.
+
+**What drives the speed** (hover the *Learning Rate* value to see the
+breakdown):
+
+- **Instructor's Scholarship skill** — the single biggest lever. A master
+  teacher (Scholarship 300) roughly *doubles* your rate; an unschooled tutor
+  adds nothing. Pick your most learned courtier as instructor.
+- **Intelligibility** — languages related to your own come faster (e.g. a
+  Sturgian learns Nordic more easily, and vice-versa).
+- **Your LanguageSpeed** (from the Scholarship tree) and the **Avid Learner**
+  perk add further bonuses.
+- **Over your language limit** (2 by default, raised by Scholarship perks)
+  slows learning but never stops it.
+
+**What to expect:** at rate 1.0 a language takes about **one in-game year**;
+with a skilled instructor and a related tongue, as little as **~6 months**.
+Learning continues **anywhere** — you do *not* need to sit in the instructor's
+settlement. The only thing that stops it is the **instructor dying** (you'll
+get a message and have to pick a new one). When you hit 100% fluency you get a
+completion message and a Scholarship XP bonus.
+
 ## Demesne laws
 
 Set on the **Laws** sub-tab of the BannerKings kingdom screen (above). Each

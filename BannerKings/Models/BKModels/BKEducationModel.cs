@@ -56,31 +56,37 @@ namespace BannerKings.Models.BKModels
 
         public ExplainedNumber CalculateLanguageLearningRate(Hero student, Hero instructor, Language language)
         {
+            // No instructor, no lessons. Learning a language always requires
+            // a fluent member of your court to teach it.
+            if (instructor == null)
+            {
+                return new ExplainedNumber(0f);
+            }
+
             var result = new ExplainedNumber(1f, true);
             result.LimitMin(0f);
             result.LimitMax(5f);
 
+            // Student aptitude (LanguageSpeed skill effect).
             SkillHelper.AddSkillBonusForCharacter(BKSkillEffects.Instance.LanguageSpeed, student.CharacterObject, ref result);
 
-            if (instructor != null)
+            // Instructor teaching quality. The picker requires the instructor
+            // to be fully fluent, so the differentiator is how good a teacher
+            // they are — driven by their Scholarship skill. 300 Scholarship
+            // doubles the base rate (≈6 months to fluency); an unschooled
+            // tutor adds nothing (≈12 months).
+            var instructorScholarship = instructor.GetSkillValue(BKSkills.Instance.Scholarship);
+            if (instructorScholarship > 0)
             {
-                var data = BannerKingsConfig.Instance.EducationManager.GetHeroEducation(instructor);
-                var teaching = data.GetLanguageFluency(language) - 1f;
-                if (!float.IsNaN(teaching) && teaching != 0f)
-                {
-                    result.AddFactor(teaching, new TextObject("{=nNESSaBb}Instructor fluency"));
-                }
-            } 
-            else
-            {
-                return new ExplainedNumber(0f);
-            }       
+                result.AddFactor(instructorScholarship / 300f, new TextObject("{=BKlang_instructor_skill}Instructor skill"));
+            }
 
+            // Intelligibility between the student's native tongue and the
+            // language being learned — closely related languages come easier.
             var native = BannerKingsConfig.Instance.EducationManager.GetNativeLanguage(student);
-            var dic = native.Inteligible;
-            if (dic.ContainsKey(language))
+            if (native?.Inteligible != null && native.Inteligible.ContainsKey(language))
             {
-                result.Add(dic[language], new TextObject("{=k5G2c550}Intelligibility with {LANGUAGE}").SetTextVariable("LANGUAGE", native.Name));
+                result.Add(native.Inteligible[language], new TextObject("{=k5G2c550}Intelligibility with {LANGUAGE}").SetTextVariable("LANGUAGE", language.Name));
             }
 
             if (student.GetPerkValue(BKPerks.Instance.ScholarshipAvidLearner))
@@ -92,26 +98,20 @@ namespace BannerKings.Models.BKModels
             var overLimit = studentData.Languages.Count - CalculateLanguageLimit(student).ResultNumber;
             if (overLimit > 0f)
             {
-                // v1.9.10.15 — was uncapped `-0.33f * overLimit`. With
-                // overLimit=3 that's -0.99 (rate ≈ 1% of base, displays
-                // as 0.00%); overLimit=4 with other negative factors
-                // crossed -1 and LimitMin(0) clamped the result to
-                // exactly 0 → no progress ever. Cap the per-step
-                // penalty at -0.66 so a fluent instructor always
-                // produces measurable progress, even when the student
-                // is far over their language limit.
+                // Cap the over-limit penalty at -0.66 so a student spread
+                // across many languages still makes measurable progress
+                // rather than stalling at zero.
                 float penalty = TaleWorlds.Library.MathF.Max(-0.66f, -0.33f * overLimit);
                 result.AddFactor(penalty, new TextObject("{=1ssSRbe5}Over languages limit"));
             }
 
-            // v1.9.10.15 — final floor: once an instructor is set and
-            // fluent (the picker enforces fluency == 1.0 via KnowsLanguage),
-            // the student MUST see progress. Any combination of negative
-            // factors that drove the rate below 0.1 is clamped up so
-            // language learning is always perceptibly advancing.
-            if (instructor != null && result.ResultNumber < 0.1f)
+            // Safety floor: with an instructor set the student must always
+            // see progress, so clamp any pathological factor combination up
+            // to a perceptible minimum (≈4 years worst case — only ever hit
+            // by a heavily over-limit student with an unschooled tutor).
+            if (result.ResultNumber < 0.25f)
             {
-                result.Add(0.1f - result.ResultNumber, new TextObject("{=BKlang_floor}Minimum learning rate"));
+                result.Add(0.25f - result.ResultNumber, new TextObject("{=BKlang_floor}Minimum learning rate"));
             }
 
             return result;

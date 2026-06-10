@@ -19,7 +19,11 @@ namespace BannerKings.Managers.Education
 {
     public class EducationData : BannerKingsData
     {
-        private static readonly float LANGUAGE_RATE = 1f / (CampaignTime.DaysInYear * 3f);
+        // Base period to reach full fluency at learning-rate 1.0: one
+        // in-game year. A skilled instructor / intelligible language pushes
+        // the rate above 1.0 (down to ~6 months); a poor tutor keeps it
+        // near 1.0 (~12 months). See BKEducationModel.CalculateLanguageLearningRate.
+        private static readonly float LANGUAGE_RATE = 1f / CampaignTime.DaysInYear;
         private static readonly float BOOK_RATE = 1f / (CampaignTime.DaysInYear * 1.5f);
 
         [SaveableField(2)] private readonly Dictionary<BookType, float> books;
@@ -248,18 +252,14 @@ namespace BannerKings.Managers.Education
             if (language == null) return;
             if (!languages.ContainsKey(language)) languages.Add(language, 0f);
 
+            // The rate is floored to a sane minimum upstream in the model
+            // (CalculateLanguageLearningRate), so this layer only sanitises
+            // the arithmetic: drop NaN/negative to zero and cap a single
+            // day's gain so no degenerate factor can complete a language in
+            // one tick.
             var result = LANGUAGE_RATE * rate;
             if (float.IsNaN(result) || float.IsInfinity(result) || result < 0f) result = 0f;
             if (result > 0.05f) result = 0.05f;
-            // v1.9.10.18 — hard floor at this layer. Regardless of what
-            // the rate computation produced upstream (NaN, negative,
-            // zero from clamped factors, etc.), if we reached here the
-            // player has BOTH a current language and an instructor set
-            // and they MUST see daily progress. The 25% of base
-            // LANGUAGE_RATE floor gives ~2% per in-game month even in
-            // the worst-case rate path — visible in the UI immediately.
-            const float MIN_DAILY = 0.001f;
-            if (result < MIN_DAILY) result = MIN_DAILY;
             languages[language] += result;
             if (languages[language] >= 1f)
             {
@@ -419,25 +419,15 @@ namespace BannerKings.Managers.Education
                 float rate = CurrentLanguageLearningRate.ResultNumber;
                 GainLanguageFluency(CurrentLanguage, rate);
             }
-            else if (hero == Hero.MainHero && (CurrentLanguage != null || LanguageInstructor != null))
+            else if (CurrentLanguage != null || LanguageInstructor != null)
             {
-                // v1.9.10.18 — half-state surfacing as an in-game
-                // message so users can SEE what dropped (Debug.Print
-                // only goes to the IDE debugger / Debug.log file). One
-                // of CurrentLanguage / LanguageInstructor went null
-                // between pick and tick — neither should ever happen
-                // through normal play, so seeing this in F2 narrows
-                // the root cause immediately.
-                try
-                {
-                    InformationManager.DisplayMessage(new InformationMessage(
-                        "[BK] Language half-state: lang="
-                        + (CurrentLanguage?.Name?.ToString() ?? "null")
-                        + " instructor="
-                        + (LanguageInstructor?.Name?.ToString() ?? "null"),
-                        Color.FromUint(Utils.TextHelper.COLOR_LIGHT_YELLOW)));
-                }
-                catch { }
+                // Only one half of the (language, instructor) pair is set.
+                // Setup and teardown always move them together now, so this
+                // should never occur — but if a malformed save or migration
+                // leaves a dangling half, clear both quietly so the next
+                // pick starts from a clean state instead of spinning.
+                CurrentLanguage = null;
+                LanguageInstructor = null;
             }
 
             if (CurrentBook != null)
