@@ -39,6 +39,21 @@ namespace BannerKings.Managers
         private Dictionary<Hero, List<FeudalTitle>> DeJuresCache { get; set; }
         private Dictionary<Settlement, FeudalTitle> SettlementCache { get; set; }
 
+        // Per-clan-per-day cache for CalculateAllVassals — a heavy title-tree
+        // walk (CalculateHeroSuzerain → GetImmediateSuzerain, O(titles) each)
+        // hammered uncached from 9 sites: the recursive CallBannersGoal.Add-
+        // Banners, per-party army influence costs, levy duties, stability/
+        // title models, and clan/encyclopedia UI. BK_freeze3.txt (v1.9.16.3)
+        // caught it as the dominant CPU+allocation sink in a multi-minute late-
+        // campaign army-AI grind (~76 gen0 GCs/sec). Keyed by day so it self-
+        // invalidates daily, and cleared on title-tree changes — RefreshCaches
+        // (title add / topology rebuild) AND ExecuteOwnershipChange (de jure
+        // usurp / grant / inheritance) — so a mid-day transfer can't serve a
+        // stale vassal list. Shares
+        // CacheLock with the caches above (read on the UI thread via the clan
+        // encyclopedia, written on the campaign thread) — same race rationale.
+        private Dictionary<Clan, (long day, List<Hero> vassals)> AllVassalsCache { get; set; }
+
         // The two caches above are read from BOTH the campaign thread (BK
         // behaviors, daily-tick subscribers, AI scoring) AND the UI thread
         // (the Hero.Name postfix has a 10% RNG-rebuild branch that calls
@@ -106,6 +121,11 @@ namespace BannerKings.Managers
                 }
 
                 Knights ??= new Dictionary<Hero, float>();
+
+                // Title topology changed — drop the vassal-list cache so the
+                // next CalculateAllVassals recomputes against the new tree.
+                if (AllVassalsCache == null) AllVassalsCache = new Dictionary<Clan, (long, List<Hero>)>();
+                else AllVassalsCache.Clear();
             }
         }
 
@@ -287,6 +307,13 @@ namespace BannerKings.Managers
                             if (DeJuresCache.TryGetValue(newOwner, out var newList)) newList.Add(title);
                             else DeJuresCache.Add(newOwner, new List<FeudalTitle> { title });
                         }
+
+                        // A de jure transfer (usurp / grant / inheritance /
+                        // foundation) reshapes the vassal tree — drop the
+                        // vassal-list cache so it can't serve a stale list
+                        // until the day rolls over. (ExecuteOwnershipChange is
+                        // not covered by RefreshCaches.)
+                        AllVassalsCache?.Clear();
                     }
                 }
                 else title.deFacto = newOwner;
@@ -339,6 +366,34 @@ namespace BannerKings.Managers
         }
 
         public List<Hero> CalculateAllVassals(Clan clan)
+        {
+            if (clan == null) return new List<Hero>();
+
+            long day = (long) System.Math.Floor(TaleWorlds.CampaignSystem.CampaignTime.Now.ToDays);
+            lock (CacheLock)
+            {
+                if (AllVassalsCache != null
+                    && AllVassalsCache.TryGetValue(clan, out var cached)
+                    && cached.day == day)
+                {
+                    return cached.vassals;
+                }
+            }
+
+            // Compute OUTSIDE the lock — the walk is expensive and must not
+            // block UI-thread cache reads (and GetAllDeJure re-enters CacheLock).
+            var result = CalculateAllVassalsUncached(clan);
+
+            lock (CacheLock)
+            {
+                AllVassalsCache ??= new Dictionary<Clan, (long, List<Hero>)>();
+                AllVassalsCache[clan] = (day, result);
+            }
+            return result;
+        }
+
+        // The actual walk. Callers go through CalculateAllVassals (cached).
+        private List<Hero> CalculateAllVassalsUncached(Clan clan)
         {
             // Watchdog-instrumented: a hot title-tree walk reached from the
             // army-AI path (CallBannersGoal.AddBanners recurses through it,
