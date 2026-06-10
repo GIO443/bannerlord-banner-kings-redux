@@ -38,6 +38,12 @@ namespace BannerKings.Models.Vanilla
 
         public override bool CanCreateArmy(Hero armyLeader)
         {
+            // Watchdog-instrumented: this runs on the AI army-evaluation path
+            // (Kingdom.CreateArmy prefix, CanLordCreateArmy member filter,
+            // CalculatePartyInfluenceCost) right after BKArmy.AiHourlyTick —
+            // the neighbourhood two BK_freeze.txt captures fingered.
+            BannerKings.Utils.FreezeWatchdog.Enter("BKArmy.CanCreateArmy", BannerKings.Utils.TickTrace.IdOf(armyLeader));
+            try {
             if (armyLeader.Clan == null) return false;
 
             var kingdom = armyLeader.Clan.Kingdom;
@@ -104,6 +110,7 @@ namespace BannerKings.Models.Vanilla
             }
 
             return false;
+            } finally { BannerKings.Utils.FreezeWatchdog.Exit(); }
         }
 
         // Bannerlord 1.4 removed ArmyManagementCalculationModel.
@@ -113,6 +120,8 @@ namespace BannerKings.Models.Vanilla
         // army), so the base bool is returned unchanged.
         public override bool CanLordCreateArmy(MobileParty leaderParty, out TaleWorlds.Library.MBList<MobileParty> possibleArmyMembers)
         {
+            BannerKings.Utils.FreezeWatchdog.Enter("BKArmy.CanLordCreateArmy", BannerKings.Utils.TickTrace.IdOf(leaderParty));
+            try {
             bool canCreate = base.CanLordCreateArmy(leaderParty, out possibleArmyMembers);
             if (possibleArmyMembers == null) return canCreate;
 
@@ -165,6 +174,7 @@ namespace BannerKings.Models.Vanilla
                 possibleArmyMembers.Remove(p);
 
             return canCreate;
+            } finally { BannerKings.Utils.FreezeWatchdog.Exit(); }
         }
 
         // Adds up to 3 extra eligible kingdom war parties to the army invite
@@ -177,6 +187,8 @@ namespace BannerKings.Models.Vanilla
         private void AddInfluenceBonusParties(MobileParty leaderParty, Kingdom kingdom,
             TaleWorlds.Library.MBList<MobileParty> possibleArmyMembers)
         {
+            BannerKings.Utils.FreezeWatchdog.Enter("BKArmy.AddInfluenceBonusParties", BannerKings.Utils.TickTrace.IdOf(leaderParty));
+            try {
             var clan = leaderParty.LeaderHero?.Clan;
             if (clan == null) return;
 
@@ -198,8 +210,20 @@ namespace BannerKings.Models.Vanilla
                 if (possibleArmyMembers.Contains(party)) continue;
                 if (!party.IsAvailableForArmies()) continue;
                 if (party.LeaderHero?.Clan != null && party.LeaderHero.Clan.IsUnderMercenaryService) continue;
-                if (Helpers.DistanceHelper.GetDistanceBetweenMobilePartyToMobileParty(party, leaderParty,
-                        party.NavigationCapability, out _) >= maxDistance) continue;
+                // Straight-line distance, NOT a pathfind. The previous call
+                // routed through GetDistanceBetweenMobilePartyToMobileParty(...,
+                // NavigationCapability, ...), which runs a NATIVE map pathfind
+                // per war party. On a large late-game kingdom (100+ war parties),
+                // called repeatedly during AI army evaluation, one of those
+                // native queries hung the main thread — BK_freeze.txt captured
+                // the signature twice: campaign thread frozen, GC counters
+                // stopped (no managed allocation = stuck in native code), the
+                // watchdog thread still alive, last handler BKArmy.AiHourlyTick.
+                // This is only an invite-range heuristic for up to 3 bonus
+                // slots — vanilla still does the real gathering and pathing — so
+                // a cheap Euclidean distance is entirely adequate and cannot
+                // hang or flood the pathfinder.
+                if (leaderParty.GetPosition2D.Distance(party.GetPosition2D) >= maxDistance) continue;
 
                 candidates.Add(party);
             }
@@ -208,6 +232,7 @@ namespace BannerKings.Models.Vanilla
 
             for (int i = 0; i < bonusSlots && i < candidates.Count; i++)
                 possibleArmyMembers.Add(candidates[i]);
+            } finally { BannerKings.Utils.FreezeWatchdog.Exit(); }
         }
 
         // CalculateDailyCohesionChange and DailyBeingAtArmyInfluenceAward moved to
@@ -215,6 +240,11 @@ namespace BannerKings.Models.Vanilla
 
         public override int CalculatePartyInfluenceCost(MobileParty armyLeaderParty, MobileParty party)
         {
+            // Also on the AI army-evaluation hot path (calls CanCreateArmy +
+            // CalculateAllVassals title traversal). Wrapped so the next capture
+            // can name it if anything here stalls.
+            BannerKings.Utils.FreezeWatchdog.Enter("BKArmy.CalculatePartyInfluenceCost", BannerKings.Utils.TickTrace.IdOf(armyLeaderParty));
+            try {
             if (party.LeaderHero == null || armyLeaderParty.LeaderHero == null)
             {
                 return base.AverageCallToArmyCost;
@@ -255,6 +285,7 @@ namespace BannerKings.Models.Vanilla
             }
 
             return (int) result;
+            } finally { BannerKings.Utils.FreezeWatchdog.Exit(); }
         }
     }
 }
