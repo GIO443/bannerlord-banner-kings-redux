@@ -214,6 +214,61 @@ namespace BannerKings.Patches
             }
         }
 
+        // ---- Movers the earlier brackets missed -----------------------------
+        // A freeze capture showed `current (idle); last BKArmy.AiHourlyTick:
+        // lord_4_26_party_1` with frozen GC — i.e. the hang is NOT in any of
+        // the 9 already-bracketed setters (those would show as `current`). The
+        // remaining engine movers that pathfind are RaidSettlement (lords raid
+        // constantly — prime suspect), GoAroundParty, GoToInteractablePoint and
+        // ToNearestLand. Bracket them so the next capture names the exact one
+        // + its target. __args is used (not named params) so no signature
+        // mismatch can break the patch.
+        private static string FirstArgId(object[] args, MobileParty fallback)
+        {
+            try
+            {
+                if (args != null && args.Length > 0)
+                {
+                    if (args[0] is Settlement s) return s?.StringId;
+                    if (args[0] is MobileParty p) return BannerKings.Utils.TickTrace.IdOf(p);
+                }
+            }
+            catch { }
+            return BannerKings.Utils.TickTrace.IdOf(fallback);
+        }
+
+        [HarmonyPatch(typeof(MobileParty), nameof(MobileParty.SetMoveRaidSettlement))]
+        internal static class SetMoveRaidSettlementBracket
+        {
+            private static void Prefix(MobileParty __instance, object[] __args)
+            { BannerKings.Utils.FreezeWatchdog.Enter("MobileParty.SetMoveRaidSettlement", FirstArgId(__args, __instance)); }
+            private static void Postfix() { BannerKings.Utils.FreezeWatchdog.Exit(); }
+        }
+
+        [HarmonyPatch(typeof(MobileParty), nameof(MobileParty.SetMoveGoAroundParty))]
+        internal static class SetMoveGoAroundPartyBracket
+        {
+            private static void Prefix(MobileParty __instance, object[] __args)
+            { BannerKings.Utils.FreezeWatchdog.Enter("MobileParty.SetMoveGoAroundParty", FirstArgId(__args, __instance)); }
+            private static void Postfix() { BannerKings.Utils.FreezeWatchdog.Exit(); }
+        }
+
+        [HarmonyPatch(typeof(MobileParty), nameof(MobileParty.SetMoveGoToInteractablePoint))]
+        internal static class SetMoveGoToInteractablePointBracket
+        {
+            private static void Prefix(MobileParty __instance)
+            { BannerKings.Utils.FreezeWatchdog.Enter("MobileParty.SetMoveGoToInteractablePoint", BannerKings.Utils.TickTrace.IdOf(__instance)); }
+            private static void Postfix() { BannerKings.Utils.FreezeWatchdog.Exit(); }
+        }
+
+        [HarmonyPatch(typeof(MobileParty), nameof(MobileParty.SetMoveToNearestLand))]
+        internal static class SetMoveToNearestLandBracket
+        {
+            private static void Prefix(MobileParty __instance)
+            { BannerKings.Utils.FreezeWatchdog.Enter("MobileParty.SetMoveToNearestLand", BannerKings.Utils.TickTrace.IdOf(__instance)); }
+            private static void Postfix() { BannerKings.Utils.FreezeWatchdog.Exit(); }
+        }
+
         // ---- Point-targeted setters -----------------------------------------
 
         [HarmonyPatch(typeof(MobileParty), nameof(MobileParty.SetMoveGoToPoint))]
