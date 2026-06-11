@@ -102,7 +102,19 @@ namespace BannerKings.Components
 
                 if (raidTarget != null)
                 {
-                    party.SetMoveRaidSettlement(raidTarget.Settlement, MobileParty.NavigationType.Default, false);
+                    // Re-screen reachability every tick: a village reachable when it was
+                    // picked can become unreachable later (war state shift, a NavalDLC sea
+                    // blockade, the party getting boxed in). Re-issuing SetMoveRaidSettlement
+                    // toward a now-unreachable target hangs the native travel follower — the
+                    // exact freeze IsRaidReachable exists to prevent. Drop the target if so.
+                    if (IsRaidReachable(party, raidTarget.Settlement))
+                    {
+                        party.SetMoveRaidSettlement(raidTarget.Settlement, MobileParty.NavigationType.Default, false);
+                    }
+                    else
+                    {
+                        raidTarget = null;
+                    }
                 }
 
                 if (robbingTarget != null)
@@ -187,47 +199,44 @@ namespace BannerKings.Components
                 party.Aggressiveness = 0.5f;
             }
 
-            if (MBRandom.RandomFloat < 0.5f)
+            // Always pursue an active, REACHABLE raid objective. The old 50% "rob town"
+            // branch set robbingTarget, disabled AI, and left the horde patrolling a town
+            // inertly (huge and doing nothing — the reported "600 bandits sitting outside a
+            // city"). Now the horde always moves toward a raidable village. Reachability is
+            // screened via the hang-safe GetDistance oracle so an unreachable target can't
+            // strand the party (and hang the engine pathfinder via SetMoveRaidSettlement).
+            if (raidTarget == null)
             {
-                if (raidTarget == null && robbingTarget == null)
+                Settlement target = BannerKings.Utils.Helpers.FindNearestVillage(x => x.Village.VillageState == Village.VillageStates.Normal &&
+                            x.Village.Hearth > 100f && x.Village.Militia < party.MemberRoster.TotalManCount * 0.5f, party);
+                if (target != null && IsRaidReachable(party, target))
                 {
-                    Settlement target = BannerKings.Utils.Helpers.FindNearestVillage(x => x.Village.VillageState == Village.VillageStates.Normal &&
-                                x.Village.Hearth > 100f && x.Village.Militia < party.MemberRoster.TotalManCount * 0.5f, party);
-                    if (target != null)
-                    {
-                        party.SetMoveRaidSettlement(target, MobileParty.NavigationType.Default, false);
-                        // RecalculateShortTermAi removed in 1.3.x
-                        raidTarget = target.Village;
-                        lastDecision = CampaignTime.Now;
-                        party.Ai.DisableAi();
-                        party.Aggressiveness = 0f;
-                    } 
-                }
-                else if (raidTarget != null && 
-                    (raidTarget.VillageState == Village.VillageStates.Looted || raidTarget.VillageState == Village.VillageStates.BeingRaided))
-                {
-                    raidTarget = null;
+                    party.SetMoveRaidSettlement(target, MobileParty.NavigationType.Default, false);
+                    raidTarget = target.Village;
+                    lastDecision = CampaignTime.Now;
+                    party.Ai.DisableAi();
+                    party.Aggressiveness = 0f;
                 }
             }
-            else
+            else if (raidTarget.VillageState == Village.VillageStates.Looted || raidTarget.VillageState == Village.VillageStates.BeingRaided)
             {
-                if (robbingTarget == null && raidTarget == null)
-                {
-                    Town nearestTown = BannerKings.Utils.Helpers.FindNearestTown(x => !x.Town.IsUnderSiege, party);
-                    Settlement target = nearestTown?.Settlement;
-                    if (target != null)
-                    {
-                        robbingTarget = target;
-                        lastDecision = CampaignTime.Now;
-                        party.Ai.DisableAi();
-                        party.Aggressiveness = 1f;
-                    }
-                }
-                else if (robbingTarget != null && robbingTarget.Town != null && robbingTarget.Town.IsUnderSiege)
-                {
-                    robbingTarget = null;
-                }
+                // Current target raided out — release it so the next tick repicks a fresh village.
+                raidTarget = null;
             }
+        }
+
+        // Hang-safe reachability check. GetDistance returns a huge sentinel (>=50000) for
+        // targets the engine cannot path to; never set a move toward those (a land-only
+        // bandit party sent at an unreachable village hangs the native travel follower).
+        private bool IsRaidReachable(MobileParty party, Settlement village)
+        {
+            try
+            {
+                float d = TaleWorlds.CampaignSystem.Campaign.Current.Models.MapDistanceModel
+                    .GetDistance(party, village, false, MobileParty.NavigationType.Default, out _);
+                return d > 0f && d < 50000f;
+            }
+            catch { return false; }
         }
 
         public static MobileParty CreateParty(Hideout origin, Hero leader, PartyTemplateObject template)

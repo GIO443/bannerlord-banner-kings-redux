@@ -18,9 +18,16 @@
   the title event log in the encyclopedia → titles tab.
 - **"BK menu is empty"** — the feature was disabled in the MCM settings.
   Re-enable and reload the save.
-- **"Crash on entering a Nord settlement"** — only on pre-fix or
-  non-Redux builds. Update to the latest Banner Kings — Redux release;
-  the Nord null-guards are bundled.
+- **"A huge bandit army (500–600+) is sitting outside a town doing
+  nothing"** — fixed in v1.9.16.18–.19. BK spawns special bandit-hero
+  hordes; an inflated size formula let them balloon to ~600 troops, and
+  a 50/50 behaviour roll could leave a horde "robbing" a town — which
+  in practice meant patrolling outside it inertly, scaring off parties
+  without ever attacking. Now hordes are capped far smaller and **always
+  pursue an active village raid**: they move toward a reachable village,
+  raid it, then pick the next. If you still see a frozen giant horde on
+  an old save, it clears within a week of in-game time as the new logic
+  re-evaluates its target. No player action needed.
 - **"Crash hovering parties in the Army Management screen"** — fixed.
   Caused by BK's mercenary eligibility tweak leaving the hover tooltip's
   reason text null. Update to a current Banner Kings — Redux build.
