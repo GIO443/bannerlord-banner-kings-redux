@@ -374,6 +374,13 @@ namespace BannerKings.Behaviours.Shipping
                     // loaded earlier. Cheap (~one-shot Build, ~30ms).
                     try { BannerKings.Managers.Shipping.ShippingGraph.Invalidate(); } catch { }
 
+                    // Remove corrupt duplicate militia orphans (doubled
+                    // "militias_of_militias_of" id, a vanilla/NavalDLC
+                    // artifact) whose broken-position pathfind can hang the
+                    // campaign thread. BK doesn't create them; this is
+                    // defensive state-recovery only.
+                    try { BannerKings.BannerKingsCheats.CleanupCorruptParties(); } catch { }
+
                     // LoadCleanup is the only rescue-style pass that runs
                     // on load. It covers every signature the now-disabled
                     // hourly UnifiedRescueSweep used to handle (AtSea-on-
