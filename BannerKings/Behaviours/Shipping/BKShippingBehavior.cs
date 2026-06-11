@@ -374,12 +374,15 @@ namespace BannerKings.Behaviours.Shipping
                     // loaded earlier. Cheap (~one-shot Build, ~30ms).
                     try { BannerKings.Managers.Shipping.ShippingGraph.Invalidate(); } catch { }
 
-                    // Remove corrupt duplicate militia orphans (doubled
-                    // "militias_of_militias_of" id, a vanilla/NavalDLC
-                    // artifact) whose broken-position pathfind can hang the
-                    // campaign thread. BK doesn't create them; this is
-                    // defensive state-recovery only.
-                    try { BannerKings.BannerKingsCheats.CleanupCorruptParties(); } catch { }
+                    // NOTE: a previous build (v1.9.16.10) deleted parties whose
+                    // StringId contained "militias_of_militias_of", believing
+                    // them corrupt duplicates. That was WRONG — vanilla's
+                    // Settlement.SpawnMilitiaParty calls CreateMilitiaParty with
+                    // an already-"militias_of_"-prefixed stringId, and Create-
+                    // MilitiaParty prefixes it AGAIN, so EVERY settlement's
+                    // normal (static, non-moving) militia is named
+                    // "militias_of_militias_of_<settlement>" in this version.
+                    // The cleanup was deleting all real militias. Removed.
 
                     // LoadCleanup is the only rescue-style pass that runs
                     // on load. It covers every signature the now-disabled

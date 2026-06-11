@@ -2891,66 +2891,18 @@ namespace BannerKings
             catch { /* defensive: never throw out of a load-time hook */ }
         }
 
-        // One-shot load-time cleanup for corrupt DUPLICATE militia parties.
-        //
-        // A freeze diagnostic captured a party named
-        //   militias_of_militias_of_town_V6_aaa1_aaa1
-        // — a doubled "militias_of_" prefix (plus doubled "_aaa1" collision
-        // suffix). That is a vanilla/NavalDLC (War Sails) type-confusion
-        // artifact: a militia created with a militia PARTY's id where a
-        // Settlement was expected. BK does NOT create these (verified — every
-        // BK party factory uses its own prefix: bk_raisedmilitia_, slavecaravan_,
-        // bk_retinue_, …; none emit "militias_of_"), and BK does not tick them
-        // (BK's MilitiaComponent.TickHourly runs only for BK-typed components).
-        // But such an orphan duplicate can sit in a broken position whose native
-        // travel pathfind hangs the campaign thread — the class of freeze the
-        // watchdog has been chasing. BK can't fix the upstream bug, but as a
-        // state-recovery it removes the orphan on load. Harmless if it wasn't
-        // the freeze cause (a duplicate militia of an already-militia'd town is
-        // garbage either way). Load-time only, per the rescue-sweep rule.
+        // DISABLED (v1.9.16.15). This used to delete every party whose StringId
+        // contained "militias_of_militias_of", on the false belief they were
+        // corrupt duplicates. They are NOT corrupt: vanilla's
+        // Settlement.SpawnMilitiaParty passes an already-"militias_of_"-prefixed
+        // stringId into MilitiaPartyComponent.CreateMilitiaParty, which prefixes
+        // it AGAIN, so EVERY settlement's normal (static, non-moving) militia is
+        // named "militias_of_militias_of_<settlement>_aaa1_aaa1" in this game
+        // version. The old cleanup was deleting ALL settlement militias on every
+        // load. Kept as a no-op so any stale caller is harmless.
         public static void CleanupCorruptParties()
         {
-            try
-            {
-                var corrupt = new List<MobileParty>();
-                foreach (var p in MobileParty.All)
-                {
-                    try
-                    {
-                        var id = p?.StringId;
-                        if (id != null && id.Contains("militias_of_militias_of"))
-                            corrupt.Add(p);
-                    }
-                    catch { }
-                }
-
-                int removed = 0;
-                foreach (var p in corrupt)
-                {
-                    try { DestroyPartyAction.Apply(null, p); removed++; }
-                    catch
-                    {
-                        // Destroy can throw if the party's component references
-                        // are themselves corrupt — fall back to deactivating it
-                        // so the engine stops ticking / pathfinding it.
-                        try { p.IsActive = false; removed++; } catch { }
-                    }
-                }
-
-                if (removed > 0)
-                {
-                    LastWriteResult = $"corrupt-party cleanup: removed {removed} doubled-prefix militia orphan(s)";
-                    try
-                    {
-                        BannerKings.Utils.FreezeWatchdog.WriteLineDirect("freeze.txt",
-                            $"load cleanup: removed {removed} corrupt duplicate militia part(y/ies) " +
-                            "(doubled 'militias_of_militias_of' id — a vanilla/NavalDLC artifact whose " +
-                            "broken-position pathfind can hang the game).");
-                    }
-                    catch { }
-                }
-            }
-            catch { /* defensive: never throw out of a load-time hook */ }
+            // Intentionally does nothing — see the comment above.
         }
 
         // ----- Layered economy rework — Phase 1 validation cheats ------
