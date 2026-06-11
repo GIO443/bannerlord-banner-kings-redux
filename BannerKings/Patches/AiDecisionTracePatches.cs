@@ -195,6 +195,25 @@ namespace BannerKings.Patches
             }
         }
 
+        [HarmonyPatch(typeof(MobileParty), nameof(MobileParty.SetMoveEscortParty))]
+        internal static class SetMoveEscortPartyPostfix
+        {
+            // Militias / escorts move via this setter, NOT SetMoveGoToSettlement
+            // — the one SetMove* variant the brackets missed. A capture showed a
+            // malformed militia (militias_of_militias_of_town_V6_aaa1_aaa1)
+            // ticking just before a frozen native pathfind; if a broken escort
+            // party hangs here, name it + its escort target.
+            private static void Prefix(MobileParty __instance, MobileParty mobileParty)
+            {
+                BannerKings.Utils.FreezeWatchdog.Enter("MobileParty.SetMoveEscortParty",
+                    BannerKings.Utils.TickTrace.IdOf(mobileParty ?? __instance));
+            }
+            private static void Postfix(MobileParty __instance)
+            {
+                BannerKings.Utils.FreezeWatchdog.Exit();
+            }
+        }
+
         // ---- Point-targeted setters -----------------------------------------
 
         [HarmonyPatch(typeof(MobileParty), nameof(MobileParty.SetMoveGoToPoint))]
