@@ -1775,11 +1775,41 @@ namespace BannerKings.Behaviours.Shipping
         {
             try
             {
+                // Match the nav type the hop move will actually use (see
+                // HopNavType): for a naval-capable caravan that's All, so the
+                // check predicts the All follower (which has the water escape
+                // valve and won't dead-end-hang) instead of a land-only path
+                // that GetDistance same-face-shortcuts and mispredicts.
                 float d = Campaign.Current.Models.MapDistanceModel.GetDistance(
-                    caravan, target, false, MobileParty.NavigationType.Default, out _);
+                    caravan, target, false, HopNavType(caravan), out _);
                 return d > 0f && d < 50000f;
             }
             catch { return false; }
+        }
+
+        // Nav type for hop-by-hop moves. NAVAL-capable caravans get All so the
+        // engine's pathfinder can use water faces / auto-board to cross a small
+        // water gap instead of dead-ending a land-only (Default) route and
+        // HANGING the campaign thread — the recurring
+        //   SetMoveGoToSettlement←RouteCaravanHopByHop:town_B2  (GC frozen)
+        // freeze that no GetDistance guard could predict, because
+        // NavalDLCMapDistanceModel.GetDistance takes a same-face Euclidean
+        // shortcut and reports the land route "reachable" while the follower
+        // hangs. Vanilla CaravanAi routes naval caravans the same (full-
+        // capability) way and never hangs there. Land-only caravans keep
+        // Default — no water faces are valid for them, so All would change
+        // nothing. Trade-off: a naval caravan may briefly render on a water
+        // face with no boat sprite until the engine's NavigationTransition
+        // catches up — cosmetic, and categorically better than a hard freeze.
+        private static MobileParty.NavigationType HopNavType(MobileParty caravan)
+        {
+            try
+            {
+                return caravan.HasNavalNavigationCapability
+                    ? MobileParty.NavigationType.All
+                    : MobileParty.NavigationType.Default;
+            }
+            catch { return MobileParty.NavigationType.Default; }
         }
 
         public bool RouteCaravanHopByHop(MobileParty caravan, Settlement intendedDest)
@@ -1804,7 +1834,7 @@ namespace BannerKings.Behaviours.Shipping
                 if (pos.Distance(intendedDest.GatePosition.ToVec2()) <= HopFinalApproachDistance)
                 {
                     if (!CaravanCanReachByLand(caravan, intendedDest)) return false;
-                    caravan.SetMoveGoToSettlement(intendedDest, MobileParty.NavigationType.Default, false);
+                    caravan.SetMoveGoToSettlement(intendedDest, HopNavType(caravan), false);
                     hopByHopState.Remove(caravan);
                     return true;
                 }
@@ -1874,7 +1904,7 @@ namespace BannerKings.Behaviours.Shipping
                 if (nextHop == intendedDest)
                 {
                     if (!CaravanCanReachByLand(caravan, intendedDest)) return false;
-                    caravan.SetMoveGoToSettlement(intendedDest, MobileParty.NavigationType.Default, false);
+                    caravan.SetMoveGoToSettlement(intendedDest, HopNavType(caravan), false);
                     hopByHopState.Remove(caravan);
                     return true;
                 }
@@ -1925,7 +1955,7 @@ namespace BannerKings.Behaviours.Shipping
                     // Don't commit a hop the caravan can't actually land-path to
                     // — that's the move whose follower hangs. Bail to vanilla.
                     if (!CaravanCanReachByLand(caravan, nextHop)) return false;
-                    try { caravan.SetMoveGoToSettlement(nextHop, MobileParty.NavigationType.Default, false); } catch { }
+                    try { caravan.SetMoveGoToSettlement(nextHop, HopNavType(caravan), false); } catch { }
                 }
                 else
                 {
@@ -1934,7 +1964,7 @@ namespace BannerKings.Behaviours.Shipping
                     // on land-reachability too.
                     if (!CaravanCanReachByLand(caravan, nextHop)) return false;
                     var hopPoint = new TaleWorlds.CampaignSystem.CampaignVec2(nextHop.GatePosition.ToVec2(), true);
-                    caravan.SetMoveGoToPoint(hopPoint, MobileParty.NavigationType.Default);
+                    caravan.SetMoveGoToPoint(hopPoint, HopNavType(caravan));
                 }
                 hopByHopState[caravan] = (intendedDest, nextHop);
                 return true;

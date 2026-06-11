@@ -385,6 +385,19 @@ vanilla CaravanAi picks a fresh destination — older builds never
 released the hold and caravans pinned at siege start stayed pinned
 forever after the siege resolved.
 
+**Coastal-town routing freeze (fixed v1.9.16.21).** A naval-capable
+caravan routing toward a coastal town across a small water gap could
+freeze the whole game (a native pathfind hang on the campaign thread,
+usually reported as a hard "day→night" freeze near a specific port).
+BK was forcing land-only navigation on those hops, so the engine's
+pathfinder dead-ended at the water's edge instead of crossing. Naval
+caravans now route with full (land+sea) navigation — the same way
+vanilla routes them — so the pathfinder crosses the gap via auto-board
+instead of hanging. You may very briefly see a caravan on a water tile
+without a boat sprite while the engine catches up; that's cosmetic and
+self-corrects. If you still hit a freeze whose `BK_freeze.txt` ends on
+`RouteCaravanHopByHop`, report the town name.
+
 ## Adaptive shipping costs
 
 Routes are graph-aware *and* react to the current world state. Each
