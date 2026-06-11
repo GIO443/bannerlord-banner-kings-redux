@@ -78,6 +78,10 @@ namespace BannerKings.Patches
                     string ns = t.Namespace ?? "";
                     if (ns.StartsWith("System") || ns.StartsWith("HarmonyLib") || ns.StartsWith("MonoMod")) continue;
                     if (t.Name != null && t.Name.Contains("AiDecisionTrace")) continue;
+                    // SetPartyAiAction is vanilla's move-apply funnel — skip it
+                    // so we name the REAL decider above it (a BK behaviour or a
+                    // vanilla AI behaviour), not the plumbing.
+                    if (t.Name == "SetPartyAiAction") continue;
                     if (m.Name == "SetMoveGoToSettlement") continue; // the original being wrapped
                     return (t.Name ?? "?") + "." + (m.Name ?? "?");
                 }
@@ -98,20 +102,58 @@ namespace BannerKings.Patches
             // BKArmy.AiHourlyTick — i.e. downstream of every instrumented BK
             // handler, in vanilla movement). If the path setup hangs inside the
             // setter, the watchdog names the TARGET settlement here.
-            private static void Prefix(MobileParty __instance, Settlement settlement)
+            private static bool Prefix(MobileParty __instance, Settlement settlement, MobileParty.NavigationType navigationType)
             {
-                // When the watchdog is on, also capture WHO called this setter
-                // (army goal? gather? shipping? gentry? vanilla?). v1.9.16.7
-                // fixed the army-TARGET path (FindArmyObjective reachability),
-                // but a freeze recurred at a town reached through some OTHER
-                // SetMoveGoToSettlement caller — the marker names the target but
-                // not the source. The caller in the handler name resolves that:
+                // Set the watchdog marker FIRST (when on) so that if the
+                // reachability GetDistance below itself hangs (broken SOURCE
+                // face), the freeze is still named SetMoveGoToSettlement rather
+                // than unnamed. Balanced by the Postfix's unconditional Exit().
+                // FindMoveCaller skips the vanilla SetPartyAiAction funnel to
+                // name the REAL decider (BK behaviour or vanilla AI behaviour):
                 //   last MobileParty.SetMoveGoToSettlement←CallBannersGoal.ApplyGoal:town_B2
-                // Gated on Enabled so the StackTrace cost only happens mid-hunt.
-                if (!BannerKings.Utils.FreezeWatchdog.Enabled) return;
-                BannerKings.Utils.FreezeWatchdog.Enter(
-                    "MobileParty.SetMoveGoToSettlement←" + FindMoveCaller(),
-                    settlement?.StringId ?? BannerKings.Utils.TickTrace.IdOf(__instance));
+                if (BannerKings.Utils.FreezeWatchdog.Enabled)
+                {
+                    BannerKings.Utils.FreezeWatchdog.Enter(
+                        "MobileParty.SetMoveGoToSettlement←" + FindMoveCaller(),
+                        settlement?.StringId ?? BannerKings.Utils.TickTrace.IdOf(__instance));
+                }
+
+                // CENTRAL land-reachability guard (always on — the freeze-class
+                // fix). Every freeze in this saga is a movement command to a
+                // target the engine can't travel-pathfind to; the follower then
+                // hangs the campaign thread. Per-caller guards (FindArmyObjective
+                // .16.7, RouteCaravanHopByHop .16.11, militia escort .16.12)
+                // can't cover VANILLA deciders — and the caller capture proved
+                // some come straight from vanilla (SetPartyAiAction.ApplyInternal
+                // :castle_A6, GC frozen 3min+). So gate the setter itself.
+                //
+                // SAFETY: only LAND-ONLY parties on Default (land) nav are
+                // guarded. Naval-capable parties are left completely alone, so
+                // NavalDLC port auto-boarding and sea routes are untouched (a
+                // land-only party has no naval shortcut, so GetDistance with
+                // Default is an unambiguous land-reachability oracle). Skip ONLY
+                // on a clearly-huge distance (unreachable sentinel) — NOT on a
+                // degenerate d<=0/NaN (party mid-transition / inside a
+                // settlement), so a valid move is never wrongly dropped. An
+                // unreachable target → skip the move; the AI re-decides next tick.
+                if (settlement != null && __instance != null
+                    && navigationType == MobileParty.NavigationType.Default)
+                {
+                    bool landOnly = false;
+                    try { landOnly = !__instance.HasNavalNavigationCapability; } catch { }
+                    if (landOnly)
+                    {
+                        try
+                        {
+                            float d = TaleWorlds.CampaignSystem.Campaign.Current.Models.MapDistanceModel
+                                .GetDistance(__instance, settlement, false, MobileParty.NavigationType.Default, out _);
+                            if (d >= 50000f) return false; // clearly-unreachable land target — don't commit
+                        }
+                        catch { }
+                    }
+                }
+
+                return true;
             }
             private static void Postfix(MobileParty __instance, Settlement settlement, MobileParty.NavigationType navigationType, bool isTargetingThePort)
             {
