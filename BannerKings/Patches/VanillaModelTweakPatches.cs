@@ -794,8 +794,16 @@ namespace BannerKings.Patches
 
                     if (party.MobileParty.IsBandit && party.MobileParty.PartyComponent is BanditHeroComponent)
                     {
-                        __result.Add(150f, new TextObject("{=C0MCMXZ1}Bandit horde"));
-                        __result.Add(party.MobileParty.LeaderHero.GetSkillValue(DefaultSkills.Roguery) * 1.5f, DefaultSkills.Roguery.Name);
+                        // Was +150 flat + Roguery*1.5. A spawned bandit hero has
+                        // high Roguery (up to ~330 -> +495), so the limit reached
+                        // ~700 and BanditHeroComponent leaves its hideout only at
+                        // 0.6*limit -> hordes ballooned to ~600 troops and then
+                        // sat outside a town (AI disabled in ConsiderTarget),
+                        // scaring parties but doing nothing. Cut to a sane horde
+                        // size: flat +50 + Roguery*0.3 (max ~+150 -> limit ~180 ->
+                        // horde ~100), a real threat, not a 600-troop doomstack.
+                        __result.Add(50f, new TextObject("{=C0MCMXZ1}Bandit horde"));
+                        __result.Add(party.MobileParty.LeaderHero.GetSkillValue(DefaultSkills.Roguery) * 0.3f, DefaultSkills.Roguery.Name);
                     }
 
                     // Supplies no longer modify the party SIZE LIMIT. Each
