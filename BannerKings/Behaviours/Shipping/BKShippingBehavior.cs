@@ -1752,6 +1752,33 @@ namespace BannerKings.Behaviours.Shipping
         // Returns true if a routing decision was issued, false if the helper
         // could not handle the case (caller should fall back to direct
         // SetMoveGoToSettlement).
+        // Hang-safe land-reachability gate for caravan hops. The graph's
+        // AreConnected check only proves graph-level connectivity between two
+        // NODES — it does NOT prove the caravan's ACTUAL current position can
+        // land-path to the next hop. When it can't (caravan sitting on a coast
+        // tile, the hop town across water while the caravan is in land mode,
+        // or a navmesh defect), SetMoveGoToSettlement(hop, Default) commits the
+        // move and the engine's travel pathfind HANGS the campaign thread —
+        // BK_freeze.txt v1.9.16.8 caught exactly this:
+        //   SetMoveGoToSettlement←BKShippingBehavior.RouteCaravanHopByHop:town_B2
+        // then a 45s frozen native pathfind. GetDistance is the safe oracle: it
+        // returns a huge value for an unreachable target and, unlike the travel
+        // pathfind, does NOT hang (BKAIVisitSettlement's GetDistance calls never
+        // froze). Use the SAME NavigationType.Default the move uses so the check
+        // predicts the follower. If the next hop isn't land-reachable, the graph
+        // routing is wrong for this caravan's position — bail and let vanilla
+        // CaravanAi / the redirect+rescue path handle it rather than hang.
+        private bool CaravanCanReachByLand(MobileParty caravan, Settlement target)
+        {
+            try
+            {
+                float d = Campaign.Current.Models.MapDistanceModel.GetDistance(
+                    caravan, target, false, MobileParty.NavigationType.Default, out _);
+                return d > 0f && d < 50000f;
+            }
+            catch { return false; }
+        }
+
         public bool RouteCaravanHopByHop(MobileParty caravan, Settlement intendedDest)
         {
             if (caravan == null || intendedDest == null) return false;
@@ -1768,6 +1795,7 @@ namespace BannerKings.Behaviours.Shipping
                 // the trade pipeline.
                 if (pos.Distance(intendedDest.GatePosition.ToVec2()) <= HopFinalApproachDistance)
                 {
+                    if (!CaravanCanReachByLand(caravan, intendedDest)) return false;
                     caravan.SetMoveGoToSettlement(intendedDest, MobileParty.NavigationType.Default, false);
                     hopByHopState.Remove(caravan);
                     return true;
@@ -1816,6 +1844,7 @@ namespace BannerKings.Behaviours.Shipping
                 // adjacent to the destination in graph terms. Route directly.
                 if (nextHop == intendedDest)
                 {
+                    if (!CaravanCanReachByLand(caravan, intendedDest)) return false;
                     caravan.SetMoveGoToSettlement(intendedDest, MobileParty.NavigationType.Default, false);
                     hopByHopState.Remove(caravan);
                     return true;
@@ -1864,10 +1893,17 @@ namespace BannerKings.Behaviours.Shipping
                 //     re-runs us for the next hop.
                 if (nextHop.HasPort || nextHop.IsTown || nextHop.IsCastle)
                 {
+                    // Don't commit a hop the caravan can't actually land-path to
+                    // — that's the move whose follower hangs. Bail to vanilla.
+                    if (!CaravanCanReachByLand(caravan, nextHop)) return false;
                     try { caravan.SetMoveGoToSettlement(nextHop, MobileParty.NavigationType.Default, false); } catch { }
                 }
                 else
                 {
+                    // Same travel pathfinder, same hang surface as the
+                    // settlement setters — gate the non-port fief gate-point hop
+                    // on land-reachability too.
+                    if (!CaravanCanReachByLand(caravan, nextHop)) return false;
                     var hopPoint = new TaleWorlds.CampaignSystem.CampaignVec2(nextHop.GatePosition.ToVec2(), true);
                     caravan.SetMoveGoToPoint(hopPoint, MobileParty.NavigationType.Default);
                 }
