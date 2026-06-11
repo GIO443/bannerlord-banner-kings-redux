@@ -225,6 +225,29 @@ namespace BannerKings.Models.Vanilla
                 // hang or flood the pathfinder.
                 if (leaderParty.GetPosition2D.Distance(party.GetPosition2D) >= maxDistance) continue;
 
+                // Reachability gate (the straight-line check above is only a
+                // cheap pre-filter). Don't invite a party that can't actually
+                // reach the army by land: it never gathers (stranded across
+                // water / at sea), the army disperses for inactivity, and the
+                // freed party's path-home pathfind HANGS the campaign thread —
+                // the "freeze on disbanding an AI army formed with influence"
+                // report. GetDistance is the hang-safe oracle (huge for
+                // unreachable, never hangs). Run it only on the straight-line-
+                // close candidates (bounded), against the leader's settlement
+                // anchor; skip the check only if the leader has no settlement
+                // reference to test against.
+                bool atSea = false;
+                try { atSea = party.IsCurrentlyAtSea; } catch { }
+                if (atSea) continue;
+                var anchor = leaderParty.CurrentSettlement ?? leaderParty.LeaderHero?.HomeSettlement;
+                if (anchor != null)
+                {
+                    float gd;
+                    try { gd = Campaign.Current.Models.MapDistanceModel.GetDistance(party, anchor, false, MobileParty.NavigationType.Default, out _); }
+                    catch { gd = float.MaxValue; }
+                    if (gd >= 50000f) continue; // land-unreachable from the leader — don't summon
+                }
+
                 candidates.Add(party);
             }
 
