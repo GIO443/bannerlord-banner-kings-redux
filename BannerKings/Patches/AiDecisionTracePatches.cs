@@ -59,6 +59,33 @@ namespace BannerKings.Patches
             catch { }
         }
 
+        // Walk the call stack to the first real caller of the SetMove setter,
+        // skipping this patch class, Harmony's dynamic wrapper (null declaring
+        // type), the System/Harmony/MonoMod plumbing, and the original setter
+        // method itself. Returns "Type.Method" (BK or vanilla) so a freeze line
+        // names who issued the move. Only called when the watchdog is enabled.
+        private static string FindMoveCaller()
+        {
+            try
+            {
+                var st = new System.Diagnostics.StackTrace(2, false); // skip this + the Prefix
+                int n = st.FrameCount;
+                for (int i = 0; i < n && i < 12; i++)
+                {
+                    var m = st.GetFrame(i)?.GetMethod();
+                    var t = m?.DeclaringType;
+                    if (t == null) continue; // Harmony dynamic method
+                    string ns = t.Namespace ?? "";
+                    if (ns.StartsWith("System") || ns.StartsWith("HarmonyLib") || ns.StartsWith("MonoMod")) continue;
+                    if (t.Name != null && t.Name.Contains("AiDecisionTrace")) continue;
+                    if (m.Name == "SetMoveGoToSettlement") continue; // the original being wrapped
+                    return (t.Name ?? "?") + "." + (m.Name ?? "?");
+                }
+            }
+            catch { }
+            return "?";
+        }
+
         // ---- Settlement-targeted setters ------------------------------------
 
         [HarmonyPatch(typeof(MobileParty), nameof(MobileParty.SetMoveGoToSettlement))]
@@ -73,7 +100,17 @@ namespace BannerKings.Patches
             // setter, the watchdog names the TARGET settlement here.
             private static void Prefix(MobileParty __instance, Settlement settlement)
             {
-                BannerKings.Utils.FreezeWatchdog.Enter("MobileParty.SetMoveGoToSettlement",
+                // When the watchdog is on, also capture WHO called this setter
+                // (army goal? gather? shipping? gentry? vanilla?). v1.9.16.7
+                // fixed the army-TARGET path (FindArmyObjective reachability),
+                // but a freeze recurred at a town reached through some OTHER
+                // SetMoveGoToSettlement caller — the marker names the target but
+                // not the source. The caller in the handler name resolves that:
+                //   last MobileParty.SetMoveGoToSettlement←CallBannersGoal.ApplyGoal:town_B2
+                // Gated on Enabled so the StackTrace cost only happens mid-hunt.
+                if (!BannerKings.Utils.FreezeWatchdog.Enabled) return;
+                BannerKings.Utils.FreezeWatchdog.Enter(
+                    "MobileParty.SetMoveGoToSettlement←" + FindMoveCaller(),
                     settlement?.StringId ?? BannerKings.Utils.TickTrace.IdOf(__instance));
             }
             private static void Postfix(MobileParty __instance, Settlement settlement, MobileParty.NavigationType navigationType, bool isTargetingThePort)
