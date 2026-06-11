@@ -46,10 +46,28 @@ namespace BannerKings.Behaviours.Diplomacy.Groups
         public void PostInitialize()
         {
             RadicalGroup r = DefaultRadicalGroups.Instance.GetById(this);
-            Initialize(r.name, r.description, r.Demand,
+            // Preserve the demand deserialized from the save — it carries the
+            // player's chosen Claimant (and DueDate / outcome state). Passing
+            // r.Demand here would assign the shared registry TEMPLATE whose
+            // Claimant is null, wiping the claimant on every load and leaving
+            // the group unable to make its ultimatum ("Make Ultimatum" greyed
+            // out even with requirements met). Registry-only data — name,
+            // description, governments, push-score fn — is still restored from
+            // the template; only the demand object is kept. Fall back to the
+            // template demand solely when the save had none (old saves / a
+            // freshly added per-type slot not yet set up).
+            RadicalDemand savedDemand = Demand;
+            // Fallback (save had no demand) clones the template rather than
+            // aliasing the shared per-type singleton — otherwise two realms
+            // both falling back would mutate the same demand instance.
+            RadicalDemand demand = savedDemand ?? (RadicalDemand)r.Demand.GetCopy(this);
+            Initialize(r.name, r.description, demand,
                 r.SourceGovernments, r.TargetGovernment, r._pushScoreFn);
-            CurrentDemand.SetTexts();
+            // Set the back-reference before SetTexts: the claimant text reads
+            // Group.KingdomDiplomacy.Kingdom with no null guard, and on the
+            // template-fallback path the demand's Group would otherwise be null.
             CurrentDemand.Group = this;
+            CurrentDemand.SetTexts();
         }
 
         public override DiplomacyGroup GetCopy(KingdomDiplomacy diplomacy)

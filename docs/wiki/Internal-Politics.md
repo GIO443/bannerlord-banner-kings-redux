@@ -445,6 +445,14 @@ cleared — and stays gone unless conditions again predict ≥40% support. That
 frees the slot, so if no faction is active you can start your own from the
 Groups tab. (Previously a spent faction could linger and block you.)
 
+If you lead a **claimant faction**, the claimant you pick is binding for the
+life of the group and **persists across save/reload** — load a save and your
+faction still backs the same claimant, with **Make Ultimatum** available once
+radicalism reaches the demand's threshold. (Fixed in v1.9.16.20: a reload used
+to silently reset the chosen claimant, leaving the ultimatum greyed out even
+with requirements met. If you were hit by this on an older save, re-open the
+group and re-pick the claimant once — it will stick from then on.)
+
 **How a contest is weighed.** Each clan contributes `clout × (1 − m) +
 military × m`, where `m` (the military coefficient) rises for martial
 governments — a Tribal realm is settled by swords, a Republic by standing.
