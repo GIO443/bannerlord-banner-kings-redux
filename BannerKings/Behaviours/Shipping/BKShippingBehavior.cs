@@ -1788,6 +1788,11 @@ namespace BannerKings.Behaviours.Shipping
             // BK opt-out: this caravan was rescue-oscillating; let vanilla
             // CaravanAi handle them for the cooldown.
             if (IsBkOptedOut(caravan)) return false;
+            // At-sea caravans: a Default (land) move issued from a sea position
+            // has no land path and the engine's travel pathfind HANGS. Let
+            // vanilla/NavalDLC finish the sea leg; hop-routing resumes once the
+            // caravan is back in land mode at a port.
+            try { if (caravan.IsCurrentlyAtSea) return false; } catch { }
             try
             {
                 var pos = caravan.GetPosition2D;
@@ -1842,6 +1847,27 @@ namespace BannerKings.Behaviours.Shipping
                 if (path == null || path.Count < 2) return false;
 
                 Settlement nextHop = path[1];
+
+                // Sea-edge hop guard. The hop-by-hop model assumes LAND-
+                // reachable hops (NavalDLC auto-boards for sea crossings AT a
+                // port). If the graph routed a SEA edge as the next hop, a
+                // Default (land) move to it has NO land path and the engine's
+                // travel pathfind HANGS — BK_freeze.txt caught exactly this:
+                //   SetMoveGoToSettlement←RouteCaravanHopByHop:town_B2, GC frozen.
+                // CaravanCanReachByLand (GetDistance) can't catch it because for
+                // a naval-capable caravan GetDistance(Default) includes sea
+                // routes and reports "reachable". The graph's own edge kind
+                // can: for a sea hop, hand the caravan back to vanilla CaravanAi
+                // + NavalDLC (which route the sea leg with proper naval nav)
+                // instead of issuing a hanging land move.
+                try
+                {
+                    if (graph.Adjacency.TryGetValue(startNode, out var startEdges))
+                        foreach (var e in startEdges)
+                            if (e.To == nextHop && e.Kind == ShippingGraph.EdgeKind.Sea)
+                                return false;
+                }
+                catch { }
 
                 // Single hop remaining (path[1] == intendedDest): caravan is
                 // adjacent to the destination in graph terms. Route directly.
