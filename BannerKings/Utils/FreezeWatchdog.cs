@@ -427,7 +427,8 @@ namespace BannerKings.Utils
                     sb.Append("<pre>" + System.Security.SecurityElement.Escape(diag) + "</pre>");
 
                 sb.Append("<h2>What to do</h2><p>Send <code>" + System.Security.SecurityElement.Escape(Path.GetFileName(htmPath))
-                    + "</code> (and <code>BK_freeze.txt</code>) from your Crashes folder. The move context above names the "
+                    + "</code> (and <code>BK_freeze.txt</code>) from <code>%LOCALAPPDATA%\\BannerKings\\ModLogs</code> "
+                    + "(this file's own folder). The move context above names the "
                     + "party and target whose pathfind hung — that is exactly what is needed to fix the root cause.</p>");
                 sb.Append("</body></html>");
 

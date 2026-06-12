@@ -415,8 +415,9 @@ the game was stuck forever and you had to force-quit — losing the session and
 most of the diagnostic detail. Now, when the watchdog confirms a *genuine*
 hang (the game wedged inside one operation for 20+ seconds with the garbage
 collector frozen, i.e. it will never recover), BK writes a one-page report
-named `BK_freeze_crash_<date>_<time>.htm` to your Crashes folder and then
-crashes the game on purpose, so you can restart instead of force-quitting.
+named `BK_freeze_crash_<date>_<time>.htm` to the same ModLogs folder as
+`BK_freeze.txt` (`%LOCALAPPDATA%\BannerKings\ModLogs`) and then crashes the
+game on purpose, so you can restart instead of force-quitting.
 **Open that .htm in any browser and send it** — it names the exact party and
 destination whose movement hung (plus position, whether it can sail, and the
 land/sea path distances), which is precisely what's needed to fix the cause.
