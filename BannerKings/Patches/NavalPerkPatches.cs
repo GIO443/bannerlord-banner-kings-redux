@@ -237,6 +237,39 @@ namespace BannerKings.Patches
             }
         }
 
+        // --- Restore the minimum-speed floor on the NavalDLC speed model.
+        //     NavalDLCPartySpeedCalculationModel.CalculateFinalSpeed delegates to
+        //     the base (vanilla) model, then adds its own factors — shallow draft,
+        //     and a wind term AddFactor(num * (1 + SumOfFactors)) that AMPLIFIES an
+        //     already-negative factor sum — and ends with only LimitMax(10), no
+        //     LimitMin. So the final naval speed can fall below the engine's
+        //     MinimumSpeed (1) or even go negative, at which point NextMoveDistance
+        //     <= 0 and the party NEVER advances — a stuck/"frozen" naval party.
+        //     (BK's own -SlowerParties factor, applied in the base postfix, makes
+        //     this easier to hit, so BK owns the fix.) This is a PURE floor — it
+        //     adds no factor, so it cannot double the SlowerParties penalty.
+        [HarmonyPatch]
+        internal static class NavalFinalSpeedFloorPatch
+        {
+            private static Type _modelType;
+
+            private static bool Prepare()
+            {
+                _modelType = AccessTools.TypeByName("NavalDLC.GameComponents.NavalDLCPartySpeedCalculationModel");
+                return _modelType != null
+                    && AccessTools.Method(_modelType, "CalculateFinalSpeed") != null;
+            }
+
+            private static MethodBase TargetMethod()
+                => AccessTools.Method(_modelType, "CalculateFinalSpeed");
+
+            private static void Postfix(ref ExplainedNumber __result)
+            {
+                if (!ModCompat.WarSails) return;
+                __result.LimitMin(1f);
+            }
+        }
+
         // --- Jomsviking Boarding Fury: +melee damage during naval missions --------
         [HarmonyPatch]
         internal static class JomsvikingBoardingFuryPatch

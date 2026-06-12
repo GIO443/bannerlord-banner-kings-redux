@@ -149,8 +149,33 @@ namespace BannerKings.Components
             // active AI to actually walk them to their target. Aggressiveness=0
             // and ShouldJoinPlayerBattles=false keep them from being
             // sidetracked into combat.
-            party.SetMoveGoToSettlement(target, MobileParty.NavigationType.Default, false);
+            //
+            // NOTE: the travel move is NOT issued here. The party has no
+            // position or navigation face yet (Initialize*AtPosition runs in
+            // each caller AFTER this), so a move issued now runs the first
+            // pathfind from an uninitialized face and is clobbered by Init
+            // (the caravan auto-entered its origin — see CreateFoodCaravan).
+            // Each caller issues the move via IssueOverlandMove AFTER init.
             return party;
+        }
+
+        // Issue a population caravan's overland travel move AFTER its position
+        // and navigation face have been initialized. Reachability-gated with
+        // the hang-safe GetDistance oracle (these caravans are land-only, so
+        // Default distance is an unambiguous land-reachability check): a target
+        // on a different landmass is skipped rather than committed to a native
+        // travel pathfind that would hang the campaign thread.
+        private static void IssueOverlandMove(MobileParty party, Settlement target)
+        {
+            if (party == null || target == null) return;
+            try
+            {
+                float d = Campaign.Current.Models.MapDistanceModel
+                    .GetDistance(party, target, false, MobileParty.NavigationType.Default, out _);
+                if (d > 0f && d < 50000f)
+                    party.SetMoveGoToSettlement(target, MobileParty.NavigationType.Default, false);
+            }
+            catch { }
         }
 
         public static void CreateSlaveCaravan(Settlement origin, Settlement target, int slaves)
@@ -186,6 +211,7 @@ namespace BannerKings.Components
             caravan.InitializeMobilePartyAtPosition(template, origin.GatePosition);
             GiveMounts(ref caravan);
             GiveFood(ref caravan);
+            IssueOverlandMove(caravan, target);
         }
 
         // Phase 5 — inter-cluster food caravan. Same overland primitive
@@ -232,13 +258,11 @@ namespace BannerKings.Components
             caravan.InitializeMobilePartyAtPosition(template, origin.GatePosition);
             GiveMounts(ref caravan);
             GiveFood(ref caravan);
-            // Re-issue the move target AFTER initialization. Without this, the
-            // caravan was auto-entering its origin on the very first tick —
+            // Issue the move AFTER initialization (reachability-gated). Without
+            // this, the caravan auto-entered its origin on the very first tick —
             // observed in BK_food_caravans.txt: caravans dispatched to EN6
-            // delivered to their origin EW2 with zero TickHourly fires. Slave
-            // caravans don't expose this because their target is a village
-            // (different vanilla auto-entry path).
-            caravan.SetMoveGoToSettlement(target, MobileParty.NavigationType.Default, false);
+            // delivered to their origin EW2 with zero TickHourly fires.
+            IssueOverlandMove(caravan, target);
             return caravan;
         }
 
@@ -315,6 +339,9 @@ namespace BannerKings.Components
                 GiveItems(ref party, type);
             }
 
+            // Issue the travel move now that position + face are initialized
+            // (reachability-gated). See CreateParty's note.
+            IssueOverlandMove(party, target);
             return party;
         }
 

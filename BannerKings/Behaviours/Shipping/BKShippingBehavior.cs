@@ -833,10 +833,22 @@ namespace BannerKings.Behaviours.Shipping
                     // out of the port to its next graph-hop target.
                     return;
                 }
-                party.IsCurrentlyAtSea = false;
+                // Route through the engine primitive instead of writing the
+                // flag + Position by hand. DisembarkToPosition ALSO sets
+                // TargetPosition (which the old manual version left pointing at
+                // the stale at-sea target) and syncs attached parties. That
+                // missing TargetPosition reconcile is exactly what left the
+                // party's next pathfind running from a Position that disagreed
+                // with its target — the corrupted-face native travel hang. If
+                // there is somehow no CurrentSettlement on a port-arrival
+                // disembark, fall back to clearing the flag only.
                 if (party.CurrentSettlement != null)
                 {
-                    party.Position = party.CurrentSettlement.GatePosition;
+                    party.DisembarkToPosition(party.CurrentSettlement.GatePosition);
+                }
+                else
+                {
+                    party.IsCurrentlyAtSea = false;
                 }
             }
             catch
@@ -2270,7 +2282,13 @@ namespace BannerKings.Behaviours.Shipping
                         || (t.MapFaction != null
                             && t.MapFaction != party.MapFaction
                             && t.MapFaction.IsAtWarWith(party.MapFaction)));
-                if (targetUnusable)
+                // Don't re-target an AT-SEA caravan with a land (Default) move:
+                // the native land pathfind from a water face has no frontier and
+                // HANGS. Every other SetMove in this behaviour is AtSea-gated;
+                // this retarget block was the one that wasn't. Let the sea leg /
+                // hop logic re-route once the caravan is back in land mode.
+                bool atSea = false; try { atSea = party.IsCurrentlyAtSea; } catch { }
+                if (targetUnusable && !atSea)
                 {
                     Settlement replacement = FindNearestRescueTown(party, party.GetPosition2D);
                     if (replacement != null && replacement != t)

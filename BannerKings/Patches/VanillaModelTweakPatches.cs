@@ -969,6 +969,18 @@ namespace BannerKings.Patches
                 if (BannerKingsSettings.Instance.SlowerParties > 0f)
                     __result.AddFactor(-BannerKingsSettings.Instance.SlowerParties,
                         new TextObject("{=OohdenyR}Slower Parties setting"));
+
+                // Re-apply the engine's minimum-speed floor. Vanilla's
+                // CalculateFinalSpeed ends with finalSpeed.LimitMin(MinimumSpeed=1),
+                // but this POSTFIX runs after that and adds factors (-SlowerParties,
+                // the Caravaneer debuff) that can push the result below 1 — at or
+                // below 0 a party's NextMoveDistance is <= 0 and it NEVER advances
+                // toward its target (a stuck party that reads as a freeze). Restore
+                // the floor BK itself broke. (Naval parties get a second, final
+                // floor on NavalDLCPartySpeedCalculationModel — see NavalPerkPatches
+                // — because that model adds more factors after this base call with
+                // no min clamp of its own.)
+                __result.LimitMin(1f);
             }
         }
 

@@ -408,6 +408,31 @@ If a freeze still ends on `PartyHourlyAiTick`, report the town name — a
 lord sitting right at an island's shore across a tiny gap is a remaining
 edge case worth a separate look.
 
+**Root-cause freeze fixes (v1.9.18.0).** A repo-wide audit traced the late-game
+"day → night" freeze to BK handing the engine a **corrupted party**, not a bad
+destination (the hung town varied because the *party* was broken). Fixed at the
+source:
+
+- **Disembark no longer corrupts the party.** When a caravan finished a sea leg
+  at a port, BK was clearing the at-sea flag and repositioning it by hand, but
+  leaving its internal target pointing at the old sea position — so its next move
+  pathfound from a mismatched state and hung. BK now uses the engine's own
+  disembark primitive, which keeps everything consistent.
+- **At-sea caravans are no longer sent on land routes.** One re-targeting path
+  could order an at-sea caravan to walk a land route (no path from open water →
+  hang). It now waits until the caravan is back ashore.
+- **Population caravans (slave/food/traveller) move correctly.** They were issued
+  a destination before they had a map position, which made them auto-enter their
+  origin or path from an uninitialized spot. The order is fixed and the
+  destination is reachability-checked.
+
+**Parties no longer crawl to a standstill (v1.9.18.0).** The **Slower Parties**
+slider (and, with War Sails, the stacked naval penalties — over-crew, becalmed,
+shallow draft) could drive a party's speed to zero, so it never reached its
+destination and looked frozen. BK now re-applies the engine's minimum-speed
+floor after its own modifiers, on both land and sea, so a party always makes at
+least minimum headway.
+
 ## Adaptive shipping costs
 
 Routes are graph-aware *and* react to the current world state. Each
