@@ -1,5 +1,6 @@
 ﻿using BannerKings.Behaviours.Diplomacy;
 using BannerKings.Behaviours.Diplomacy.Groups;
+using BannerKings.Behaviours.Diplomacy.Groups.Demands;
 using BannerKings.UI.Items;
 using BannerKings.Utils.Models;
 using Bannerlord.UIExtenderEx.Attributes;
@@ -21,6 +22,11 @@ namespace BannerKings.UI.VanillaTabs.Kingdoms.Groups
     public class RadicalGroupVM : GroupItemVM
     {
         private bool isDemandEnabled, hasLeader, isInviteEnabled;
+        // True when the player leads a claimant faction whose claimant is null
+        // (an old save corrupted by the pre-v1.9.16.20 reload bug). In that
+        // state the demand button becomes "Choose Claimant" and re-seeds the
+        // claimant via ShowPlayerDemandOptions instead of pushing an ultimatum.
+        private bool needsClaimantChoice;
         private string demandName, createChance;
         private HintViewModel demandHint, inviteHint;
         private HintViewModel chanceHint;
@@ -225,6 +231,28 @@ namespace BannerKings.UI.VanillaTabs.Kingdoms.Groups
             DemandHint = new HintViewModel(
                 new TextObject("{=8CtOagZE}Make an ultimatum to your ruler demanding they accept your terms. If rejected, you and your group peers will be denounced as enemies of the realm, and a civil war will begin."));
 
+            // Recovery for a player-led claimant faction with no claimant. The
+            // ultimatum can never be pushed while the claimant is null
+            // (IsDemandCurrentlyAdequate is false), and there was no in-UI way
+            // to (re)pick one after group creation — so an old save corrupted
+            // by the pre-v1.9.16.20 reload bug was permanently stuck. Repurpose
+            // the demand button to seed the claimant; once chosen it reverts to
+            // "Make Ultimatum" on the next refresh.
+            needsClaimantChoice = Group.Leader == Hero.MainHero
+                && Group.CurrentDemand is ClaimantDemand cd && cd.Claimant == null;
+            if (needsClaimantChoice)
+            {
+                // Bind this live VM so the demand picker's RefreshValues
+                // callback (ClaimantDemand.ShowPlayerDemandOptions) has a
+                // non-null target — on a loaded save RadicalGroup.ViewModel
+                // is otherwise null and the callback would NRE.
+                RadicalGroup.ViewModel = this;
+                DemandName = new TextObject("{=BKchooseClaimant}Choose Claimant").ToString();
+                IsDemandEnabled = true;
+                DemandHint = new HintViewModel(
+                    new TextObject("{=BKchooseClaimantHint}This faction has no claimant selected, so it cannot make its ultimatum. Pick the claimant your faction will back."));
+            }
+
             IsInviteEnabled = Group.Leader == Hero.MainHero;
             InviteHint = new HintViewModel(new TextObject("{=vmbdT2Wf}Invite other members to your group. Only the group's leader can invite other members, at the expense of their influence. Members will be avaiable or not to be invited according to their willingness to participate in the group. Willing lords and ladies may also occasionally join the group on their own volition, without any costs to the leader."));
         }
@@ -362,6 +390,15 @@ namespace BannerKings.UI.VanillaTabs.Kingdoms.Groups
         [DataSourceMethod]
         private void ExecuteDemand()
         {
+            // Recovery path: seed the missing claimant instead of pushing.
+            // ShowPlayerDemandOptions sets Claimant on selection and refreshes
+            // this VM, after which the button reverts to "Make Ultimatum".
+            if (needsClaimantChoice)
+            {
+                Group.CurrentDemand.ShowPlayerDemandOptions();
+                return;
+            }
+
             float rebelStrength = RadicalGroup.TotalStrength;
             Hero ruler = Group.KingdomDiplomacy.Kingdom.Leader;
             float accept = RadicalGroup.CurrentDemand.PositiveAnswer.CalculateAiLikelihood(ruler);

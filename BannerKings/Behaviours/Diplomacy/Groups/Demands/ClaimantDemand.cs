@@ -255,6 +255,17 @@ namespace BannerKings.Behaviours.Diplomacy.Groups.Demands
         public override void ShowPlayerDemandOptions()
         {
             FeudalTitle title = BannerKingsConfig.Instance.TitleManager.GetSovereignTitle(Group.KingdomDiplomacy.Kingdom);
+            // No sovereign title (custom / minor / un-titled realm) means there
+            // is no succession law to enumerate claimants from. SetUpInternally
+            // guards this; this picker did not, so it would NRE on title.FullName
+            // below. Tell the player instead of crashing.
+            if (title == null)
+            {
+                InformationManager.DisplayMessage(new InformationMessage(
+                    new TextObject("{=BKnoSovereignTitle}This realm has no sovereign title, so no claimant can be selected.").ToString(),
+                    Color.FromUint(Utils.TextHelper.COLOR_LIGHT_RED)));
+                return;
+            }
             IEnumerable<KeyValuePair<Hero, ExplainedNumber>> claimants = BannerKingsConfig.Instance.TitleModel
                     .CalculateSuccessionLine(title, Group.KingdomDiplomacy.Kingdom.RulingClan, null, -1);
             List<InquiryElement> list = new List<InquiryElement>();

@@ -15,7 +15,11 @@ namespace BannerKings.Behaviours.Diplomacy.Groups
 {
     public class RadicalGroup : DiplomacyGroup
     {
-        public ViewModel ViewModel { get; private set; }
+        // Settable so the live VM can (re)bind on load — SetupRadicalGroup only
+        // assigns this at group creation, so a loaded save leaves it null and
+        // the demand picker's RefreshValues callback would NRE. RadicalGroupVM
+        // binds itself here in RefreshValues.
+        public ViewModel ViewModel { get; set; }
         public RadicalGroup(string stringId) : base(stringId)
         {
         }

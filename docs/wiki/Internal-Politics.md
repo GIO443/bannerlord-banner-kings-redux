@@ -450,8 +450,16 @@ life of the group and **persists across save/reload** — load a save and your
 faction still backs the same claimant, with **Make Ultimatum** available once
 radicalism reaches the demand's threshold. (Fixed in v1.9.16.20: a reload used
 to silently reset the chosen claimant, leaving the ultimatum greyed out even
-with requirements met. If you were hit by this on an older save, re-open the
-group and re-pick the claimant once — it will stick from then on.)
+with requirements met.)
+
+**Recovering a stuck claimant faction (older saves).** If you have a claimant
+faction from before the fix whose **Make Ultimatum** stays greyed out even at
+high radicalism, its claimant was lost by the old bug. As the faction leader,
+open the faction in the **Groups** tab: the demand button now reads **Choose
+Claimant** instead of Make Ultimatum. Click it, pick your claimant from the
+succession list, and the button reverts to **Make Ultimatum** — the choice
+persists from then on. (You can tell a faction is in this state because its
+**Demand** row reads a generic "Claimant" rather than "Install &lt;name&gt;".)
 
 **How a contest is weighed.** Each clan contributes `clout × (1 − m) +
 military × m`, where `m` (the military coefficient) rises for martial
