@@ -385,7 +385,7 @@ vanilla CaravanAi picks a fresh destination — older builds never
 released the hold and caravans pinned at siege start stayed pinned
 forever after the siege resolved.
 
-**Coastal-town routing freeze (fixed v1.9.16.21).** A naval-capable
+**Coastal-town routing freeze (caravans, fixed v1.9.16.21).** A naval-capable
 caravan routing toward a coastal town across a small water gap could
 freeze the whole game (a native pathfind hang on the campaign thread,
 usually reported as a hard "day→night" freeze near a specific port).
@@ -397,6 +397,16 @@ instead of hanging. You may very briefly see a caravan on a water tile
 without a boat sprite while the engine catches up; that's cosmetic and
 self-corrects. If you still hit a freeze whose `BK_freeze.txt` ends on
 `RouteCaravanHopByHop`, report the town name.
+
+**Sailing-lord routing freeze (fixed v1.9.16.23).** The same hang could
+strike a naval-capable AI lord sent by the game's own hourly AI toward
+a coastal/island town with no land route (`BK_freeze.txt` ending on
+`PartyHourlyAiTick`). BK now detects a land-only move whose target is
+unreachable by land but reachable by sea and quietly upgrades it to a
+sea-capable move, so the lord sails/boards instead of hanging the game.
+If a freeze still ends on `PartyHourlyAiTick`, report the town name — a
+lord sitting right at an island's shore across a tiny gap is a remaining
+edge case worth a separate look.
 
 ## Adaptive shipping costs
 

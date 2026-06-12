@@ -102,7 +102,7 @@ namespace BannerKings.Patches
             // BKArmy.AiHourlyTick — i.e. downstream of every instrumented BK
             // handler, in vanilla movement). If the path setup hangs inside the
             // setter, the watchdog names the TARGET settlement here.
-            private static bool Prefix(MobileParty __instance, Settlement settlement, MobileParty.NavigationType navigationType)
+            private static bool Prefix(MobileParty __instance, Settlement settlement, ref MobileParty.NavigationType navigationType)
             {
                 // Set the watchdog marker FIRST (when on) so that if the
                 // reachability GetDistance below itself hangs (broken SOURCE
@@ -127,27 +127,60 @@ namespace BannerKings.Patches
                 // some come straight from vanilla (SetPartyAiAction.ApplyInternal
                 // :castle_A6, GC frozen 3min+). So gate the setter itself.
                 //
-                // SAFETY: only LAND-ONLY parties on Default (land) nav are
-                // guarded. Naval-capable parties are left completely alone, so
-                // NavalDLC port auto-boarding and sea routes are untouched (a
-                // land-only party has no naval shortcut, so GetDistance with
-                // Default is an unambiguous land-reachability oracle). Skip ONLY
-                // on a clearly-huge distance (unreachable sentinel) — NOT on a
+                // Only Default (land) nav moves are inspected. LAND-ONLY parties
+                // whose target has no land route are SKIPPED (no sea escape).
+                // NAVAL-capable parties whose target has no land route but is
+                // sea-reachable are UPGRADED to All so the engine sails/auto-
+                // boards instead of hanging a land-only pathfind (the vanilla
+                // PartyHourlyAiTick:town_N2 freeze). Naval moves that ARE land-
+                // reachable, and all non-Default moves, are left untouched, so
+                // NavalDLC's normal sea routing is unaffected. Act ONLY on a
+                // clearly-huge distance (unreachable sentinel) — NOT on a
                 // degenerate d<=0/NaN (party mid-transition / inside a
-                // settlement), so a valid move is never wrongly dropped. An
-                // unreachable target → skip the move; the AI re-decides next tick.
+                // settlement), so a valid move is never wrongly dropped.
                 if (settlement != null && __instance != null
                     && navigationType == MobileParty.NavigationType.Default)
                 {
-                    bool landOnly = false;
-                    try { landOnly = !__instance.HasNavalNavigationCapability; } catch { }
-                    if (landOnly)
+                    bool naval = false;
+                    try { naval = __instance.HasNavalNavigationCapability; } catch { }
+                    if (!naval)
                     {
+                        // LAND-ONLY party: a Default move to a land-unreachable
+                        // target hangs the follower and there is no sea escape.
+                        // Skip; the AI re-decides next tick.
                         try
                         {
                             float d = TaleWorlds.CampaignSystem.Campaign.Current.Models.MapDistanceModel
                                 .GetDistance(__instance, settlement, false, MobileParty.NavigationType.Default, out _);
                             if (d >= 50000f) return false; // clearly-unreachable land target — don't commit
+                        }
+                        catch { }
+                    }
+                    else
+                    {
+                        // NAVAL-CAPABLE party on a Default (land-only) move. If the
+                        // target has NO land route the land follower HANGS — the
+                        // vanilla-issued AiPartyThinkBehavior.PartyHourlyAiTick
+                        // :town_N2 freeze (a Nord coastal/island town a sailing
+                        // lord was sent to with land nav). The party CAN reach it
+                        // by sea, so upgrade the nav type to All by ref: the engine
+                        // then routes via a port + auto-board instead of dead-
+                        // ending a land path. Only substituted when there is no
+                        // land route at all — exactly the case where sea routing
+                        // is correct, so the cosmetic "land unit on water" glitch
+                        // (which needs a land route to shortcut over) doesn't
+                        // arise. A Default move that IS land-reachable is left
+                        // untouched. If even All can't reach it, skip.
+                        try
+                        {
+                            var dm = TaleWorlds.CampaignSystem.Campaign.Current.Models.MapDistanceModel;
+                            float dLand = dm.GetDistance(__instance, settlement, false, MobileParty.NavigationType.Default, out _);
+                            if (dLand >= 50000f)
+                            {
+                                float dAll = dm.GetDistance(__instance, settlement, false, MobileParty.NavigationType.All, out _);
+                                if (dAll < 50000f) navigationType = MobileParty.NavigationType.All; // sail there
+                                else return false; // unreachable by land or sea — don't commit
+                            }
                         }
                         catch { }
                     }
