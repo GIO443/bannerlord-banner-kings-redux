@@ -128,6 +128,53 @@ namespace BannerKings.Patches
             catch { /* diagnostics must never disturb the move */ }
         }
 
+        // Shared reachability guard for settlement-targeted moves. Returns false
+        // to SKIP a move whose target the party cannot travel-pathfind to (the
+        // native follower would hang the campaign thread). For a NAVAL-capable
+        // party on a Default (land) move with no land route but a sea route,
+        // upgrades nav to All by ref so the engine sails/auto-boards instead of
+        // dead-ending. Only Default moves are inspected; non-Default (the AI
+        // already chose a sea/any route) and reachable targets pass untouched, so
+        // a degenerate d<=0/NaN (mid-transition / inside a settlement) is never
+        // wrongly dropped.
+        //
+        // Used by GoToSettlement AND the combat setters (Besiege / Raid /
+        // Defend): every settlement-target setter shares the same native-pathfind
+        // hang surface, but only GoToSettlement was guarded — so an army (or a
+        // party RELEASED when that army disbands) resuming an unreachable
+        // besiege/raid/defend objective re-issued a hanging move every tick. That
+        // is the deterministic "disbanding this army freezes the game" report:
+        // the released members resume a sea-locked combat objective through a
+        // previously-unguarded setter.
+        private static bool GuardSettlementMove(MobileParty party, Settlement settlement, ref MobileParty.NavigationType navigationType)
+        {
+            if (settlement == null || party == null) return true;
+            if (navigationType != MobileParty.NavigationType.Default) return true;
+            try
+            {
+                var dm = TaleWorlds.CampaignSystem.Campaign.Current.Models.MapDistanceModel;
+                bool naval = false;
+                try { naval = party.HasNavalNavigationCapability; } catch { }
+                if (!naval)
+                {
+                    float d = dm.GetDistance(party, settlement, false, MobileParty.NavigationType.Default, out _);
+                    if (d >= 50000f) return false; // land-only, no land route — skip
+                }
+                else
+                {
+                    float dLand = dm.GetDistance(party, settlement, false, MobileParty.NavigationType.Default, out _);
+                    if (dLand >= 50000f)
+                    {
+                        float dAll = dm.GetDistance(party, settlement, false, MobileParty.NavigationType.All, out _);
+                        if (dAll < 50000f) navigationType = MobileParty.NavigationType.All; // sail there
+                        else return false; // unreachable by land or sea — skip
+                    }
+                }
+            }
+            catch { }
+            return true;
+        }
+
         // ---- Settlement-targeted setters ------------------------------------
 
         [HarmonyPatch(typeof(MobileParty), nameof(MobileParty.SetMoveGoToSettlement))]
@@ -161,73 +208,13 @@ namespace BannerKings.Patches
                     CaptureMoveContext(__instance, settlement, navigationType);
                 }
 
-                // CENTRAL land-reachability guard (always on — the freeze-class
-                // fix). Every freeze in this saga is a movement command to a
-                // target the engine can't travel-pathfind to; the follower then
-                // hangs the campaign thread. Per-caller guards (FindArmyObjective
-                // .16.7, RouteCaravanHopByHop .16.11, militia escort .16.12)
-                // can't cover VANILLA deciders — and the caller capture proved
-                // some come straight from vanilla (SetPartyAiAction.ApplyInternal
-                // :castle_A6, GC frozen 3min+). So gate the setter itself.
-                //
-                // Only Default (land) nav moves are inspected. LAND-ONLY parties
-                // whose target has no land route are SKIPPED (no sea escape).
-                // NAVAL-capable parties whose target has no land route but is
-                // sea-reachable are UPGRADED to All so the engine sails/auto-
-                // boards instead of hanging a land-only pathfind (the vanilla
-                // PartyHourlyAiTick:town_N2 freeze). Naval moves that ARE land-
-                // reachable, and all non-Default moves, are left untouched, so
-                // NavalDLC's normal sea routing is unaffected. Act ONLY on a
-                // clearly-huge distance (unreachable sentinel) — NOT on a
-                // degenerate d<=0/NaN (party mid-transition / inside a
-                // settlement), so a valid move is never wrongly dropped.
-                if (settlement != null && __instance != null
-                    && navigationType == MobileParty.NavigationType.Default)
-                {
-                    bool naval = false;
-                    try { naval = __instance.HasNavalNavigationCapability; } catch { }
-                    if (!naval)
-                    {
-                        // LAND-ONLY party: a Default move to a land-unreachable
-                        // target hangs the follower and there is no sea escape.
-                        // Skip; the AI re-decides next tick.
-                        try
-                        {
-                            float d = TaleWorlds.CampaignSystem.Campaign.Current.Models.MapDistanceModel
-                                .GetDistance(__instance, settlement, false, MobileParty.NavigationType.Default, out _);
-                            if (d >= 50000f) return false; // clearly-unreachable land target — don't commit
-                        }
-                        catch { }
-                    }
-                    else
-                    {
-                        // NAVAL-CAPABLE party on a Default (land-only) move. If the
-                        // target has NO land route the land follower HANGS — the
-                        // vanilla-issued AiPartyThinkBehavior.PartyHourlyAiTick
-                        // :town_N2 freeze (a Nord coastal/island town a sailing
-                        // lord was sent to with land nav). The party CAN reach it
-                        // by sea, so upgrade the nav type to All by ref: the engine
-                        // then routes via a port + auto-board instead of dead-
-                        // ending a land path. Only substituted when there is no
-                        // land route at all — exactly the case where sea routing
-                        // is correct, so the cosmetic "land unit on water" glitch
-                        // (which needs a land route to shortcut over) doesn't
-                        // arise. A Default move that IS land-reachable is left
-                        // untouched. If even All can't reach it, skip.
-                        try
-                        {
-                            var dm = TaleWorlds.CampaignSystem.Campaign.Current.Models.MapDistanceModel;
-                            float dLand = dm.GetDistance(__instance, settlement, false, MobileParty.NavigationType.Default, out _);
-                            if (dLand >= 50000f)
-                            {
-                                float dAll = dm.GetDistance(__instance, settlement, false, MobileParty.NavigationType.All, out _);
-                                if (dAll < 50000f) navigationType = MobileParty.NavigationType.All; // sail there
-                                else return false; // unreachable by land or sea — don't commit
-                            }
-                        }
-                        catch { }
-                    }
-                }
+                // CENTRAL reachability guard (always on — the freeze-class fix).
+                // Every freeze in this saga is a movement command to a target the
+                // engine can't travel-pathfind to; the follower then hangs the
+                // campaign thread. Per-caller guards can't cover VANILLA deciders,
+                // so gate the setter itself. Shared with the combat setters below.
+                if (!GuardSettlementMove(__instance, settlement, ref navigationType))
+                    return false;
 
                 return true;
             }
@@ -262,10 +249,13 @@ namespace BannerKings.Patches
         [HarmonyPatch(typeof(MobileParty), nameof(MobileParty.SetMoveDefendSettlement))]
         internal static class SetMoveDefendSettlementPostfix
         {
-            private static void Prefix(MobileParty __instance, Settlement settlement)
+            private static bool Prefix(MobileParty __instance, Settlement settlement, ref MobileParty.NavigationType navigationType)
             {
                 BannerKings.Utils.FreezeWatchdog.Enter("MobileParty.SetMoveDefendSettlement",
                     settlement?.StringId ?? BannerKings.Utils.TickTrace.IdOf(__instance));
+                // Same hang surface as GoToSettlement — guard it (a released army
+                // member resuming an unreachable defend objective hangs the tick).
+                return GuardSettlementMove(__instance, settlement, ref navigationType);
             }
             private static void Postfix(MobileParty __instance, Settlement settlement)
             {
@@ -280,10 +270,13 @@ namespace BannerKings.Patches
         [HarmonyPatch(typeof(MobileParty), nameof(MobileParty.SetMoveBesiegeSettlement))]
         internal static class SetMoveBesiegeSettlementPostfix
         {
-            private static void Prefix(MobileParty __instance, Settlement settlement)
+            private static bool Prefix(MobileParty __instance, Settlement settlement, ref MobileParty.NavigationType navigationType)
             {
                 BannerKings.Utils.FreezeWatchdog.Enter("MobileParty.SetMoveBesiegeSettlement",
                     settlement?.StringId ?? BannerKings.Utils.TickTrace.IdOf(__instance));
+                // Same hang surface as GoToSettlement — guard it (a released army
+                // member resuming an unreachable besiege objective hangs the tick).
+                return GuardSettlementMove(__instance, settlement, ref navigationType);
             }
             private static void Postfix(MobileParty __instance, Settlement settlement)
             {
@@ -358,8 +351,14 @@ namespace BannerKings.Patches
         [HarmonyPatch(typeof(MobileParty), nameof(MobileParty.SetMoveRaidSettlement))]
         internal static class SetMoveRaidSettlementBracket
         {
-            private static void Prefix(MobileParty __instance, object[] __args)
-            { BannerKings.Utils.FreezeWatchdog.Enter("MobileParty.SetMoveRaidSettlement", FirstArgId(__args, __instance)); }
+            private static bool Prefix(MobileParty __instance, Settlement settlement, ref MobileParty.NavigationType navigationType)
+            {
+                BannerKings.Utils.FreezeWatchdog.Enter("MobileParty.SetMoveRaidSettlement",
+                    settlement?.StringId ?? BannerKings.Utils.TickTrace.IdOf(__instance));
+                // Same hang surface as GoToSettlement — guard it (a released army
+                // member or a bandit resuming an unreachable raid hangs the tick).
+                return GuardSettlementMove(__instance, settlement, ref navigationType);
+            }
             private static void Postfix() { BannerKings.Utils.FreezeWatchdog.Exit(); }
         }
 

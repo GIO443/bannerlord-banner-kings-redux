@@ -455,6 +455,17 @@ be a touch keener to declare war across water. If you notice the naval war AI
 behaving oddly with War Sails, mention it in a report; it's an intentional
 trade to remove the freeze and can be refined.
 
+**Freeze when disbanding an army (fixed v1.9.21.1).** Disbanding an army
+(especially an AI-led one gathered with influence) could reliably freeze the
+game. On disband the member parties are released and each resumes its own
+objective — and a party resuming an *unreachable* besiege/raid/defend target
+(e.g. across water, or an island it can't actually path to) re-issued a
+movement command every tick that wedged the engine's pathfinder. The
+reachability guard that already protected ordinary "go to settlement" moves now
+also covers besiege, raid, and defend, so an unreachable combat objective is
+skipped (the party re-decides) or, for a fleet, routed by sea — instead of
+hanging.
+
 **`BK_slow.txt` — the backup** (also needs the toggle on). Logs any single
 BK handler that took over 3 seconds, *after* it finishes:
 
