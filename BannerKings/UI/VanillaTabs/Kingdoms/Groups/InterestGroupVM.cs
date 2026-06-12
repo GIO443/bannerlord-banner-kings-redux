@@ -228,7 +228,7 @@ namespace BannerKings.UI.VanillaTabs.Kingdoms.Groups
                 {
                     IsActionEnabled = false;
                     ActionHint = new HintViewModel(new TextObject("{=jBxzXBGZ}You cannot leave this group until a year has passed since you joined ({DATE}).")
-                        .SetTextVariable("DATE", InterestGroup.JoinTime[Hero.MainHero].ToString()));
+                        .SetTextVariable("DATE", (InterestGroup.TryGetMemberJoinTime(Hero.MainHero, out var mhJoin) ? mhJoin : CampaignTime.Now).ToString()));
                 }
             }
             else

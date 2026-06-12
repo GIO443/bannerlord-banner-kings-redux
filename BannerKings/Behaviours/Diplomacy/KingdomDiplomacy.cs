@@ -233,7 +233,11 @@ namespace BannerKings.Behaviours.Diplomacy
         // INVARIANT: never call engine/UI code (MBInformationManager,
         // ChangeRelationAction, DissolveX) while holding it — collect under the
         // lock, fire side-effects after release.
-        private static readonly object DiploSync = new object();
+        // Shared lock for all mutable diplomacy state that the UI thread can
+        // read while the campaign thread mutates it. internal so DiplomacyGroup
+        // can serialize its JoinTime dictionary on the SAME lock (one consistent
+        // diplomacy lock — Monitor is reentrant, so nested use is safe).
+        internal static readonly object DiploSync = new object();
 
         public bool IsInTruce(Kingdom kingdom)
         {

@@ -1241,7 +1241,11 @@ namespace BannerKings.Models.Vanilla
                     ValueTuple<Settlement, Settlement> border = GetBorder(factionDeclaresWar, factionDeclaredWar);
                     if (border.Item1 != null && border.Item2 != null)
                     {
-                        float distance = TaleWorlds.CampaignSystem.Campaign.Current.Models.MapDistanceModel.GetDistance(border.Item1, border.Item2, false, false, MobileParty.NavigationType.All);
+                        // Euclidean distance of the (Euclidean-chosen) border pair —
+                        // no native pathfind. Consistent with ComputeBorder above and
+                        // hang-free; this is a war-score weighting term, not a metric.
+                        float distance = border.Item1.GetPosition2D.Distance(border.Item2.GetPosition2D);
+                        if (distance <= 0f) distance = 1f;
                         float factor = (TaleWorlds.CampaignSystem.Campaign.Current.GetAverageDistanceBetweenClosestTwoTownsWithNavigationType(MobileParty.NavigationType.All) / distance) - 1f;
                         float baseAbs = scale;
                         result.Add(MathF.Clamp(baseAbs * factor * 2f, baseAbs * -2f, 0f), new TextObject("{=fiHYU8X3}Distance between realms"));
@@ -1306,11 +1310,19 @@ namespace BannerKings.Models.Vanilla
             float distance = float.MaxValue;
             Settlement border1 = null;
             Settlement border2 = null;
+            // Euclidean min-pair instead of an O(fiefs1×fiefs2) navmesh GetDistance
+            // sweep. The geometrically-closest fief pair IS the border, and
+            // straight-line distance identifies it just as well — without the
+            // per-pair native pathfind that both dominated the loop's cost and
+            // could wedge the campaign thread on a degenerate fief face. (Result
+            // is cached per pair per day; consumers want the border pair, not an
+            // exact navmesh metric.)
             foreach (Town fief1 in faction1.Fiefs)
             {
+                var p1 = fief1.Settlement.GetPosition2D;
                 foreach (Town fief2 in faction2.Fiefs)
                 {
-                    float d = TaleWorlds.CampaignSystem.Campaign.Current.Models.MapDistanceModel.GetDistance(fief1.Settlement, fief2.Settlement, false, false, MobileParty.NavigationType.All);
+                    float d = p1.Distance(fief2.Settlement.GetPosition2D);
                     if (d < distance)
                     {
                         border1 = fief1.Settlement;

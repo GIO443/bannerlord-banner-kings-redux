@@ -444,6 +444,17 @@ distance estimate instead of a full pathfind (which could also wedge on a bad
 tile); and the pending-claim queue is now capped so it can't grow without
 bound. No settings or actions change — large late-game realms just tick faster.
 
+**More diplomacy freeze fixes (v1.9.21.0).** Two further causes were closed: a
+rare hard freeze when the faction-group screen was open as members joined (a
+thread-safety race on the join-time table — now serialized), and the war-AI's
+realm-distance and front-proximity checks, which used a map-pathfind that could
+wedge on a bad tile, now use a cheap straight-line estimate. **War Sails note:**
+because the new estimate is straight-line, the AI now treats realms separated by
+a narrow strait as *closer* than the old sea-route pathfind did — a faction may
+be a touch keener to declare war across water. If you notice the naval war AI
+behaving oddly with War Sails, mention it in a report; it's an intentional
+trade to remove the freeze and can be refined.
+
 **`BK_slow.txt` — the backup** (also needs the toggle on). Logs any single
 BK handler that took over 3 seconds, *after* it finishes:
 

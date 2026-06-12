@@ -1682,9 +1682,15 @@ namespace BannerKings.Patches
                 }
             }
 
+            // Cheap Euclidean proximity instead of MapDistanceModel.GetDistance.
+            // This runs uncached on the hot AI army-target scoring path (per
+            // scored settlement), so the native pathfind was both a per-tick cost
+            // AND a hard-hang surface (it wedges on a degenerate face). "Is this
+            // target near the front" is a weighting heuristic, so straight-line
+            // distance is an adequate, hang-free proxy (Euclidean < navmesh route,
+            // so the threshold triggers marginally more often — benign here).
             private static bool AreSettlementsClose(Settlement reference, Settlement target) =>
-                TaleWorlds.CampaignSystem.Campaign.Current.Models.MapDistanceModel
-                    .GetDistance(reference, target, false, false, MobileParty.NavigationType.All)
+                reference.GetPosition2D.Distance(target.GetPosition2D)
                 < TaleWorlds.CampaignSystem.Campaign.Current
                     .GetAverageDistanceBetweenClosestTwoTownsWithNavigationType(MobileParty.NavigationType.All) * 1.1f;
         }

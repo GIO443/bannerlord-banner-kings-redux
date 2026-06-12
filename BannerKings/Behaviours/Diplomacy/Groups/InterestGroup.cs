@@ -243,7 +243,7 @@ namespace BannerKings.Behaviours.Diplomacy.Groups
 
         public override bool CanHeroLeave(Hero hero, KingdomDiplomacy diplomacy)
         {
-            if (JoinTime.TryGetValue(hero, out var joinTime))
+            if (TryGetMemberJoinTime(hero, out var joinTime))
             {
                 return joinTime.ElapsedYearsUntilNow >= 1f;
             }

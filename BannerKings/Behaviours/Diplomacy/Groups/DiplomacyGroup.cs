@@ -50,8 +50,28 @@ namespace BannerKings.Behaviours.Diplomacy.Groups
 
         protected void AddMemberInternal(Hero hero)
         {
-            if (!Members.Contains(hero)) Members.Add(hero);
-            JoinTime[hero] = CampaignTime.Now;
+            // JoinTime is a Dictionary read on the UI thread (group VM
+            // RefreshValues / CanHeroLeave) while this writes on the campaign
+            // thread. An insert-resize racing a concurrent TryGetValue spins
+            // forever in Dictionary.FindEntry = freeze. Serialize all JoinTime
+            // access on the shared DiploSync lock. (Members is a List — torn
+            // reads throw rather than spin — so it is not the freeze surface.)
+            lock (KingdomDiplomacy.DiploSync)
+            {
+                if (!Members.Contains(hero)) Members.Add(hero);
+                JoinTime[hero] = CampaignTime.Now;
+            }
+        }
+
+        // Hang-safe JoinTime read. Every reader (CanHeroLeave on both group
+        // types, the group VMs) must go through this so no UI-thread lookup ever
+        // races the campaign-thread insert above.
+        public bool TryGetMemberJoinTime(Hero hero, out CampaignTime time)
+        {
+            lock (KingdomDiplomacy.DiploSync)
+            {
+                return JoinTime.TryGetValue(hero, out time);
+            }
         }
 
         public List<Hero> GetSortedMembers(KingdomDiplomacy diplomacy)
