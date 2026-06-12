@@ -173,6 +173,52 @@ namespace BannerKings.Models.Vanilla
             foreach (MobileParty p in toRemove)
                 possibleArmyMembers.Remove(p);
 
+            // Honest eligibility — the 1-party-army generation fix. Vanilla
+            // decided `canCreate` from its OWN pre-filter candidate list; BK then
+            // removes unreachable / at-sea / mercenary-mismatched parties. If that
+            // leaves NO party that can actually reach the leader to gather, the
+            // lord would still form a degenerate ONE-PARTY army (just the leader)
+            // — which vanilla disperses for "not enough parties" within hours, and
+            // the disband strands the freed party (the reproducible "1-party army
+            // disband freeze"). Refuse formation unless at least one party is
+            // reachable: a doomed army should never be created in the first place.
+            // GetDistance is the hang-safe oracle (huge for unreachable, never
+            // hangs); the loop breaks on the first reachable party so it is cheap.
+            //
+            // Consequence (intentional, for now): reachability is tested with
+            // Default (land) nav, so an ALL-NAVAL army whose every member is only
+            // sea-reachable is REFUSED. That's deliberate until the escort-join
+            // path (SetMoveEscortParty) is made sea-aware — a member that can only
+            // reach the leader by sea would hang the escort pathfind, so forming
+            // the fleet-army would freeze anyway. A mixed army with any one
+            // land-reachable member still forms.
+            if (canCreate && possibleArmyMembers.Count > 0)
+            {
+                var anchor = leaderParty.CurrentSettlement ?? leaderParty.LeaderHero?.HomeSettlement;
+                bool anyReachable = false;
+                foreach (var p in possibleArmyMembers)
+                {
+                    if (p == null || p == leaderParty) continue;
+                    bool pAtSea = false; try { pAtSea = p.IsCurrentlyAtSea; } catch { }
+                    if (pAtSea) continue;
+                    if (anchor == null) { anyReachable = true; break; } // can't verify → don't block
+                    float gd;
+                    try { gd = Campaign.Current.Models.MapDistanceModel.GetDistance(p, anchor, false, MobileParty.NavigationType.Default, out _); }
+                    catch { gd = float.MaxValue; }
+                    if (gd > 0f && gd < 50000f) { anyReachable = true; break; }
+                }
+                if (!anyReachable)
+                {
+                    possibleArmyMembers.Clear();
+                    return false;
+                }
+            }
+            else if (canCreate && possibleArmyMembers.Count == 0)
+            {
+                // No callable party at all → would be a 1-party army. Refuse.
+                return false;
+            }
+
             return canCreate;
             } finally { BannerKings.Utils.FreezeWatchdog.Exit(); }
         }

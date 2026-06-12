@@ -466,6 +466,18 @@ also covers besiege, raid, and defend, so an unreachable combat objective is
 skipped (the party re-decides) or, for a fleet, routed by sea — instead of
 hanging.
 
+**Doomed "1-party armies" no longer form (v1.9.21.2).** The disband freeze
+above was usually triggered by an army that had only its leader and no other
+parties — created when a lord was allowed to call an army even though no party
+could actually reach them to join (everyone eligible was across water or too
+far). That army immediately disperses for "not enough parties," and the disband
+was where the freeze landed. A lord is now refused army formation unless at
+least one party can really reach them, so the doomed one-party army isn't
+created in the first place. (Side effect: an army whose *only* possible members
+are reachable solely by sea won't form for now — that needs the sea-aware join
+path, a later change — but a mixed army with any land-reachable member still
+forms normally.)
+
 **`BK_slow.txt` — the backup** (also needs the toggle on). Logs any single
 BK handler that took over 3 seconds, *after* it finishes:
 
