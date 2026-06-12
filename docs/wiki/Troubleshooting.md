@@ -478,12 +478,17 @@ are reachable solely by sea won't form for now — that needs the sea-aware join
 path, a later change — but a mixed army with any land-reachable member still
 forms normally.)
 
-The actual *disband* hang has since been pinned down (the auto-crash report
-named it): when an army disbands, the engine scatters the freed parties around
-the leader with a navmesh search that wedges if the leader's land/sea state is
-corrupted. A proper fix for that is in progress; a brief v1.9.21.3 attempt to
-auto-clean these armies on load was reverted in v1.9.21.4 because it triggered
-that same hang during loading.
+**The disband freeze itself is fixed (v1.9.21.5).** The freeze-auto-crash report
+pinned it down: when an army disbands, the engine scatters the freed parties
+around the leader using a navmesh search, and that search never finishes if a
+party's land/sea (sailing) state disagrees with the terrain it's actually on — a
+state desync. BK now corrects that sailing flag to match the real terrain the
+instant before an army disbands, so the search always completes and the disband
+can't hang. This covers **every** disband (player or AI, any cause), so the
+"disbanding an army freezes the game" report should be resolved. (A brief
+v1.9.21.3 attempt to auto-clean one-party armies on load was reverted in
+v1.9.21.4 — it tripped this very hang during loading — and is unnecessary now
+that the disband itself is safe.)
 
 **`BK_slow.txt` — the backup** (also needs the toggle on). Logs any single
 BK handler that took over 3 seconds, *after* it finishes:

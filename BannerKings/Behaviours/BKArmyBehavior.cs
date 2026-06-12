@@ -370,5 +370,68 @@ namespace BannerKings.Behaviours
                 return new BKArmyManagementModel().CanCreateArmy(armyLeader);
             }
         }
+
+        // Make ALL army disbands hang-safe — the root-cause fix for the
+        // reproducible "disband freezes the game". DisbandArmyAction ->
+        // Army.DisperseInternal scatters each freed party that has
+        // CurrentSettlement == null around the leader via
+        //   NavigationHelper.FindReachablePointAroundPosition(LeaderParty.Position, nav, 1f)
+        // where `nav` is Default/Naval per the scattered party's IsCurrentlyAtSea
+        // flag. That NATIVE navmesh search never terminates — wedging the
+        // campaign thread, GC frozen — when `nav` is invalid at the leader's
+        // actual terrain (the AtSea-on-land desync: searching for a LAND point on
+        // WATER, or a WATER point on LAND). It is NOT a SetMove*, so every move
+        // guard missed it; the freeze-auto-crash HTM finally named it
+        // (DisperseInternal reached via a disband).
+        //
+        // Fix: before DisperseInternal runs, reconcile the IsCurrentlyAtSea flag
+        // of the leader and every party that the scatter will actually move, to
+        // the terrain AT THE LEADER'S POSITION (the search centre). Matching the
+        // search's nav to the terrain under its own centre guarantees the search
+        // finds at least that centre, so it always terminates. This only corrects
+        // a corrupted flag — it is a no-op for correctly-flagged parties (the
+        // overwhelmingly common case), so normal disbands are unaffected.
+        [HarmonyPatch(typeof(Army), "DisperseInternal")]
+        internal class ArmyDisperseHangGuard
+        {
+            private static void Prefix(Army __instance)
+            {
+                try
+                {
+                    var leader = __instance?.LeaderParty;
+                    if (leader == null) return;
+
+                    var navModel = Campaign.Current.Models.PartyNavigationModel;
+                    var terrain = Campaign.Current.MapSceneWrapper.GetTerrainTypeAtPosition(leader.Position);
+                    bool leaderOnWater = !navModel.IsTerrainTypeValidForNavigationType(terrain, MobileParty.NavigationType.Default);
+
+                    // The leader is also scattered (and its flag gates the branch),
+                    // so reconcile it first.
+                    if (leader.IsCurrentlyAtSea != leaderOnWater)
+                    {
+                        try { leader.IsCurrentlyAtSea = leaderOnWater; } catch { }
+                    }
+
+                    var parties = __instance.Parties;
+                    if (parties == null) return;
+                    for (int i = 0; i < parties.Count; i++)
+                    {
+                        var p = parties[i];
+                        if (p == null || p == leader) continue;
+                        if (p.CurrentSettlement != null) continue; // safe branch — not scattered
+                        if (!p.IsActive) continue;
+                        // When the leader is on water, DisperseInternal scatters
+                        // ONLY naval-capable parties (others skip the branch), so
+                        // don't flip a non-naval party's flag to at-sea.
+                        if (leaderOnWater && !p.HasNavalNavigationCapability) continue;
+                        if (p.IsCurrentlyAtSea != leaderOnWater)
+                        {
+                            try { p.IsCurrentlyAtSea = leaderOnWater; } catch { }
+                        }
+                    }
+                }
+                catch { /* a disband guard must never throw out of the disband */ }
+            }
+        }
     }
 }
