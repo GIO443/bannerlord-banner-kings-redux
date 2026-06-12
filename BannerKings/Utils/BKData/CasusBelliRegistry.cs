@@ -104,24 +104,43 @@ namespace BannerKings.Utils.BKData
                 {
                     if (faction2.Fiefs.Count == 0 || faction1.Fiefs.Count == 0) return false;
 
-                    // Cheap gate FIRST. The result is `strength && distance<=2`, so a
-                    // target that fails the strength test can never qualify — bail
-                    // before building the (expensive) War, whose ctor runs
-                    // RecalculateFronts (a navmesh fortification scan over all
-                    // settlements) plus a pathfind. This predicate runs for every
-                    // (attacker, target) pair when casus belli are enumerated.
+                    // Cheap gate FIRST: a target that fails the strength test can
+                    // never qualify.
                     bool strength = faction2.CurrentTotalStrength >= (faction1.CurrentTotalStrength * 0.8f);
                     if (!strength) return false;
 
-                    War possibleWar = new War(faction1, faction2, null);
-                    if (possibleWar.DefenderFront != null && possibleWar.AttackerFront != null)
+                    // Proximity proxy via cheap Euclidean — NOT a full War + native
+                    // pathfind. The old code built `new War(...)` (whose ctor runs
+                    // RecalculateFronts: a navmesh FindNearestFortification scan over
+                    // ALL settlements, per attacker fief) and then called
+                    // MapDistanceModel.GetDistance on the fronts — both per
+                    // (attacker, target) pair during casus-belli enumeration. That is
+                    // a large per-day cost AND a hard-hang surface (GetDistance /
+                    // FindNearestFortification wedge the campaign thread on a
+                    // degenerate front face — exactly the freeze class we're
+                    // closing). This CB only needs "are these realms adjacent enough
+                    // to fight": the minimum straight-line distance between any
+                    // attacker fief and any defender fief, normalised by the average
+                    // inter-town distance, is an adequate, hang-free proxy (float
+                    // math only, no pathfind). Euclidean is shorter than the navmesh
+                    // route, so the <=2 gate is marginally looser — a benign shift
+                    // for a war-justification heuristic.
+                    float best = float.MaxValue;
+                    foreach (var f1 in faction1.Fiefs)
                     {
-                        float distance = TaleWorlds.CampaignSystem.Campaign.Current.Models.MapDistanceModel.GetDistance(possibleWar.DefenderFront.Settlement, possibleWar.AttackerFront.Settlement, false, false, MobileParty.NavigationType.Default);
-                        float factor = distance / TaleWorlds.CampaignSystem.Campaign.Current.GetAverageDistanceBetweenClosestTwoTownsWithNavigationType(MobileParty.NavigationType.Default);
-                        return factor <= 2f;
+                        var p1 = f1.Settlement.GetPosition2D;
+                        foreach (var f2 in faction2.Fiefs)
+                        {
+                            float d = p1.Distance(f2.Settlement.GetPosition2D);
+                            if (d < best) best = d;
+                        }
                     }
+                    if (best == float.MaxValue) return false;
 
-                    return false;
+                    float avg = TaleWorlds.CampaignSystem.Campaign.Current
+                        .GetAverageDistanceBetweenClosestTwoTownsWithNavigationType(MobileParty.NavigationType.Default);
+                    if (avg <= 0f) return false;
+                    return (best / avg) <= 2f;
                 },
                 ShowAsOption = kingdom => true,
             };

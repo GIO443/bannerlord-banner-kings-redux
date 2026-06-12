@@ -9,6 +9,7 @@ using BannerKings.Models.BKModels.Abstract;
 using BannerKings.Settings;
 using BannerKings.Utils.Extensions;
 using BannerKings.Utils.Models;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using TaleWorlds.CampaignSystem;
@@ -22,6 +23,55 @@ namespace BannerKings.Models.BKModels
 {
     public class BKInterestGroupsModel : GroupsModel
     {
+        // --- Per-kingdom-per-day influence memo --------------------------------
+        // Group influence, hero influence, invite cost and radical join-chance
+        // all rebuild the SAME kingdom-wide aggregates from scratch on every
+        // call — the per-clan influence map + its sum, and total notable Power.
+        // Rebuilt per member per tick, the daily radical re-form / member-join
+        // sweeps became O(clans²) and O(notables·clans) per kingdom — the
+        // late-game politics-tick cost blowup. Compute them ONCE per kingdom
+        // per day. Thread-safety: these methods are reached from BOTH the
+        // campaign tick AND group VMs on the UI thread (RefreshValues →
+        // join-chance / invite cost), so the cache is a ConcurrentDictionary and
+        // each snapshot is IMMUTABLE after construction (built fully, then
+        // published) — concurrent readers only ever see a finished snapshot.
+        private sealed class InfluenceSnapshot
+        {
+            public Dictionary<Clan, float> ClanInfluences;
+            public float TotalClanInfluence;
+            public float TotalNotablePower;
+        }
+        private readonly ConcurrentDictionary<Kingdom, (int day, InfluenceSnapshot snap)> _influenceCache
+            = new ConcurrentDictionary<Kingdom, (int, InfluenceSnapshot)>();
+
+        private InfluenceSnapshot GetInfluenceSnapshot(KingdomDiplomacy diplomacy)
+        {
+            var kingdom = diplomacy.Kingdom;
+            int today = (int)CampaignTime.Now.ToDays;
+            if (_influenceCache.TryGetValue(kingdom, out var e) && e.day == today && e.snap != null)
+                return e.snap;
+
+            var snap = new InfluenceSnapshot
+            {
+                ClanInfluences = new Dictionary<Clan, float>(),
+                TotalClanInfluence = 0f,
+                TotalNotablePower = 0f
+            };
+            foreach (var clan in kingdom.Clans)
+            {
+                float f = CalculateClanInfluence(clan, diplomacy).ResultNumber;
+                snap.TotalClanInfluence += f;
+                snap.ClanInfluences[clan] = f;
+            }
+            foreach (var settlement in kingdom.Settlements)
+                if (settlement.Notables != null)
+                    foreach (var notable in settlement.Notables)
+                        snap.TotalNotablePower += notable.Power;
+
+            _influenceCache[kingdom] = (today, snap);
+            return snap;
+        }
+
         public override bool WillHeroCreateGroup(DiplomacyGroup group, Hero hero, KingdomDiplomacy diplomacy)
         {
             if (hero == Hero.MainHero || !CanHeroCreateAGroup(hero, diplomacy)) return false;
@@ -77,20 +127,10 @@ namespace BannerKings.Models.BKModels
             result.LimitMax(1f);
 
             KingdomDiplomacy diplomacy = group.KingdomDiplomacy;
-            float totalPower = 0;
-            foreach (var settlement in diplomacy.Kingdom.Settlements)
-                if (settlement.Notables != null)
-                    foreach (var notable in settlement.Notables)
-                        totalPower += notable.Power;
-
-            Dictionary<Clan, float> clanInfluences = new Dictionary<Clan, float>();
-            float totalClanInfluence = 0f;
-            foreach (var clan in diplomacy.Kingdom.Clans)
-            {
-                float f = CalculateClanInfluence(clan, diplomacy).ResultNumber;
-                totalClanInfluence += f;
-                clanInfluences.Add(clan, f);
-            }
+            var snap = GetInfluenceSnapshot(diplomacy);
+            float totalPower = snap.TotalNotablePower;
+            Dictionary<Clan, float> clanInfluences = snap.ClanInfluences;
+            float totalClanInfluence = snap.TotalClanInfluence;
 
             int notables = 0;
             float notableInfluence = 0f;
@@ -104,7 +144,7 @@ namespace BannerKings.Models.BKModels
 
                 if (member.Clan != null && member.IsClanLeader())
                 {
-                    if (!clanInfluences.ContainsKey(member.Clan))
+                    if (totalClanInfluence <= 0f || !clanInfluences.ContainsKey(member.Clan))
                     {
                         continue;
                     }
@@ -306,17 +346,7 @@ namespace BannerKings.Models.BKModels
             Hero hero, bool explanations = false)
         {
             var result = new BKExplainedNumber(0f, explanations);
-            float totalPower = 0;
-            foreach (var settlement in diplomacy.Kingdom.Settlements)
-            {
-                if (settlement.Notables != null)
-                {
-                    foreach (var notable in settlement.Notables)
-                    {
-                        totalPower += notable.Power;
-                    }
-                }
-            }
+            float totalPower = GetInfluenceSnapshot(diplomacy).TotalNotablePower;
 
             if (hero.IsNotable)
             {
@@ -350,16 +380,13 @@ namespace BannerKings.Models.BKModels
 
             if (invitee.Clan != null)
             {
-                Dictionary<Clan, float> clanInfluences = new Dictionary<Clan, float>();
-                float totalClanInfluence = 0f;
-                foreach (var clan in diplomacy.Kingdom.Clans)
-                {
-                    float f = CalculateClanInfluence(clan, diplomacy).ResultNumber;
-                    totalClanInfluence += f;
-                    clanInfluences.Add(clan, f);
-                }
+                var snap = GetInfluenceSnapshot(diplomacy);
+                Dictionary<Clan, float> clanInfluences = snap.ClanInfluences;
+                float totalClanInfluence = snap.TotalClanInfluence;
 
-                result.Add(200f * (clanInfluences[invitee.Clan] / totalClanInfluence), new TextObject("{=8JtaP3Ak}Political relevance of {CLAN}")
+                float inviteeShare = (totalClanInfluence > 0f && clanInfluences.TryGetValue(invitee.Clan, out var ciInv))
+                    ? ciInv / totalClanInfluence : 0f;
+                result.Add(200f * inviteeShare, new TextObject("{=8JtaP3Ak}Political relevance of {CLAN}")
                     .SetTextVariable("CLAN", invitee.Clan.Name));
 
                 float willingness = CalculateHeroJoinChance(invitee, group, diplomacy).ResultNumber;
@@ -645,16 +672,13 @@ namespace BannerKings.Models.BKModels
             if ((Campaign.Current.Models.CampaignTimeModel.CampaignStartTime + CampaignTime.Years(BannerKingsSettings.Instance.RadicalGroupYears)).IsFuture)
                 result.Add(-1000f, new TextObject("{=!}Rebels Starting Years Offset MCM Setting"));
 
-            Dictionary<Clan, float> clanInfluences = new Dictionary<Clan, float>();
-            float totalClanInfluence = 0f;
-            foreach (var clan in diplomacy.Kingdom.Clans)
-            {
-                float f = CalculateClanInfluence(clan, diplomacy).ResultNumber;
-                totalClanInfluence += f;
-                clanInfluences.Add(clan, f);
-            }
-            
-            result.Add(-BannerKingsSettings.Instance.RadicalGroup + (clanInfluences[hero.Clan] / totalClanInfluence), new TextObject("{=!}Reluctance"));
+            var snap = GetInfluenceSnapshot(diplomacy);
+            Dictionary<Clan, float> clanInfluences = snap.ClanInfluences;
+            float totalClanInfluence = snap.TotalClanInfluence;
+
+            float heroClanShare = (totalClanInfluence > 0f && clanInfluences.TryGetValue(hero.Clan, out var ciHero))
+                ? ciHero / totalClanInfluence : 0f;
+            result.Add(-BannerKingsSettings.Instance.RadicalGroup + heroClanShare, new TextObject("{=!}Reluctance"));
             Hero ruler = diplomacy.Kingdom.Leader;
             float support = -MBMath.Map(diplomacy.Legitimacy, 0f, 1f, -0.25f, 0.25f);
             result.Add(support, new TextObject("{=KDH6VoKQ}Legitimacy of {HERO}")

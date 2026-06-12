@@ -293,6 +293,16 @@ namespace BannerKings.Behaviours.Diplomacy
             get { lock (DiploSync) { return ActiveDilemmas.Count; } }
         }
 
+        // Hard cap on the pending-dilemma queue. The producer (one per ambitious
+        // non-ruler clan, daily) can enqueue distinct claims far faster than the
+        // consumer (Promote activates <=1 per kingdom per day and only removes
+        // INVALID entries) drains them — a perpetually-losing-but-still-adequate
+        // claim otherwise lives forever. Uncapped, the queue grows without bound
+        // and Promote's daily O(pending) scan (IsAdequate / HeroHasValidClaim per
+        // entry) creeps up — the late-game politics-tick cost growth. Capping
+        // bounds both the queue and the per-day scan.
+        private const int MaxPendingDilemmas = 16;
+
         public void EnqueueDilemma(Dilemma dilemma)
         {
             if (dilemma == null) return;
@@ -300,6 +310,14 @@ namespace BannerKings.Behaviours.Diplomacy
             {
                 dilemma.State = (int)DilemmaState.Pending;
                 if (!PendingDilemmas.Contains(dilemma)) PendingDilemmas.Add(dilemma);
+                // Evict oldest-first when over the cap — the longest-pending claim
+                // is the one that has lost the urgency contest the most times, so
+                // it's the safest to drop. (If still relevant it will simply be
+                // re-enqueued by the producer; the point is to bound the queue.)
+                while (PendingDilemmas.Count > MaxPendingDilemmas)
+                {
+                    PendingDilemmas.RemoveAt(0);
+                }
             }
         }
 

@@ -435,6 +435,15 @@ default). Turn that sub-option **off** if you'd rather keep the freeze logging
 without the automatic crash. Normal slow-but-recovering hitches never trigger
 it — only a wedged game with a frozen GC does.
 
+**Late-game politics-tick optimization (v1.9.20.0).** On very mature saves
+(many kingdoms, clans, and settlements) the daily diplomacy/politics tick could
+grow heavy enough to stutter or freeze. Several internal causes were fixed:
+faction-group influence is now computed once per kingdom per day instead of
+rebuilt for every lord and notable; war-justification proximity uses a cheap
+distance estimate instead of a full pathfind (which could also wedge on a bad
+tile); and the pending-claim queue is now capped so it can't grow without
+bound. No settings or actions change — large late-game realms just tick faster.
+
 **`BK_slow.txt` — the backup** (also needs the toggle on). Logs any single
 BK handler that took over 3 seconds, *after* it finishes:
 
