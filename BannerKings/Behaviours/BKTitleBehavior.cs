@@ -52,6 +52,58 @@ namespace BannerKings.Behaviours
             }
         }
 
+        // Slowish: at most this many fiefs shed per clan per weekly pass, so a
+        // very-over-limit clan redistributes gradually instead of dumping its
+        // whole surplus on the realm in one tick.
+        private const int MaxShedsPerWeek = 2;
+
+        // Pick a young clan in the realm to RECEIVE a shed castle/town/village.
+        // Requirements: same kingdom, not the giver/player, and enough demesne
+        // headroom to take the fief WITHOUT going over its own limit — so we never
+        // relocate the over-limit problem. GrantTitle / ApplyByGift update demesne
+        // SYNCHRONOUSLY (CalculateCurrentDemesne reads live clan.Settlements /
+        // title.deJure), and over-limit lords shed sequentially on the campaign
+        // thread, so each giver reads the receiver's CURRENT demesne — already
+        // reflecting earlier grants this tick. That is what stops the one young
+        // clan that "looked under-limit at check time" from being flooded by every
+        // giver at once (no separate ledger needed). Preference: most headroom
+        // first (youngest/smallest), a bonus for knight-founded clans (the
+        // intended sink) and lower tier, with the giver's relation as the "give to
+        // someone you like" tiebreak. Returns null when no one has room — the
+        // caller then HOLDS the fief and retries next week.
+        private Hero ChooseReceiverWithHeadroom(Hero giver, FeudalTitle title, float weight)
+        {
+            var kingdom = giver.Clan?.Kingdom;
+            if (kingdom == null) return null;
+
+            bool requireGrantable = title != null && title.deJure == giver;
+            var grantable = requireGrantable
+                ? BannerKingsConfig.Instance.TitleModel.GetGrantCandidates(giver)
+                : null;
+
+            var candidates = new List<(Hero, float)>();
+            foreach (var clan in kingdom.Clans)
+            {
+                if (clan == null || clan == giver.Clan || clan.IsEliminated || clan.IsMinorFaction) continue;
+                var leader = clan.Leader;
+                if (leader == null || leader == Hero.MainHero) continue; // never auto-dump on the player
+
+                var limit = BannerKingsConfig.Instance.StabilityModel.CalculateDemesneLimit(leader).ResultNumber;
+                float current = BannerKingsConfig.Instance.StabilityModel.CalculateCurrentDemesne(clan).ResultNumber;
+                if (current + weight > limit + 0.05f) continue; // would push them over — skip
+                if (grantable != null && !grantable.Contains(leader)) continue;
+
+                float score = (limit - current) * 20f;         // most headroom first
+                score += giver.GetRelation(leader);            // give to someone you like
+                if (clan.StringId != null && clan.StringId.EndsWith("_knight_clan")) score += 50f; // the sink
+                if (clan.Tier < 6) score += (6 - clan.Tier) * 5f; // younger / smaller preferred
+                candidates.Add(new ValueTuple<Hero, float>(leader, System.Math.Max(1f, score)));
+            }
+
+            if (candidates.Count == 0) return null;
+            return MBRandom.ChooseWeighted(candidates);
+        }
+
         private void CheckOverDemesneLimit(Hero hero)
         {
             var limit = BannerKingsConfig.Instance.StabilityModel.CalculateDemesneLimit(hero).ResultNumber;
@@ -92,8 +144,9 @@ namespace BannerKings.Behaviours
                 // looping forever; the 30-pass cap is a hard backstop, with the
                 // weekly cadence continuing the job next week if needed.
                 var handled = new HashSet<Settlement>();
+                int sheds = 0;
                 int guard = 0;
-                while (guard++ < 30)
+                while (guard++ < 30 && sheds < MaxShedsPerWeek)
                 {
                     var cur = BannerKingsConfig.Instance.StabilityModel.CalculateCurrentDemesne(hero.Clan).ResultNumber;
                     var lim = BannerKingsConfig.Instance.StabilityModel.CalculateDemesneLimit(hero).ResultNumber;
@@ -112,46 +165,50 @@ namespace BannerKings.Behaviours
                     FeudalTitle title = BannerKingsConfig.Instance.TitleManager.GetTitle(settlement);
 
                     // A Lordship (village) we hold de jure is shed through the
-                    // knighthood pipeline rather than handed to an existing
-                    // vassal clan: grant it to a clan member (companion-first)
-                    // who becomes a knight and, via BKKnighthoodBehavior, later
-                    // founds their own vassal clan. This is the "no existing
-                    // vassal has room, so mint a new one" path — and it relieves
-                    // the demesne immediately, because a fief whose de jure
-                    // holder is a non-leader clan member counts 0 toward the
-                    // clan's demesne (see BKStabilityModel.CalculateCurrentDemesne).
-                    // The `deJure == hero` guard also stops us re-knighting the
-                    // same village next week (its de jure is the knight now).
-                    // Skipped when the clan is already at its vassal limit — a
-                    // knight is a new vassal — falling through to a normal gift.
-                    if (title != null && title.TitleType == TitleType.Lordship && title.deJure == hero
-                        && !BannerKingsConfig.Instance.StabilityModel.IsHeroOverVassalLimit(hero))
+                    // knighthood pipeline: grant it to a clan member (companion-
+                    // first) who becomes a knight and, via BKKnighthoodBehavior,
+                    // founds their own young lordship-clan — the sink that later
+                    // absorbs the realm's surplus towns/castles. Relieves the
+                    // demesne immediately (a fief whose de jure holder is a
+                    // non-leader clan member counts 0 toward the clan's demesne),
+                    // and the `deJure == hero` guard stops us re-knighting it next
+                    // week. NO LONGER gated on the vassal limit: a knight is the
+                    // CURE for being over-limit, and the new clan leaves our
+                    // vassal rolls once it founds, so blocking it there is
+                    // backwards (vassal-limit pressure is meant to be solved by
+                    // restructuring, not by refusing to shed).
+                    if (title != null && title.TitleType == TitleType.Lordship && title.deJure == hero)
                     {
                         var knight = ChooseKnightCandidate(hero);
                         if (knight != null)
                         {
                             BannerKingsConfig.Instance.TitleManager.GrantKnighthood(title, knight, hero);
+                            sheds++;
                             continue;
                         }
-                        // No one to knight this pass — fall through to the vassal
-                        // gift below (which, for a Lordship, targets companions).
+                        // No one to knight this pass — fall through to gift the
+                        // village to a young clan in the realm.
                     }
 
                     // Castles / towns (and Lordships with no knight candidate):
-                    // hand to an existing vassal clan — one with demesne room
-                    // preferred, an over-limit lord only as a last resort.
-                    Hero receiver = ChooseVassalToGiftLandedTitle(hero, title);
-                    if (receiver == null) continue;
+                    // hand to a YOUNG clan in the realm that has headroom RIGHT
+                    // NOW — counting this week's pending commitments, so several
+                    // over-limit givers don't all flood the one clan that looked
+                    // under-limit at check time. If nobody has room, HOLD the fief
+                    // and retry next week (escrow) rather than force-dumping on an
+                    // over-limit vassal — that forced dump is the hot potato.
+                    float weight = BannerKingsConfig.Instance.StabilityModel.GetSettlementDemesneWight(settlement);
+                    Hero receiver = ChooseReceiverWithHeadroom(hero, title, weight);
+                    if (receiver == null) break; // escrow — nobody can absorb it this week
 
                     if (title != null && title.deJure == hero)
                     {
-                        if (title.TitleType == TitleType.Lordship && BannerKingsConfig.Instance.StabilityModel.IsHeroOverVassalLimit(hero))
-                            continue;
-
                         var action = BannerKingsConfig.Instance.TitleModel.GetAction(ActionType.Grant, title, hero);
                         BannerKingsConfig.Instance.TitleManager.GrantTitle(action, receiver);
                     }
                     else if (settlement.Town != null) ChangeOwnerOfSettlementAction.ApplyByGift(settlement, receiver);
+
+                    sheds++;
                 }
             },
             GetType().Name,

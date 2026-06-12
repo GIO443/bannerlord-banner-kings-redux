@@ -385,34 +385,43 @@ did, open the ownership decision and read each candidate's score
 breakdown; the conquest law shows up as a named line (e.g. `Last
 conquered by … (Conquest by Might)`).
 
-**AI lords over their demesne limit shed land back to their vassals.**
-The vote above governs *new* conquests; this governs land a clan already
-holds. When an AI clan leader is over its demesne limit, it grants fiefs
-away each week until it's back under — and it does so **lowest fief
-first**: a backwater village goes before a castle, a castle before a
-town, and the clan's council-seat town is never given away. The clan is
-also never stripped to landlessness — it always keeps at least one fief
-even if its limit drops very low. Recipients are chosen for relation and
-title fit, and a lord already over **his own** landed limit is skipped
-unless no vassal has room — so land flows to clans that can actually
-absorb it instead of just relocating the overflow. Because the cheapest
-fiefs go first, a deeply over-limit lord may take several weeks to fully
-comply. (Only AI clans do this automatically; the player gets a map
-notice when over limit and chooses what to grant.)
+**AI lords over their demesne limit shed land — to knights and young
+clans, slowly (reworked v1.9.19.0).** The vote above governs *new*
+conquests; this governs land a clan already holds. When an AI clan
+leader is over its demesne limit it gives fiefs away, **lowest fief
+first** (a backwater village before a castle, a castle before a town;
+the council-seat town is never given, and the clan is never stripped to
+landlessness). Two changes fix the old "hot-potato," where fiefs bounced
+endlessly between full clans because there was nowhere for them to land:
 
-When the fief being shed is a **village (Lordship)** and there's no
-existing vassal with room, the clan **knights one of its own** instead
-of forcing the land onto an overloaded lord: a capable companion (or
-other eligible non-family clan member) is granted the Lordship, becomes
-a knight, and — through the normal knighthood path — soon founds their
-own minor vassal clan around that village. This both relieves the
-demesne immediately (a fief held de jure by a non-leader clan member
-counts as zero toward the clan's demesne) and grows the realm's pool of
-small vassal houses, so a large kingdom keeps spawning fresh knightly
-clans instead of stalling. It's bounded by the clan's vassal limit and
-skips villages that already have a knight clan, so realms don't flood
-with knights. Castles and towns can't be knighted, so those still go to
-an existing vassal (an over-limit one only as a last resort).
+- **It mints young clans as the sink.** When the fief is a **village
+  (Lordship)** the clan held in its own name, the clan **knights one of
+  its own** — a capable companion or other eligible non-family member is
+  granted the Lordship, becomes a knight, and through the normal
+  knighthood path soon founds their own minor clan around that village.
+  This relieves the demesne immediately (a fief held de jure by a
+  non-leader member counts zero toward the clan) and steadily grows the
+  realm's pool of small houses. This is **no longer blocked by the
+  clan's vassal limit** — a knight is the *cure* for being over-limit
+  (the new house leaves the liege's vassal rolls once it founds), so the
+  cap no longer stops the shedding. One knight clan per village still
+  caps the spread.
+- **Towns, castles, and surplus villages flow to young clans with real
+  room.** A shed fief only goes to a clan that can hold it **without
+  going over its own limit** — preferring the youngest/smallest houses
+  (especially knight-founded ones) with the giver's relationship as a
+  tiebreak (you hand land to a house you favour). Because lords shed one
+  after another and each reads the realm's *current* holdings, the one
+  young house that looked empty doesn't get buried by everyone at once.
+  If nobody has room this week, the lord simply **keeps the fief and
+  tries again later** rather than forcing it onto an already-overloaded
+  lord — which is what caused the bouncing.
+
+Redistribution is deliberately **gradual** (a couple of fiefs per clan
+per week), so a deeply over-limit lord takes several weeks to comply and
+the land spreads across many young houses instead of flooding one. (Only
+AI clans do this automatically; the player gets a map notice when over
+limit and chooses what to grant.)
 
 ---
 
