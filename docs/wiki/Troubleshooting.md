@@ -476,9 +476,14 @@ least one party can really reach them, so the doomed one-party army isn't
 created in the first place. (Side effect: an army whose *only* possible members
 are reachable solely by sea won't form for now — that needs the sea-aware join
 path, a later change — but a mixed army with any land-reachable member still
-forms normally.) **Existing saves are cleaned up too:** any one-party army
-already in your save is disbanded the moment you load it, so you don't have to
-wait for it to detonate.
+forms normally.)
+
+The actual *disband* hang has since been pinned down (the auto-crash report
+named it): when an army disbands, the engine scatters the freed parties around
+the leader with a navmesh search that wedges if the leader's land/sea state is
+corrupted. A proper fix for that is in progress; a brief v1.9.21.3 attempt to
+auto-clean these armies on load was reverted in v1.9.21.4 because it triggered
+that same hang during loading.
 
 **`BK_slow.txt` — the backup** (also needs the toggle on). Logs any single
 BK handler that took over 3 seconds, *after* it finishes:
