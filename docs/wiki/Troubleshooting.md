@@ -476,7 +476,9 @@ least one party can really reach them, so the doomed one-party army isn't
 created in the first place. (Side effect: an army whose *only* possible members
 are reachable solely by sea won't form for now — that needs the sea-aware join
 path, a later change — but a mixed army with any land-reachable member still
-forms normally.)
+forms normally.) **Existing saves are cleaned up too:** any one-party army
+already in your save is disbanded the moment you load it, so you don't have to
+wait for it to detonate.
 
 **`BK_slow.txt` — the backup** (also needs the toggle on). Logs any single
 BK handler that took over 3 seconds, *after* it finishes:

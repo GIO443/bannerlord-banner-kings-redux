@@ -31,6 +31,49 @@ namespace BannerKings.Behaviours
             CampaignEvents.ArmyDispersed.AddNonSerializedListener(this, OnArmyDispersed);
             CampaignEvents.AiHourlyTickEvent.AddNonSerializedListener(this, AiHourlyTick);
             CampaignEvents.HeroKilledEvent.AddNonSerializedListener(this, OnHeroKilled);
+            CampaignEvents.OnGameLoadFinishedEvent.AddNonSerializedListener(this, OnGameLoadFinished);
+        }
+
+        // Load-time cleanup: disband degenerate ONE-PARTY armies (just a leader,
+        // no members). These form when a lord is allowed to call an army that
+        // nobody can reach to join — now prevented at generation (see
+        // BKArmyManagementModel.CanLordCreateArmy) — but existing saves can still
+        // carry them. Vanilla disperses them for "not enough parties" anyway;
+        // doing it cleanly on load stops the create/disperse churn and the
+        // disband-strands-the-freed-party freeze. Snapshot first (DisbandArmyAction
+        // mutates the kingdom's army list), never touch the player's own army, and
+        // free the leader via the vanilla primitive (its re-path is reachability-
+        // guarded). Rescue/cleanup sweeps run at load only, by design.
+        private void OnGameLoadFinished()
+        {
+            BannerKings.Utils.FreezeWatchdog.Enter("BKArmy.OnGameLoadFinished", "1party-army-sweep");
+            try
+            {
+                var doomed = new List<Army>();
+                foreach (var kingdom in Kingdom.All)
+                {
+                    if (kingdom?.Armies == null) continue;
+                    foreach (var army in kingdom.Armies)
+                    {
+                        if (army == null) continue;
+                        if (army.LeaderParty == MobileParty.MainParty) continue;
+                        if (army.Parties != null && army.Parties.Contains(MobileParty.MainParty)) continue;
+                        if (army.Parties == null || army.Parties.Count <= 1)
+                            doomed.Add(army);
+                    }
+                }
+
+                foreach (var army in doomed)
+                {
+                    try { DisbandArmyAction.ApplyByNotEnoughParty(army); } catch { }
+                }
+
+                if (doomed.Count > 0)
+                    BannerKings.Utils.Logs.MajorEvent(() =>
+                        $"load cleanup: disbanded {doomed.Count} one-party army(ies)");
+            }
+            catch { /* never break load on a cleanup */ }
+            finally { BannerKings.Utils.FreezeWatchdog.Exit(); }
         }
 
         private void OnHeroKilled(Hero victim, Hero killer, KillCharacterAction.KillCharacterActionDetail detail, bool showNotification)
