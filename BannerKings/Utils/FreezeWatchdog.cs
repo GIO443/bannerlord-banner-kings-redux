@@ -60,6 +60,42 @@ namespace BannerKings.Utils
         private static volatile bool _enabled;
         public static bool Enabled => _enabled;
 
+        // When true, a CONFIRMED hang (a handler stuck past CrashSeconds while
+        // the GC is frozen — proof the campaign thread is wedged in native code,
+        // not merely slow) is escalated to a hard process crash: a full HTML
+        // diagnostic report is written to the Crashes folder and the process is
+        // terminated via Environment.FailFast. This converts a silent infinite
+        // freeze (force-quit, lose the session, get one log line) into a
+        // recoverable crash with a report that pinpoints the move that hung.
+        // Rides on _enabled (no watchdog thread = nothing to escalate).
+        private static volatile bool _crashOnFreeze = true;
+        public static void SetCrashOnFreeze(bool on) => _crashOnFreeze = on;
+
+        // Rich, human-readable context for the move currently in progress
+        // (party, target, position, gate, nav type, GetDistance values). Set
+        // by the SetMove* prefixes ONLY when _enabled, on the campaign thread
+        // (safe). The watchdog dumps it verbatim into the crash HTM, so the
+        // report explains WHY the move hung without the watchdog thread ever
+        // touching game state. Cleared on Exit.
+        private static volatile string _diagnostic;
+        public static void SetMoveContext(string diagnostic)
+        {
+            if (_enabled) _diagnostic = diagnostic;
+        }
+
+        // Stuck past this (seconds) WITH a frozen GC → confirmed native hang →
+        // crash. Far above any legitimate handler and above the STUCK warn
+        // threshold, so a slow-but-alive tick (which keeps allocating and
+        // advancing gen0) never trips it.
+        private const double CrashSeconds = 20.0;
+        // One-shot guard so only the first detector wins the crash.
+        private static volatile bool _crashing;
+        // Captured when a key first crosses the STUCK warn threshold: the gen0
+        // GC count and the timestamp, so the sampler can tell a frozen GC
+        // (native hang) from an advancing one (slow but alive).
+        private static int _stuckStartGen0;
+        private static string _stuckGen0Key;
+
         // Per-handler stopwatch gate: time a tick body when EITHER the freeze
         // detector or the hourly-perf logger wants it. Mirrors the cost of the
         // pre-existing LogHourlyTickPerf check (one singleton property read),
@@ -164,6 +200,7 @@ namespace BannerKings.Utils
                     // and false-fire a RUNTIME STALL.
                     _lastSampleTicks = 0;
                     _lastHeartbeatTicks = 0;
+                    _stuckGen0Key = null;
                     try { _lastGen2 = GC.CollectionCount(2); } catch { _lastGen2 = 0; }
                     if (_timer == null)
                     {
@@ -238,6 +275,7 @@ namespace BannerKings.Utils
         {
             if (!_enabled) return;
             _handler = null; // idle: nothing in progress
+            _diagnostic = null;
         }
 
         private static void Sample(object _)
@@ -289,6 +327,35 @@ namespace BannerKings.Utils
                             WriteLineDirect("freeze.txt",
                                 $"STUCK {key} running {sec:0}s — campaign thread not progressing. {MemStats()}");
                         }
+
+                        // Capture the gen0 baseline the first time THIS key is
+                        // seen stuck, so we can tell a frozen GC (native hang)
+                        // from one that's still advancing (slow but alive).
+                        if (key != _stuckGen0Key)
+                        {
+                            _stuckGen0Key = key;
+                            try { _stuckStartGen0 = GC.CollectionCount(0); } catch { _stuckStartGen0 = -1; }
+                        }
+
+                        // Crash escalation: stuck past CrashSeconds AND gen0 has
+                        // not advanced since it first went stuck → the campaign
+                        // thread is wedged in native code (a slow-but-alive tick
+                        // would have allocated and bumped gen0). Write the HTM
+                        // and hard-crash.
+                        if (_crashOnFreeze && !_crashing && sec >= CrashSeconds)
+                        {
+                            int g0now;
+                            try { g0now = GC.CollectionCount(0); } catch { g0now = _stuckStartGen0; }
+                            // Frozen GC = native hang. A live tick does DOZENS of
+                            // gen0 GCs over this window (see heartbeat g0 deltas),
+                            // so allow a drift of 1 for a stray background
+                            // allocation while still being unambiguous.
+                            if (_stuckStartGen0 >= 0 && (g0now - _stuckStartGen0) <= 1)
+                            {
+                                _crashing = true;
+                                CrashWithReport(key, sec, MemStats());
+                            }
+                        }
                     }
                 }
 
@@ -307,6 +374,88 @@ namespace BannerKings.Utils
                 }
             }
             catch { /* a freeze diagnostic must never crash the watchdog */ }
+        }
+
+        // Write a self-contained HTML diagnostic report for a confirmed hang,
+        // then hard-terminate the process. Runs on the watchdog thread (the
+        // campaign thread is wedged), so it touches NO game state — everything
+        // it reports was captured on the campaign thread into volatile fields
+        // (handler/entity at Enter, the rich move snapshot via SetMoveContext).
+        // We generate our own HTM rather than route through the game's crash
+        // window because that window needs a managed throw on the main thread,
+        // which is frozen.
+        private static void CrashWithReport(string key, double sec, string mem)
+        {
+            string htmPath = null;
+            try
+            {
+                string dir = BannerKings.BannerKingsCheats.DiagnosticDir;
+                try { if (!Directory.Exists(dir)) Directory.CreateDirectory(dir); } catch { }
+                string stamp = DateTime.Now.ToString("yyyyMMdd_HHmmss");
+                htmPath = Path.Combine(dir, "BK_freeze_crash_" + stamp + ".htm");
+
+                string diag = _diagnostic;
+                string lastDesc = _lastHandler == null ? "(none)"
+                    : (_lastEntity != null ? _lastHandler + ":" + _lastEntity : _lastHandler);
+
+                var sb = new System.Text.StringBuilder(2048);
+                sb.Append("<!DOCTYPE html><html><head><meta charset=\"utf-8\"><title>Banner Kings — Freeze Auto-Crash</title>");
+                sb.Append("<style>body{font-family:Segoe UI,Arial,sans-serif;background:#1b1b1b;color:#ddd;margin:24px;}");
+                sb.Append("h1{color:#e0a040;}h2{color:#8ab4f8;border-bottom:1px solid #444;padding-bottom:4px;margin-top:24px;}");
+                sb.Append("code,pre{background:#262626;color:#cfe;padding:2px 6px;border-radius:3px;white-space:pre-wrap;}");
+                sb.Append("table{border-collapse:collapse;}td{padding:3px 12px 3px 0;vertical-align:top;}.k{color:#999;}</style></head><body>");
+                sb.Append("<h1>Banner Kings — Freeze Auto-Crash</h1>");
+                sb.Append("<p>The Banner Kings freeze watchdog detected the campaign thread wedged inside a single "
+                    + "operation with the garbage collector frozen — a genuine native hang that would never recover. "
+                    + "Rather than leave the game frozen, BK wrote this report and terminated the process so you can "
+                    + "restart and send this file with your bug report.</p>");
+
+                sb.Append("<h2>Summary</h2><table>");
+                Row(sb, "Time", System.Security.SecurityElement.Escape(DateTime.Now.ToString("u")));
+                Row(sb, "Stuck operation", System.Security.SecurityElement.Escape(key));
+                Row(sb, "Stuck duration", sec.ToString("0") + " s (GC frozen the whole time)");
+                Row(sb, "Last BK handler before hang", System.Security.SecurityElement.Escape(lastDesc));
+                Row(sb, "Memory", System.Security.SecurityElement.Escape(mem));
+                sb.Append("</table>");
+
+                sb.Append("<h2>Move context</h2>");
+                if (string.IsNullOrEmpty(diag))
+                    sb.Append("<p><i>No move snapshot was captured — the hang was not inside an instrumented SetMove* call "
+                        + "(it is in another handler / vanilla decision / save-load). The stuck-operation name above still "
+                        + "identifies it.</i></p>");
+                else
+                    sb.Append("<pre>" + System.Security.SecurityElement.Escape(diag) + "</pre>");
+
+                sb.Append("<h2>What to do</h2><p>Send <code>" + System.Security.SecurityElement.Escape(Path.GetFileName(htmPath))
+                    + "</code> (and <code>BK_freeze.txt</code>) from your Crashes folder. The move context above names the "
+                    + "party and target whose pathfind hung — that is exactly what is needed to fix the root cause.</p>");
+                sb.Append("</body></html>");
+
+                lock (_fileLock)
+                {
+                    File.WriteAllText(htmPath, sb.ToString());
+                }
+
+                WriteLineDirect("freeze.txt",
+                    "FATAL — confirmed native hang on " + key + " (" + sec.ToString("0") + "s, GC frozen). "
+                    + "Hard-crashing with diagnostic report: " + Path.GetFileName(htmPath));
+            }
+            catch { /* never let report generation prevent the crash itself */ }
+
+            // Hard crash. FailFast terminates immediately from this (watchdog)
+            // thread regardless of the wedged campaign thread, surfacing a
+            // crash the user can restart from instead of an infinite freeze.
+            try
+            {
+                Environment.FailFast("Banner Kings freeze watchdog: confirmed native hang on " + key
+                    + (htmPath != null ? " — see " + htmPath : ""));
+            }
+            catch { }
+        }
+
+        private static void Row(System.Text.StringBuilder sb, string k, string v)
+        {
+            sb.Append("<tr><td class=\"k\">").Append(k).Append("</td><td>").Append(v).Append("</td></tr>");
         }
     }
 }

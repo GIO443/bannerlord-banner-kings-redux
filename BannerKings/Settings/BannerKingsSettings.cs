@@ -403,6 +403,27 @@ namespace BannerKings.Settings
             }
         }
 
+        // Sub-option of freeze detection. When ON (default), a CONFIRMED hang
+        // — the campaign thread wedged in one operation for 20s+ with the GC
+        // frozen — is escalated to a hard crash: BK writes a full HTML report
+        // (BK_freeze_crash_*.htm) naming the party/target whose pathfind hung,
+        // then terminates the process. This turns a silent infinite freeze
+        // (force-quit, lose the session) into a recoverable crash with a
+        // report. Only has any effect while 'Enable Freeze Detection' is on.
+        private bool _crashOnConfirmedFreeze = true;
+        [SettingProperty("{=!}Hard-Crash on Confirmed Freeze", RequireRestart = false,
+            HintText = "{=!}Requires 'Enable Freeze Detection'. When ON (default), once the watchdog confirms a true native hang (stuck 20s+ with the garbage collector frozen), BK writes a diagnostic report (BK_freeze_crash_*.htm in your Crashes folder, naming the party and target whose movement hung) and crashes the game instead of leaving it frozen forever. Turn OFF if you want the freeze logging without the auto-crash. Default: true.")]
+        [SettingPropertyGroup("{=!}Diagnostics")]
+        public bool CrashOnConfirmedFreeze
+        {
+            get => _crashOnConfirmedFreeze;
+            set
+            {
+                _crashOnConfirmedFreeze = value;
+                try { BannerKings.Utils.FreezeWatchdog.SetCrashOnFreeze(value); } catch { }
+            }
+        }
+
         [SettingProperty("{=!}Log Rescue Sweep", RequireRestart = false,
             HintText = "{=!}Append every BKShippingBehavior.UnifiedRescueSweep action (cleared at-sea, walking-water redirect, caravan reactivation, slave-caravan destruction) to BK_rescue.txt. Useful for diagnosing visible boat-on-land or caravan-on-water reports. Off by default. Default: false.")]
         [SettingPropertyGroup("{=!}Diagnostics")]

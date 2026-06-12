@@ -90,6 +90,44 @@ namespace BannerKings.Patches
             return "?";
         }
 
+        // Build a rich, human-readable snapshot of a settlement move and hand
+        // it to the freeze watchdog. If the engine's follower for THIS move
+        // hangs, the watchdog dumps this verbatim into the crash HTM so the
+        // report names the party, its position/flags, the target, the gate
+        // position, and the GetDistance values — the data that has been
+        // invisible in every freeze so far. Runs on the campaign thread (safe
+        // state); every field is independently guarded so a single missing
+        // value never aborts the whole snapshot. Diagnostic mode only.
+        private static void CaptureMoveContext(MobileParty party, Settlement settlement, MobileParty.NavigationType navigationType)
+        {
+            try
+            {
+                var sb = new System.Text.StringBuilder(384);
+                // Party — cheap, hang-free fields first.
+                try { sb.Append("party: ").Append(party?.Name?.ToString() ?? "?").Append(" [").Append(party?.StringId ?? "?").Append("]\n"); } catch { }
+                try { sb.Append("  kind: ").Append(party.IsCaravan ? "caravan" : party.IsLordParty ? "lord" : party.IsMilitia ? "militia" : "other").Append('\n'); } catch { }
+                try { var p = party.GetPosition2D; sb.Append("  pos: ").Append(p.X.ToString("0.0")).Append(',').Append(p.Y.ToString("0.0")).Append('\n'); } catch { }
+                try { sb.Append("  atSea: ").Append(party.IsCurrentlyAtSea).Append("  hasNaval: ").Append(party.HasNavalNavigationCapability).Append("  hasLand: ").Append(party.HasLandNavigationCapability).Append('\n'); } catch { }
+                try { sb.Append("  currentSettlement: ").Append(party.CurrentSettlement?.Name?.ToString() ?? "(none)").Append('\n'); } catch { }
+                // Target.
+                try { sb.Append("target: ").Append(settlement?.Name?.ToString() ?? "?").Append(" [").Append(settlement?.StringId ?? "?").Append("]\n"); } catch { }
+                try { sb.Append("  type: ").Append(settlement.IsTown ? "town" : settlement.IsCastle ? "castle" : settlement.IsVillage ? "village" : "other").Append("  hasPort: ").Append(settlement.HasPort).Append('\n'); } catch { }
+                try { var g = settlement.GatePosition; sb.Append("  gate: ").Append(g.X.ToString("0.0")).Append(',').Append(g.Y.ToString("0.0")).Append('\n'); } catch { }
+                try { sb.Append("  owner: ").Append(settlement.OwnerClan?.Name?.ToString() ?? "(none)").Append("  faction: ").Append(settlement.MapFaction?.Name?.ToString() ?? "(none)").Append('\n'); } catch { }
+                try { sb.Append("nav requested: ").Append(navigationType).Append('\n'); } catch { }
+                // Set the cheap snapshot NOW, before the potentially-hanging
+                // GetDistance calls below — so the report has context even if a
+                // distance probe is what wedges.
+                BannerKings.Utils.FreezeWatchdog.SetMoveContext(sb.ToString());
+
+                var dm = TaleWorlds.CampaignSystem.Campaign.Current.Models.MapDistanceModel;
+                try { float d = dm.GetDistance(party, settlement, false, MobileParty.NavigationType.Default, out _); sb.Append("GetDistance(Default/land): ").Append(d >= 50000f ? d.ToString("0") + " (UNREACHABLE)" : d.ToString("0.0")).Append('\n'); } catch { sb.Append("GetDistance(Default): error\n"); }
+                try { float d = dm.GetDistance(party, settlement, false, MobileParty.NavigationType.All, out _); sb.Append("GetDistance(All/land+sea): ").Append(d >= 50000f ? d.ToString("0") + " (UNREACHABLE)" : d.ToString("0.0")).Append('\n'); } catch { sb.Append("GetDistance(All): error\n"); }
+                BannerKings.Utils.FreezeWatchdog.SetMoveContext(sb.ToString());
+            }
+            catch { /* diagnostics must never disturb the move */ }
+        }
+
         // ---- Settlement-targeted setters ------------------------------------
 
         [HarmonyPatch(typeof(MobileParty), nameof(MobileParty.SetMoveGoToSettlement))]
@@ -116,6 +154,11 @@ namespace BannerKings.Patches
                     BannerKings.Utils.FreezeWatchdog.Enter(
                         "MobileParty.SetMoveGoToSettlement←" + FindMoveCaller(),
                         settlement?.StringId ?? BannerKings.Utils.TickTrace.IdOf(__instance));
+                    // Capture a rich snapshot for the crash HTM in case THIS move
+                    // hangs. Cheap fields first (so even if a later GetDistance
+                    // itself hangs, the report still has party/target context),
+                    // then the distances. Diagnostic mode only.
+                    CaptureMoveContext(__instance, settlement, navigationType);
                 }
 
                 // CENTRAL land-reachability guard (always on — the freeze-class

@@ -364,7 +364,7 @@ namespace BannerKings.Behaviours.Shipping
                     // BK_freeze.txt; when off it stays dormant (no thread).
                     // Reset clears any stale marker from a prior session loaded
                     // in the same process.
-                    try { BannerKings.Utils.FreezeWatchdog.Reset(); BannerKings.Utils.FreezeWatchdog.SetEnabled(Settings.BannerKingsSettings.Instance.EnableFreezeDetection); } catch { }
+                    try { BannerKings.Utils.FreezeWatchdog.Reset(); BannerKings.Utils.FreezeWatchdog.SetCrashOnFreeze(Settings.BannerKingsSettings.Instance.CrashOnConfirmedFreeze); BannerKings.Utils.FreezeWatchdog.SetEnabled(Settings.BannerKingsSettings.Instance.EnableFreezeDetection); } catch { }
 
                     // Force a graph rebuild on every save-load. The static
                     // ShippingGraph._instance cache otherwise persists across
@@ -400,7 +400,7 @@ namespace BannerKings.Behaviours.Shipping
                     try { BannerKings.BannerKingsCheats.ClearSessionDiagnostics(); } catch { }
 
                     // Start the freeze watchdog for new campaigns too.
-                    try { BannerKings.Utils.FreezeWatchdog.Reset(); BannerKings.Utils.FreezeWatchdog.SetEnabled(Settings.BannerKingsSettings.Instance.EnableFreezeDetection); } catch { }
+                    try { BannerKings.Utils.FreezeWatchdog.Reset(); BannerKings.Utils.FreezeWatchdog.SetCrashOnFreeze(Settings.BannerKingsSettings.Instance.CrashOnConfirmedFreeze); BannerKings.Utils.FreezeWatchdog.SetEnabled(Settings.BannerKingsSettings.Instance.EnableFreezeDetection); } catch { }
 
                     // Same rebuild trigger for new-game transitions. Without
                     // this the static graph carries stale Settlement object

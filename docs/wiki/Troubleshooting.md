@@ -410,6 +410,22 @@ Don't worry about reading it — just send the whole file. The lines around
 the freeze tell us exactly which BK system (or whether memory/GC) locked up
 and for how long.
 
+**Auto-crash on a confirmed freeze (v1.9.17.0+).** A true freeze used to mean
+the game was stuck forever and you had to force-quit — losing the session and
+most of the diagnostic detail. Now, when the watchdog confirms a *genuine*
+hang (the game wedged inside one operation for 20+ seconds with the garbage
+collector frozen, i.e. it will never recover), BK writes a one-page report
+named `BK_freeze_crash_<date>_<time>.htm` to your Crashes folder and then
+crashes the game on purpose, so you can restart instead of force-quitting.
+**Open that .htm in any browser and send it** — it names the exact party and
+destination whose movement hung (plus position, whether it can sail, and the
+land/sea path distances), which is precisely what's needed to fix the cause.
+This only happens while **Enable Freeze Detection** is on; it is controlled by
+**MCM → Banner Kings → Diagnostics → Hard-Crash on Confirmed Freeze** (on by
+default). Turn that sub-option **off** if you'd rather keep the freeze logging
+without the automatic crash. Normal slow-but-recovering hitches never trigger
+it — only a wedged game with a frozen GC does.
+
 **`BK_slow.txt` — the backup** (also needs the toggle on). Logs any single
 BK handler that took over 3 seconds, *after* it finishes:
 
