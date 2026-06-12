@@ -385,6 +385,14 @@ file after enabling the toggle, the folder is
 `%LOCALAPPDATA%\BannerKings\ModLogs` — paste that into the File Explorer
 address bar.) Then play until the freeze happens and check these files:
 
+> **Important — grab the log BEFORE you reload.** Loading a save clears the
+> current `BK_freeze.txt` so each play session starts clean. If you froze,
+> force-quit, and reloaded your save to look around, the freeze you just had
+> has been archived to **`BK_freeze.prev.txt`** (one generation back) — send
+> *that* file. The simplest capture is: right after a freeze, force-quit, and
+> copy `BK_freeze.txt` out of the ModLogs folder **before** launching the game
+> again. (`.htm` auto-crash reports are never cleared, so those always stay.)
+
 **`BK_freeze.txt` — send this one first (the WHOLE file).** A background
 watchdog records four kinds of line:
 

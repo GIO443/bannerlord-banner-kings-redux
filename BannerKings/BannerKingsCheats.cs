@@ -2880,15 +2880,46 @@ namespace BannerKings
             try
             {
                 if (!Directory.Exists(DiagnosticDir)) return;
+                // Preserve the PREVIOUS session's freeze/slow black boxes before
+                // wiping. A freeze is investigated by RELOADING the save — which
+                // runs this cleaner — so deleting BK_freeze.txt here erases
+                // exactly the evidence the user came back for (the #1 cause of
+                // "I froze but found no logs"). Archive one generation to
+                // BK_freeze.prev.txt / BK_slow.prev.txt, which are excluded from
+                // the wipe below, so the freeze record survives the reload. The
+                // current session still starts fresh (a new BK_freeze.txt is
+                // created by the watchdog's ARMED line). The .htm crash reports
+                // already survive — only .txt was being wiped.
+                ArchiveBlackBox("BK_freeze.txt", "BK_freeze.prev.txt");
+                ArchiveBlackBox("BK_slow.txt", "BK_slow.prev.txt");
                 int deleted = 0;
                 foreach (var path in Directory.GetFiles(DiagnosticDir, "BK_*.txt"))
                 {
+                    // Keep the archived previous-session black boxes.
+                    if (path.EndsWith(".prev.txt", StringComparison.OrdinalIgnoreCase)) continue;
                     try { File.Delete(path); deleted++; }
                     catch { /* a file may be locked by another process; skip */ }
                 }
                 LastWriteResult = $"per-save log cleaner: cleared {deleted} BK_*.txt file(s) in {DiagnosticDir}";
             }
             catch { /* defensive: never throw out of a load-time hook */ }
+        }
+
+        // Move a black-box log to its one-generation archive name, overwriting
+        // any prior archive. File.Move on .NET Framework throws if the dest
+        // exists, so delete it first. Best-effort: a failure just means the
+        // file gets wiped as before, never a crash out of the load hook.
+        private static void ArchiveBlackBox(string name, string prevName)
+        {
+            try
+            {
+                string src = Path.Combine(DiagnosticDir, name);
+                if (!File.Exists(src)) return;
+                string dst = Path.Combine(DiagnosticDir, prevName);
+                try { if (File.Exists(dst)) File.Delete(dst); } catch { }
+                File.Move(src, dst);
+            }
+            catch { /* if archiving fails, the wipe loop will remove src as before */ }
         }
 
         // DISABLED (v1.9.16.15). This used to delete every party whose StringId
