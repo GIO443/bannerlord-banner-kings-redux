@@ -434,5 +434,53 @@ namespace BannerKings.Patches
                 Log($"{__instance.Name?.ToString() ?? "?"} {PartyState(__instance)} → SetSailAtPosition(pos=({position.X:0.0},{position.Y:0.0}))");
             }
         }
+
+        // Guard + instrument the navmesh "find a reachable point" search — the
+        // native call that wedges the campaign thread when a position's terrain
+        // disagrees with the requested navigation type (the AtSea-on-land desync).
+        // Army disband scatter goes through here (Army.DisperseInternal), as does
+        // other party repositioning. It is NOT a SetMove*, so a hang here shows as
+        // "current (idle)" in BK_freeze.txt and the auto-crash never sees it (the
+        // exact pattern in the latest freeze log: heartbeats alive, GC flatlined,
+        // no named handler).
+        //
+        // FIX: if the search CENTRE is itself invalid for the requested nav type,
+        // the native search has no valid frontier and can spin forever — return
+        // the centre as a best-effort point instead (the party stays put, corrected
+        // on its next move; far better than a frozen game). INSTRUMENT: bracket the
+        // call so when it DOES run and hangs, the watchdog names it and the
+        // auto-crash fires with a report naming this call instead of freezing
+        // unnamed. (Postfix runs Exit even when the Prefix returns false.)
+        [HarmonyPatch(typeof(global::Helpers.NavigationHelper),
+            nameof(global::Helpers.NavigationHelper.FindReachablePointAroundPosition),
+            new System.Type[] { typeof(CampaignVec2), typeof(MobileParty.NavigationType), typeof(float), typeof(float), typeof(bool) })]
+        internal static class FindReachablePointHangGuard
+        {
+            private static bool Prefix(CampaignVec2 center, MobileParty.NavigationType navigationCapability, ref CampaignVec2 __result, out bool __state)
+            {
+                // Mark this call ONLY when nothing else is in-flight (untracked
+                // context — exactly the case the watchdog can't otherwise see). If
+                // an outer BK handler called us, leave its marker alone so we don't
+                // blind its coverage. __state tells the Postfix whether to Exit.
+                __state = false;
+                if (BannerKings.Utils.FreezeWatchdog.Enabled && BannerKings.Utils.FreezeWatchdog.IsIdle)
+                {
+                    BannerKings.Utils.FreezeWatchdog.Enter("NavigationHelper.FindReachablePointAroundPosition", "navmesh");
+                    __state = true;
+                }
+                try
+                {
+                    var terrain = Campaign.Current.MapSceneWrapper.GetTerrainTypeAtPosition(center);
+                    if (!Campaign.Current.Models.PartyNavigationModel.IsTerrainTypeValidForNavigationType(terrain, navigationCapability))
+                    {
+                        __result = center; // no valid frontier at the centre — don't let the native search spin
+                        return false;
+                    }
+                }
+                catch { }
+                return true;
+            }
+            private static void Postfix(bool __state) { if (__state) BannerKings.Utils.FreezeWatchdog.Exit(); }
+        }
     }
 }

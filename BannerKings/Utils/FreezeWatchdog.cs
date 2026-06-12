@@ -60,6 +60,12 @@ namespace BannerKings.Utils
         private static volatile bool _enabled;
         public static bool Enabled => _enabled;
 
+        // True when no bracketed handler is currently in-flight. Lets a low-level
+        // bracket (e.g. the navmesh FindReachablePoint guard) set its marker ONLY
+        // when called from untracked code — so it names the otherwise-invisible
+        // untracked hang without clobbering an outer BK handler that called it.
+        public static bool IsIdle => _handler == null;
+
         // When true, a CONFIRMED hang (a handler stuck past CrashSeconds while
         // the GC is frozen — proof the campaign thread is wedged in native code,
         // not merely slow) is escalated to a hard process crash: a full HTML

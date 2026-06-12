@@ -490,6 +490,15 @@ v1.9.21.3 attempt to auto-clean one-party armies on load was reverted in
 v1.9.21.4 — it tripped this very hang during loading — and is unnecessary now
 that the disband itself is safe.)
 
+**General navmesh-search guard (v1.9.21.6).** The same "find a reachable point"
+navmesh search is used elsewhere too (any time the game repositions a party),
+and it hangs the same way whenever a party's land/sea state is out of sync with
+the ground under it. BK now intercepts that search: if the spot it's searching
+from is invalid for the party's current land/sea mode (the exact condition that
+makes it spin forever), BK returns that spot immediately instead of letting it
+hang. If a freeze still slips through here, the watchdog now names this search
+specifically, so the auto-crash report can pinpoint it.
+
 **`BK_slow.txt` — the backup** (also needs the toggle on). Logs any single
 BK handler that took over 3 seconds, *after* it finishes:
 
