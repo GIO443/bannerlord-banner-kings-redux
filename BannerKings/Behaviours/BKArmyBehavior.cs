@@ -433,5 +433,82 @@ namespace BannerKings.Behaviours
                 catch { /* a disband guard must never throw out of the disband */ }
             }
         }
+
+        // The REAL "disbanding-an-army-freezes-the-game" cause, root-caused from
+        // BK_freeze.txt + BK_army_formation_audit.txt: it is NOT the disband, it
+        // is the doomed army's HOURLY GATHER tick.
+        //
+        // A persistent 1-party AI army (audit: JOIN ... total_parties=1, never
+        // grows, never disperses) sits forever "waiting for members". Every hour
+        // Army.HourlyTick -> MoveLeaderToGatheringLocationIfNeeded re-issues a
+        // move toward its gathering settlement's gate via
+        // SendLeaderPartyToReachablePointAroundPosition (FindReachablePoint then
+        // SetMoveGoToPoint with the leader's NavigationCapability). When the
+        // leader's IsCurrentlyAtSea is desynced from its terrain (the AtSea-on-
+        // land family) OR the gathering settlement has no route from the leader,
+        // that native travel pathfind wedges the campaign thread (GC frozen). In
+        // BK_freeze.txt this shows as "current (idle); last FindReachablePoint"
+        // because the bounded FindReachablePoint exits cleanly and the hang is in
+        // the unbracketed native pathing right after it. Killing the leader only
+        // "fixes" it by deleting the army so the hourly tick stops — the user
+        // asked for a better way.
+        //
+        // Better way: prefix the gather method. (1) Reconcile the leader's AtSea
+        // flag to its real terrain — the proven root-cause fix for this whole
+        // freeze family (same reconcile as the disband guard above). (2) If the
+        // gathering settlement is unreachable from the leader by land AND sea,
+        // SKIP the gather move entirely (return false). The leader then stays in
+        // Hold, so vanilla's own CheckArmyDispersion -> CheckInactivity (which
+        // runs later in the same HourlyTick) increments the inactivity counter
+        // and disbands the doomed army on its own — through the now-hang-safe
+        // DisperseInternal — with no dead hero. A healthy gathering army is
+        // unaffected: reconcile is a no-op when the flag already matches, and the
+        // skip only fires at the >=50000 unreachable sentinel (GetDistance, the
+        // hang-safe oracle BK uses everywhere).
+        [HarmonyPatch(typeof(Army), "MoveLeaderToGatheringLocationIfNeeded")]
+        internal class ArmyGatherHangGuard
+        {
+            private static bool Prefix(Army __instance)
+            {
+                try
+                {
+                    var leader = __instance?.LeaderParty;
+                    if (leader == null) return true;
+
+                    // (1) Reconcile the leader's AtSea flag to terrain at its
+                    // position (only when out in the field — irrelevant in a
+                    // settlement). A wrong flag makes the gather pathfind search
+                    // the wrong navmesh layer and hang.
+                    if (leader.CurrentSettlement == null)
+                    {
+                        try
+                        {
+                            var navModel = Campaign.Current.Models.PartyNavigationModel;
+                            var terrain = Campaign.Current.MapSceneWrapper.GetTerrainTypeAtPosition(leader.Position);
+                            bool onWater = !navModel.IsTerrainTypeValidForNavigationType(terrain, MobileParty.NavigationType.Default);
+                            if (leader.IsCurrentlyAtSea != onWater) leader.IsCurrentlyAtSea = onWater;
+                        }
+                        catch { }
+                    }
+
+                    // (2) If the gathering target settlement is genuinely
+                    // unreachable from the leader, skip the move so vanilla
+                    // inactivity can disband the army instead of hanging.
+                    var target = __instance.AiBehaviorObject as Settlement;
+                    if (target != null)
+                    {
+                        try
+                        {
+                            var dm = Campaign.Current.Models.MapDistanceModel;
+                            float dAll = dm.GetDistance(leader, target, false, MobileParty.NavigationType.All, out _);
+                            if (dAll >= 50000f) return false; // no land or sea route — let the army disband
+                        }
+                        catch { /* can't verify -> fall through to vanilla */ }
+                    }
+                }
+                catch { /* a gather guard must never throw out of the hourly tick */ }
+                return true;
+            }
+        }
     }
 }

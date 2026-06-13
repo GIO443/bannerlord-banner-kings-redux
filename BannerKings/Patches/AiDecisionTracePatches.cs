@@ -578,5 +578,46 @@ namespace BannerKings.Patches
             }
             private static void Postfix(bool __state) { if (__state) BannerKings.Utils.FreezeWatchdog.Exit(); }
         }
+
+        // Sibling guard for the OTHER FindReachablePointAroundPosition overload —
+        // the int[]-excludedFaceIds one that the NavigationType overload above
+        // delegates to, but which other callers also hit DIRECTLY (bypassing the
+        // guarded overload). This was the last UNBRACKETED navmesh-search surface:
+        // a hang inside its bounded 250-iteration loop (a single native
+        // GetPathDistanceBetweenAIFaces that never returns) showed in BK_freeze.txt
+        // as "current (idle); last FindReachablePoint" — idle because the GUARDED
+        // overload had already exited and this direct call set no marker. Bracket
+        // it so a hang here is NAMED (current=set), and bail when the search CENTRE
+        // has no valid navmesh face: every loop iteration calls
+        // GetPathDistanceBetweenAIFaces(center.Face, ...), so an invalid centre is
+        // exactly the wedge. Returning the centre is behaviour-equivalent to the
+        // loop finding no path (it also returns the centre) — it only skips the
+        // hang and the 250 wasted native probes.
+        [HarmonyPatch(typeof(global::Helpers.NavigationHelper),
+            nameof(global::Helpers.NavigationHelper.FindReachablePointAroundPosition),
+            new System.Type[] { typeof(CampaignVec2), typeof(int[]), typeof(float), typeof(float), typeof(bool) })]
+        internal static class FindReachablePointByFacesHangGuard
+        {
+            private static bool Prefix(CampaignVec2 center, ref CampaignVec2 __result, out bool __state)
+            {
+                __state = false;
+                if (BannerKings.Utils.FreezeWatchdog.Enabled && BannerKings.Utils.FreezeWatchdog.IsIdle)
+                {
+                    BannerKings.Utils.FreezeWatchdog.Enter("NavigationHelper.FindReachablePointAroundPosition[faces]", "navmesh");
+                    __state = true;
+                }
+                try
+                {
+                    if (!center.Face.IsValid())
+                    {
+                        __result = center; // invalid centre face — native loop would wedge; no path anyway
+                        return false;
+                    }
+                }
+                catch { }
+                return true;
+            }
+            private static void Postfix(bool __state) { if (__state) BannerKings.Utils.FreezeWatchdog.Exit(); }
+        }
     }
 }

@@ -509,6 +509,23 @@ unreachable escort is skipped (the party re-decides) or, for a fleet, routed by
 sea — instead of hanging. This was the remaining named cause behind the
 late-campaign army freezes.
 
+**Doomed armies that "wait for members" forever (fixed v1.9.22.0).** Some saves
+carry a stuck AI army that never grew past its own leader (a "1-party army") and
+sits permanently *waiting to gather*. Every in-game hour that army tries to walk
+its leader toward the rally point — and if the leader's land/sea state is off, or
+the rally settlement has no route from where the leader actually is, that hourly
+move hangs the game. (The tell in `BK_freeze.txt` is a stall that reads
+`current (idle); last FindReachablePoint` — the freeze is in the move issued
+right after the rally-point search.) Players had been clearing it by killing the
+army's leader; that works only because it deletes the army so the hourly tick
+stops. BK now fixes the cause: before each hourly gather, it corrects the
+leader's land/sea flag to match the real terrain, and if the rally settlement is
+genuinely unreachable it **skips that move** so the army falls idle and vanilla's
+own "inactive army" rule disbands it cleanly within a day or so — no need to kill
+anyone. A healthy gathering army is untouched. If a navmesh search ever does hang
+after this, the watchdog now names *both* of the engine's reachable-point
+searches (the last one was previously unnamed), so the report can pinpoint it.
+
 **`BK_slow.txt` — the backup** (also needs the toggle on). Logs any single
 BK handler that took over 3 seconds, *after* it finishes:
 
