@@ -175,6 +175,44 @@ namespace BannerKings.Patches
             return true;
         }
 
+        // Party-target sibling of GuardSettlementMove, for SetMoveEscortParty /
+        // SetMoveEngageParty. Those setters trigger a synchronous escort/engage
+        // pathfind (via DefaultBehavior); if the TARGET PARTY is unreachable the
+        // native pathfind HANGS the campaign thread — captured precisely as
+        //   STUCK MobileParty.SetMoveEscortParty:lord_4_1_party_1  (GC frozen),
+        // the army-gather case where a banner party is told to escort a leader it
+        // can't reach (across water). Skip the move when the target is unreachable
+        // by land (land-only party) or by land AND sea (naval); upgrade Default->
+        // All when only a sea route exists. GetDistance is the hang-safe oracle.
+        private static bool GuardPartyTargetMove(MobileParty party, MobileParty target, ref MobileParty.NavigationType navigationType)
+        {
+            if (party == null || target == null) return true;
+            if (navigationType != MobileParty.NavigationType.Default) return true;
+            try
+            {
+                var dm = TaleWorlds.CampaignSystem.Campaign.Current.Models.MapDistanceModel;
+                bool naval = false;
+                try { naval = party.HasNavalNavigationCapability; } catch { }
+                if (!naval)
+                {
+                    float d = dm.GetDistance(party, target, MobileParty.NavigationType.Default, out _);
+                    if (d >= 50000f) return false; // land-only, target not land-reachable — skip
+                }
+                else
+                {
+                    float dLand = dm.GetDistance(party, target, MobileParty.NavigationType.Default, out _);
+                    if (dLand >= 50000f)
+                    {
+                        float dAll = dm.GetDistance(party, target, MobileParty.NavigationType.All, out _);
+                        if (dAll < 50000f) navigationType = MobileParty.NavigationType.All; // sail to escort
+                        else return false; // unreachable by land or sea — skip
+                    }
+                }
+            }
+            catch { }
+            return true;
+        }
+
         // ---- Settlement-targeted setters ------------------------------------
 
         [HarmonyPatch(typeof(MobileParty), nameof(MobileParty.SetMoveGoToSettlement))]
@@ -291,17 +329,21 @@ namespace BannerKings.Patches
         [HarmonyPatch(typeof(MobileParty), nameof(MobileParty.SetMoveEngageParty))]
         internal static class SetMoveEngagePartyPostfix
         {
-            private static void Prefix(MobileParty __instance, MobileParty mobileParty)
+            // Vanilla signature is SetMoveEngageParty(MobileParty party, NavigationType
+            // navigationType) — the target param is `party` (Harmony binds by name).
+            private static bool Prefix(MobileParty __instance, MobileParty party, ref MobileParty.NavigationType navigationType)
             {
                 BannerKings.Utils.FreezeWatchdog.Enter("MobileParty.SetMoveEngageParty",
-                    BannerKings.Utils.TickTrace.IdOf(mobileParty ?? __instance));
+                    BannerKings.Utils.TickTrace.IdOf(party ?? __instance));
+                // Same hang surface as escort — engaging an unreachable target party.
+                return GuardPartyTargetMove(__instance, party, ref navigationType);
             }
-            private static void Postfix(MobileParty __instance, MobileParty mobileParty)
+            private static void Postfix(MobileParty __instance, MobileParty party)
             {
                 BannerKings.Utils.FreezeWatchdog.Exit();
                 if (!ShouldTrace(__instance)) return;
-                string targetName = mobileParty?.Name?.ToString() ?? "(null)";
-                bool targetAtSea = false; try { targetAtSea = mobileParty?.IsCurrentlyAtSea ?? false; } catch { }
+                string targetName = party?.Name?.ToString() ?? "(null)";
+                bool targetAtSea = false; try { targetAtSea = party?.IsCurrentlyAtSea ?? false; } catch { }
                 Log($"{__instance.Name?.ToString() ?? "?"} {PartyState(__instance)} → SetMoveEngageParty(target={targetName} targetAtSea={targetAtSea})");
             }
         }
@@ -314,10 +356,13 @@ namespace BannerKings.Patches
             // malformed militia (militias_of_militias_of_town_V6_aaa1_aaa1)
             // ticking just before a frozen native pathfind; if a broken escort
             // party hangs here, name it + its escort target.
-            private static void Prefix(MobileParty __instance, MobileParty mobileParty)
+            private static bool Prefix(MobileParty __instance, MobileParty mobileParty, ref MobileParty.NavigationType navigationType)
             {
                 BannerKings.Utils.FreezeWatchdog.Enter("MobileParty.SetMoveEscortParty",
                     BannerKings.Utils.TickTrace.IdOf(mobileParty ?? __instance));
+                // Guard the escort pathfind: escorting a target the party can't
+                // reach (across water — the army-gather hang) wedges the thread.
+                return GuardPartyTargetMove(__instance, mobileParty, ref navigationType);
             }
             private static void Postfix(MobileParty __instance)
             {

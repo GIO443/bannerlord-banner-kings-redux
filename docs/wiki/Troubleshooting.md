@@ -499,6 +499,16 @@ makes it spin forever), BK returns that spot immediately instead of letting it
 hang. If a freeze still slips through here, the watchdog now names this search
 specifically, so the auto-crash report can pinpoint it.
 
+**Army-gather / escort freeze (fixed v1.9.21.7).** The watchdog named this one
+exactly — `SetMoveEscortParty`. When an army gathers, the called parties are
+sent to **escort** the leader; if one of them can't actually reach the leader
+(the leader is across water, or the party's land/sea state is off), the engine's
+escort pathfind hangs the game. BK now reachability-checks the escort (and the
+"engage another party" move) the same way it does settlement moves: an
+unreachable escort is skipped (the party re-decides) or, for a fleet, routed by
+sea — instead of hanging. This was the remaining named cause behind the
+late-campaign army freezes.
+
 **`BK_slow.txt` — the backup** (also needs the toggle on). Logs any single
 BK handler that took over 3 seconds, *after* it finishes:
 
