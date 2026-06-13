@@ -184,28 +184,52 @@ namespace BannerKings.Patches
         // can't reach (across water). Skip the move when the target is unreachable
         // by land (land-only party) or by land AND sea (naval); upgrade Default->
         // All when only a sea route exists. GetDistance is the hang-safe oracle.
+        // Cheap escort/engage snapshot for the crash HTM (no GetDistance, so it
+        // survives even if a distance probe is what wedges). Diagnostic-mode only.
+        private static void CaptureEscortContext(MobileParty party, MobileParty target, MobileParty.NavigationType nav)
+        {
+            try
+            {
+                var sb = new System.Text.StringBuilder(256);
+                try { sb.Append("escorter: ").Append(party?.Name?.ToString() ?? "?").Append(" [").Append(party?.StringId ?? "?").Append("]\n"); } catch { }
+                try { var p = party.GetPosition2D; sb.Append("  pos: ").Append(p.X.ToString("0.0")).Append(',').Append(p.Y.ToString("0.0")).Append("  atSea: ").Append(party.IsCurrentlyAtSea).Append("  hasNaval: ").Append(party.HasNavalNavigationCapability).Append('\n'); } catch { }
+                try { sb.Append("target: ").Append(target?.Name?.ToString() ?? "?").Append(" [").Append(target?.StringId ?? "?").Append("]\n"); } catch { }
+                try { var t = target.GetPosition2D; sb.Append("  pos: ").Append(t.X.ToString("0.0")).Append(',').Append(t.Y.ToString("0.0")).Append("  atSea: ").Append(target.IsCurrentlyAtSea).Append("  inSettlement: ").Append(target.CurrentSettlement?.Name?.ToString() ?? "(none)").Append('\n'); } catch { }
+                try { sb.Append("nav requested: ").Append(nav).Append('\n'); } catch { }
+                BannerKings.Utils.FreezeWatchdog.SetMoveContext(sb.ToString());
+            }
+            catch { }
+        }
+
         private static bool GuardPartyTargetMove(MobileParty party, MobileParty target, ref MobileParty.NavigationType navigationType)
         {
             if (party == null || target == null) return true;
-            if (navigationType != MobileParty.NavigationType.Default) return true;
             try
             {
                 var dm = TaleWorlds.CampaignSystem.Campaign.Current.Models.MapDistanceModel;
-                bool naval = false;
-                try { naval = party.HasNavalNavigationCapability; } catch { }
-                if (!naval)
-                {
-                    float d = dm.GetDistance(party, target, MobileParty.NavigationType.Default, out _);
-                    if (d >= 50000f) return false; // land-only, target not land-reachable — skip
-                }
-                else
+
+                // NAV-AGNOSTIC — unlike the settlement guard. The engine re-commits
+                // an escort/engage each tick using the PARTY'S OWN capability (All/
+                // Naval for a naval party), NOT Default, so a Default-only check
+                // would no-op on exactly the naval-escort case that hangs. First,
+                // unreachable by ANY means (land OR sea) → skip regardless of the
+                // requested nav: the target genuinely can't be reached, so the
+                // escort/engage pathfind would spin.
+                float dAll = dm.GetDistance(party, target, MobileParty.NavigationType.All, out _);
+                if (dAll >= 50000f) return false;
+
+                // Reachable by sea but a Default (land) move was requested with no
+                // land route: upgrade a naval party to All (sail to it), or skip a
+                // land-only party that has no land route.
+                if (navigationType == MobileParty.NavigationType.Default)
                 {
                     float dLand = dm.GetDistance(party, target, MobileParty.NavigationType.Default, out _);
                     if (dLand >= 50000f)
                     {
-                        float dAll = dm.GetDistance(party, target, MobileParty.NavigationType.All, out _);
-                        if (dAll < 50000f) navigationType = MobileParty.NavigationType.All; // sail to escort
-                        else return false; // unreachable by land or sea — skip
+                        bool naval = false;
+                        try { naval = party.HasNavalNavigationCapability; } catch { }
+                        if (naval) navigationType = MobileParty.NavigationType.All; // sail to escort
+                        else return false; // land-only, no land route — skip
                     }
                 }
             }
@@ -335,6 +359,7 @@ namespace BannerKings.Patches
             {
                 BannerKings.Utils.FreezeWatchdog.Enter("MobileParty.SetMoveEngageParty",
                     BannerKings.Utils.TickTrace.IdOf(party ?? __instance));
+                if (BannerKings.Utils.FreezeWatchdog.Enabled) CaptureEscortContext(__instance, party, navigationType);
                 // Same hang surface as escort — engaging an unreachable target party.
                 return GuardPartyTargetMove(__instance, party, ref navigationType);
             }
@@ -360,6 +385,7 @@ namespace BannerKings.Patches
             {
                 BannerKings.Utils.FreezeWatchdog.Enter("MobileParty.SetMoveEscortParty",
                     BannerKings.Utils.TickTrace.IdOf(mobileParty ?? __instance));
+                if (BannerKings.Utils.FreezeWatchdog.Enabled) CaptureEscortContext(__instance, mobileParty, navigationType);
                 // Guard the escort pathfind: escorting a target the party can't
                 // reach (across water — the army-gather hang) wedges the thread.
                 return GuardPartyTargetMove(__instance, mobileParty, ref navigationType);
