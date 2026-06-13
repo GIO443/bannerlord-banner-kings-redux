@@ -8,6 +8,16 @@ with adaptive risk weighting and a single unified graph covering both
 **sea** and **land** edges, so non-port settlements participate too.
 This page is the HOW for living with that system.
 
+> **⚠️ Temporarily disabled (v1.9.22.1).** The shipping graph is **off** while
+> we isolate a reproducible late-campaign freeze that traced to the shipping
+> subsystem (`BK_freeze.txt` named `ShippingGraph.Build`). With the graph off,
+> BK no longer overrides sea routing: caravans and AI lord parties path purely
+> by **vanilla** rules (with War Sails, the engine still sails them visibly).
+> The graph-driven features below — sea-shortcut auto-board, adaptive shipping
+> costs, the topology map — are inactive for now. If disabling it removes the
+> freeze, that confirms the cause and we re-enable a fixed version. Everything
+> else (caravans, trade, the player ship menu without War Sails) keeps working.
+
 ## On this page
 
 - [How shipping works](#how-shipping-works)

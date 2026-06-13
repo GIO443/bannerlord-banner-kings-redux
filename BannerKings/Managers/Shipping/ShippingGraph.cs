@@ -38,6 +38,25 @@ namespace BannerKings.Managers.Shipping
 
         public static void Invalidate() => _instance = null;
 
+        // KILL SWITCH (v1.9.22.1). The shipping graph is DISABLED.
+        //
+        // A reproducible late-campaign stall (BK_freeze.txt: GC frozen, last
+        // marker "ShippingGraph.Build", heap climbing then flatlined) traced to
+        // the shipping subsystem — either Build()'s per-port-pair naval
+        // GetDistance probes (the same native pathfind that hangs elsewhere in
+        // this saga) or a consumer's Dijkstra/adaptive-path traversal over the
+        // built graph right after Build() returns. Per user directive, nuke it
+        // and default to vanilla pathing: Build() returns an EMPTY graph, so
+        // every consumer's Adjacency / AreConnected / GetShortestPath lookup
+        // misses and falls through to its vanilla/land branch — BK stops
+        // overriding caravan and lord sea routing, and the engine's own
+        // pathfinder decides every move. No sea edges = no boarding redirects =
+        // no graph traversal = no build-time naval probes.
+        //
+        // This is the experiment: if the stall clears with the graph off, the
+        // shipping graph was the cause. Flip back to false to re-enable.
+        public static bool Disabled = true;
+
         public enum EdgeKind
         {
             Sea,
@@ -226,6 +245,11 @@ namespace BannerKings.Managers.Shipping
             BannerKings.Utils.FreezeWatchdog.Enter("ShippingGraph.Build", null);
             try {
             var g = new ShippingGraph();
+
+            // NUKED — return the empty graph immediately. Every consumer's
+            // Adjacency/AreConnected/GetShortestPath lookup then misses and
+            // falls through to vanilla pathing. See the Disabled flag comment.
+            if (Disabled) return g;
 
             // ---- Land edges: KNN K=3 ≤75u over fiefs (towns + castles) ----
             // Land edges are the road network. Villages aren't valid land
