@@ -475,7 +475,42 @@ namespace BannerKings.Behaviours
                     var leader = __instance?.LeaderParty;
                     if (leader == null) return true;
 
-                    // (1) Reconcile the leader's AtSea flag to terrain at its
+                    // (1) Repair an OFF-NAVMESH leader. The "degenerate" army the
+                    // player sees as a marker with nothing under it: the leader's
+                    // Position sits on a face that is invalid for EVERY one of its
+                    // nav capabilities (not just a land/sea flag mismatch — there
+                    // is no walkable face at all). The 3D party then renders under/
+                    // off the mesh, and any pathfind from it (the gather move) runs
+                    // GetPathDistanceBetweenAIFaces from an invalid source face and
+                    // never returns → the hang. Vanilla repairs exactly this in
+                    // Army.CheckPositionsForMapChangeAndUpdateIfNeeded, but ONLY on
+                    // a map change; we apply the same snap on the hourly tick. Snap
+                    // to the nearest valid face CENTRE (a pure nearest-face lookup —
+                    // no FindReachablePoint/pathfind, so it can't itself hang), and
+                    // bring attached parties along like vanilla SetPositionAfterMapChange.
+                    // Done FIRST so the at-sea reconcile below reads terrain at a
+                    // valid position. No-op for a healthy army (its position is
+                    // valid for its capability), so it never teleports a good party.
+                    if (leader.CurrentSettlement == null)
+                    {
+                        try
+                        {
+                            var cap = leader.NavigationCapability;
+                            if (!global::Helpers.NavigationHelper.IsPositionValidForNavigationType(leader.Position, cap))
+                            {
+                                var invalidTerrain = Campaign.Current.Models.PartyNavigationModel.GetInvalidTerrainTypesForNavigationType(cap);
+                                var snapped = global::Helpers.NavigationHelper.GetClosestNavMeshFaceCenterPositionForPosition(leader.Position, invalidTerrain);
+                                if (snapped.IsValid())
+                                {
+                                    leader.Position = snapped;
+                                    try { foreach (var ap in leader.AttachedParties) ap.SetPositionAfterMapChange(snapped); } catch { }
+                                }
+                            }
+                        }
+                        catch { }
+                    }
+
+                    // (2) Reconcile the leader's AtSea flag to terrain at its
                     // position (only when out in the field — irrelevant in a
                     // settlement). A wrong flag makes the gather pathfind search
                     // the wrong navmesh layer and hang.
@@ -491,7 +526,7 @@ namespace BannerKings.Behaviours
                         catch { }
                     }
 
-                    // (2) If the gathering target settlement is genuinely
+                    // (3) If the gathering target settlement is genuinely
                     // unreachable from the leader, skip the move so vanilla
                     // inactivity can disband the army instead of hanging.
                     var target = __instance.AiBehaviorObject as Settlement;

@@ -526,6 +526,19 @@ anyone. A healthy gathering army is untouched. If a navmesh search ever does han
 after this, the watchdog now names *both* of the engine's reachable-point
 searches (the last one was previously unnamed), so the report can pinpoint it.
 
+**"The army marker is there but nothing's under it" — off-the-map armies
+(fixed v1.9.22.2).** A worse form of the stuck army: its leader's map position
+lands on a spot with **no walkable ground at all** (off the navigation mesh —
+effectively "under the map"). The name-plate still shows where the army logically
+is, but the army model renders under/off the terrain, so it looks like it isn't
+there. This is the same family as the freeze: with no valid ground under it,
+*any* move the army tries hangs the game. The base game only repairs this on a
+battle→map transition, so an army that drifts off-mesh mid-campaign just sits
+there, invisible and freeze-prone. BK now repairs it every hour — if the leader
+is off the mesh, it's snapped back to the nearest valid ground (and its attached
+parties with it), so the army reappears where its marker says and can move or
+disband normally. A correctly-placed army is never moved.
+
 **`BK_slow.txt` — the backup** (also needs the toggle on). Logs any single
 BK handler that took over 3 seconds, *after* it finishes:
 
