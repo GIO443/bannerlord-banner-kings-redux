@@ -201,11 +201,36 @@ namespace BannerKings.Patches
             catch { }
         }
 
+        // Reconcile a party's IsCurrentlyAtSea flag to the terrain actually under
+        // it. A desynced flag (on land but flagged at-sea, or vice versa — the
+        // root behind the disband freeze) makes any pathfind that derives its nav
+        // capability from the flag search the WRONG navmesh layer and hang. Cheap
+        // terrain lookup, no navmesh search; only writes a genuinely-wrong flag.
+        private static void ReconcileAtSea(MobileParty p)
+        {
+            if (p == null) return;
+            try
+            {
+                if (p.CurrentSettlement != null) return; // in a settlement — flag irrelevant to field pathing
+                var terrain = TaleWorlds.CampaignSystem.Campaign.Current.MapSceneWrapper.GetTerrainTypeAtPosition(p.Position);
+                bool onWater = !TaleWorlds.CampaignSystem.Campaign.Current.Models.PartyNavigationModel
+                    .IsTerrainTypeValidForNavigationType(terrain, MobileParty.NavigationType.Default);
+                if (p.IsCurrentlyAtSea != onWater) p.IsCurrentlyAtSea = onWater;
+            }
+            catch { }
+        }
+
         private static bool GuardPartyTargetMove(MobileParty party, MobileParty target, ref MobileParty.NavigationType navigationType)
         {
             if (party == null || target == null) return true;
             try
             {
+                // Fix the AtSea/terrain desync on the escorter FIRST — the escort
+                // pathfind derives its search layer from this flag, so a wrong
+                // flag makes it spin even toward a "reachable" target. Same root
+                // as the disband freeze, applied to the moving party here.
+                ReconcileAtSea(party);
+
                 var dm = TaleWorlds.CampaignSystem.Campaign.Current.Models.MapDistanceModel;
 
                 // NAV-AGNOSTIC — unlike the settlement guard. The engine re-commits
