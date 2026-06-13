@@ -539,6 +539,14 @@ is off the mesh, it's snapped back to the nearest valid ground (and its attached
 parties with it), so the army reappears where its marker says and can move or
 disband normally. A correctly-placed army is never moved.
 
+**Disbanding now heals, too (v1.9.22.3).** If you (or the game) disband one of
+these off-the-map armies, the released parties no longer spill out stranded:
+the disband first snaps the leader and **every** member back onto valid ground,
+so the freed parties come out on the map, visible and movable, instead of
+inheriting the broken position. So disbanding a degenerate army is now a clean
+repair — no leader-killing, no left-over stuck parties. Healthy armies disband
+exactly as before.
+
 **`BK_slow.txt` — the backup** (also needs the toggle on). Logs any single
 BK handler that took over 3 seconds, *after* it finishes:
 

@@ -371,6 +371,35 @@ namespace BannerKings.Behaviours
             }
         }
 
+        // Shared field-position repair used by the army disband + gather guards.
+        // Snaps a party whose Position is OFF the navmesh (invalid for ALL its
+        // nav capabilities — the "under the map" degenerate state the player sees
+        // as a marker with no army under it) back onto the nearest valid face
+        // centre. Pure nearest-face lookup — NO FindReachablePoint/pathfind — so
+        // the repair itself can never hang. Returns true if it actually moved the
+        // party. No-op (false) when the party is null, inside a settlement, or
+        // already on valid ground, so a healthy party is never teleported. Never
+        // throws. This is legitimate state recovery (undoing a broken state via a
+        // vanilla primitive), the explicit exception to "don't set party.Position".
+        internal static class ArmyNavRepair
+        {
+            internal static bool SnapOntoMeshIfOffMesh(MobileParty p)
+            {
+                if (p == null) return false;
+                try
+                {
+                    if (p.CurrentSettlement != null) return false;
+                    var cap = p.NavigationCapability;
+                    if (global::Helpers.NavigationHelper.IsPositionValidForNavigationType(p.Position, cap)) return false;
+                    var invalidTerrain = Campaign.Current.Models.PartyNavigationModel.GetInvalidTerrainTypesForNavigationType(cap);
+                    var snapped = global::Helpers.NavigationHelper.GetClosestNavMeshFaceCenterPositionForPosition(p.Position, invalidTerrain);
+                    if (snapped.IsValid()) { p.Position = snapped; return true; }
+                }
+                catch { }
+                return false;
+            }
+        }
+
         // Make ALL army disbands hang-safe — the root-cause fix for the
         // reproducible "disband freezes the game". DisbandArmyAction ->
         // Army.DisperseInternal scatters each freed party that has
@@ -401,6 +430,15 @@ namespace BannerKings.Behaviours
                     var leader = __instance?.LeaderParty;
                     if (leader == null) return;
 
+                    // HEAL the leader first: if it's off the navmesh, snap it onto
+                    // valid ground. The leader's Position is the scatter CENTRE for
+                    // every freed party, so an off-mesh leader both wedges the
+                    // scatter's FindReachablePoint AND leaves the released parties
+                    // off-mesh after disband. Snapping it means the disband heals
+                    // the army instead of just surviving it: freed parties land on
+                    // valid ground around a valid centre.
+                    ArmyNavRepair.SnapOntoMeshIfOffMesh(leader);
+
                     var navModel = Campaign.Current.Models.PartyNavigationModel;
                     var terrain = Campaign.Current.MapSceneWrapper.GetTerrainTypeAtPosition(leader.Position);
                     bool leaderOnWater = !navModel.IsTerrainTypeValidForNavigationType(terrain, MobileParty.NavigationType.Default);
@@ -418,6 +456,11 @@ namespace BannerKings.Behaviours
                     {
                         var p = parties[i];
                         if (p == null || p == leader) continue;
+                        // Heal EVERY member's position, even ones the scatter won't
+                        // move (non-attached / non-naval-while-leader-at-sea): after
+                        // disband they all tick independently, so an off-mesh member
+                        // would stay degenerate. No-op for on-mesh parties.
+                        ArmyNavRepair.SnapOntoMeshIfOffMesh(p);
                         if (p.CurrentSettlement != null) continue; // safe branch — not scattered
                         if (!p.IsActive) continue;
                         // When the leader is on water, DisperseInternal scatters
@@ -491,23 +534,12 @@ namespace BannerKings.Behaviours
                     // Done FIRST so the at-sea reconcile below reads terrain at a
                     // valid position. No-op for a healthy army (its position is
                     // valid for its capability), so it never teleports a good party.
-                    if (leader.CurrentSettlement == null)
+                    // Snap an off-mesh leader back onto valid ground; if it moved,
+                    // bring its attached parties along (vanilla SetPositionAfterMapChange)
+                    // so the army stays together at the repaired position.
+                    if (ArmyNavRepair.SnapOntoMeshIfOffMesh(leader))
                     {
-                        try
-                        {
-                            var cap = leader.NavigationCapability;
-                            if (!global::Helpers.NavigationHelper.IsPositionValidForNavigationType(leader.Position, cap))
-                            {
-                                var invalidTerrain = Campaign.Current.Models.PartyNavigationModel.GetInvalidTerrainTypesForNavigationType(cap);
-                                var snapped = global::Helpers.NavigationHelper.GetClosestNavMeshFaceCenterPositionForPosition(leader.Position, invalidTerrain);
-                                if (snapped.IsValid())
-                                {
-                                    leader.Position = snapped;
-                                    try { foreach (var ap in leader.AttachedParties) ap.SetPositionAfterMapChange(snapped); } catch { }
-                                }
-                            }
-                        }
-                        catch { }
+                        try { foreach (var ap in leader.AttachedParties) ap.SetPositionAfterMapChange(leader.Position); } catch { }
                     }
 
                     // (2) Reconcile the leader's AtSea flag to terrain at its
