@@ -330,8 +330,14 @@ namespace BannerKings.Utils
                         {
                             _lastLoggedKey = key;
                             _lastLoggedTicks = now;
+                            // Include the rich move/escort context (party, target,
+                            // positions, at-sea flags, nav) captured at the setter
+                            // — so the culprit's state shows up in BK_freeze.txt
+                            // directly, no auto-crash / Hard-Crash toggle needed.
+                            string diag = _diagnostic;
                             WriteLineDirect("freeze.txt",
-                                $"STUCK {key} running {sec:0}s — campaign thread not progressing. {MemStats()}");
+                                $"STUCK {key} running {sec:0}s — campaign thread not progressing. {MemStats()}"
+                                + (string.IsNullOrEmpty(diag) ? "" : "  ||  ctx: " + diag.Replace("\n", " | ")));
                         }
 
                         // Capture the gen0 baseline the first time THIS key is
