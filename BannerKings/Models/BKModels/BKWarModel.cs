@@ -73,6 +73,13 @@ namespace BannerKings.Models.BKModels
         private double _warScoreCacheDay = -1.0;
         private readonly object _warScoreLock = new object();
 
+        // Guards against re-entrant war-score evaluation. Some casus belli
+        // (e.g. "GreatRaid") define IsFulfilled in terms of the war score, while
+        // CalculateWarScore queries IsFulfilled — a self-referential loop that
+        // otherwise recurses until the stack overflows. Tracked per-thread
+        // because score evaluation can run off the main thread.
+        [System.ThreadStatic] private static HashSet<War> _scoringWars;
+
         private bool TryGetWarScoreCache(Dictionary<War, float> cache, War war, out float value)
         {
             double today = System.Math.Floor(CampaignTime.Now.ToDays);
@@ -91,6 +98,19 @@ namespace BannerKings.Models.BKModels
         private void StoreWarScoreCache(Dictionary<War, float> cache, War war, float value)
         {
             lock (_warScoreLock) { cache[war] = value; }
+        }
+
+        // Evaluates the casus belli objective without allowing IsFulfilled to
+        // recurse back into CalculateWarScore for the same war. On re-entry the
+        // objective is treated as not-yet-fulfilled, so the inner score is
+        // computed without its own +0.5 self-bonus — this breaks the recursion
+        // while keeping the fulfilment check meaningful (it sees the real score).
+        private bool IsObjectiveFulfilledSafely(CasusBelli justification, War war)
+        {
+            HashSet<War> scoring = _scoringWars ?? (_scoringWars = new HashSet<War>());
+            if (!scoring.Add(war)) return false;
+            try { return justification.IsFulfilled(war); }
+            finally { scoring.Remove(war); }
         }
 
         private float GetTotalManpower(List<Settlement> settlements)
@@ -267,7 +287,7 @@ namespace BannerKings.Models.BKModels
             result.Add(attackCaptivesScore * (isDefenderScore ? -1f : 1f), new TextObject("{=idg6MqLK}Attacker captives (x{TOTAL})")
                 .SetTextVariable("TOTAL", attackCaptives));
 
-            if (justification.IsFulfilled(war))
+            if (IsObjectiveFulfilledSafely(justification, war))
             {
                 result.Add(0.5f * (isDefenderScore ? -1f : 1f), new TextObject("{=a9OLSCt0}Objective fulfilled ({OBJECTIVE})")
                     .SetTextVariable("OBJECTIVE", justification.ObjectiveText));
