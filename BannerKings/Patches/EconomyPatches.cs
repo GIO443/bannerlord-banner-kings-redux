@@ -1454,17 +1454,25 @@ namespace BannerKings.Patches
                 if (villagerParty == null || villagerParty.HomeSettlement == null ||
                     villagerParty.HomeSettlement.Village == null) return true;
 
+                // Villagers are land-only parties (no naval capability), so the
+                // correct nav is Default — which is exactly what vanilla's
+                // MoveVillagersToSettlementWithBestNavigationType computes for them.
+                // We previously forced NavigationType.All here: wrong for a non-naval
+                // party (the All follower allows water faces the villager can't use)
+                // and the same All hot-path that wedged elsewhere in the freeze saga.
+                // This prefix fires on every village trade run, so it must be the
+                // cheap, correct land move.
                 Settlement bound = villagerParty.HomeSettlement.Village.Bound;
                 if (bound != null && !bound.IsUnderSiege)
                 {
-                    villagerParty.SetMoveGoToSettlement(bound, MobileParty.NavigationType.All, false);
+                    villagerParty.SetMoveGoToSettlement(bound, MobileParty.NavigationType.Default, false);
                     return false;
                 }
 
                 Settlement tradeBound = villagerParty.HomeSettlement.Village.TradeBound;
                 if (tradeBound != null && !tradeBound.IsUnderSiege)
                 {
-                    villagerParty.SetMoveGoToSettlement(tradeBound, MobileParty.NavigationType.All, false);
+                    villagerParty.SetMoveGoToSettlement(tradeBound, MobileParty.NavigationType.Default, false);
                     return false;
                 }
 

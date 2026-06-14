@@ -553,6 +553,14 @@ repairs (fixing a party's land/sea flag and snapping off-mesh parties back onto
 the map) and lets the base game's own pathfinder decide routes. This should be
 the end of the gather/escort freezes **and** the pre-freeze slowdown.
 
+A follow-up sweep (v1.9.22.5) hunted down the same pattern everywhere else:
+village trade parties were being sent with the wrong (land+sea) movement mode on
+every trade run — now corrected to the plain land route they actually use — and
+the dormant caravan-shipping reachability check had the same risky query removed.
+The remaining land+sea distance lookups in the mod are all town-to-town
+calculations (used for war scoring and trade range), which don't touch the
+freeze-prone path.
+
 **Disbanding now heals, too (v1.9.22.3).** If you (or the game) disband one of
 these off-the-map armies, the released parties no longer spill out stranded:
 the disband first snaps the leader and **every** member back onto valid ground,

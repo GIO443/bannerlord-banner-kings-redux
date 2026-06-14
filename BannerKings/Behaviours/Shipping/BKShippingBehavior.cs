@@ -1787,13 +1787,18 @@ namespace BannerKings.Behaviours.Shipping
         {
             try
             {
-                // Match the nav type the hop move will actually use (see
-                // HopNavType): for a naval-capable caravan that's All, so the
-                // check predicts the All follower (which has the water escape
-                // valve and won't dead-end-hang) instead of a land-only path
-                // that GetDistance same-face-shortcuts and mispredicts.
+                // PROBE with Default, NOT HopNavType. An earlier version matched
+                // the move's nav (All for naval caravans) "to predict the All
+                // follower" — but GetDistance(party, target, All) is the call that
+                // WEDGES the campaign thread on the NavalDLC navmesh (proven by the
+                // SetMoveEscortParty freeze). The follower and the GetDistance probe
+                // use DIFFERENT pathfinders: the All *follower* is fine (it was the
+                // caravan-freeze fix), but the All *probe* hangs. So probe Default
+                // (hang-safe coarse gate) while the move below still uses HopNavType.
+                // (This whole hop path is currently dormant — the shipping graph is
+                // disabled — but the probe is fixed so it's safe if re-enabled.)
                 float d = Campaign.Current.Models.MapDistanceModel.GetDistance(
-                    caravan, target, false, HopNavType(caravan), out _);
+                    caravan, target, false, MobileParty.NavigationType.Default, out _);
                 return d > 0f && d < 50000f;
             }
             catch { return false; }
