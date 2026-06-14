@@ -499,6 +499,18 @@ Ambitious AI vassals do the same — they fabricate claims on rivals' titles and
 press them once the claims mature, so claim disputes arise on their own.
 (Cross-realm targets still use the instant Usurp — the dilemma is realm-internal.)
 
+**Freshly-conquered fiefs are off-limits until the realm decides.** When your
+kingdom takes a settlement, it sits under *temporary* ownership (usually the
+ruler's) until the kingdom votes who keeps it. During that window the title can
+**no longer** be usurped or claimed by anyone — the buttons are disabled with
+"The realm has not yet decided who will hold this fief," and AI rulers can't grab
+it either. This fixes the exploit where the ruler instantly seized a captured
+town's (and its villages') titles before the vote, leaving the clan that *won*
+the settlement owning the land but not the title — and forced to claim it back
+from their own ruler. Once the vote resolves, the rightful owner can usurp the
+title from the former (enemy) holder normally, with no relations cost inside your
+realm.
+
 **Pacing.** At most a couple of dilemmas run in a realm at once (tunable via
 **MCM → Banner Kings → Balancing → Max Active Dilemmas**); the rest queue and
 promote as slots free. Because AI claims must be fabricated and then mature

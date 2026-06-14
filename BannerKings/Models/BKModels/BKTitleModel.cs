@@ -326,6 +326,13 @@ namespace BannerKings.Models.BKModels
                 return claimAction;
             }
 
+            if (IsFiefOwnershipContested(title))
+            {
+                claimAction.Possible = false;
+                claimAction.Reason = new TextObject("{=BKtitleContested}The realm has not yet decided who will hold this fief.");
+                return claimAction;
+            }
+
             if (!possibleClaimants.ContainsKey(claimant))
             {
                 claimAction.Possible = false;
@@ -577,6 +584,13 @@ namespace BannerKings.Models.BKModels
                 return usurpData;
             }
 
+            if (IsFiefOwnershipContested(title))
+            {
+                usurpData.Possible = false;
+                usurpData.Reason = new TextObject("{=BKtitleContested}The realm has not yet decided who will hold this fief.");
+                return usurpData;
+            }
+
             if (usurper.Clan == null)
             {
                 usurpData.Possible = false;
@@ -741,6 +755,37 @@ namespace BannerKings.Models.BKModels
         // dilemma gate, so it bypassed the dilemma entirely and applied instantly.
         // Shared so the Usurp action gate and HasUsurpJustification can't drift.
         public const float UsurpLandControlThreshold = 0.80f;
+
+        // True while the title's underlying fief is still in the temporary-
+        // ownership window right after a conquest, before the realm assigns the
+        // permanent owner. Captured settlements pass to the RULER temporarily until
+        // the kingdom's vote (or barter / auto-grant); with usurp being instant
+        // (and justifiable by land control alone), the ruler would otherwise seize
+        // the TITLE during this window — before anyone knows who will actually own
+        // the fief. The vote then hands the settlement to some other clan, who
+        // inherits a fief whose title sits with the ruler and must claim it back,
+        // souring relations inside their own realm.
+        //
+        // Signal: vanilla's Town.IsOwnerUnassigned — set true the instant a
+        // settlement is captured (SettlementClaimantCampaignBehavior.OnSettlementOwnerChanged)
+        // and cleared in the OwnerClan setter when ownership is reassigned. One
+        // read, gap-free: it covers the entire window, INCLUDING the gap before the
+        // claimant decision is even queued (a decision-scan misses that gap).
+        // Only landed titles have a fief; villages get no decision of their own, so
+        // a village title follows its bound town's window.
+        private static bool IsFiefOwnershipContested(FeudalTitle title)
+        {
+            try
+            {
+                var settlement = title?.Fief;
+                if (settlement == null) return false;
+                if (settlement.Town != null) return settlement.Town.IsOwnerUnassigned;
+                var bound = settlement.Village?.Bound;
+                if (bound?.Town != null) return bound.Town.IsOwnerUnassigned;
+            }
+            catch { }
+            return false;
+        }
 
         public bool HasUsurpJustification(FeudalTitle title, Hero hero)
         {
