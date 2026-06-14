@@ -236,8 +236,26 @@ namespace BannerKings.Utils
             // find the file. If a freeze never happens it just keeps this line.
             if (on)
                 WriteLineDirect("freeze.txt",
-                    "freeze watchdog ARMED — this file records any BK tick handler stuck over 5s. " +
+                    "freeze watchdog ARMED [" + BuildStamp() + "] — this file records any BK tick handler stuck over 5s. " +
                     "If it only ever has this line, no BK handler froze (the cause is elsewhere).");
+        }
+
+        // Identify the EXACT BannerKings build that produced this log, so a freeze
+        // capture can never again be mistaken for the wrong version (the recurring
+        // "version-lag trap": a pre-fix capture read as proof a fix didn't work).
+        // The DLL's on-disk build time is automatic — no manual version bump to
+        // forget — and reliably distinguishes an old build from a fresh one.
+        private static string BuildStamp()
+        {
+            try
+            {
+                var asm = typeof(FreezeWatchdog).Assembly;
+                string ver = asm.GetName().Version?.ToString() ?? "?";
+                string built = "?";
+                try { built = File.GetLastWriteTime(asm.Location).ToString("yyyy-MM-dd HH:mm"); } catch { }
+                return "BK asm " + ver + ", built " + built;
+            }
+            catch { return "build unknown"; }
         }
 
         // Clear any stale in-flight marker (e.g. on game unload) without
