@@ -153,23 +153,18 @@ namespace BannerKings.Patches
             try
             {
                 var dm = TaleWorlds.CampaignSystem.Campaign.Current.Models.MapDistanceModel;
-                bool naval = false;
-                try { naval = party.HasNavalNavigationCapability; } catch { }
-                if (!naval)
-                {
-                    float d = dm.GetDistance(party, settlement, false, MobileParty.NavigationType.Default, out _);
-                    if (d >= 50000f) return false; // land-only, no land route — skip
-                }
-                else
-                {
-                    float dLand = dm.GetDistance(party, settlement, false, MobileParty.NavigationType.Default, out _);
-                    if (dLand >= 50000f)
-                    {
-                        float dAll = dm.GetDistance(party, settlement, false, MobileParty.NavigationType.All, out _);
-                        if (dAll < 50000f) navigationType = MobileParty.NavigationType.All; // sail there
-                        else return false; // unreachable by land or sea — skip
-                    }
-                }
+                // Land-only reachability skip. We probe ONLY NavigationType.Default
+                // (a land pathfind to a fixed settlement node — the variant with a
+                // track record of safely catching the sea-locked-objective freeze).
+                // We NO LONGER probe NavigationType.All to "upgrade" an unreachable
+                // land move to a sea route: the All pathfind is exactly the call
+                // that WEDGES the campaign thread on the NavalDLC navmesh (proven by
+                // the SetMoveEscortParty freeze, where a GetDistance(All) probe hung
+                // for minutes). A naval party with no land route is simply skipped;
+                // vanilla re-decides. With the shipping graph disabled, BK isn't
+                // routing sea legs anyway.
+                float d = dm.GetDistance(party, settlement, false, MobileParty.NavigationType.Default, out _);
+                if (d >= 50000f) return false; // no land route — skip (never upgrade to the hanging All probe)
             }
             catch { }
             return true;
@@ -223,42 +218,26 @@ namespace BannerKings.Patches
         private static bool GuardPartyTargetMove(MobileParty party, MobileParty target, ref MobileParty.NavigationType navigationType)
         {
             if (party == null || target == null) return true;
-            try
-            {
-                // Fix the AtSea/terrain desync on the escorter FIRST — the escort
-                // pathfind derives its search layer from this flag, so a wrong
-                // flag makes it spin even toward a "reachable" target. Same root
-                // as the disband freeze, applied to the moving party here.
-                ReconcileAtSea(party);
 
-                var dm = TaleWorlds.CampaignSystem.Campaign.Current.Models.MapDistanceModel;
-
-                // NAV-AGNOSTIC — unlike the settlement guard. The engine re-commits
-                // an escort/engage each tick using the PARTY'S OWN capability (All/
-                // Naval for a naval party), NOT Default, so a Default-only check
-                // would no-op on exactly the naval-escort case that hangs. First,
-                // unreachable by ANY means (land OR sea) → skip regardless of the
-                // requested nav: the target genuinely can't be reached, so the
-                // escort/engage pathfind would spin.
-                float dAll = dm.GetDistance(party, target, MobileParty.NavigationType.All, out _);
-                if (dAll >= 50000f) return false;
-
-                // Reachable by sea but a Default (land) move was requested with no
-                // land route: upgrade a naval party to All (sail to it), or skip a
-                // land-only party that has no land route.
-                if (navigationType == MobileParty.NavigationType.Default)
-                {
-                    float dLand = dm.GetDistance(party, target, MobileParty.NavigationType.Default, out _);
-                    if (dLand >= 50000f)
-                    {
-                        bool naval = false;
-                        try { naval = party.HasNavalNavigationCapability; } catch { }
-                        if (naval) navigationType = MobileParty.NavigationType.All; // sail to escort
-                        else return false; // land-only, no land route — skip
-                    }
-                }
-            }
-            catch { }
+            // Reconcile the escorter's AtSea flag to its terrain — cheap (a terrain
+            // lookup, NO pathfind), hang-safe, and the genuine root-cause fix for
+            // the desync family. This is ALL this guard does now.
+            //
+            // DO NOT probe GetDistance here. GetDistance(NavigationType.All) on a
+            // naval-capable escorter runs the engine's combined land+sea pathfind,
+            // which WEDGES on the NavalDLC water-mixing navmesh defect. Because this
+            // guard runs inside the SetMoveEscortParty/EngageParty PREFIX, that probe
+            // froze the campaign thread for minutes — the guard CAUSED the exact
+            // freeze it was meant to prevent. Captured precisely:
+            //   STUCK MobileParty.SetMoveEscortParty:lord_3_1_party_1 running 100s+
+            //   ctx: escorter naval, BOTH parties on land, nav requested Default
+            // The setter only assigns fields (it cannot hang), so the wedge was this
+            // probe. Vanilla computes the escort path from DesiredAiNavigationType —
+            // the REQUESTED nav (Default/land here), NOT the party's All capability —
+            // so a reachable land escort completes and an unreachable land target
+            // returns no-path gracefully. The All probe matched nothing vanilla does
+            // and introduced a freeze; removed. (navigationType stays as requested.)
+            try { ReconcileAtSea(party); } catch { }
             return true;
         }
 

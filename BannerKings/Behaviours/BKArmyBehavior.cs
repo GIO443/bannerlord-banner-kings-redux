@@ -558,20 +558,18 @@ namespace BannerKings.Behaviours
                         catch { }
                     }
 
-                    // (3) If the gathering target settlement is genuinely
-                    // unreachable from the leader, skip the move so vanilla
-                    // inactivity can disband the army instead of hanging.
-                    var target = __instance.AiBehaviorObject as Settlement;
-                    if (target != null)
-                    {
-                        try
-                        {
-                            var dm = Campaign.Current.Models.MapDistanceModel;
-                            float dAll = dm.GetDistance(leader, target, false, MobileParty.NavigationType.All, out _);
-                            if (dAll >= 50000f) return false; // no land or sea route — let the army disband
-                        }
-                        catch { /* can't verify -> fall through to vanilla */ }
-                    }
+                    // NOTE: an earlier version here probed
+                    // GetDistance(leader, rallySettlement, All) to skip the gather
+                    // when the rally was unreachable. REMOVED — the All pathfind is
+                    // the call that WEDGES the campaign thread on the NavalDLC
+                    // navmesh (proven by the SetMoveEscortParty freeze: a
+                    // GetDistance(All) probe hung for minutes), and this ran for
+                    // EVERY army EVERY hour — a per-tick freeze risk and a heavy
+                    // pathfind-churn cost (the GC g0 storm in BK_freeze.txt). The
+                    // off-mesh snap (1) + at-sea reconcile (2) above fix the actual
+                    // hang causes; a genuinely-unreachable rally now simply no-paths
+                    // in vanilla and the army disbands via vanilla inactivity, same
+                    // end state, without BK ever running the hanging All probe.
                 }
                 catch { /* a gather guard must never throw out of the hourly tick */ }
                 return true;

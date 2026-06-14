@@ -539,6 +539,20 @@ is off the mesh, it's snapped back to the nearest valid ground (and its attached
 parties with it), so the army reappears where its marker says and can move or
 disband normally. A correctly-placed army is never moved.
 
+**Army-gather freeze was BK's own reachability check (fixed v1.9.22.4).** The
+single most stubborn freeze in this saga — the game locking up hard (often while
+armies were forming, the watchdog naming `SetMoveEscortParty`) — turned out to be
+**self-inflicted**. To *avoid* a hang, BK was pre-checking "can this party reach
+its target?" by asking the engine for the combined land+sea route distance. On
+the War Sails map that combined-route query is itself the thing that wedges the
+game on certain coastlines — so the safety check was causing the very freeze it
+was meant to prevent, and it ran for every escorting party and every gathering
+army every hour (which also explains the heavy stutter beforehand). BK no longer
+makes that query anywhere on the movement path; it only does the cheap, safe
+repairs (fixing a party's land/sea flag and snapping off-mesh parties back onto
+the map) and lets the base game's own pathfinder decide routes. This should be
+the end of the gather/escort freezes **and** the pre-freeze slowdown.
+
 **Disbanding now heals, too (v1.9.22.3).** If you (or the game) disband one of
 these off-the-map armies, the released parties no longer spill out stranded:
 the disband first snaps the leader and **every** member back onto valid ground,
