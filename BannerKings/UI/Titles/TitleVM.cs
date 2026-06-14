@@ -70,14 +70,19 @@ namespace BannerKings.UI.Titles
                 else
                 {
                     var usurpData = model.GetAction(ActionType.Usurp, title, Hero.MainHero);
-                    // A valid claim on a title held by someone in YOUR realm is
-                    // pressed as a dilemma — the involved, contested path. Cross-
-                    // realm claims (the dilemma is realm-internal) and not-yet-
-                    // valid claims fall back to the instant Usurp action.
+                    // ANY usurpation of an IN-REALM title is contested before the
+                    // realm as a dilemma, not applied instantly — whether the
+                    // justification is a valid claim OR holding the title's fiefs by
+                    // land. Gate on usurpData.Possible (the SAME claim-OR-land
+                    // justification the instant Usurp action uses), so a land-control
+                    // usurp no longer slips past a HeroHasValidClaim-only gate and
+                    // applies instantly. The instant Usurp survives only for cross-
+                    // realm targets (holderInRealm == false), where a realm-internal
+                    // dilemma can't apply.
                     bool holderInRealm = title.deJure != null && title.deJure != Hero.MainHero
                         && title.deJure.Clan?.Kingdom != null
                         && title.deJure.Clan.Kingdom == Hero.MainHero.Clan?.Kingdom;
-                    if (holderInRealm && title.HeroHasValidClaim(Hero.MainHero))
+                    if (holderInRealm && usurpData.Possible)
                     {
                         var pressButton = new DecisionElement().SetAsButtonOption(new TextObject("{=BKpressClaim}Press Claim").ToString(),
                             () => PressClaim(title),
@@ -85,7 +90,7 @@ namespace BannerKings.UI.Titles
                         pressButton.Enabled = true;
                         Decisions.Add(pressButton);
                     }
-                    else if (title.GetHeroClaim(Hero.MainHero) != ClaimType.None)
+                    else if (usurpData.Possible || title.GetHeroClaim(Hero.MainHero) != ClaimType.None)
                     {
                         var usurpButton = new DecisionElement().SetAsButtonOption(new TextObject("{=L3Jzg76z}Usurp").ToString(),
                             () => UIHelper.ShowActionPopup(usurpData, this));

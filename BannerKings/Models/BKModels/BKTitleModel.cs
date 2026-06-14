@@ -592,7 +592,7 @@ namespace BannerKings.Models.BKModels
             // landed title under it recursively), they're effectively
             // already in control and can press a usurpation without an
             // inherited / marriage / claim path.
-            bool hasLandMajority = ControlsTitleByLand(title, usurper, 0.80f);
+            bool hasLandMajority = ControlsTitleByLand(title, usurper, UsurpLandControlThreshold);
             if (hasClaim || hasLandMajority)
             {
                 usurpData.Possible = true;
@@ -730,6 +730,25 @@ namespace BannerKings.Models.BKModels
         // walk; with dozens of leaf fiefs underneath, 80% is a much
         // higher bar there, which preserves the existing "lead the
         // faction" gate as the primary path for kingdoms.
+        // Single source of truth for "does this hero have grounds to usurp this
+        // title?" — a valid (fabricated/inherited/previous-owner/etc.) claim, OR
+        // de-facto control of >=80% of the title's fiefs by land. This MATCHES the
+        // Usurp action's own justification (see the Usurp GetAction path above:
+        // `hasClaim || hasLandMajority`), so the dilemma-routing UI (TitleVM) and
+        // the dilemma's adequacy check (DilemmaRegistry) agree with what actually
+        // permits a usurpation. Without this, a land-control usurp (no claim)
+        // passed the instant Usurp action but failed the HeroHasValidClaim-only
+        // dilemma gate, so it bypassed the dilemma entirely and applied instantly.
+        // Shared so the Usurp action gate and HasUsurpJustification can't drift.
+        public const float UsurpLandControlThreshold = 0.80f;
+
+        public bool HasUsurpJustification(FeudalTitle title, Hero hero)
+        {
+            if (title == null || hero == null) return false;
+            if (title.HeroHasValidClaim(hero)) return true;
+            return ControlsTitleByLand(title, hero, UsurpLandControlThreshold);
+        }
+
         private bool ControlsTitleByLand(FeudalTitle title, Hero usurper, float threshold)
         {
             if (title == null || usurper == null) return false;

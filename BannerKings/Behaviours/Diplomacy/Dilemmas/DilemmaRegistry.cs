@@ -110,9 +110,18 @@ namespace BannerKings.Behaviours.Diplomacy.Dilemmas
                 {
                     var title = dilemma.Title;
                     var claimant = dilemma.Initiator;
+                    // Adequate while the claimant still has GROUNDS to usurp — a
+                    // valid claim OR control of the title's fiefs by land. Mirrors
+                    // the routing gate (TitleVM) and the Usurp action's own
+                    // justification, so a land-control dilemma isn't pruned on
+                    // promotion just because there's no fabricated claim.
+                    var tm = BannerKingsConfig.Instance.TitleModel as BannerKings.Models.BKModels.BKTitleModel;
+                    bool justified = tm != null
+                        ? tm.HasUsurpJustification(title, claimant)
+                        : (title != null && claimant != null && title.HeroHasValidClaim(claimant));
                     bool ok = title != null && claimant != null && claimant.IsAlive
                         && title.deJure != null && title.deJure != claimant
-                        && title.HeroHasValidClaim(claimant);
+                        && justified;
                     return new ValueTuple<bool, TextObject>(ok,
                         ok ? new TextObject("{=!}The claim stands.")
                            : new TextObject("{=!}The claim is no longer valid."));

@@ -487,14 +487,17 @@ leading side.
 - **< 25%** — backfires: the instigator loses standing, with a cooldown before
   they can try again.
 
-**Title claims.** The first full dilemma is the **title claim**. You must
-*already hold a valid claim* on a title held by a fellow realm member; then the
-title screen shows a **Press Claim** button (replacing the instant Usurp for
-in-realm targets). Win the contest and the title changes hands; a contested
-result is left to the ruler to uphold or deny. Ambitious AI vassals do the same
-— they fabricate claims on rivals' titles and press them once the claims mature,
-so claim disputes arise on their own. (Cross-realm claims still use the old
-instant Usurp.)
+**Title claims.** The first full dilemma is the **title claim**. Whenever you
+could usurp an **in-realm** title — that is, you have *either* a valid claim *or*
+control of the title's fiefs by land — the title screen now shows a **Press
+Claim** button **instead of** the instant Usurp. (Previously only a fabricated
+claim triggered the dilemma, so usurping a title you'd taken by conquest applied
+instantly with no dilemma — that gap is fixed: any in-realm usurpation you're
+eligible for is contested before the realm.) Win the contest and the title
+changes hands; a contested result is left to the ruler to uphold or deny.
+Ambitious AI vassals do the same — they fabricate claims on rivals' titles and
+press them once the claims mature, so claim disputes arise on their own.
+(Cross-realm targets still use the instant Usurp — the dilemma is realm-internal.)
 
 **Pacing.** At most a couple of dilemmas run in a realm at once (tunable via
 **MCM → Banner Kings → Balancing → Max Active Dilemmas**); the rest queue and
