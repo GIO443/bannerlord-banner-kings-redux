@@ -241,6 +241,12 @@ namespace BannerKings.Behaviours
 
         public void OnArmyCreated(Army army)
         {
+            // Harden degenerate (off-navmesh) army BIRTHS. Runs for ALL armies —
+            // AI ones are the degenerate cases — BEFORE the player-only summon gate
+            // below, so an army can never start its gather/cohesion ticks from an
+            // off-mesh position. No-op for a healthy army.
+            Patches.ArmyNavRepair.RepairArmyOffMesh(army);
+
             var leaderParty = army.LeaderParty;
             var playerKingdom = Clan.PlayerClan.Kingdom;
             if (playerKingdom == null || playerKingdom != leaderParty.LeaderHero.Clan.Kingdom ||
@@ -397,6 +403,37 @@ namespace BannerKings.Behaviours
                 }
                 catch { }
                 return false;
+            }
+
+            // Repair an army at BIRTH: snap the leader and every member party back
+            // onto valid ground if off the navmesh. The gather guard (hourly) and
+            // the disband guard already repair their respective paths, but nothing
+            // ran at the instant of creation — so a freshly-formed army whose
+            // leader/member is off-mesh would render as a marker with nothing under
+            // it and hang on its first gather/cohesion tick before any guard fired.
+            // Closing the creation→first-tick window here makes a degenerate army
+            // impossible to BIRTH off-mesh. No-op for a healthy army.
+            internal static void RepairArmyOffMesh(Army army)
+            {
+                try
+                {
+                    var leader = army?.LeaderParty;
+                    if (leader == null) return;
+                    // Snap the leader; if it actually moved, bring its attached
+                    // parties along so the forming army stays together.
+                    if (SnapOntoMeshIfOffMesh(leader))
+                    {
+                        try { foreach (var ap in leader.AttachedParties) ap.SetPositionAfterMapChange(leader.Position); } catch { }
+                    }
+                    var parties = army.Parties;
+                    if (parties == null) return;
+                    for (int i = 0; i < parties.Count; i++)
+                    {
+                        var p = parties[i];
+                        if (p != null && p != leader) SnapOntoMeshIfOffMesh(p);
+                    }
+                }
+                catch { }
             }
         }
 

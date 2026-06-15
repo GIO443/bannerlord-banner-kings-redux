@@ -571,6 +571,13 @@ The remaining land+sea distance lookups in the mod are all town-to-town
 calculations (used for war scoring and trade range), which don't touch the
 freeze-prone path.
 
+**Caught at birth, too (v1.9.23.2).** The repair now also runs the instant an
+army is *formed*: if the new army's leader (or a starting member) is off the
+mesh, it's snapped onto valid ground immediately — so a degenerate army can't
+even be born off-map and start its gather ticks from an invalid position. Between
+this, the hourly repair, and the disband heal, an off-mesh army is caught at
+formation, every hour it exists, and when it dissolves.
+
 **Disbanding now heals, too (v1.9.22.3).** If you (or the game) disband one of
 these off-the-map armies, the released parties no longer spill out stranded:
 the disband first snaps the leader and **every** member back onto valid ground,
