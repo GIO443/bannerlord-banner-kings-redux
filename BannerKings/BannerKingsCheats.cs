@@ -111,7 +111,31 @@ namespace BannerKings
 
                 sb.Append("CurrentLanguage=").Append(data.CurrentLanguage?.StringId ?? "<null>")
                   .Append(" Instructor=").Append(data.LanguageInstructor?.Name?.ToString() ?? "<null>")
-                  .Append(" rate=").Append(data.CurrentLanguageLearningRate.ResultNumber.ToString("0.00")).Append('\n');
+                  .Append(" rate=").Append(data.CurrentLanguageLearningRate.ResultNumber.ToString("0.0000")).Append('\n');
+
+                // DECISIVE TEST: run the exact daily-tick application path once,
+                // in place, and report the current language's fluency before/after.
+                // This isolates the two possible causes of "rate is fine but it
+                // never grows": (a) delta > 0 here ⇒ the gain WORKS when invoked,
+                // so the daily HERO tick isn't reaching it (event/registration);
+                // (b) delta == 0 (or THREW) ⇒ data.Update itself isn't applying —
+                // the exception/early-return is the bug. hero.IsPrisoner is shown
+                // because Update early-returns for a prisoner.
+                sb.Append("hero.IsPrisoner=").Append(hero.IsPrisoner)
+                  .Append(" IsDead=").Append(hero.IsDead).Append('\n');
+                if (data.CurrentLanguage != null)
+                {
+                    float before = data.GetLanguageFluency(data.CurrentLanguage);
+                    string updateErr = null;
+                    try { em.UpdateHeroData(hero); }
+                    catch (System.Exception ue) { updateErr = ue.GetType().Name + ": " + ue.Message; }
+                    float after = data.GetLanguageFluency(data.CurrentLanguage);
+                    sb.Append("manual UpdateHeroData: ").Append(data.CurrentLanguage.StringId)
+                      .Append(" ").Append(before.ToString("0.0000")).Append(" -> ").Append(after.ToString("0.0000"))
+                      .Append(" (delta ").Append((after - before).ToString("0.0000")).Append(")");
+                    if (updateErr != null) sb.Append("  THREW: ").Append(updateErr);
+                    sb.Append('\n');
+                }
 
                 var avail = em.GetAvailableLanguagesToLearn(hero);
                 sb.Append("AvailableLanguagesToLearn=").Append(avail.Count);
