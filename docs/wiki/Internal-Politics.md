@@ -487,17 +487,24 @@ leading side.
 - **< 25%** — backfires: the instigator loses standing, with a cooldown before
   they can try again.
 
-**Title claims.** The first full dilemma is the **title claim**. Whenever you
-could usurp an **in-realm** title — that is, you have *either* a valid claim *or*
-control of the title's fiefs by land — the title screen now shows a **Press
-Claim** button **instead of** the instant Usurp. (Previously only a fabricated
-claim triggered the dilemma, so usurping a title you'd taken by conquest applied
-instantly with no dilemma — that gap is fixed: any in-realm usurpation you're
-eligible for is contested before the realm.) Win the contest and the title
-changes hands; a contested result is left to the ruler to uphold or deny.
-Ambitious AI vassals do the same — they fabricate claims on rivals' titles and
-press them once the claims mature, so claim disputes arise on their own.
-(Cross-realm targets still use the instant Usurp — the dilemma is realm-internal.)
+**Title claims.** The first full dilemma is the **title claim**, and it is now
+the *only* road to a title you don't legally hold. Conquering a settlement gives
+you the land (de facto control) but **not** its title — holding the fiefs is no
+longer a usurpation shortcut. To take the title you must:
+
+1. **Fabricate a claim** (the **Claim** button) — it matures over **about a
+   year**, costing gold/influence/renown and some relation with the holder.
+2. Once the claim has matured, **press it** — for an **in-realm** holder the
+   title screen shows **Press Claim**, which opens the realm **dilemma**. Win
+   the contest and the title changes hands; a contested result is left to the
+   ruler to uphold or deny.
+
+Cross-realm targets (an enemy lord's de jure title) can't be a realm-internal
+dilemma, so a matured claim there is pressed as a direct usurpation instead.
+**AI lords follow the exact same path** — they fabricate claims on the titles
+they want and press them as dilemmas once mature; they no longer seize titles
+instantly by conquest. (With the Politics Rework toggle off, in-realm usurps
+fall back to the old instant behaviour, since there is no dilemma system to run.)
 
 **Freshly-conquered fiefs are off-limits until the realm decides.** When your
 kingdom takes a settlement, it sits under *temporary* ownership (usually the

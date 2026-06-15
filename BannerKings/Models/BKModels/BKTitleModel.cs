@@ -600,19 +600,16 @@ namespace BannerKings.Models.BKModels
 
             var type = title.GetHeroClaim(usurper);
             bool hasClaim = type != ClaimType.None && type != ClaimType.Ongoing;
-            // De facto land control as an alternative justification.
-            // If the usurper's clan or kingdom holds at least 80% of the
-            // title's leaf fiefs (the title itself if landed, plus every
-            // landed title under it recursively), they're effectively
-            // already in control and can press a usurpation without an
-            // inherited / marriage / claim path.
-            bool hasLandMajority = ControlsTitleByLand(title, usurper, UsurpLandControlThreshold);
-            if (hasClaim || hasLandMajority)
+            // A usurpation requires a MATURED CLAIM. Holding the title's fiefs by
+            // conquest is NOT a shortcut: you hold the land de facto, but the de
+            // jure title is taken only via a claim — which is fabricated over ~1
+            // year (AddOngoingClaim) and then contested before the realm as a
+            // dilemma. (This deliberately removes the old `hasLandMajority` instant
+            // path so conquest can't seize a title with no claim and no deliberation.)
+            if (hasClaim)
             {
                 usurpData.Possible = true;
-                usurpData.Reason = hasClaim
-                    ? new TextObject("{=zMnXdAxp}You may claim this title.")
-                    : new TextObject("{=!}You control the majority of this title's fiefs by land.");
+                usurpData.Reason = new TextObject("{=zMnXdAxp}You may claim this title.");
 
                 var titleLevel = (int) title.TitleType;
                 var clanTier = usurper.Clan.Tier;
@@ -690,7 +687,7 @@ namespace BannerKings.Models.BKModels
             }
 
             usurpData.Possible = false;
-            usurpData.Reason = new TextObject("{=!}No rightful claim, and you do not control at least 80% of this title's fiefs.");
+            usurpData.Reason = new TextObject("{=BKnoMaturedClaim}You need a matured claim on this title. Fabricate a claim first (it takes about a year), then press it.");
             return usurpData;
         }
 
@@ -741,21 +738,6 @@ namespace BannerKings.Models.BKModels
         // counties, you can claim the duchy outright.
         //
         // Sovereign-level (Kingdom/Empire) titles fall through the same
-        // walk; with dozens of leaf fiefs underneath, 80% is a much
-        // higher bar there, which preserves the existing "lead the
-        // faction" gate as the primary path for kingdoms.
-        // Single source of truth for "does this hero have grounds to usurp this
-        // title?" — a valid (fabricated/inherited/previous-owner/etc.) claim, OR
-        // de-facto control of >=80% of the title's fiefs by land. This MATCHES the
-        // Usurp action's own justification (see the Usurp GetAction path above:
-        // `hasClaim || hasLandMajority`), so the dilemma-routing UI (TitleVM) and
-        // the dilemma's adequacy check (DilemmaRegistry) agree with what actually
-        // permits a usurpation. Without this, a land-control usurp (no claim)
-        // passed the instant Usurp action but failed the HeroHasValidClaim-only
-        // dilemma gate, so it bypassed the dilemma entirely and applied instantly.
-        // Shared so the Usurp action gate and HasUsurpJustification can't drift.
-        public const float UsurpLandControlThreshold = 0.80f;
-
         // True while the title's underlying fief is still in the temporary-
         // ownership window right after a conquest, before the realm assigns the
         // permanent owner. Captured settlements pass to the RULER temporarily until
@@ -787,50 +769,17 @@ namespace BannerKings.Models.BKModels
             return false;
         }
 
+        // Single source of truth for "does this hero have grounds to usurp this
+        // title?" — a MATURED claim only (fabricated/inherited/previous-owner/etc.).
+        // Conquest / land control is deliberately NOT grounds: you hold the fief de
+        // facto, but the de jure title is taken via a claim (fabricated over ~1 year)
+        // pressed as a dilemma. Shared by the Usurp action gate, the dilemma-routing
+        // UI (TitleVM via usurpData.Possible), and the dilemma's IsAdequate so they
+        // can't drift.
         public bool HasUsurpJustification(FeudalTitle title, Hero hero)
         {
             if (title == null || hero == null) return false;
-            if (title.HeroHasValidClaim(hero)) return true;
-            return ControlsTitleByLand(title, hero, UsurpLandControlThreshold);
-        }
-
-        private bool ControlsTitleByLand(FeudalTitle title, Hero usurper, float threshold)
-        {
-            if (title == null || usurper == null) return false;
-            var fiefs = new List<FeudalTitle>();
-            CollectLeafFiefs(title, fiefs);
-            if (fiefs.Count == 0) return false;
-
-            int owned = 0;
-            var usurperClan = usurper.Clan;
-            var usurperFaction = usurper.MapFaction;
-            foreach (var f in fiefs)
-            {
-                if (f?.Fief == null) continue;
-                var ownerClan = f.Fief.OwnerClan;
-                if (ownerClan == null) continue;
-                if (usurperClan != null && ownerClan == usurperClan) { owned++; continue; }
-                if (usurperFaction != null && ownerClan.MapFaction == usurperFaction) owned++;
-            }
-            return ((float)owned / fiefs.Count) >= threshold;
-        }
-
-        // Recursive walk: any title with a non-null Fief is a leaf
-        // (Lordships always; Baronies/Counties also count since they
-        // carry the town/castle as Fief). Vassals on top of that
-        // (BoundVillage lordships) get picked up by the recursion.
-        // Skips null entries defensively.
-        private static void CollectLeafFiefs(FeudalTitle title, List<FeudalTitle> result)
-        {
-            if (title == null) return;
-            if (title.Fief != null) result.Add(title);
-            if (title.Vassals != null)
-            {
-                foreach (var v in title.Vassals)
-                {
-                    CollectLeafFiefs(v, result);
-                }
-            }
+            return title.HeroHasValidClaim(hero);
         }
 
         private float GetInfluenceUsurpCost(FeudalTitle title)
