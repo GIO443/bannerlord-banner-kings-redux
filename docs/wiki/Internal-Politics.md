@@ -530,6 +530,28 @@ rather than appearing immediately.
 
 ---
 
+## When kingdoms make peace
+
+AI kingdoms no longer sue for peace at the first sign of a stalemate. A realm
+fights on until one of three things is true:
+
+- **The war's objective is decided** — the casus belli is fulfilled (the
+  attacker took what they came for, so the war is won/lost on its own terms).
+- **It's decisively losing** — the war score has gone clearly against it
+  (objective effectively out of reach, fiefs and villages falling).
+- **The war has really dragged on / grown costly** — accumulated war fatigue is
+  high (fatigue folds in both casualties and sheer duration, so even a grinding
+  even-matched stalemate ends *eventually*, just not prematurely).
+
+Until then, AI realms actively prefer to keep fighting (this also overrides
+vanilla's eager war-exhaustion peace offers). Note this only governs **AI-vs-AI**
+wars — **your** kingdom's war and peace are still yours to decide; BK doesn't
+bias your own vassals' votes. Net effect: wars have weight and a sense of purpose
+rather than fizzling out after a few skirmishes. If you want the old behaviour or
+hand diplomacy to the Diplomacy mod, BK steps aside when Diplomacy is installed.
+
+---
+
 ## See also
 
 - [Player Guide](Player-Guide) — the action buttons in the BK UI

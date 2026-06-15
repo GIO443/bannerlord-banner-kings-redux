@@ -556,20 +556,24 @@ namespace BannerKings.Behaviours.Diplomacy
             float fatigue = diplo.Fatigue;
             float s = score.ResultNumber;
 
-            // v1.9.10.6 — was (fatigue >= 0.6 AND score <= -0.3). That gate
-            // never fired for stalemate wars: two evenly-matched kingdoms
-            // each accumulate high mutual fatigue but neither has a
-            // decisively negative war score → neither side ever queued a
-            // peace proposal and forever wars persisted.
-            //
-            // Two-condition gate now: either decisively losing OR
-            // mutually exhausted (fatigue >= 0.5 with at least neutral
-            // score). Matches the symmetric loss formula in the
-            // MakePeaceKingdomDecision DetermineSupport postfix — what
-            // pushes the vote also queues the proposal.
-            bool losing = fatigue >= 0.6f && s <= -0.3f;
-            bool exhausted = fatigue >= 0.5f && s <= 0.1f;
-            if (!losing && !exhausted) return;
+            // Peace is warranted only when the WAR'S PURPOSE is resolved or the
+            // cost is genuinely high — NOT at the first sign of a stalemate.
+            // Kingdoms were making peace too eagerly: the old gate proposed peace
+            // at fatigue 0.5 in a near-stalemate (the "exhausted" branch), before
+            // the objective was decided or the war had really dragged on. Fight on
+            // until one of:
+            //   • goalAchieved   — the casus belli is fulfilled (the objective is
+            //                      won/lost on its own terms; both sides settle),
+            //   • decisivelyLosing — score <= -0.4 (the objective is effectively
+            //                      lost, or fiefs/raids have made it costly), or
+            //   • draggedOn      — fatigue >= 0.75 (the war has genuinely dragged
+            //                      on / grown costly — fatigue folds in casualties
+            //                      AND duration, so a grinding stalemate still ends
+            //                      eventually, just not prematurely).
+            bool goalAchieved = war.CasusBelli != null && war.CasusBelli.IsFulfilled(war);
+            bool decisivelyLosing = s <= -0.4f;
+            bool draggedOn = fatigue >= 0.75f;
+            if (!goalAchieved && !decisivelyLosing && !draggedOn) return;
 
             // v1.9.10.7 — cooldown so we don't re-queue this pair every
             // day once the previous proposal completes. The old "already
@@ -596,8 +600,9 @@ namespace BannerKings.Behaviours.Diplomacy
                 k.AddDecision(new TaleWorlds.CampaignSystem.Election.MakePeaceKingdomDecision(
                     k.RulingClan, otherSide), false);
                 bk._peaceProposeCooldown[key] = CampaignTime.Now;
+                string mode = goalAchieved ? "goal-achieved" : (decisivelyLosing ? "losing" : "dragged-on");
                 BannerKings.Utils.Logs.Kingdom(() =>
-                    $"force-propose peace: {k.Name} → {otherSide.Name} (fatigue={fatigue:0.00}, score={s:0.00}, mode={(losing ? "losing" : "exhausted")})");
+                    $"force-propose peace: {k.Name} → {otherSide.Name} (fatigue={fatigue:0.00}, score={s:0.00}, mode={mode})");
             }
             catch { /* defensive */ }
         }

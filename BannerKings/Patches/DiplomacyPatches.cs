@@ -590,6 +590,12 @@ namespace BannerKings.Patches
             {
                 if (ModCompat.DiplomacyMod) return;
                 if (clan?.Kingdom == null || __instance == null) return;
+                // The player drives their own realm's diplomacy — don't bias their
+                // vassals' peace votes either way (mirrors the proposer path, which
+                // already skips Hero.MainHero.MapFaction). This keeps the new
+                // "resist premature peace" push from making PLAYER-initiated peace
+                // harder to pass; it only tightens AI-vs-AI peace, the actual report.
+                if (clan.Kingdom == Hero.MainHero?.MapFaction) return;
                 var outcome = possibleOutcome as MakePeaceKingdomDecision.MakePeaceDecisionOutcome;
                 if (outcome == null) return;
 
@@ -608,40 +614,39 @@ namespace BannerKings.Patches
                 try { score = war.CalculateWarScore(clan.Kingdom, false).ResultNumber; }
                 catch { return; }
 
-                // Loss has two terms:
-                //   exhaustion: pure fatigue past 0.5 — handles stalemates
-                //     where two evenly-matched kingdoms grind without a
-                //     decisive war score; both sides accumulate fatigue,
-                //     both sides get a mild push toward peace.
-                //   defeat:     -score past -0.3 — handles decisive losers
-                //     with a strong push proportional to how badly they're
-                //     losing.
-                // Mirrors the two-condition proposer gate in
-                // ForceProposePeaceFromLosingSide: anything that queues a
-                // peace proposal also gets at least a mild voter push.
-                float exhaustion = MathF.Max(0f, fatigue - 0.5f);
-                float defeat = MathF.Max(0f, -score - 0.3f);
-                float loss = exhaustion + defeat;
-                if (loss <= 0f) return;
+                // Mirror the (tightened) proposer gate in
+                // ForceProposePeaceFromLosingSide: only vote FOR peace once the
+                // war's purpose is resolved or the cost is genuinely high. A mild
+                // stalemate should keep fighting, so — unlike the old gate, which
+                // pushed toward peace from fatigue 0.5 / score -0.3 and read as
+                // "kingdoms make peace too eagerly" — the pro-peace push no longer
+                // kicks in early. Three warranting terms:
+                //   goalAchieved — casus belli fulfilled (objective won/lost),
+                //   defeat       — score past -0.4 (objective effectively lost),
+                //   draggedOn    — fatigue past 0.75 (really dragged on / costly).
+                bool goalAchieved = war.CasusBelli != null && war.CasusBelli.IsFulfilled(war);
+                float defeat = MathF.Max(0f, -score - 0.4f);
+                float draggedOn = MathF.Max(0f, fatigue - 0.75f);
+                float loss = defeat + draggedOn + (goalAchieved ? 0.5f : 0f);
 
-                // v1.9.10.9 — user reports ruler proposes peace, every
-                // vassal votes against. The postfix IS reaching vassals
-                // (clan.Kingdom resolves to their shared realm; identical
-                // fatigue/score input for every voter). What's failing is
-                // magnitude: vanilla DetermineSupport gives vassal clans
-                // strong pro-war merit (personal loot, fief proximity,
-                // valor traits) commonly +150..+300, while the ruling
-                // clan has weaker per-clan pro-war merit (kingdom-wide
-                // preservation outweighs personal stake). v1.9.10.7's
-                // 40+80*loss / 120 cap pushed stalemate to 56 (swing
-                // 112) — enough to flip the ruler, not enough to flip
-                // vassals.
-                //
-                // Bumped: 100 + 100*loss / 200 cap. Stalemate push=120
-                // (swing 240), decisive=200 (swing 400). Closes the
-                // vassal pro-war gap for moderate-merit vassals;
-                // very-aggressive ones still vote no, which is right
-                // roleplay (some lords genuinely want the war).
+                if (loss <= 0f)
+                {
+                    // War's purpose unresolved and cost still bearable. Actively
+                    // RESIST a premature peace so the realm fights on toward its
+                    // objective — this also counters vanilla's eager war-exhaustion
+                    // peace proposals (BK only ADDS to vanilla's support score, so
+                    // without a resist term vanilla could still carry an early
+                    // peace). Moderate so a kingdom getting genuinely crushed still
+                    // flips via the decisivelyLosing/draggedOn terms above.
+                    const float resist = 60f;
+                    __result += outcome.ShouldPeaceBeDeclared ? -resist : resist;
+                    return;
+                }
+
+                // Warranted: push toward peace, scaling with severity. Magnitude
+                // kept in the 100..200 band that overcomes vassal pro-war merit
+                // (vanilla gives vassals +150..+300 for loot/fief/valor); a
+                // very-aggressive lord can still vote no, which is fair roleplay.
                 float push = MathF.Min(200f, 100f + 100f * loss);
                 __result += outcome.ShouldPeaceBeDeclared ? push : -push;
             }
