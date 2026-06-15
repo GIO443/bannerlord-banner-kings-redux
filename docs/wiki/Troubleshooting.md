@@ -215,6 +215,16 @@
   language-rate skill effect off the rails) plus an unsafe rate path.
   Per-tick fluency gain is now hard-capped at 5%, so even with the worst
   rate inputs a language can't finish in fewer than ~20 in-game days.
+- **"Language learning rate is 0 / book reading makes no progress after
+  loading a save" (fixed v1.9.23.1)** — your fluency in each language is
+  stored in a per-hero table; when a save reloaded, the table's keys came
+  back as fresh copies that no longer matched the game's master language
+  list, so every fluency lookup read 0. That made the learning rate read 0
+  (no eligible instructors found) and books unreadable (zero fluency in
+  their language). The table is now re-linked to the master list on load,
+  restoring both. (If you still see 0 on a loaded save, run
+  `campaign.bannerkings.education_debug` in the console — it writes
+  `BK_education_debug.txt` showing exactly which value is missing.)
 - **"How do I use the Religion / Theology system?"** As of v1.8.9.0
   the seven culture faiths (Darusosian Path, Canticles of Caïon, Amra
   Druidh, Path of Akhmar, Six Winds, Old Gods of the North, Osfeydian

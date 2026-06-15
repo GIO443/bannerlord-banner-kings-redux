@@ -136,25 +136,53 @@ namespace BannerKings.Managers.Education
                     lf.PassiveEffects, lf.FirstEffect, lf.SecondEffect, this, lf.Culture);
             }
 
-            foreach (var pair in languages)
-            {
-                var language = pair.Key;
-                var l2 = DefaultLanguages.Instance.GetById(language);
-                language.Initialize(l2.Name, l2.Description, l2.Cultures, DefaultLanguages.Instance.GetIntelligibles(l2));
-            }
+            // RE-KEY the language + book dicts to the canonical DefaultLanguages /
+            // DefaultBookTypes singletons. The save system reconstructs these
+            // MBObjectBase dict KEYS as fresh instances that are NOT the registry
+            // singletons the rest of the code looks up — GetLanguageFluency,
+            // KnowsLanguage, CalculateBookReadingRate all query
+            // DefaultLanguages.Instance.X / DefaultBookTypes.Instance.X. The OLD
+            // PostInitialize only re-initialised each loaded key's FIELDS but left
+            // the key instance in place, so ContainsKey/TryGetValue against the
+            // singletons still missed every entry post-load → fluency read 0
+            // everywhere → no instructors offered and book reading made no
+            // progress (and GetNativeLanguage had to fall back to .First().Key to
+            // survive the miss). Re-keying to the singletons makes lookups hit by
+            // reference again. Resolve by StringId; drop a key only if it can't be
+            // resolved (orphan), so a partial map never wipes a recoverable entry.
+            RekeyByStringId(languages, lang => DefaultLanguages.Instance.GetById(lang));
+            RekeyByStringId(books, book => DefaultBookTypes.Instance.GetById(book));
 
-            foreach (var pair in books)
-            {
-                var book = pair.Key;
-                var b = DefaultBookTypes.Instance.GetById(book);
-                book.Initialize(b.Item, b.Description, b.Language, b.Use, b.Skill);
-            }
-
+            // Point the current selections at the same canonical instances so the
+            // tick's GainLanguageFluency(CurrentLanguage) / GainBookReading(CurrentBook)
+            // mutate the re-keyed dict entries rather than orphaned copies.
             var l = DefaultLanguages.Instance.GetById(CurrentLanguage);
-            if (l != null)
+            if (l != null) CurrentLanguage = l;
+            var cb = DefaultBookTypes.Instance.GetById(CurrentBook);
+            if (cb != null) CurrentBook = cb;
+        }
+
+        // Rebuild a saved MBObjectBase-keyed dict in place so its keys are the
+        // canonical registry singletons (resolved by StringId). Readonly fields are
+        // fine — we Clear + re-add rather than reassign. Unresolvable keys are
+        // dropped. No-op for an already-canonical / empty dict.
+        private static void RekeyByStringId<TKey>(Dictionary<TKey, float> dict, System.Func<TKey, TKey> resolve)
+            where TKey : class
+        {
+            if (dict == null || dict.Count == 0) return;
+            var rebuilt = new Dictionary<TKey, float>();
+            foreach (var pair in dict)
             {
-                CurrentLanguage.Initialize(l.Name, l.Description, l.Cultures, DefaultLanguages.Instance.GetIntelligibles(l));
+                TKey canonical;
+                try { canonical = resolve(pair.Key) ?? pair.Key; }
+                catch { canonical = pair.Key; }
+                if (canonical == null) continue;
+                // Keep the higher value if two loaded keys collapse to one singleton.
+                if (!rebuilt.TryGetValue(canonical, out var existing) || pair.Value > existing)
+                    rebuilt[canonical] = pair.Value;
             }
+            dict.Clear();
+            foreach (var p in rebuilt) dict[p.Key] = p.Value;
         }
 
         public void SetCurrentBook(BookType book)

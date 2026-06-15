@@ -132,7 +132,11 @@ namespace BannerKings.Managers
             }
             foreach (var data in snapshot)
             {
-                data.PostInitialize();
+                // Per-hero guard: a single malformed entry must not abort the
+                // whole sweep (which previously also took out CourtManager.
+                // PostInitialize, called right after this in OnGameLoaded).
+                try { data.PostInitialize(); }
+                catch { }
             }
         }
 

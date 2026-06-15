@@ -73,6 +73,71 @@ namespace BannerKings
             return "Opened the realm dilemmas panel.";
         }
 
+        [CommandLineFunctionality.CommandLineArgumentFunction("education_debug", "bannerkings")]
+        public static string EducationDebug(List<string> strings)
+        {
+            if (!CampaignCheats.CheckCheatUsage(ref CampaignCheats.ErrorType))
+            {
+                return CampaignCheats.ErrorType;
+            }
+
+            try
+            {
+                var hero = Hero.MainHero;
+                var em = BannerKingsConfig.Instance.EducationManager;
+                var data = em.GetHeroEducation(hero);
+                if (data == null) return "No EducationData for the player.";
+
+                var sb = new System.Text.StringBuilder();
+                sb.Append("=== Education debug for ").Append(hero.Name).Append(" ===\n");
+
+                // Languages dict: key identity + value + canonical-lookup hit-test.
+                sb.Append("Languages dict (").Append(data.Languages.Count).Append("):\n");
+                foreach (var pair in data.Languages)
+                {
+                    var key = pair.Key;
+                    var canonical = BannerKings.Managers.Education.Languages.DefaultLanguages.Instance.GetById(key);
+                    bool refEqual = canonical != null && ReferenceEquals(canonical, key);
+                    bool containsByCanonical = canonical != null && data.Languages.ContainsKey(canonical);
+                    sb.Append("  id='").Append(key?.StringId ?? "<null>").Append("' val=").Append(pair.Value.ToString("0.00"))
+                      .Append(" canonicalResolved=").Append(canonical != null)
+                      .Append(" refEqual=").Append(refEqual)
+                      .Append(" ContainsKey(canonical)=").Append(containsByCanonical).Append('\n');
+                }
+
+                var native = em.GetNativeLanguage(hero);
+                sb.Append("Native=").Append(native?.StringId ?? "<null>")
+                  .Append(" fluency=").Append(data.GetLanguageFluency(native).ToString("0.00")).Append('\n');
+
+                sb.Append("CurrentLanguage=").Append(data.CurrentLanguage?.StringId ?? "<null>")
+                  .Append(" Instructor=").Append(data.LanguageInstructor?.Name?.ToString() ?? "<null>")
+                  .Append(" rate=").Append(data.CurrentLanguageLearningRate.ResultNumber.ToString("0.00")).Append('\n');
+
+                var avail = em.GetAvailableLanguagesToLearn(hero);
+                sb.Append("AvailableLanguagesToLearn=").Append(avail.Count);
+                foreach (var t in avail) sb.Append(" [").Append(t.Item1?.StringId ?? "?").Append(" via ").Append(t.Item2?.Name?.ToString() ?? "?").Append(']');
+                sb.Append('\n');
+
+                // Book reading: pick the first available book, show its rate.
+                var books = em.GetAvailableBooks(hero.PartyBelongedTo);
+                sb.Append("AvailableBooks=").Append(books.Count).Append('\n');
+                if (books.Count > 0)
+                {
+                    var b = books[0];
+                    sb.Append("Book[0]=").Append(b.StringId).Append(" lang=").Append(b.Language?.StringId ?? "<null>")
+                      .Append(" rate=").Append(BannerKingsConfig.Instance.EducationModel.CalculateBookReadingRate(b, hero).ResultNumber.ToString("0.00")).Append('\n');
+                }
+
+                BannerKings.BannerKingsCheats.AppendDiagnosticLine("education_debug.txt", sb.ToString());
+                InformationManager.DisplayMessage(new InformationMessage(sb.ToString()));
+                return "Education debug written to BK_education_debug.txt and the message log.";
+            }
+            catch (System.Exception e)
+            {
+                return "education_debug error: " + e.Message;
+            }
+        }
+
         [CommandLineFunctionality.CommandLineArgumentFunction("start_dilemma", "bannerkings")]
         public static string StartDilemma(List<string> strings)
         {
