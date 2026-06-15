@@ -225,6 +225,16 @@
   restoring both. (If you still see 0 on a loaded save, run
   `campaign.bannerkings.education_debug` in the console — it writes
   `BK_education_debug.txt` showing exactly which value is missing.)
+- **"Late-game days take minutes to pass / the game crawls but doesn't hard-freeze
+  (improved v1.9.23.3)."** A vassal-list lookup used all over BK (banner-calling,
+  levies, army formation) is cached once per day per clan — but the cache was being
+  thrown away *entirely* every time any title changed hands anywhere in the world.
+  In a busy late-game realm with frequent usurps/claims, that meant the expensive
+  lookup recomputed for every clan over and over, dragging out the daily tick. The
+  cache now only refreshes the two clans actually involved in a title transfer, so
+  it stays warm. If your saves still crawl, turn on **MCM → Diagnostics → Enable
+  Freeze Detection** and send `BK_slow.txt` — it names whichever handler is eating
+  the time.
 - **"How do I use the Religion / Theology system?"** As of v1.8.9.0
   the seven culture faiths (Darusosian Path, Canticles of Caïon, Amra
   Druidh, Path of Akhmar, Six Winds, Old Gods of the North, Osfeydian

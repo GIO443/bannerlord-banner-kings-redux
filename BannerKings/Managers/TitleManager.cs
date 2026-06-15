@@ -308,12 +308,24 @@ namespace BannerKings.Managers
                             else DeJuresCache.Add(newOwner, new List<FeudalTitle> { title });
                         }
 
-                        // A de jure transfer (usurp / grant / inheritance /
-                        // foundation) reshapes the vassal tree — drop the
-                        // vassal-list cache so it can't serve a stale list
-                        // until the day rolls over. (ExecuteOwnershipChange is
-                        // not covered by RefreshCaches.)
-                        AllVassalsCache?.Clear();
+                        // A de jure transfer reshapes the vassal lists of only the
+                        // OLD and NEW holder's clans (CalculateAllVassals walks a
+                        // clan's own de jure titles + one level of their Vassals;
+                        // it does NOT recurse, so a deeper transfer doesn't ripple
+                        // up the whole tree). Invalidate just those two entries —
+                        // NOT the whole cache. The old Clear() wiped EVERY clan on
+                        // EVERY transfer, so with any title churn the per-day cache
+                        // served nothing and the expensive estate/gentry walk
+                        // recomputed for every clan on the next pass — the
+                        // multi-minute "CalculateAllVassals" stall in BK_freeze.txt.
+                        // The immediate suzerain's list can lag at most until the
+                        // day rolls over, which matches this cache's per-day
+                        // contract (it already tolerates day-granular staleness).
+                        if (AllVassalsCache != null)
+                        {
+                            if (oldOwner?.Clan != null) AllVassalsCache.Remove(oldOwner.Clan);
+                            if (newOwner?.Clan != null) AllVassalsCache.Remove(newOwner.Clan);
+                        }
                     }
                 }
                 else title.deFacto = newOwner;
