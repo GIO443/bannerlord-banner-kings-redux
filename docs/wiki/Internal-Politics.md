@@ -499,6 +499,15 @@ longer a usurpation shortcut. To take the title you must:
    the contest and the title changes hands; a contested result is left to the
    ruler to uphold or deny.
 
+When **you** press a claim, the dilemma is promoted **immediately** (next tick) —
+it jumps the queue ahead of AI-driven dilemmas and ignores the realm's dilemma
+cooldowns and the active-slot cap, so your deliberate action always surfaces in
+**Kingdom → BannerKings → Groups → Dilemmas** rather than sitting forever behind
+the realm's other politics. (Previously a player claim could be starved for months
+by AI claims refreshing the shared cooldown — it would queue and never appear.)
+If the **Politics Rework** toggle is off, there's no engine to run the dilemma, so
+in-realm usurps simply apply instantly instead of queuing a dead-end claim.
+
 Cross-realm targets (an enemy lord's de jure title) can't be a realm-internal
 dilemma, so a matured claim there is pressed as a direct usurpation instead.
 **AI lords follow the exact same path** — they fabricate claims on the titles

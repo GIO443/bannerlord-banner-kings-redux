@@ -48,6 +48,16 @@ namespace BannerKings.Behaviours.Diplomacy.Dilemmas
             var diplomacy = GetDiplomacy(kingdom);
             if (diplomacy == null) return null;
 
+            // Dedup — don't stack an identical dilemma (same type + initiator +
+            // title) already pending or active. Without this, re-pressing a claim
+            // (the player UI doesn't gate it) would queue duplicates, and the new
+            // player-priority promotion would activate several at once. Return the
+            // existing one so callers still get a non-null handle.
+            foreach (var d in diplomacy.GetActiveDilemmasSnapshot())
+                if (d != null && d.TypeId == type.StringId && d.Initiator == initiator && d.Title == title) return d;
+            foreach (var d in diplomacy.GetPendingDilemmasSnapshot())
+                if (d != null && d.TypeId == type.StringId && d.Initiator == initiator && d.Title == title) return d;
+
             var dilemma = new Dilemma(type.StringId, kingdom, initiator, target, title);
             diplomacy.EnqueueDilemma(dilemma);
             return dilemma;
@@ -298,13 +308,41 @@ namespace BannerKings.Behaviours.Diplomacy.Dilemmas
 
         private void Promote(KingdomDiplomacy diplomacy)
         {
+            var pending = diplomacy.GetPendingDilemmasSnapshot();
+            if (pending.Count == 0) return;
+
+            // PLAYER AGENCY — a dilemma the player explicitly initiated (Press
+            // Claim) must not be starved by the AI-pacing gates: the realm-wide
+            // TYPE cooldown (in a busy realm, AI claims keep refreshing the 120-day
+            // title_claim cooldown), the active-slot cap, or the post-resolution
+            // breather. Those pace AI-driven dilemmas; they must not silently sink a
+            // deliberate player action (the "pressed claim, waited months, nothing
+            // happened" report — the pending dilemma never dequeued). Promote a
+            // pending, still-adequate player-initiated dilemma at once, bypassing
+            // all three gates. One per tick (it leaves Pending on activation).
+            foreach (var dilemma in pending)
+            {
+                if (dilemma?.Initiator?.Clan != Clan.PlayerClan) continue;
+                var t = dilemma.Type;
+                if (t == null || t.Handler == null) { diplomacy.RemoveDilemma(dilemma); continue; }
+                if (t.Handler.IsAdequate != null && !t.Handler.IsAdequate(dilemma).Item1)
+                {
+                    diplomacy.RemoveDilemma(dilemma);
+                    continue;
+                }
+                diplomacy.ActivateDilemma(dilemma, CampaignTime.DaysFromNow(t.TimerDays));
+                ProcessParticipation(dilemma, t);
+                NotifyPlayer(dilemma, new TextObject("{=!}A dilemma has arisen in {KINGDOM}: {NAME}.")
+                    .SetTextVariable("KINGDOM", dilemma.Kingdom != null ? dilemma.Kingdom.Name : new TextObject("?"))
+                    .SetTextVariable("NAME", DisplayNameOf(dilemma, t)));
+                return;
+            }
+
+            // --- AI promotion: paced by the breather / slot cap / cooldowns ---
             if (diplomacy.DilemmaBreatherUntil.IsFuture) return;
 
             int max = MathF.Max(1, BannerKingsSettings.Instance.MaxActiveDilemmas);
             if (diplomacy.ActiveDilemmaCount >= max) return;
-
-            var pending = diplomacy.GetPendingDilemmasSnapshot();
-            if (pending.Count == 0) return;
 
             Dilemma best = null;
             float bestUrgency = float.MinValue;

@@ -82,7 +82,13 @@ namespace BannerKings.UI.Titles
                     bool holderInRealm = title.deJure != null && title.deJure != Hero.MainHero
                         && title.deJure.Clan?.Kingdom != null
                         && title.deJure.Clan.Kingdom == Hero.MainHero.Clan?.Kingdom;
-                    if (holderInRealm && usurpData.Possible)
+                    // Route through the dilemma ONLY when the Politics Rework engine
+                    // is actually running. With it off, no daily tick promotes or
+                    // resolves the queued dilemma, so a Press Claim would be a dead
+                    // end (title never changes). In that case fall through to the
+                    // instant Usurp below so the player can still take the title.
+                    bool reworkOn = BannerKings.Settings.BannerKingsSettings.Instance.EnablePoliticsRework;
+                    if (holderInRealm && usurpData.Possible && reworkOn)
                     {
                         var pressButton = new DecisionElement().SetAsButtonOption(new TextObject("{=BKpressClaim}Press Claim").ToString(),
                             () => PressClaim(title),
