@@ -614,40 +614,20 @@ namespace BannerKings.Patches
                 try { score = war.CalculateWarScore(clan.Kingdom, false).ResultNumber; }
                 catch { return; }
 
-                // Mirror the (tightened) proposer gate in
-                // ForceProposePeaceFromLosingSide: only vote FOR peace once the
-                // war's purpose is resolved or the cost is genuinely high. A mild
-                // stalemate should keep fighting, so — unlike the old gate, which
-                // pushed toward peace from fatigue 0.5 / score -0.3 and read as
-                // "kingdoms make peace too eagerly" — the pro-peace push no longer
-                // kicks in early. Three warranting terms:
-                //   goalAchieved — casus belli fulfilled (objective won/lost),
-                //   defeat       — score past -0.4 (objective effectively lost),
-                //   draggedOn    — fatigue past 0.75 (really dragged on / costly).
-                bool goalAchieved = war.CasusBelli != null && war.CasusBelli.IsFulfilled(war);
-                float defeat = MathF.Max(0f, -score - 0.4f);
-                float draggedOn = MathF.Max(0f, fatigue - 0.75f);
-                float loss = defeat + draggedOn + (goalAchieved ? 0.5f : 0f);
-
-                if (loss <= 0f)
-                {
-                    // War's purpose unresolved and cost still bearable. Actively
-                    // RESIST a premature peace so the realm fights on toward its
-                    // objective — this also counters vanilla's eager war-exhaustion
-                    // peace proposals (BK only ADDS to vanilla's support score, so
-                    // without a resist term vanilla could still carry an early
-                    // peace). Moderate so a kingdom getting genuinely crushed still
-                    // flips via the decisivelyLosing/draggedOn terms above.
-                    const float resist = 60f;
-                    __result += outcome.ShouldPeaceBeDeclared ? -resist : resist;
-                    return;
-                }
-
-                // Warranted: push toward peace, scaling with severity. Magnitude
-                // kept in the 100..200 band that overcomes vassal pro-war merit
-                // (vanilla gives vassals +150..+300 for loot/fief/valor); a
-                // very-aggressive lord can still vote no, which is fair roleplay.
-                float push = MathF.Min(200f, 100f + 100f * loss);
+                // CONTINUOUS end-war weighting. War FATIGUE and the lords' war
+                // SUPPORT (plus score / fulfilled objective) now DRIVE the vote
+                // through one shared pressure curve, instead of the old binary gate
+                // that ignored support entirely and only reacted to fatigue past
+                // 0.75 — which made both numbers effectively irrelevant. Negative
+                // pressure (a fresh, well-supported war) actively RESISTS peace
+                // (fight on, and counter vanilla's eager exhaustion offers, since BK
+                // only ADDS to vanilla's score); positive pressure (tired, lords
+                // done, losing, or objective met) pushes FOR peace, scaling with how
+                // far the realm has tipped. Magnitude band reaches the 100..200 that
+                // overcomes vassal pro-war merit when the realm is genuinely spent.
+                float pressure = bk.CalculatePeacePressure(war, clan.Kingdom,
+                    __instance.FactionToMakePeaceWith, fatigue, score);
+                float push = pressure * 240f;
                 __result += outcome.ShouldPeaceBeDeclared ? push : -push;
             }
         }

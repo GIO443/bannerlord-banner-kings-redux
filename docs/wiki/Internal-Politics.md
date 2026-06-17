@@ -541,23 +541,27 @@ rather than appearing immediately.
 
 ## When kingdoms make peace
 
-AI kingdoms no longer sue for peace at the first sign of a stalemate. A realm
-fights on until one of three things is true:
+An AI realm's decision to end a war is now a **continuous weighing of two numbers
+you can see on the diplomacy screen — War Fatigue and War Support** — rather than
+a fixed trigger:
 
-- **The war's objective is decided** — the casus belli is fulfilled (the
-  attacker took what they came for, so the war is won/lost on its own terms).
-- **It's decisively losing** — the war score has gone clearly against it
-  (objective effectively out of reach, fiefs and villages falling).
-- **The war has really dragged on / grown costly** — accumulated war fatigue is
-  high (fatigue folds in both casualties and sheer duration, so even a grinding
-  even-matched stalemate ends *eventually*, just not prematurely).
+- **War Fatigue** (rises with casualties and the sheer length of the war): the
+  higher it climbs, the more the realm wants out.
+- **War Support** (how much the realm's lords still back this war): as it erodes,
+  the pull toward peace grows.
+- **War score and objective**: clearly losing pushes toward peace; a fulfilled
+  casus belli (you took what you came for) is a strong settle-now signal.
 
-Until then, AI realms actively prefer to keep fighting (this also overrides
-vanilla's eager war-exhaustion peace offers). Note this only governs **AI-vs-AI**
-wars — **your** kingdom's war and peace are still yours to decide; BK doesn't
-bias your own vassals' votes. Net effect: wars have weight and a sense of purpose
-rather than fizzling out after a few skirmishes. If you want the old behaviour or
-hand diplomacy to the Diplomacy mod, BK steps aside when Diplomacy is installed.
+These combine into a single "should we end this?" pressure. A **fresh, well-backed
+war** sits firmly on the *keep fighting* side — kingdoms won't sue for peace at the
+first skirmish (and BK overrides vanilla's eager war-exhaustion offers). As fatigue
+mounts and support drains, the pressure climbs smoothly until the realm sues for
+peace. So a long, bloody, unpopular war ends; a short, popular, winning one
+doesn't — and both numbers genuinely move the outcome instead of being ignored.
+
+This only governs **AI-vs-AI** wars — **your** kingdom's war and peace are yours to
+decide; BK doesn't bias your own vassals' votes. BK steps aside entirely when the
+Diplomacy mod is installed.
 
 ---
 

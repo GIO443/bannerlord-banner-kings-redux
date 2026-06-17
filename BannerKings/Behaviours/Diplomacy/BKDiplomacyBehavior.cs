@@ -51,6 +51,66 @@ namespace BannerKings.Behaviours.Diplomacy
         private static string PeaceProposeKey(Kingdom k, IFaction otherSide)
             => (k?.StringId ?? "?") + "->" + (otherSide?.StringId ?? "?");
 
+        // War SUPPORT for an ongoing war = the kingdom's appetite to be at war with
+        // this enemy, expressed as the likelihood its ruling clan would VOTE to
+        // declare that very war (the same metric the diplomacy screen shows). High
+        // = the realm backs the war; low = its lords are done. Cached per
+        // (kingdom,enemy) per in-game day — the underlying KingdomElection sim is
+        // the one that stalled the war-support UI uncached, so we run it at most
+        // once per pair per day. Campaign-thread (peace votes / daily proposer).
+        private readonly Dictionary<string, ValueTuple<double, float>> _warSupportCache
+            = new Dictionary<string, ValueTuple<double, float>>();
+        // Reached only on the campaign thread today (peace vote + daily proposer),
+        // but lock the dict anyway: this project has eaten Dictionary FindEntry/
+        // resize freezes when a cache later picked up a UI-thread reader. Cheap
+        // insurance; the heavy election sim runs OUTSIDE the lock.
+        private readonly object _warSupportLock = new object();
+
+        public float GetWarSupport(Kingdom kingdom, IFaction enemy)
+        {
+            if (kingdom?.RulingClan == null || enemy == null) return 0.5f;
+            double today = System.Math.Floor(CampaignTime.Now.ToDays);
+            string key = (kingdom.StringId ?? "?") + "|" + (enemy.StringId ?? "?");
+            lock (_warSupportLock)
+            {
+                if (_warSupportCache.TryGetValue(key, out var cached) && cached.Item1 == today)
+                    return cached.Item2;
+            }
+
+            float support;
+            try
+            {
+                var decision = new BannerKings.Behaviours.Diplomacy.Wars.BKDeclareWarDecision(null, kingdom.RulingClan, enemy);
+                support = TaleWorlds.Library.MathF.Clamp(
+                    new TaleWorlds.CampaignSystem.Election.KingdomElection(decision)
+                        .GetLikelihoodForSponsor(kingdom.RulingClan), 0f, 1f);
+            }
+            catch { support = 0.5f; } // sim failed → neutral, let fatigue/score drive
+
+            lock (_warSupportLock) { _warSupportCache[key] = new ValueTuple<double, float>(today, support); }
+            return support;
+        }
+
+        // Continuous end-war inclination in [-1, +1]: negative = keep fighting,
+        // positive = make peace. The two factors the design wants to DOMINATE are
+        // war FATIGUE (high → peace) and war SUPPORT (low → peace); the war SCORE
+        // (losing → peace) is a secondary term, and a fulfilled casus belli is a
+        // strong accelerant. Centered (the -0.50 baseline) so an early, well-
+        // supported, even war sits clearly negative — fight on — which preserves
+        // the v1.9.23.4 "don't make peace too eagerly". As fatigue rises and the
+        // lords' support falls, the pressure climbs smoothly toward peace, instead
+        // of the old binary "fatigue past 0.75 or nothing" gate that made both
+        // numbers effectively irrelevant across most of a war's life.
+        public float CalculatePeacePressure(War war, Kingdom kingdom, IFaction enemy, float fatigue, float score)
+        {
+            float support = GetWarSupport(kingdom, enemy);
+            float fatigueTerm = TaleWorlds.Library.MathF.Clamp(fatigue, 0f, 1f);
+            float scoreTerm = TaleWorlds.Library.MathF.Clamp(-score, -1f, 1f); // losing>0, winning<0
+            float pressure = 0.45f * fatigueTerm + 0.35f * (1f - support) + 0.20f * scoreTerm - 0.50f;
+            if (war?.CasusBelli != null && war.CasusBelli.IsFulfilled(war)) pressure += 0.6f;
+            return TaleWorlds.Library.MathF.Clamp(pressure, -1f, 1f);
+        }
+
         public bool WillJoinWar(IFaction attacker, IFaction defender, IFaction ally, DeclareWarAction.DeclareWarDetail detail)
             => BannerKingsConfig.Instance.DiplomacyModel.WillJoinWar(attacker, defender, ally, detail).ResultNumber > 0f;
 
@@ -556,24 +616,20 @@ namespace BannerKings.Behaviours.Diplomacy
             float fatigue = diplo.Fatigue;
             float s = score.ResultNumber;
 
-            // Peace is warranted only when the WAR'S PURPOSE is resolved or the
-            // cost is genuinely high — NOT at the first sign of a stalemate.
-            // Kingdoms were making peace too eagerly: the old gate proposed peace
-            // at fatigue 0.5 in a near-stalemate (the "exhausted" branch), before
-            // the objective was decided or the war had really dragged on. Fight on
-            // until one of:
-            //   • goalAchieved   — the casus belli is fulfilled (the objective is
-            //                      won/lost on its own terms; both sides settle),
-            //   • decisivelyLosing — score <= -0.4 (the objective is effectively
-            //                      lost, or fiefs/raids have made it costly), or
-            //   • draggedOn      — fatigue >= 0.75 (the war has genuinely dragged
-            //                      on / grown costly — fatigue folds in casualties
-            //                      AND duration, so a grinding stalemate still ends
-            //                      eventually, just not prematurely).
-            bool goalAchieved = war.CasusBelli != null && war.CasusBelli.IsFulfilled(war);
-            bool decisivelyLosing = s <= -0.4f;
-            bool draggedOn = fatigue >= 0.75f;
-            if (!goalAchieved && !decisivelyLosing && !draggedOn) return;
+            // Continuous war-weariness gate. Queue a peace proposal only once the
+            // realm's end-war inclination — driven by war FATIGUE and the lords'
+            // war SUPPORT (plus score / fulfilled objective) — has clearly crossed
+            // toward peace. An early, well-supported war yields negative pressure
+            // (fight on; preserves "don't make peace too eagerly"); as the realm
+            // tires and support erodes the pressure climbs and a proposal is queued.
+            // Threshold at 0.5 (not just >0): only PROACTIVELY queue a proposal
+            // once the realm has tipped far enough that the vote can actually carry
+            // (push = pressure*240 reaches the ~120+ band that overcomes vassal
+            // pro-war merit). Below that, BK doesn't propose — but if VANILLA
+            // proposes its own exhaustion peace, the vote postfix still weighs the
+            // full continuous pressure, so support/fatigue govern that outcome too.
+            float pressure = bk.CalculatePeacePressure(war, k, otherSide, fatigue, s);
+            if (pressure < 0.5f) return;
 
             // v1.9.10.7 — cooldown so we don't re-queue this pair every
             // day once the previous proposal completes. The old "already
@@ -600,9 +656,9 @@ namespace BannerKings.Behaviours.Diplomacy
                 k.AddDecision(new TaleWorlds.CampaignSystem.Election.MakePeaceKingdomDecision(
                     k.RulingClan, otherSide), false);
                 bk._peaceProposeCooldown[key] = CampaignTime.Now;
-                string mode = goalAchieved ? "goal-achieved" : (decisivelyLosing ? "losing" : "dragged-on");
+                float support = bk.GetWarSupport(k, otherSide);
                 BannerKings.Utils.Logs.Kingdom(() =>
-                    $"force-propose peace: {k.Name} → {otherSide.Name} (fatigue={fatigue:0.00}, score={s:0.00}, mode={mode})");
+                    $"force-propose peace: {k.Name} → {otherSide.Name} (fatigue={fatigue:0.00}, support={support:0.00}, score={s:0.00}, pressure={pressure:0.00})");
             }
             catch { /* defensive */ }
         }
