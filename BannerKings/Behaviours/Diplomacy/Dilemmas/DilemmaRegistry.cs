@@ -229,6 +229,183 @@ namespace BannerKings.Behaviours.Diplomacy.Dilemmas
                 OnFail = dilemma => { /* heir keeps the title — succession stands */ },
                 OnBackfire = ClaimBackfire,
             };
+
+            // ---- "law" — an interest group pushes a demesne law -------------
+            // Raised from InterestGroup.Tick when an AI-led group's tension maxes
+            // and it has a SUPPORTED demesne law the realm hasn't enacted (see
+            // BKDilemmaBehavior.RaiseLawPush). The initiator is the group leader,
+            // the target/holder is the ruler being pressed, dilemma.Title is the
+            // sovereign title the law would attach to, and dilemma.SubjectId is the
+            // law's StringId. Clans take sides by their OWN group's stance on the
+            // law (SupportedLaws / ShunnedLaws) and by relation to the pusher.
+            // Strong/Win enacts the law on the sovereign title; the contested
+            // middle hands the call to the ruler; a weak showing fails; a rout
+            // costs the pusher a little standing with the ruler.
+            _handlers["law"] = new DilemmaHandler
+            {
+                DisplayName = dilemma =>
+                {
+                    var law = ResolveLaw(dilemma);
+                    if (law == null) return new TextObject("{=BKlawGeneric}Demesne law dispute");
+                    return new TextObject("{=BKlawName}Push to enact {LAW}")
+                        .SetTextVariable("LAW", law.Name);
+                },
+
+                IsAdequate = dilemma =>
+                {
+                    var law = ResolveLaw(dilemma);
+                    var title = dilemma.Title;
+                    // Live while the law still resolves, the sovereign title exists
+                    // and hasn't already adopted it, and the pushing leader is alive
+                    // and still in this realm.
+                    bool ok = law != null && title != null
+                        && dilemma.Initiator != null && dilemma.Initiator.IsAlive
+                        && dilemma.Kingdom != null && !dilemma.Kingdom.IsEliminated
+                        && dilemma.Initiator.Clan != null && dilemma.Initiator.Clan.Kingdom == dilemma.Kingdom
+                        && (title.Contract == null || !title.Contract.DemesneLaws.Contains(law));
+                    return new ValueTuple<bool, TextObject>(ok,
+                        ok ? new TextObject("{=BKlawStands}The realm is still weighing the law.")
+                           : new TextObject("{=BKlawMoot}The matter is no longer live."));
+                },
+
+                AssignSide = (dilemma, clan) =>
+                {
+                    var law = ResolveLaw(dilemma);
+                    if (clan?.Leader == null || law == null) return DilemmaSide.Neutral;
+                    if (dilemma.Initiator != null && clan == dilemma.Initiator.Clan) return DilemmaSide.For;
+
+                    var group = GroupOf(dilemma, clan);
+                    if (group != null)
+                    {
+                        if (group.SupportedLaws != null && group.SupportedLaws.Contains(law)) return DilemmaSide.For;
+                        if (group.ShunnedLaws != null && group.ShunnedLaws.Contains(law)) return DilemmaSide.Against;
+                    }
+
+                    if (dilemma.Initiator != null)
+                    {
+                        int rel = clan.Leader.GetRelation(dilemma.Initiator);
+                        if (rel >= 15) return DilemmaSide.For;
+                        if (rel <= -15) return DilemmaSide.Against;
+                    }
+                    return DilemmaSide.Neutral;
+                },
+
+                CareFactor = (dilemma, clan) =>
+                {
+                    if (clan?.Leader == null) return 0.15f;
+                    float care = 0.15f;
+                    var law = ResolveLaw(dilemma);
+                    var group = GroupOf(dilemma, clan);
+                    if (group != null && law != null
+                        && (((group.SupportedLaws?.Contains(law)) ?? false)
+                            || ((group.ShunnedLaws?.Contains(law)) ?? false)))
+                        care += 0.4f;
+                    if (dilemma.Initiator != null)
+                        care += 0.4f * (MathF.Abs(clan.Leader.GetRelation(dilemma.Initiator)) / 100f);
+                    return MathF.Clamp(care, 0.05f, 1f);
+                },
+
+                OnStrong = EnactLawPush,
+                OnWin = EnactLawPush,
+                OnPartial = LawRulerAdjudicates,
+                OnFail = dilemma => { /* law fails — status quo holds */ },
+                OnBackfire = LawBackfire,
+            };
+        }
+
+        // Resolve a "law" dilemma's subject (carried as a StringId) to the registry
+        // DemesneLaw. By StringId — not a stored object reference — so it survives
+        // a save round-trip cleanly.
+        private static BannerKings.Managers.Titles.Laws.DemesneLaw ResolveLaw(Dilemma dilemma)
+        {
+            if (string.IsNullOrEmpty(dilemma?.SubjectId)) return null;
+            foreach (var l in BannerKings.Managers.Titles.Laws.DefaultDemesneLaws.Instance.All)
+                if (l != null && l.StringId == dilemma.SubjectId) return l;
+            return null;
+        }
+
+        // The interest group a clan's leader belongs to in this realm (null if
+        // unaligned). Used to read the clan's stance on the contested law.
+        private static BannerKings.Behaviours.Diplomacy.Groups.InterestGroup GroupOf(Dilemma dilemma, Clan clan)
+        {
+            try
+            {
+                if (clan?.Leader == null || dilemma?.Kingdom == null) return null;
+                var bk = Campaign.Current.GetCampaignBehavior<BKDiplomacyBehavior>();
+                var dip = bk?.GetKingdomDiplomacy(dilemma.Kingdom);
+                return dip?.GetHeroGroup(clan.Leader) as BannerKings.Behaviours.Diplomacy.Groups.InterestGroup;
+            }
+            catch { return null; }
+        }
+
+        // Enact the pushed law on the sovereign title (zero influence cost — the
+        // contest was the price). Defensive — never throw out of a resolution.
+        private static void EnactLawPush(Dilemma dilemma)
+        {
+            try
+            {
+                var law = ResolveLaw(dilemma);
+                var title = dilemma.Title;
+                if (law == null || title == null) return;
+                if (title.Contract != null && title.Contract.DemesneLaws.Contains(law)) return;
+                var ruler = dilemma.Kingdom?.RulingClan?.Leader ?? dilemma.Target;
+                if (ruler == null) return;
+                title.EnactLaw(law, ruler, false);
+                if (dilemma.Kingdom?.Leader == Hero.MainHero)
+                    InformationManager.DisplayMessage(new InformationMessage(
+                        new TextObject("{=BKlawEnacted}Under pressure from the realm, {LAW} has been enacted.")
+                            .SetTextVariable("LAW", law.Name).ToString(),
+                        Color.FromUint(BannerKings.Utils.TextHelper.COLOR_LIGHT_BLUE)));
+            }
+            catch { }
+        }
+
+        // Contested middle band: the ruler decides. Player gets an Enact/Reject
+        // inquiry; an AI ruler scores it (the contest margin + relation to the
+        // pusher) and enacts when the balance tips positive.
+        private static void LawRulerAdjudicates(Dilemma dilemma)
+        {
+            try
+            {
+                var ruler = dilemma.Kingdom?.RulingClan?.Leader;
+                var law = ResolveLaw(dilemma);
+                if (ruler == null || law == null) return;
+
+                if (ruler == Hero.MainHero)
+                {
+                    int forPct = (int)System.Math.Round(dilemma.Ratio * 100f);
+                    InformationManager.ShowInquiry(new InquiryData(
+                        new TextObject("{=BKlawRuler}Contested Law").ToString(),
+                        new TextObject("{=BKlawRulerText}The realm is split ({PCT}% in favour) over enacting {LAW}. As ruler, do you enact it?")
+                            .SetTextVariable("PCT", forPct)
+                            .SetTextVariable("LAW", law.Name).ToString(),
+                        true, true,
+                        new TextObject("{=BKlawEnact}Enact").ToString(),
+                        new TextObject("{=BKlawReject}Reject").ToString(),
+                        () => EnactLawPush(dilemma),
+                        () => { },
+                        BannerKings.Utils.Helpers.GetKingdomDecisionSound()), true, true);
+                }
+                else
+                {
+                    float score = (dilemma.Ratio - 0.5f) * 100f;
+                    if (dilemma.Initiator != null) score += ruler.GetRelation(dilemma.Initiator) * 0.5f;
+                    if (score > 0f) EnactLawPush(dilemma);
+                }
+            }
+            catch { }
+        }
+
+        private static void LawBackfire(Dilemma dilemma)
+        {
+            try
+            {
+                var ruler = dilemma.Kingdom?.RulingClan?.Leader;
+                var initiator = dilemma.Initiator;
+                if (ruler != null && initiator != null && ruler != initiator)
+                    ChangeRelationAction.ApplyRelationChangeBetweenHeroes(initiator, ruler, -8);
+            }
+            catch { }
         }
 
         // Title changes hands to the claimant via a zero-cost usurp (the contest

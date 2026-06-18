@@ -107,4 +107,27 @@
     <description>A duchy has passed to its heir, but a rival of another house holds a near-equal claim by blood and presses it before the realm. The lords take sides by loyalty and kinship; muster enough weight and the duchy changes hands, while a close result is left to the ruler to settle.</description>
   </dilemma>
 
+  <!-- Interest-group law push. Raised when an interest group's tension maxes
+       and it has a SUPPORTED demesne law the realm hasn't enacted (see
+       BKDilemmaBehavior.RaiseLawPush, fired from InterestGroup.Tick). The group
+       leader presses the ruler; clans take sides by their own group's stance on
+       the law (SupportedLaws/ShunnedLaws) and relation to the pusher. Strong
+       (>=70%) enacts now; 60-70% at the timer; the 45-60% middle is the ruler's
+       call; below that it fails, and a rout costs the pusher standing. Thresholds
+       match the succession contest — a broad realm matter, not a single-clan grab. -->
+  <dilemma id="law_change" behavior="law"
+           timer_days="25"
+           min_deliberation_days="5"
+           min_initiator_influence="0"
+           t_strong="0.70" t_win="0.60" t_partial="0.45" t_fail="0.25"
+           cooldown_days="90" pair_cooldown_days="180" backfire_cooldown_days="365"
+           lever_money="true" lever_influence="true" lever_negotiation="true"
+           governments=""
+           peers_only="true">
+    <weights military.tribal="0.6" military.dictatorship="0.5" military.feudal="0.3"
+             military.imperial="0.2" military.republic="0.15" military.default="0.3"/>
+    <name>Demesne Law Dispute</name>
+    <description>An interest group has lost patience and presses the realm to enact one of the demesne laws it favours. The lords take sides by their own leanings and loyalties; carry enough weight and the law passes, while a divided realm leaves the decision to the ruler.</description>
+  </dilemma>
+
 </dilemmas>

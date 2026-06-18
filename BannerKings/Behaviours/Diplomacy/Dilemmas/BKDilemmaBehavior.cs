@@ -39,7 +39,7 @@ namespace BannerKings.Behaviours.Diplomacy.Dilemmas
         /// Public entry point for the cheat command and (later) the AI politics
         /// loops. Returns the queued dilemma, or null if it couldn't be created.</summary>
         public Dilemma CreateAndEnqueue(Kingdom kingdom, string typeId, Hero initiator, Hero target,
-            BannerKings.Managers.Titles.FeudalTitle title = null)
+            BannerKings.Managers.Titles.FeudalTitle title = null, string subjectId = null)
         {
             if (kingdom == null || initiator == null) return null;
             var type = DefaultDilemmas.Instance.GetById(typeId);
@@ -49,16 +49,20 @@ namespace BannerKings.Behaviours.Diplomacy.Dilemmas
             if (diplomacy == null) return null;
 
             // Dedup — don't stack an identical dilemma (same type + initiator +
-            // title) already pending or active. Without this, re-pressing a claim
-            // (the player UI doesn't gate it) would queue duplicates, and the new
-            // player-priority promotion would activate several at once. Return the
-            // existing one so callers still get a non-null handle.
+            // title + subject) already pending or active. Without this, re-pressing
+            // a claim (the player UI doesn't gate it) would queue duplicates, and the
+            // player-priority promotion would activate several at once. SubjectId is
+            // part of the key so a group pushing two different laws (same leader +
+            // sovereign title) isn't collapsed into one. Return the existing one so
+            // callers still get a non-null handle.
             foreach (var d in diplomacy.GetActiveDilemmasSnapshot())
-                if (d != null && d.TypeId == type.StringId && d.Initiator == initiator && d.Title == title) return d;
+                if (d != null && d.TypeId == type.StringId && d.Initiator == initiator
+                    && d.Title == title && d.SubjectId == subjectId) return d;
             foreach (var d in diplomacy.GetPendingDilemmasSnapshot())
-                if (d != null && d.TypeId == type.StringId && d.Initiator == initiator && d.Title == title) return d;
+                if (d != null && d.TypeId == type.StringId && d.Initiator == initiator
+                    && d.Title == title && d.SubjectId == subjectId) return d;
 
-            var dilemma = new Dilemma(type.StringId, kingdom, initiator, target, title);
+            var dilemma = new Dilemma(type.StringId, kingdom, initiator, target, title, subjectId);
             diplomacy.EnqueueDilemma(dilemma);
             return dilemma;
         }
@@ -130,6 +134,57 @@ namespace BannerKings.Behaviours.Diplomacy.Dilemmas
                 }
                 catch { /* one title's bad state must not break the inheritance chain */ }
             }
+        }
+
+        // Raise a "law" dilemma when an interest group's tension has maxed and it
+        // has a SUPPORTED demesne law the realm hasn't enacted. Called from
+        // InterestGroup.Tick (AI-led groups only — player-led groups early-return
+        // before escalation, so the player is never force-pushed). The group leader
+        // is the initiator pressing the ruler; the sovereign title is where the law
+        // attaches; the law's StringId rides on the dilemma as its subject. Returns
+        // true if a dilemma was queued, so the caller can skip the legacy one-shot
+        // demand escalation for this tick. Defensive — never throws into the tick.
+        public bool RaiseLawPush(BannerKings.Behaviours.Diplomacy.Groups.InterestGroup group)
+        {
+            if (!BannerKingsSettings.Instance.EnablePoliticsRework) return false;
+            if (group?.Leader == null || group.SupportedLaws == null) return false;
+            try
+            {
+                // An old save may carry an in-flight legacy DemesneLawChangeDemand
+                // (the pre-dilemma escalation path). Don't open a parallel law
+                // dilemma while it's live — wait for it to resolve first.
+                if (group.PossibleDemands != null
+                    && group.PossibleDemands.Any(d => d is Groups.Demands.DemesneLawChangeDemand && d.Active))
+                    return false;
+
+                var kingdom = group.FactionLeader?.MapFaction as Kingdom;
+                if (kingdom == null || kingdom.IsEliminated) return false;
+                var ruler = kingdom.RulingClan?.Leader;
+                if (ruler == null || ruler == group.Leader) return false; // can't push yourself
+
+                var sovereign = BannerKingsConfig.Instance.TitleManager.GetSovereignTitle(kingdom);
+                if (sovereign == null) return false;
+
+                // First supported law the realm hasn't enacted and that fits the
+                // kingdom (culture / conditional gate). DemesneLaw.Equals is by
+                // StringId, so Contains matches the registry singleton.
+                BannerKings.Managers.Titles.Laws.DemesneLaw law = null;
+                foreach (var l in group.SupportedLaws)
+                {
+                    if (l == null) continue;
+                    if (sovereign.Contract != null && sovereign.Contract.DemesneLaws.Contains(l)) continue;
+                    if (!l.IsAdequateForKingdom(kingdom)) continue;
+                    law = l;
+                    break;
+                }
+                if (law == null) return false;
+
+                var d = CreateAndEnqueue(kingdom, "law", group.Leader, ruler, sovereign, law.StringId);
+                if (d != null)
+                    BannerKings.Utils.Logs.Politics(() => $"{kingdom.Name}: group '{group.Name}' tension maxed — raised LAW dilemma to enact '{law.Name}'");
+                return d != null;
+            }
+            catch { return false; }
         }
 
         private void OnDailyTick()

@@ -164,13 +164,32 @@ namespace BannerKings.Behaviours.Diplomacy.Groups
                 // so tension decays until this demand resolves.
                 if (agitated && TensionPressure >= 100f)
                 {
-                    foreach (Demand demand in PossibleDemands)
+                    // Demesne-law grievances route through the dilemma engine — a
+                    // realm-wide contest (clans take sides, timer, win → enact) —
+                    // rather than the legacy one-shot ruler prompt. Other demand
+                    // types (council seat, faith, policy) keep the old escalation.
+                    bool routed = false;
+                    if (PossibleDemands.Any(d => d is Demands.DemesneLawChangeDemand))
                     {
-                        if (CanPushDemand(demand, influence.ResultNumber).Item1)
+                        routed = TaleWorlds.CampaignSystem.Campaign.Current
+                            .GetCampaignBehavior<Dilemmas.BKDilemmaBehavior>()?.RaiseLawPush(this) ?? false;
+                    }
+
+                    if (!routed)
+                    {
+                        foreach (Demand demand in PossibleDemands)
                         {
-                            demand.SetUp();
-                            BannerKings.Utils.Logs.Politics(() => $"{KingdomDiplomacy?.Kingdom?.Name}: group '{Name}' tension reached 100 — escalated demand '{demand.Name}'");
-                            break;
+                            // Under the rework, demesne-law grievances are dilemma-only
+                            // (handled above via RaiseLawPush). Never also raise the
+                            // legacy one-shot law demand, or a group could run a law
+                            // demand and a law dilemma at once for different laws.
+                            if (demand is Demands.DemesneLawChangeDemand) continue;
+                            if (CanPushDemand(demand, influence.ResultNumber).Item1)
+                            {
+                                demand.SetUp();
+                                BannerKings.Utils.Logs.Politics(() => $"{KingdomDiplomacy?.Kingdom?.Name}: group '{Name}' tension reached 100 — escalated demand '{demand.Name}'");
+                                break;
+                            }
                         }
                     }
                     AddTensionPressure(-100f);

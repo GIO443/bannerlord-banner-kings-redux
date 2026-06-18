@@ -528,6 +528,29 @@ trigger it — kingdoms run through the king-election instead, and counties/baro
 are too granular; and a dispute is never auto-filed *in your name* — pressing your
 own succession claim stays your choice.)
 
+**Demesne law disputes.** Interest groups don't only nag the ruler one law at a
+time any more — when a group's frustration boils over and it favours a demesne
+law the realm hasn't enacted, it takes the matter to the whole realm as a
+dilemma. Watch a group's **tension** climb in **Kingdom → Groups** (it builds
+while the group has an unmet grievance and the realm's mood runs against it);
+when it peaks, the group raises a **Demesne Law Dispute** in the **Dilemmas**
+section. Clans line up by their *own* group's stance — a group that favours the
+same law pushes For, one that opposes it pushes Against, and unaligned lords lean
+on their relationship with the group's leader. If the For side carries, the law
+is enacted on the realm's sovereign title; a divided realm (the contested middle
+band) lands on the **ruler's desk** to enact or reject; a weak showing fails and
+a rout costs the group's leader some standing with the crown.
+
+For **you**, this shows up two ways. As **ruler**, a group in your realm can force
+a law you'd otherwise never have raised — back it by spending influence on
+**Support**, kill it with **Oppose**, or wait and make the call yourself if it
+ends up contested. As a **group leader** (and not the ruler), leading a group
+that wins the contest is how you drag the realm's laws toward your faction's
+agenda without holding the throne. (Only AI-led groups raise these automatically —
+your own group won't push a law dilemma behind your back; and law grievances now
+flow *only* through this contest while the rework is on, replacing the old
+one-shot "the X group demands law Y" prompt.)
+
 **Freshly-conquered fiefs are off-limits until the realm decides.** When your
 kingdom takes a settlement, it sits under *temporary* ownership (usually the
 ruler's) until the kingdom votes who keeps it. During that window the title can

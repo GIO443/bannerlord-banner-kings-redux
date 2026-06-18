@@ -50,7 +50,7 @@ ENUMS = {
                                   "Chancellor", "Spymaster", "Spiritual", "Spouse",
                                   "CourtPhysician", "CourtSmith", "CourtMusician",
                                   "Antiquarian", "Castellan", "Constable"},
-    "dilemma.behavior": {"petition", "claim", "succession"},
+    "dilemma.behavior": {"petition", "claim", "succession", "law"},
 }
 
 # Per category: the row element name, required attributes, and which

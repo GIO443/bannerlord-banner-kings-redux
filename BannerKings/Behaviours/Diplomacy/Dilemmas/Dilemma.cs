@@ -47,13 +47,15 @@ namespace BannerKings.Behaviours.Diplomacy.Dilemmas
     {
         public Dilemma() { }
 
-        public Dilemma(string typeId, Kingdom kingdom, Hero initiator, Hero target, FeudalTitle title = null)
+        public Dilemma(string typeId, Kingdom kingdom, Hero initiator, Hero target, FeudalTitle title = null,
+            string subjectId = null)
         {
             TypeId = typeId;
             Kingdom = kingdom;
             Initiator = initiator;
             Target = target;
             Title = title;
+            SubjectId = subjectId;
             State = (int)DilemmaState.Pending;
             EnqueuedAt = CampaignTime.Now;
             DueDate = CampaignTime.Never;
@@ -73,6 +75,13 @@ namespace BannerKings.Behaviours.Diplomacy.Dilemmas
         // Optional subject of the dilemma — e.g. the contested title for a claim
         // press. Null for dilemmas that don't concern a specific title.
         [SaveableProperty(11)] public FeudalTitle Title { get; private set; }
+        // Optional non-title subject, carried as a StringId so it round-trips
+        // cleanly (a saved object reference to a BannerKingsObject may reload as a
+        // fresh instance, not the registry singleton — see the language/book
+        // re-key trap). Used by the "law" handler to name the DemesneLaw being
+        // pushed; resolved against DefaultDemesneLaws by StringId at use time.
+        // Null for dilemmas without a non-title subject.
+        [SaveableProperty(12)] public string SubjectId { get; private set; }
 
         public DilemmaState StateEnum => (DilemmaState)State;
 
