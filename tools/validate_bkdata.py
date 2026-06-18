@@ -50,6 +50,7 @@ ENUMS = {
                                   "Chancellor", "Spymaster", "Spiritual", "Spouse",
                                   "CourtPhysician", "CourtSmith", "CourtMusician",
                                   "Antiquarian", "Castellan", "Constable"},
+    "dilemma.behavior": {"petition", "claim", "succession"},
 }
 
 # Per category: the row element name, required attributes, and which
@@ -109,6 +110,11 @@ SCHEMA = {
     "casus_belli": {"row": "casus_belli", "required": ["id", "behavior"]},
     "council_positions": {
         "row": "council_position", "required": ["id", "behavior", "primary_skill"],
+    },
+    "dilemmas": {
+        "row": "dilemma",
+        "required": ["id", "behavior", "timer_days", "min_deliberation_days",
+                     "t_strong", "t_win", "t_partial", "t_fail"],
     },
 }
 
