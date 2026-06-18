@@ -597,6 +597,14 @@ namespace BannerKings.Behaviours
             }
 
             InheritanceHelper.ApplyInheritanceAllTitles(titles, victim);
+
+            // Now that the titles have passed to their heirs, a duchy whose
+            // succession was close and cross-clan becomes a contested-succession
+            // dilemma (the rival heir challenges the inheritor before the realm).
+            // No-op when the Politics Rework engine is off.
+            TaleWorlds.CampaignSystem.Campaign.Current
+                .GetCampaignBehavior<BannerKings.Behaviours.Diplomacy.Dilemmas.BKDilemmaBehavior>()
+                ?.RaiseSuccessionDisputes(titles, victim);
         }
 
         private void OnOwnerChanged(Settlement settlement, bool openToClaim, Hero newOwner, Hero oldOwner,

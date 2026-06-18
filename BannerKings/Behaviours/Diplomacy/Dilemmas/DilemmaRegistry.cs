@@ -157,6 +157,78 @@ namespace BannerKings.Behaviours.Diplomacy.Dilemmas
                 OnFail = dilemma => { /* claim denied — status quo holds */ },
                 OnBackfire = ClaimBackfire,
             };
+
+            // ---- "succession" — a contested inheritance ---------------------
+            // Raised automatically when a major (duchy-tier) title passes to an
+            // heir but a strong RIVAL of another clan had a near-equal succession
+            // claim (see BKDiplomacyBehavior.RaiseSuccessionDisputes). The
+            // initiator is the disputing rival, the target/holder is the heir who
+            // inherited, and the realm's lords take sides by blood and loyalty.
+            // Mechanically it's the claim contest with a succession trigger: a
+            // decisive showing transfers the title to the rival (Strong/Win), the
+            // contested middle is adjudicated by the ruler, a weak showing leaves
+            // the heir in place, and a rout costs the rival face. The disputant's
+            // standing is their place in the succession line, so — unlike a pressed
+            // claim — no fabricated claim is required (adequacy only checks the
+            // dispute is still live and realm-internal).
+            _handlers["succession"] = new DilemmaHandler
+            {
+                DisplayName = dilemma =>
+                {
+                    if (dilemma.Title == null) return new TextObject("{=BKsuccGeneric}Contested succession");
+                    return new TextObject("{=BKsuccName}{RIVAL}'s claim to {TITLE}")
+                        .SetTextVariable("RIVAL", dilemma.Initiator != null ? dilemma.Initiator.Name : new TextObject("?"))
+                        .SetTextVariable("TITLE", dilemma.Title.FullName);
+                },
+
+                IsAdequate = dilemma =>
+                {
+                    var title = dilemma.Title;
+                    var rival = dilemma.Initiator;
+                    // Live while: the rival is alive, the title is still held by the
+                    // heir the dispute was raised against (it hasn't changed hands
+                    // again), the rival isn't that heir, and the rival is still in
+                    // the realm the dispute belongs to. The rival's standing is
+                    // their succession place, not a fabricated claim.
+                    bool ok = title != null && rival != null && rival.IsAlive
+                        && title.deJure != null && title.deJure == dilemma.Target
+                        && title.deJure != rival
+                        && rival.Clan?.Kingdom != null && rival.Clan.Kingdom == dilemma.Kingdom;
+                    return new ValueTuple<bool, TextObject>(ok,
+                        ok ? new TextObject("{=BKsuccStands}The succession is still disputed.")
+                           : new TextObject("{=BKsuccMoot}The dispute is no longer live."));
+                },
+
+                AssignSide = (dilemma, clan) =>
+                {
+                    var title = dilemma.Title;
+                    var rival = dilemma.Initiator;
+                    if (clan?.Leader == null || rival == null || title == null) return DilemmaSide.Neutral;
+                    var holder = title.deJure;
+                    if (clan == rival.Clan) return DilemmaSide.For;
+                    if (holder != null && clan == holder.Clan) return DilemmaSide.Against;
+
+                    int relRival = clan.Leader.GetRelation(rival);
+                    int relHolder = holder != null ? clan.Leader.GetRelation(holder) : 0;
+                    if (relRival - relHolder >= 10) return DilemmaSide.For;
+                    if (relHolder - relRival >= 10) return DilemmaSide.Against;
+                    return DilemmaSide.Neutral;
+                },
+
+                CareFactor = (dilemma, clan) =>
+                {
+                    if (clan?.Leader == null || dilemma.Initiator == null) return 0.2f;
+                    float rel = MathF.Abs(clan.Leader.GetRelation(dilemma.Initiator)) / 100f;
+                    float ambition = MathF.Max(0f, BKPoliticalDisposition.Get(clan).Ambition);
+                    return MathF.Clamp(0.25f + 0.5f * rel + 0.3f * ambition, 0.05f, 1f);
+                },
+
+                OnStrong = ClaimGrant,
+                OnWin = ClaimGrant,
+                OnPartial = ClaimRulerAdjudicates,
+                OnFail = dilemma => { /* heir keeps the title — succession stands */ },
+                OnBackfire = ClaimBackfire,
+            };
         }
 
         // Title changes hands to the claimant via a zero-cost usurp (the contest

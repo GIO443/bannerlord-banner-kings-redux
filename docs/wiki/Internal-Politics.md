@@ -515,6 +515,19 @@ they want and press them as dilemmas once mature; they no longer seize titles
 instantly by conquest. (With the Politics Rework toggle off, in-realm usurps
 fall back to the old instant behaviour, since there is no dilemma system to run.)
 
+**Contested succession.** When a **duchy** passes to its heir on the holder's
+death but a rival of **another house** held a near-equal claim by blood, that
+rival challenges the inheritance before the realm — automatically, no fabricated
+claim needed (their standing *is* their place in the succession line). It appears
+as a dilemma like any other (Kingdom → Groups → Dilemmas): the lords take sides by
+kinship and loyalty, a decisive showing hands the duchy to the rival, a close
+result is left to the ruler to settle, and a weak showing leaves the heir in
+place. You'll see this most when **you inherit a duchy and a cousin's house
+disputes it** — you defend your inheritance by rallying support. (Only duchies
+trigger it — kingdoms run through the king-election instead, and counties/baronies
+are too granular; and a dispute is never auto-filed *in your name* — pressing your
+own succession claim stays your choice.)
+
 **Freshly-conquered fiefs are off-limits until the realm decides.** When your
 kingdom takes a settlement, it sits under *temporary* ownership (usually the
 ruler's) until the kingdom votes who keeps it. During that window the title can

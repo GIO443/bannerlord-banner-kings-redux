@@ -69,6 +69,69 @@ namespace BannerKings.Behaviours.Diplomacy.Dilemmas
             return bk?.GetKingdomDiplomacy(kingdom);
         }
 
+        // Raise a succession-dispute dilemma when a DUCHY-tier title the victim
+        // held has just passed to an heir but a strong RIVAL OF ANOTHER CLAN had a
+        // near-equal succession claim. Called from BKTitleBehavior.OnHeroKilled
+        // AFTER inheritance reassigned the titles (so title.deJure is the new
+        // heir). Sovereign (kingdom) successions are excluded — they run through
+        // the king election — and county/barony tiers are excluded so disputes
+        // stay rare and consequential. The dispute is realm-internal: rival and
+        // heir must share a kingdom (else there's no realm to deliberate).
+        public void RaiseSuccessionDisputes(List<BannerKings.Managers.Titles.FeudalTitle> formerTitles, Hero victim)
+        {
+            if (!BannerKingsSettings.Instance.EnablePoliticsRework) return;
+            if (formerTitles == null || victim?.Clan == null) return;
+
+            foreach (var title in formerTitles)
+            {
+                try
+                {
+                    if (title == null || title.TitleType != BannerKings.Managers.Titles.TitleType.Dukedom) continue;
+                    var holder = title.deJure;                 // the heir who just inherited
+                    if (holder == null || !holder.IsAlive) continue;
+                    var kingdom = holder.Clan?.Kingdom;
+                    if (kingdom == null) continue;
+
+                    // Score the succession as of the victim's death.
+                    var line = BannerKingsConfig.Instance.TitleModel
+                        .CalculateSuccessionLine(title, victim.Clan, victim, 6).ToList();
+                    if (line.Count < 2) continue;
+
+                    float holderScore = line[0].Value.ResultNumber;
+                    foreach (var e in line) if (e.Key == holder) { holderScore = e.Value.ResultNumber; break; }
+
+                    // Rival = the top candidate of ANOTHER clan in the same realm
+                    // (an intra-clan heir is the clan's own matter, not a realm
+                    // dispute; a foreign relative has no realm-internal contest).
+                    Hero rival = null; float rivalScore = 0f;
+                    foreach (var e in line)
+                    {
+                        var h = e.Key;
+                        if (h == null || h == holder || !h.IsAlive) continue;
+                        if (h.Clan == holder.Clan) continue;
+                        if (h.Clan?.Kingdom != kingdom) continue;
+                        rival = h; rivalScore = e.Value.ResultNumber; break;
+                    }
+                    if (rival == null) continue;
+
+                    // Never auto-file a dispute IN THE PLAYER'S NAME — the player
+                    // drives their own claims (consistent with the peace-proposal /
+                    // vote exclusions), and a player-initiated dilemma would also
+                    // hit the priority fast-track they never asked for. A dispute
+                    // AGAINST the player (AI rival, player is the inheriting heir)
+                    // is fine and stays — the player defends their inheritance.
+                    if (rival.Clan == Clan.PlayerClan) continue;
+
+                    // Only a genuinely CLOSE contest (rival within 30% of the heir's
+                    // standing) becomes a dispute; a runaway heir is uncontested.
+                    if (holderScore > 0f && rivalScore < holderScore * 0.70f) continue;
+
+                    CreateAndEnqueue(kingdom, "succession_dispute", rival, holder, title);
+                }
+                catch { /* one title's bad state must not break the inheritance chain */ }
+            }
+        }
+
         private void OnDailyTick()
         {
             if (!BannerKingsSettings.Instance.EnablePoliticsRework) return;
