@@ -46,6 +46,15 @@ namespace BannerKings.Models.Vanilla
             try {
             if (armyLeader.Clan == null) return false;
 
+            // Player agency: the Legions doctrine delegates ARMY FORMATION to
+            // appointed Legion Commanders for AI realms (see ArmyLegion below),
+            // but the PLAYER can always raise an army regardless of legatus status
+            // — rallying your own clan to war is yours to command, not a privilege
+            // the realm grants you. Vanilla's CanLordCreateArmy still applies its
+            // own eligibility (party count, etc.), so this only removes BK's
+            // law-based block for the player.
+            if (armyLeader == Hero.MainHero) return true;
+
             var kingdom = armyLeader.Clan.Kingdom;
             if (kingdom != null)
             {
@@ -133,7 +142,13 @@ namespace BannerKings.Models.Vanilla
                 if (kingdomTitle != null && kingdomTitle.Contract.IsLawEnacted(DefaultDemesneLaws.Instance.ArmyLegion))
                 {
                     foreach (MobileParty p in possibleArmyMembers)
-                        if (p != leaderParty && p.LeaderHero != null && CanCreateArmy(p.LeaderHero))
+                        if (p != leaderParty && p.LeaderHero != null
+                            // Your own clan always answers your call — the Legions
+                            // strip (which keeps other potential commanders out of a
+                            // legion) must not bar a leader from rallying their own
+                            // family/retinue parties.
+                            && p.ActualClan != leaderParty.ActualClan
+                            && CanCreateArmy(p.LeaderHero))
                             toRemove.Add(p);
                 }
 

@@ -135,6 +135,14 @@ Other law families: drafting (Hidage / Vassalage / Free Contracts), tenancy
 (Full / Mixed / None), council (Appointed / Elected), army type (Private /
 Horde / Legion).
 
+The **Legions** army law (Imperial/Republic only) delegates army-raising to up to
+five **Legion Commander** council seats — "**Legatus**" in Empire culture — in
+exchange for tougher, longer-cohesion armies that cost less supply. Under it, AI
+lords can no longer raise their own armies; only the ruler and appointed Legion
+Commanders may. **You are exempt:** the player can always form an army and rally
+their own clan's parties regardless of holding a Legatus seat — and a leader's own
+clan parties are always callable into their army even under the Legion restriction.
+
 ## Per-settlement policies
 
 You set these directly from the BK settlement panel. They take effect daily.
