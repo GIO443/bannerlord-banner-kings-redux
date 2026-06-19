@@ -811,11 +811,26 @@ namespace BannerKings.Behaviours
                         if ((valor + violence) < 1) continue;
 
                         Army army = clan.Kingdom.Armies.GetRandomElement();
-                        if (army != null)
+                        if (army != null && army.LeaderParty != null)
                         {
-                            var __sw3 = BannerKings.Behaviours.Shipping.BKShippingBehavior.TraceEnter("JoinArmies.SetEscort:" + lordName);
-                            try { SetPartyAiAction.GetActionForEscortingParty(party, army.LeaderParty, MobileParty.NavigationType.Default, false, false); }
-                            finally { BannerKings.Behaviours.Shipping.BKShippingBehavior.TraceExit("JoinArmies.SetEscort", __sw3); }
+                            var __sw3 = BannerKings.Behaviours.Shipping.BKShippingBehavior.TraceEnter("JoinArmies.JoinArmy:" + lordName);
+                            try
+                            {
+                                // Join the army roster (vanilla gathers the party)
+                                // rather than only escorting it — an escort-only
+                                // party never becomes a member, so it neither
+                                // strengthens the army nor stops it dispersing.
+                                // Guard with the hang-safe land-reachability check;
+                                // skip lords that can't reach the army by land.
+                                if (BannerKings.Models.Vanilla.BKArmyManagementModel.IsLandReachableForGather(party, army.LeaderParty))
+                                {
+                                    bool joined = false;
+                                    try { party.Army = army; joined = true; } catch { }
+                                    if (!joined)
+                                        try { SetPartyAiAction.GetActionForEscortingParty(party, army.LeaderParty, MobileParty.NavigationType.Default, false, false); } catch { }
+                                }
+                            }
+                            finally { BannerKings.Behaviours.Shipping.BKShippingBehavior.TraceExit("JoinArmies.JoinArmy", __sw3); }
                         }
                     }
                 }

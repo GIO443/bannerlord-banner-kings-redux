@@ -1,6 +1,7 @@
 ﻿using System.Collections.Generic;
 using System.Linq;
 using BannerKings.Behaviours;
+using BannerKings.Extensions;
 using BannerKings.Managers.Kingdoms.Policies;
 using BannerKings.Managers.Populations.Estates;
 using BannerKings.Utils.Extensions;
@@ -233,13 +234,9 @@ namespace BannerKings.Managers.Goals.Decisions
             var hero = GetFulfiller();
             var mobileParty = hero.PartyBelongedTo;
 
-            // Use the AI-set army type if available; otherwise fall back to
-            // Patrolling for the player flow (player decides where to go after
-            // the army forms). For AI, EvaluateCreateArmy resolves a real
-            // target+type via FindArmyObjective so the army has direction.
-            Army army = new Army(hero.Clan.Kingdom, mobileParty, aiArmyType);
-
-            // Gather location:
+            // Gather location, computed up front so the reachability test below
+            // anchors on where the army will actually gather (not the leader's
+            // home):
             //   - AI with a target → gather at the leader's current location and
             //     then move toward the target. (Gathering at the target itself
             //     pulls vassals through enemy territory, which is suicidal.)
@@ -247,6 +244,54 @@ namespace BannerKings.Managers.Goals.Decisions
             //     nearest friendly fief.
             Settlement gatherSettlement = hero.CurrentSettlement != null ? hero.CurrentSettlement :
                 BannerKings.Utils.Helpers.FindNearestSettlement(x => x.Town != null || x.IsVillage, hero.PartyBelongedTo);
+
+            // Partition the selected banners by what we can actually field. A
+            // PARTY banner only counts if its party is available for armies (not
+            // already in an army, not in a map event / siege, ready) AND can reach
+            // the gather point by land (else it never arrives and hangs the
+            // gather); an ESTATE banner spawns a fresh gentry party at the army,
+            // so it always counts.
+            //
+            // This is the fix for the degenerate 1-party army: BK used to set
+            // escort AI on the called parties (GetActionForEscortingParty) but
+            // never add them to the army roster, so the army had only the leader.
+            // Vanilla then dispersed it for NotEnoughParty — the "invite anyone,
+            // army instantly disbands" report, and (for an AI besieger that then
+            // re-forms next think) the start-siege/abandon-siege loop. We now add
+            // them via the vanilla join primitive (party.Army = army) below.
+            var joinableParties = new List<BannerOption>();
+            var estateBanners = new List<BannerOption>();
+            foreach (var option in banners)
+            {
+                if (option.Party != null)
+                {
+                    if (option.Party.IsAvailableForArmies()
+                        && BannerKings.Models.Vanilla.BKArmyManagementModel
+                            .IsLandReachableForGather(option.Party, mobileParty, gatherSettlement))
+                        joinableParties.Add(option);
+                }
+                else if (option.Estate != null)
+                {
+                    estateBanners.Add(option);
+                }
+            }
+
+            // Refuse to field a one-party army (the leader alone): vanilla
+            // disperses it within hours, recreating the very loop this fixes.
+            if (joinableParties.Count + estateBanners.Count == 0)
+            {
+                if (hero == Hero.MainHero)
+                    InformationManager.DisplayMessage(new InformationMessage(
+                        new TextObject("{=BKnoReachableBanners}None of the summoned parties can reach you by land to form an army.").ToString(),
+                        Color.FromUint(Utils.TextHelper.COLOR_LIGHT_RED)));
+                return;
+            }
+
+            // Use the AI-set army type if available; otherwise fall back to
+            // Patrolling for the player flow (player decides where to go after
+            // the army forms). For AI, EvaluateCreateArmy resolves a real
+            // target+type via FindArmyObjective so the army has direction.
+            Army army = new Army(hero.Clan.Kingdom, mobileParty, aiArmyType);
             army.Gather(gatherSettlement);
             mobileParty.Army = army;
 
@@ -265,20 +310,47 @@ namespace BannerKings.Managers.Goals.Decisions
 
             var behavior = TaleWorlds.CampaignSystem.Campaign.Current.GetCampaignBehavior<BKGentryBehavior>();
             float influenceTotal = 0f;
-            foreach (var option in banners)
+
+            // Real party banners → join the army roster (vanilla gathers them).
+            // Charge influence only for parties that actually joined, so an
+            // unreachable/failed banner doesn't drain the leader's influence.
+            foreach (var option in joinableParties)
             {
-                if (hero.Clan.Influence >= influenceTotal + option.Influence)
+                if (hero.Clan.Influence < influenceTotal + option.Influence) continue;
+                bool joined = false;
+                try { option.Party.Army = army; joined = true; }
+                catch { }
+                if (!joined)
                 {
-                    influenceTotal += option.Influence;
-                    if (option.Party != null)
-                    {
-                        SetPartyAiAction.GetActionForEscortingParty(option.Party, army.LeaderParty, MobileParty.NavigationType.Default, false, false);
-                    }
-                    else if (option.Estate != null)
-                    {
-                        behavior.SummonGentry(option.Hero.Clan, army, option.Estate);
-                    }
+                    // Fallback to escort AI if the join primitive threw — better a
+                    // following party than nothing; never break the whole call.
+                    try { SetPartyAiAction.GetActionForEscortingParty(option.Party, army.LeaderParty, MobileParty.NavigationType.Default, false, false); }
+                    catch { }
                 }
+                influenceTotal += option.Influence;
+            }
+
+            // Estate banners → spawn + join a gentry party at the army.
+            foreach (var option in estateBanners)
+            {
+                if (hero.Clan.Influence < influenceTotal + option.Influence) continue;
+                behavior.SummonGentry(option.Hero.Clan, army, option.Estate);
+                influenceTotal += option.Influence;
+            }
+
+            // Belt-and-suspenders: if influence ran out before ANY member actually
+            // joined (the pre-check counts candidates, not what the leader can pay
+            // for cumulatively), the army is leader-only and vanilla would disperse
+            // it for NotEnoughParty — the loop this fixes. Disband it cleanly now
+            // (hang-guarded by ArmyDisperseHangGuard) rather than let it churn.
+            if (army.Parties == null || army.Parties.Count < 2)
+            {
+                if (hero == Hero.MainHero)
+                    InformationManager.DisplayMessage(new InformationMessage(
+                        new TextObject("{=BKnoArmyAfford}You could not afford to summon enough banners to form an army.").ToString(),
+                        Color.FromUint(Utils.TextHelper.COLOR_LIGHT_RED)));
+                DisbandArmyAction.ApplyByNotEnoughParty(army);
+                return;
             }
 
             GainKingdomInfluenceAction.ApplyForDefault(hero, -influenceTotal);

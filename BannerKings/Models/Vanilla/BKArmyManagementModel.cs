@@ -319,6 +319,35 @@ namespace BannerKings.Models.Vanilla
             } finally { BannerKings.Utils.FreezeWatchdog.Exit(); }
         }
 
+        // Hang-safe land-reachability check for "can this party reach the army
+        // leader to gather?" Used by the army-formation paths (CallBannersGoal,
+        // SummonGentry, JoinArmies) before Army.AddElementToArmy, so a party that
+        // can't reach the leader by land — at sea, or across a water gap — is
+        // never pulled into the army. (A member that can't arrive leaves the army
+        // a degenerate 1-party army that vanilla disperses for NotEnoughParty;
+        // for an AI besieger that produces the start-siege/abandon-siege loop, and
+        // the freed party's path-home pathfind can hang.) GetDistance(Default) is
+        // the hang-safe oracle (huge for unreachable, never hangs); anchor on the
+        // leader's settlement, and when there's nothing to anchor against, allow
+        // (can't verify → don't block, same discipline as CanLordCreateArmy).
+        public static bool IsLandReachableForGather(MobileParty party, MobileParty leaderParty,
+            TaleWorlds.CampaignSystem.Settlements.Settlement anchorOverride = null)
+        {
+            if (party == null || leaderParty == null) return false;
+            bool atSea = false;
+            try { atSea = party.IsCurrentlyAtSea; } catch { }
+            if (atSea) return false;
+            // Prefer the explicit gather point when the caller knows it (the army
+            // gathers THERE, not at the leader's home), else fall back to the
+            // leader's settlement / home.
+            var anchor = anchorOverride ?? leaderParty.CurrentSettlement ?? leaderParty.LeaderHero?.HomeSettlement;
+            if (anchor == null) return true; // can't verify → don't block
+            float gd;
+            try { gd = Campaign.Current.Models.MapDistanceModel.GetDistance(party, anchor, false, MobileParty.NavigationType.Default, out _); }
+            catch { return false; }
+            return gd > 0f && gd < 50000f;
+        }
+
         // CalculateDailyCohesionChange and DailyBeingAtArmyInfluenceAward moved to
         // Harmony Postfixes in VanillaModelTweakPatches.
 

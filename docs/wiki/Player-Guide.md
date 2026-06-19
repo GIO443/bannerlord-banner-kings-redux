@@ -688,6 +688,27 @@ You'll notice this most in large, wealthy kingdoms during a war: expect
 two or more purposeful armies in the field at once rather than a single
 royal stack.
 
+**Q: I called my banners / formed an army, invited parties, and it disbanded
+seconds later — or an AI army keeps starting a siege then abandoning it.**
+Both were the same bug, now fixed. When BK formed an army it only told the
+invited parties to *escort* the leader — it never actually added them to the
+army. So the army had exactly one member (the leader), and vanilla disperses a
+one-party army almost immediately ("not enough parties"). For an AI lord
+besieging a fief that meant: form army → march → start siege → disband → re-form
+→ repeat, the start-siege/abandon-siege loop. BK now adds the called parties to
+the army as real members (vanilla then gathers them normally), so:
+- A summoned party only joins if it's **available** (not already in another
+  army, not in a battle/siege) **and can actually reach the muster by land** —
+  unreachable or at-sea parties are skipped rather than summoned into a host
+  they'd never join.
+- If **none** of your selected banners can reach you, you're told so and no army
+  (and no influence) is spent.
+- If you can't **afford** enough banners to field more than yourself, the
+  half-formed army is disbanded cleanly instead of lingering and dispersing.
+
+So a called army now actually musters and holds together, and AI sieges stop
+flickering.
+
 ## Roleplay
 
 ### How do I open a dialogue with a hero far away (telepathy)?

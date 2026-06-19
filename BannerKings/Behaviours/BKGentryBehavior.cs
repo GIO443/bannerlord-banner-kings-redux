@@ -405,7 +405,22 @@ namespace BannerKings.Behaviours
                 EnterSettlementAction.ApplyForParty(party, settlement);
                 LeaveSettlementAction.ApplyForParty(party);
                 estate.TakeRetinue(party);
-                SetPartyAiAction.GetActionForEscortingParty(party, army.LeaderParty, MobileParty.NavigationType.Default, false, false);
+                // Add the gentry party to the army roster so it's a real member
+                // (vanilla gathers it), not just an escorting follower that never
+                // joins — the 1-party-army disband bug. Guard with the hang-safe
+                // land-reachability check; fall back to escort only if the join
+                // throws. (See BKArmyManagementModel.IsLandReachableForGather.)
+                if (BannerKings.Models.Vanilla.BKArmyManagementModel.IsLandReachableForGather(party, army.LeaderParty))
+                {
+                    bool joined = false;
+                    try { party.Army = army; joined = true; } catch { }
+                    if (!joined)
+                        try { SetPartyAiAction.GetActionForEscortingParty(party, army.LeaderParty, MobileParty.NavigationType.Default, false, false); } catch { }
+                }
+                else
+                {
+                    try { SetPartyAiAction.GetActionForEscortingParty(party, army.LeaderParty, MobileParty.NavigationType.Default, false, false); } catch { }
+                }
             }
         }
 
