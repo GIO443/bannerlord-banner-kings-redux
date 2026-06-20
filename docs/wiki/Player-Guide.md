@@ -709,6 +709,20 @@ the army as real members (vanilla then gathers them normally), so:
 So a called army now actually musters and holds together, and AI sieges stop
 flickering.
 
+**Q: Will the game disband my army on its own?**
+No — an army **you lead** is yours to dissolve. BK blocks the automatic /
+AI-driven disband paths for a player-led army: not-enough-parties, objective
+finished, inactivity, war ended, and "unknown reason" no longer dissolve your
+host out from under you. Two categories are deliberately left alone:
+- **Structural** disbands still apply — if you die, are taken prisoner, lose your
+  party, or are stranded at sea without a ship, the army ends (skipping these
+  would leave a broken, leaderless army).
+- **Cohesion and food** still matter — let your army's cohesion bar empty or run
+  out of supplies and it falls apart, exactly as before. Manage them.
+
+In short: nothing but your own choice (or death/capture) takes a healthy,
+supplied army away from you.
+
 ## Roleplay
 
 ### How do I open a dialogue with a hero far away (telepathy)?

@@ -124,4 +124,56 @@ namespace BannerKings.Patches
             private static void Prefix(Army army) => WriteTrace("NoShip", army);
         }
     }
+
+    // Player-army protection: an army the PLAYER leads (LeaderParty ==
+    // MainParty) is theirs to disband — the automatic / AI-driven disband paths
+    // must not dissolve it out from under them. Each prefix returns false to
+    // SKIP the vanilla disband when the army is player-led; the trace prefixes
+    // above still fire, so a blocked attempt is recorded in BK_army_disband.txt.
+    //
+    // We block only the POLICY reasons. The STRUCTURAL reasons (leader dead,
+    // player taken prisoner, leader party removed, no ship at sea) and the
+    // player's OWN release-after-battle are deliberately NOT blocked: skipping
+    // those would leave a corrupt / leaderless army — a freeze hazard, and the
+    // exact dangling-state class this codebase has been bitten by. Cohesion and
+    // food disbands are also left intact — those are player-managed mechanics, so
+    // a starved or low-cohesion army still falls apart as the player expects.
+    internal static class PlayerArmyDisbandProtection
+    {
+        private static bool IsPlayerLedArmy(Army army)
+        {
+            try { return army != null && army.LeaderParty == MobileParty.MainParty; }
+            catch { return false; }
+        }
+
+        [HarmonyPatch(typeof(DisbandArmyAction), nameof(DisbandArmyAction.ApplyByNotEnoughParty))]
+        internal static class BlockNotEnoughParty
+        {
+            private static bool Prefix(Army army) => !IsPlayerLedArmy(army);
+        }
+
+        [HarmonyPatch(typeof(DisbandArmyAction), nameof(DisbandArmyAction.ApplyByObjectiveFinished))]
+        internal static class BlockObjectiveFinished
+        {
+            private static bool Prefix(Army army) => !IsPlayerLedArmy(army);
+        }
+
+        [HarmonyPatch(typeof(DisbandArmyAction), nameof(DisbandArmyAction.ApplyByInactivity))]
+        internal static class BlockInactivity
+        {
+            private static bool Prefix(Army army) => !IsPlayerLedArmy(army);
+        }
+
+        [HarmonyPatch(typeof(DisbandArmyAction), nameof(DisbandArmyAction.ApplyByNoActiveWar))]
+        internal static class BlockNoActiveWar
+        {
+            private static bool Prefix(Army army) => !IsPlayerLedArmy(army);
+        }
+
+        [HarmonyPatch(typeof(DisbandArmyAction), nameof(DisbandArmyAction.ApplyByUnknownReason))]
+        internal static class BlockUnknownReason
+        {
+            private static bool Prefix(Army army) => !IsPlayerLedArmy(army);
+        }
+    }
 }
