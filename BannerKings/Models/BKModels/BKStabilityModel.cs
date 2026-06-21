@@ -284,6 +284,12 @@ namespace BannerKings.Models.BKModels
             return value;
         }
 
+        // A fief whose title the holder ALSO owns de jure counts for less against
+        // the demesne limit (legitimate holdings are easier to administer). Used
+        // both for current holdings (below) and for AI "will I be over the limit?"
+        // projections, which assume an acquired fief comes with its title.
+        public const float DeJureDemesneFactor = 0.75f;
+
         public ExplainedNumber CalculateCurrentDemesne(Clan clan, bool descriptions = false)
         {
             var result = new ExplainedNumber(0f, descriptions);
@@ -300,7 +306,7 @@ namespace BannerKings.Models.BKModels
                     if (title.deJure == leader)
                     {
                         deJure = true;
-                        value *= 0.75f;
+                        value *= DeJureDemesneFactor;
                     }
                     else if (title.deJure != null && title.deJure.Clan == clan)
                     {

@@ -377,6 +377,23 @@ low-tier AI lord bottomed out at a demesne limit of **one** fief. The flat base
 titled, well-administered lord scales sensibly with rank and stewardship. Open
 the **Demesne** tab and hover the limit to see the live breakdown.
 
+**De jure holdings count for less.** How much a fief weighs *against* that limit
+depends on whether you also hold its title:
+
+- A fief you hold **de jure** (you own its title too) counts at **75%** weight —
+  legitimising your conquests literally lightens your demesne load.
+- A fief whose title is held **de jure by a member of your house** (e.g. a
+  knighted companion) counts **nothing** toward your clan — this is why parcelling
+  titles out to household knights lets a clan hold a lot of land without tripping
+  the limit.
+- A fief you hold **de facto only** (the land without its title) counts **full**
+  weight — raw conquest is the heaviest way to hold ground.
+
+AI lords now factor this in when judging whether taking a fief would put them
+over the limit: because an acquired fief usually comes with its title, they
+project it at the **discounted** rate rather than full weight, so they no longer
+refuse land they could comfortably administer.
+
 **Over-fief lords are now deprioritized, and vassals vote along their own
 lines.** Previously an AI king could win every ownership vote for himself
 and end up sitting on far more towns and castles than his demesne limit

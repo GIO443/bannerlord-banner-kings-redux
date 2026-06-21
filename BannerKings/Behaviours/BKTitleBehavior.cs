@@ -90,7 +90,12 @@ namespace BannerKings.Behaviours
 
                 var limit = BannerKingsConfig.Instance.StabilityModel.CalculateDemesneLimit(leader).ResultNumber;
                 float current = BannerKingsConfig.Instance.StabilityModel.CalculateCurrentDemesne(clan).ResultNumber;
-                if (current + weight > limit + 0.05f) continue; // would push them over — skip
+                // Project the new fief at the DE JURE-discounted rate: granting it
+                // transfers the title, so it will count at the discounted weight for
+                // the receiver (not full). Counting it at full rate made the AI
+                // over-project and refuse fiefs it could actually administer.
+                float projected = weight * BannerKings.Models.BKModels.BKStabilityModel.DeJureDemesneFactor;
+                if (current + projected > limit + 0.05f) continue; // would push them over — skip
                 if (grantable != null && !grantable.Contains(leader)) continue;
 
                 float score = (limit - current) * 20f;         // most headroom first
