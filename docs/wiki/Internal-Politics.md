@@ -359,6 +359,24 @@ shifts it:
 - **Distributed Conquest** — clans that already own a lot are penalised,
   spreading land toward fief-poor clans.
 
+**How the demesne limit is computed (reworked).** Your demesne limit — how
+many fiefs a clan can hold before stability penalties bite — is now a flat,
+legible formula instead of a tier-driven one:
+
+- **Base 2** for every clan.
+- **+ highest title held:** county **+1**, duchy **+2**, kingdom **+3**,
+  empire **+4** (baronies and lordships add nothing — the base covers them).
+- **+ stewardship:** **+1 per 100** Stewardship skill on the clan leader, up
+  to **+3**.
+- Plus the existing modifiers (the *August de Jure* perk, the Lordship-skill
+  bonus, the *Jawwal* lifestyle penalty), capped at 10.
+
+The old model started at 0.5 and leaned heavily on clan tier, so a landless or
+low-tier AI lord bottomed out at a demesne limit of **one** fief. The flat base
++ title floor means even a small house can hold a couple of fiefs, while a
+titled, well-administered lord scales sensibly with rank and stewardship. Open
+the **Demesne** tab and hover the limit to see the live breakdown.
+
 **Over-fief lords are now deprioritized, and vassals vote along their own
 lines.** Previously an AI king could win every ownership vote for himself
 and end up sitting on far more towns and castles than his demesne limit

@@ -342,32 +342,41 @@ namespace BannerKings.Models.BKModels
 
         public override ExplainedNumber CalculateDemesneLimit(Hero hero, bool descriptions = false)
         {
-            var result = new ExplainedNumber(0.5f, descriptions);
-            result.LimitMin(0.5f);
+            // Base 2 + highest-title value (county 1 / duchy 2 / kingdom 3 /
+            // empire 4) + 0-3 from stewardship. Replaces the old base-0.5 +
+            // clan.Tier/2 model, under which a landless or low-tier clan with no
+            // major title bottomed out at ~1 — a demesne limit of a single fief
+            // (the "AI demesne limit of 1" report). A flat base + title floor lets
+            // AI lords (and the player) hold a sensible number of fiefs regardless
+            // of clan tier; the cap keeps the top end roughly where it was.
+            var result = new ExplainedNumber(2f, descriptions);
+            result.LimitMin(1f);
             result.LimitMax(10f);
-
-            result.Add(hero.Clan.Tier / 2f, GameTexts.FindText("str_clan_tier_bonus"));
 
             var title = BannerKingsConfig.Instance.TitleManager.GetHighestTitle(hero);
             if (title != null)
             {
-                var bonus = 0f;
-                if (title.TitleType != TitleType.Lordship)
+                float bonus = title.TitleType switch
                 {
-                    bonus = title.TitleType switch
-                    {
-                        TitleType.Barony => 0.5f,
-                        TitleType.County => 1f,
-                        TitleType.Dukedom => 3f,
-                        TitleType.Kingdom => 6f,
-                        _ => 10f
-                    };
-                }
+                    TitleType.County => 1f,
+                    TitleType.Dukedom => 2f,
+                    TitleType.Kingdom => 3f,
+                    TitleType.Empire => 4f,
+                    _ => 0f       // barony / lordship / none — base 2 covers them
+                };
 
                 if (bonus > 0f)
                 {
                     result.Add(bonus, new TextObject("Highest title level"));
                 }
+            }
+
+            // Stewardship: +1 per 100 skill, capped at +3 (0 at skill 0, +3 at 300).
+            float stewardBonus = hero.GetSkillValue(DefaultSkills.Steward) / 100f;
+            if (stewardBonus > 3f) stewardBonus = 3f;
+            if (stewardBonus > 0f)
+            {
+                result.Add(stewardBonus, DefaultSkills.Steward.Name);
             }
 
             var education = BannerKingsConfig.Instance.EducationManager.GetHeroEducation(hero);
