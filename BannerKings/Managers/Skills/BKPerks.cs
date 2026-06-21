@@ -535,7 +535,7 @@ namespace BannerKings.Managers.Skills
                 "{=PawhUHjG}Raiding villages is 15% faster.",
                 PartyRole.Personal, 0.15f,
                 EffectIncrementType.AddFactor,
-                "{=8V2avPGC}Camels have 12% more health.",
+                "{=8V2avPGC}Mounts have 12% more health.",
                 PartyRole.Personal, 0.12f,
                 EffectIncrementType.AddFactor);
 
@@ -543,7 +543,7 @@ namespace BannerKings.Managers.Skills
             JawwalCamelMaster.Initialize("{=DiGKj6HS}Camel Master", null,
                 160,
                 null,
-                "{=DD8PV3zG}You and soldiers in your formation are 8% faster when mounted in camels.",
+                "{=DD8PV3zG}You and soldiers in your formation are 8% faster when mounted.",
                 PartyRole.Personal, 0.08f,
                 EffectIncrementType.AddFactor,
                 "{=9kDvMoNQ}You and soldiers in your formation deal 10% more throwing damage while mounted.",

@@ -76,6 +76,13 @@ The lifestyle picker shows each lifestyle's bonuses, perks, and lore in the
 hover tooltip. Bonuses appear at the top so you can see them even on
 lifestyles you don't yet qualify for.
 
+> **Jawwal mount perks apply to any mount.** Despite the desert flavour (and
+> the "Camel Master" perk name), Jawwal's mount bonuses — *Ghazw* (+10% mount
+> health) and *Camel Master* (+8% mount speed for you and your formation) —
+> now apply whether you ride camels or horses, so the lifestyle isn't dead
+> weight on a horse. (*Ghazw*'s mount-health bonus previously never applied at
+> all due to a check on the rider instead of the mount; that's fixed.)
+
 ## Languages
 
 Each culture speaks its own tongue (Calradian, Vlandic, Battanian, Sturgian,

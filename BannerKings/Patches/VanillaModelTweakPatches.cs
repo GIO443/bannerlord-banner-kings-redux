@@ -135,14 +135,14 @@ namespace BannerKings.Patches
                     if (party?.LeaderHero == null) return;
                     var education = BannerKingsConfig.Instance.EducationManager?.GetHeroEducation(party.LeaderHero);
                     if (education == null) return;
-                    if (riderAgent.Monster != null && riderAgent.Monster.StringId == "camel")
-                    {
-                        if (education.HasPerk(BKPerks.Instance.JawwalGhazw)) __result *= 1.1f;
-                    }
-                    else
-                    {
-                        if (education.HasPerk(BKPerks.Instance.RitterIronHorses)) __result *= 1.1f;
-                    }
+                    // Jawwal mount toughness now applies to ANY mount, not just
+                    // camels — a desert lord's mount perks shouldn't go dead the
+                    // moment they ride a horse. (The old camel gate read the RIDER's
+                    // Monster, which is never "camel", so this bonus never fired at
+                    // all; broadening it both fixes and generalises it.) A hero has a
+                    // single lifestyle, so Jawwal and Ritter perks never co-occur.
+                    if (education.HasPerk(BKPerks.Instance.JawwalGhazw)) __result *= 1.1f;
+                    if (education.HasPerk(BKPerks.Instance.RitterIronHorses)) __result *= 1.1f;
                 }
                 catch
                 {
@@ -166,7 +166,8 @@ namespace BannerKings.Patches
                     {
                         if (data.HasPerk(BKPerks.Instance.CataphractEquites)) agentDrivenProperties.MountChargeDamage *= 1.1f;
                         if (data.HasPerk(BKPerks.Instance.CataphractAdaptiveTactics)) agentDrivenProperties.MountManeuver *= 1.08f;
-                        if (agent.MountAgent?.Monster?.StringId == "camel" && data.HasPerk(BKPerks.Instance.JawwalCamelMaster))
+                        // Jawwal mount speed now applies on any mount, not just camels.
+                        if (data.HasPerk(BKPerks.Instance.JawwalCamelMaster))
                             agentDrivenProperties.MountSpeed *= 1.08f;
                         if (data.HasPerk(BKPerks.Instance.KheshigOutrider))
                             agentDrivenProperties.MountSpeed *= 1.05f;
