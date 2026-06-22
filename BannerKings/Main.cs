@@ -188,6 +188,7 @@ namespace BannerKings
             // is no longer registered; BKWorkshopModel is no longer added as a
             // game model (below).
             campaignStarter.AddBehavior(new BKGentryBehavior());
+            campaignStarter.AddBehavior(new BKCourtierBehavior());
             campaignStarter.AddBehavior(new BKBanditBehavior());
             campaignStarter.AddBehavior(new BKDiplomacyBehavior());
             campaignStarter.AddBehavior(new BKImperialLoyaltyBehavior());

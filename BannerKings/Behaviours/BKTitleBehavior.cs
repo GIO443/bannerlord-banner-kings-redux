@@ -85,6 +85,7 @@ namespace BannerKings.Behaviours
             foreach (var clan in kingdom.Clans)
             {
                 if (clan == null || clan == giver.Clan || clan.IsEliminated || clan.IsMinorFaction) continue;
+                if (BannerKings.Behaviours.BKCourtierBehavior.IsCourtierClan(clan)) continue; // landless pool — never a shed receiver
                 var leader = clan.Leader;
                 if (leader == null || leader == Hero.MainHero) continue; // never auto-dump on the player
 

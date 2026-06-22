@@ -48,6 +48,17 @@ on most fiefs. Four ways to acquire one:
   family per the realm's gender law (Cognatic = both spouses, Agnatic =
   male only, etc.). Check the spouse's encyclopedia entry for their
   claims before proposing.
+
+  > **Don't want to roam the map hunting for a spouse?** Every kingdom's
+  > **capital** keeps a standing pool of about **ten landless courtiers** —
+  > mediocre lower nobility of both genders — idling in the keep. Walk into the
+  > capital's hall, talk to one, and the usual *marriage* conversation is
+  > available immediately; they're also valid picks for **council positions**
+  > and companion-style appointments. The pool refills within a week as members
+  > wed or die, so there's always someone available. These courtiers are
+  > deliberately landless and never receive fiefs. Turn the whole system off in
+  > **MCM → Banner Kings → Court → Capital Courtiers** if you'd rather not have
+  > them.
 - **Grant.** A title's current holder can grant the claim to you in
   exchange for influence and gold. Talk to the holder, choose
   *I have a request — give me a claim on…* if available.

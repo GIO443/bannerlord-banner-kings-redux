@@ -354,6 +354,11 @@ namespace BannerKings.Settings
         [SettingPropertyGroup("{=!}Politics")]
         public float PoliticalPressure { get; set; } = 1f;
 
+        [SettingProperty("{=!}Capital Courtiers", RequireRestart = false,
+            HintText = "{=!}Keeps a pool of ~10 landless lower-noble 'courtiers' in every kingdom's capital keep, always available for marriage or council/companion appointment, refilled weekly as they wed or die. A convenience for players who don't want to roam the map hunting for marriage prospects. When OFF, no courtiers are created (existing ones are left alone). Default: true.")]
+        [SettingPropertyGroup("{=!}Court")]
+        public bool EnableCourtiers { get; set; } = true;
+
         [SettingProperty("{=!}Raid Capture System", RequireRestart = false,
             HintText = "{=!}Enable the new raid capture system: village raids produce captives that ship to the nearest friendly fief and arrive as Slaves (slaver realms) or Serfs (resettlement). Captives keep their original culture. Source village damage is unchanged. When OFF, only the existing BK slavery system runs (Enslavement criminal policy + slave caravans). Default: true.")]
         [SettingPropertyGroup("{=!}Slavery")]

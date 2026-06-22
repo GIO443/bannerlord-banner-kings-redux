@@ -565,6 +565,16 @@ namespace BannerKings.Patches
                     if (outcome?.Clan?.Leader == null || clan?.Leader == null) return;
                     Clan candidate = outcome.Clan;
 
+                    // Courtier houses are a landless marriage/position pool — never
+                    // a home for a fief. Drive their support far negative so the
+                    // realm never hands them land (which would make them not
+                    // landless, and pull a marriage prospect off into the field).
+                    if (BannerKings.Behaviours.BKCourtierBehavior.IsCourtierClan(candidate))
+                    {
+                        __result = -100000f;
+                        return;
+                    }
+
                     // (1) Soft over-demesne deprioritization. Scale DOWN positive
                     // support for ANY candidate already over its demesne limit,
                     // proportional to the excess (2x over -> ~half, 3x over ->
