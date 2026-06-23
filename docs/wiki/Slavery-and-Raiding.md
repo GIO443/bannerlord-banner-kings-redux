@@ -224,6 +224,19 @@ decision enacted dispatch caravans that move 0.5% of the slave population
 per day. Nord towns run these caravans automatically regardless of the
 decision (Nordic Thrall Law overrides the gate).
 
+**Q: My town has too many slaves — how do I sell them off for gold?**
+Open the town (or castle) management screen → **Economy** tab and enable the
+**Sell surplus slaves** decision. While it's on, each day the fief sells a
+slice of its *surplus* — the slaves above the desired maximum band — and pays
+the proceeds to the fief's owner (you). It sells about **10% of the excess per
+day** (a handful at minimum), so an oversized slave population draws down toward
+its normal band over a couple of weeks, then the selling **stops on its own**
+once it's back in band. Per-slave price uses the same market model as everything
+else, so an oversupplied town fetches less per head. Distinct from *Slave
+Export* (which ships slaves to your deficit villages for free rather than selling
+them). Leave it on permanently and it simply caps the slave share, converting any
+future overflow (from raids) into income.
+
 **Q: How do I free slaves in my realm?**
 Enact the *Manumission* demesne law. It drives slave demand to zero, and
 the population balance code converts excess slaves to serfs over time.

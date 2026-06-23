@@ -511,6 +511,17 @@ namespace BannerKings.Behaviours
                 }
             }
 
+            // Sell surplus slaves for gold (player lever to draw down a too-large
+            // slave population). Opt-in per fief via decision_slaves_sell; only
+            // touches slaves ABOVE the desired band, so it self-stops in-band.
+            if (BannerKingsConfig.Instance.PolicyManager.IsDecisionEnacted(settlement, "decision_slaves_sell")
+                && !settlement.IsUnderSiege)
+            {
+                var __sw = BannerKings.Behaviours.Shipping.BKShippingBehavior.TraceEnter("BKParty.DailySettlementTick.SellSurplusSlaves:" + __sid);
+                try { SellSurplusSlaves(settlement); }
+                finally { BannerKings.Behaviours.Shipping.BKShippingBehavior.TraceExit("BKParty.DailySettlementTick.SellSurplusSlaves", __sw); }
+            }
+
             {
                 var __sw = BannerKings.Behaviours.Shipping.BKShippingBehavior.TraceEnter("BKParty.DailySettlementTick.DecideSendTraders:" + __sid);
                 try { DecideSendTraders(settlement); }
@@ -985,6 +996,51 @@ namespace BannerKings.Behaviours
             var slaves = (int) (data.GetTypeCount(PopType.Slaves) * 0.005d);
             data.UpdatePopType(PopType.Slaves, (int) (slaves * -1f));
             PopulationPartyComponent.CreateSlaveCaravan(origin, target.Settlement, slaves);
+        }
+
+        // Sell the SURPLUS slaves (those above the desired-band maximum) for gold
+        // to the fief's owner — the player lever to shrink a too-large slave
+        // population. Sells ~10% of the excess per day (min 5) so an oversized
+        // population drains toward its band over a couple of weeks rather than
+        // vanishing overnight, and stops on its own once back in band. Price uses
+        // the same model as the estate auto-buy, so it tracks local slave demand.
+        private void SellSurplusSlaves(Settlement settlement)
+        {
+            var owner = settlement.OwnerClan?.Leader;
+            if (owner == null) return;
+            var data = BannerKingsConfig.Instance.PopulationManager.GetPopData(settlement);
+            if (data == null) return;
+
+            int slaves = data.GetTypeCount(PopType.Slaves);
+            if (slaves <= 0 || data.TotalPop <= 0) return;
+
+            var desired = BannerKings.Managers.PopulationManager.GetDesiredPopTypes(settlement);
+            if (desired == null || !desired.ContainsKey(PopType.Slaves)) return;
+            float maxFraction = desired[PopType.Slaves][1];
+            int desiredMax = (int) (maxFraction * data.TotalPop);
+            int surplus = slaves - desiredMax;
+            if (surplus <= 0) return; // in band — nothing to sell
+
+            int toSell = System.Math.Max(5, (int) (surplus * 0.1f));
+            if (toSell > surplus) toSell = surplus;
+
+            int price = (int) BannerKingsConfig.Instance.GrowthModel.CalculateSlavePrice(settlement).ResultNumber;
+            if (price < 1) price = 1;
+            int gold = toSell * price;
+
+            data.UpdatePopType(PopType.Slaves, -toSell);
+            owner.ChangeHeroGold(gold);
+
+            if (owner == Hero.MainHero)
+            {
+                InformationManager.DisplayMessage(new InformationMessage(
+                    new TextObject("{=BKsellSlavesMsg}Sold {COUNT} surplus slaves from {SETTLEMENT} for {GOLD} denars.")
+                        .SetTextVariable("COUNT", toSell)
+                        .SetTextVariable("SETTLEMENT", settlement.Name)
+                        .SetTextVariable("GOLD", gold)
+                        .ToString(),
+                    TaleWorlds.Library.Color.FromUint(BannerKings.Utils.TextHelper.COLOR_LIGHT_BLUE)));
+            }
         }
 
         private void OnSessionLaunched(CampaignGameStarter campaignGameStarter)

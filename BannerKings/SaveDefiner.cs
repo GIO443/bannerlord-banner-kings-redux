@@ -121,6 +121,7 @@ namespace BannerKings
             AddClassDefinition(typeof(BKSubsidizeMilitiaDecision), 48);
             AddClassDefinition(typeof(BKExemptTariffDecision), 49);
             AddClassDefinition(typeof(BKEncourageMercantilism), 50);
+            AddClassDefinition(typeof(BKSellSlavesDecision), 55);
             AddClassDefinition(typeof(BannerKingsDuty), 51);
             AddClassDefinition(typeof(AuxiliumDuty), 52);
             AddClassDefinition(typeof(RansomDuty), 53);

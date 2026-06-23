@@ -26,7 +26,7 @@ namespace BannerKings.UI.Management
         private static Concept TradePowerConcept = null;
 
         private BKCriminalPolicy criminalItem;
-        private DecisionElement exportToogle, tariffToogle, slaveTaxToogle, mercantilismToogle;
+        private DecisionElement exportToogle, tariffToogle, slaveTaxToogle, mercantilismToogle, sellSlavesToogle;
         private MBBindingList<InformationElement> productionInfo, revenueInfo, satisfactionInfo,
             slaveryInfo, lanesList;
         private TournamentData tournamentData;
@@ -218,6 +218,7 @@ namespace BannerKings.UI.Management
 
                 var decisions = BannerKingsConfig.Instance.PolicyManager.GetDefaultDecisions(Settlement);
                 var slaveDecision = decisions.FirstOrDefault(x => x.GetIdentifier() == "decision_slaves_export");
+                var sellSlavesDecision = decisions.FirstOrDefault(x => x.GetIdentifier() == "decision_slaves_sell");
                 var tariffDecision = decisions.FirstOrDefault(x => x.GetIdentifier() == "decision_tariff_exempt");
                 var slaveTaxDecision = decisions.FirstOrDefault(x => x.GetIdentifier() == "decision_slaves_tax");
                 var mercantilismDecision = decisions.FirstOrDefault(x => x.GetIdentifier() == "decision_mercantilism");
@@ -227,6 +228,16 @@ namespace BannerKings.UI.Management
                         slaveDecision.OnChange(value);
                         RefreshValues();
                     }, new TextObject(slaveDecision.GetHint()));
+
+                if (sellSlavesDecision != null)
+                {
+                    sellSlavesToogle = new DecisionElement()
+                        .SetAsBooleanOption(sellSlavesDecision.GetName(), sellSlavesDecision.Enabled, delegate (bool value)
+                        {
+                            sellSlavesDecision.OnChange(value);
+                            RefreshValues();
+                        }, new TextObject(sellSlavesDecision.GetHint()));
+                }
 
                 tariffToogle = new DecisionElement()
                     .SetAsBooleanOption(tariffDecision.GetName(), tariffDecision.Enabled, delegate (bool value)
@@ -526,6 +537,20 @@ namespace BannerKings.UI.Management
                 if (value != exportToogle)
                 {
                     exportToogle = value;
+                    OnPropertyChangedWithValue(value);
+                }
+            }
+        }
+
+        [DataSourceProperty]
+        public DecisionElement SellSlavesToogle
+        {
+            get => sellSlavesToogle;
+            set
+            {
+                if (value != sellSlavesToogle)
+                {
+                    sellSlavesToogle = value;
                     OnPropertyChangedWithValue(value);
                 }
             }

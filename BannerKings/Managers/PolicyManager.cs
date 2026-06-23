@@ -30,6 +30,7 @@ namespace BannerKings.Managers
                 yield return "decision_ration";
                 yield return "decision_militia_encourage";
                 yield return "decision_slaves_export";
+                yield return "decision_slaves_sell";
                 yield return "decision_militia_subsidize";
                 yield return "decision_tariff_exempt";
                 yield return "decision_slaves_tax";
@@ -44,6 +45,7 @@ namespace BannerKings.Managers
                 yield return "decision_ration";
                 yield return "decision_militia_encourage";
                 yield return "decision_slaves_export";
+                yield return "decision_slaves_sell";
                 yield return "decision_militia_subsidize";
                 yield return "decision_tariff_exempt";
                 yield return "decision_slaves_tax";
@@ -198,6 +200,7 @@ namespace BannerKings.Managers
                 "decision_tariff_exempt" => new BKExemptTariffDecision(settlement, false),
                 "decision_foreigner_ban" => new BKBanForeignersDecision(settlement, false),
                 "decision_slaves_tax" => new BKTaxSlavesDecision(settlement, false),
+                "decision_slaves_sell" => new BKSellSlavesDecision(settlement, false),
                 "decision_mercantilism" => new BKEncourageMercantilism(settlement, false),
                 _ => new BKExportSlavesDecision(settlement, true)
             };
