@@ -215,16 +215,24 @@
   language-rate skill effect off the rails) plus an unsafe rate path.
   Per-tick fluency gain is now hard-capped at 5%, so even with the worst
   rate inputs a language can't finish in fewer than ~20 in-game days.
-- **"Language learning rate is 0 / book reading makes no progress after
-  loading a save" (fixed v1.9.23.1)** — your fluency in each language is
-  stored in a per-hero table; when a save reloaded, the table's keys came
-  back as fresh copies that no longer matched the game's master language
-  list, so every fluency lookup read 0. That made the learning rate read 0
-  (no eligible instructors found) and books unreadable (zero fluency in
-  their language). The table is now re-linked to the master list on load,
-  restoring both. (If you still see 0 on a loaded save, run
+- **"Language learning rate is 0 / fluency never grows / book reading makes
+  no progress" (properly fixed v1.9.30.0)** — this was a stubborn one that
+  several earlier patches only half-fixed. Your fluency was stored in a
+  per-hero table *keyed by the language object itself*. When a save reloaded,
+  those keys came back as fresh copies that no longer matched the game's master
+  language list. Earlier builds tried to "re-link" the table on load, but the
+  *currently-learning* language could still slip back to a stale copy, so the
+  daily tick quietly added progress to an invisible duplicate entry while the
+  screen kept showing 0 — looking exactly like "nothing is happening" for weeks.
+  As of v1.9.30.0 the backend was rebuilt to store fluency and book progress
+  **by the language's text id (a plain string)** instead of by object, so there
+  is no object identity to go stale — what the daily tick writes and what the
+  screen reads are always the same entry. **Existing saves heal automatically
+  on load**: your already-learned languages and books are migrated into the new
+  store, and a language you were mid-learning resumes growing. (To confirm, run
   `campaign.bannerkings.education_debug` in the console — it writes
-  `BK_education_debug.txt` showing exactly which value is missing.)
+  `BK_education_debug.txt`; the `manual UpdateHeroData` line should now show a
+  non-zero delta on the language you're learning.)
 - **"Late-game days take minutes to pass / the game crawls but doesn't hard-freeze
   (improved v1.9.23.3)."** A vassal-list lookup used all over BK (banner-calling,
   levies, army formation) is cached once per day per clan — but the cache was being

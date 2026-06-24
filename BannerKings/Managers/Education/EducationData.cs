@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+using System.Collections.Generic;
+using System.Linq;
 using BannerKings.CampaignContent.Skills;
 using BannerKings.Managers.Education.Books;
 using BannerKings.Managers.Education.Languages;
@@ -17,94 +18,217 @@ using TaleWorlds.SaveSystem;
 
 namespace BannerKings.Managers.Education
 {
+    /// <summary>
+    /// A hero's education state — languages, books, lifestyle, research.
+    ///
+    /// STORAGE: language fluency and book progress are keyed by the registry
+    /// object's <c>StringId</c> (a plain string), NOT by the Language/BookType
+    /// object itself. This is deliberate and load-bearing: a saved
+    /// <c>Dictionary&lt;Language,float&gt;</c> deserialises its MBObjectBase KEYS as
+    /// FRESH instances that are not the <c>DefaultLanguages.Instance</c>
+    /// singletons the rest of the code looks up — so every reference-identity
+    /// lookup missed after load, fluency read 0, and the daily tick silently
+    /// incremented a phantom key the UI never read (the long-standing
+    /// "learning rate stays 0 / no growth" bug, which survived several
+    /// re-keying band-aids). Strings round-trip perfectly, so reference
+    /// identity is irrelevant: the reader and the tick always agree.
+    ///
+    /// The public API still speaks in <c>Language</c>/<c>BookType</c> objects
+    /// (resolved on the boundary), so the UI, perks, dialogue gates and all
+    /// downstream consumers are unchanged.
+    /// </summary>
     public class EducationData : BannerKingsData
     {
-        // Base period to reach full fluency at learning-rate 1.0: one
-        // in-game year. A skilled instructor / intelligible language pushes
-        // the rate above 1.0 (down to ~6 months); a poor tutor keeps it
-        // near 1.0 (~12 months). See BKEducationModel.CalculateLanguageLearningRate.
+        // Base period to reach full fluency at learning-rate 1.0: one in-game
+        // year. A skilled instructor / intelligible language pushes the rate
+        // above 1.0 (down to ~6 months); a poor tutor keeps it near 1.0
+        // (~12 months). See BKEducationModel.CalculateLanguageLearningRate.
         private static readonly float LANGUAGE_RATE = 1f / CampaignTime.DaysInYear;
         private static readonly float BOOK_RATE = 1f / (CampaignTime.DaysInYear * 1.5f);
 
-        [SaveableField(2)] private readonly Dictionary<BookType, float> books;
-
-        [SaveableField(8)] private List<PerkObject> gainedPerks;
-
         [SaveableField(1)] private readonly Hero hero;
 
+        // ---- LEGACY save slots (pre-string-key) — read once on load and
+        // migrated into the string-keyed stores below, then cleared. Kept ONLY
+        // so existing campaigns don't lose learned languages / books. New saves
+        // leave these empty/null. Do not read them outside PostInitialize.
+        [SaveableField(2)] private readonly Dictionary<BookType, float> books;
         [SaveableField(3)] private readonly Dictionary<Language, float> languages;
+        [SaveableField(5)] private BookType legacyCurrentBook;
+        [SaveableField(6)] private Language legacyCurrentLanguage;
 
-        public EducationData(Hero hero, Dictionary<Language, float> languages, Lifestyle lifestyle = null)
+        [SaveableField(4)] private Lifestyle lifestyle;
+        [SaveableField(7)] private Hero languageInstructor;
+        [SaveableField(8)] private List<PerkObject> gainedPerks;
+        [SaveableField(9)] private float lifestyleProgress;
+        [SaveableField(10)] private Innovation research;
+
+        // ---- STRING-KEYED stores (the real backend). Keyed by StringId.
+        [SaveableField(11)] private Dictionary<string, float> languageFluency;
+        [SaveableField(12)] private Dictionary<string, float> bookProgress;
+        [SaveableField(13)] private string currentLanguageId;
+        [SaveableField(14)] private string currentBookId;
+
+        public EducationData(Hero hero, Dictionary<Language, float> startingLanguages, Lifestyle lifestyle = null)
         {
             this.hero = hero;
-            this.languages = languages;
+            languageFluency = new Dictionary<string, float>();
+            bookProgress = new Dictionary<string, float>();
+            if (startingLanguages != null)
+            {
+                foreach (var pair in startingLanguages)
+                    if (pair.Key != null) languageFluency[pair.Key.StringId] = pair.Value;
+            }
+
+            // Legacy containers stay non-null (empty) so the save definer never
+            // sees a null where it expects a registered container type.
             books = new Dictionary<BookType, float>();
-            Lifestyle = lifestyle != null ? Lifestyle.CreateLifestyle(lifestyle, this) : null;
-            CurrentBook = null;
-            CurrentLanguage = null;
-            LanguageInstructor = null;
+            languages = new Dictionary<Language, float>();
+            this.lifestyle = lifestyle != null ? Lifestyle.CreateLifestyle(lifestyle, this) : null;
+            currentBookId = null;
+            currentLanguageId = null;
+            languageInstructor = null;
             gainedPerks = new List<PerkObject>();
         }
 
-        [field: SaveableField(5)] public BookType CurrentBook { get; private set; }
+        // ---- StringId → registry singleton resolvers (the only place reference
+        // identity is reconstructed, and always freshly from the registry).
+        private static Language LangById(string id)
+            => string.IsNullOrEmpty(id) ? null : DefaultLanguages.Instance.All.FirstOrDefault(x => x.StringId == id);
+        private static BookType BookById(string id)
+            => string.IsNullOrEmpty(id) ? null : DefaultBookTypes.Instance.All.FirstOrDefault(x => x.StringId == id);
+
+        // ---- Public object-facing API (unchanged signatures) -----------------
+
+        public BookType CurrentBook => BookById(currentBookId);
+        public Language CurrentLanguage => LangById(currentLanguageId);
+        public Hero LanguageInstructor => languageInstructor;
+        public Lifestyle Lifestyle => lifestyle;
+        public float LifestyleProgress => lifestyleProgress;
+        public Innovation Research => research;
 
         public MBReadOnlyList<PerkObject> Perks
         {
             get
             {
                 gainedPerks ??= new List<PerkObject>();
-
                 return new MBReadOnlyList<PerkObject>(gainedPerks);
             }
         }
 
         public float CurrentBookProgress
-        {
-            get
-            {
-                var progress = 0f;
-                if (CurrentBook != null && books.ContainsKey(CurrentBook))
-                {
-                    progress = books[CurrentBook];
-                }
-
-                return progress;
-            }
-        }
-
-        [field: SaveableField(6)] public Language CurrentLanguage { get; private set; }
+            => (currentBookId != null && bookProgress != null && bookProgress.TryGetValue(currentBookId, out var p)) ? p : 0f;
 
         public float CurrentLanguageFluency
+            => (currentLanguageId != null && languageFluency != null && languageFluency.TryGetValue(currentLanguageId, out var p)) ? p : 0f;
+
+        public bool HasRead(BookType book)
+            => book != null && bookProgress != null && bookProgress.TryGetValue(book.StringId, out var p) && p >= 1f;
+
+        // Rebuilt object-keyed views for consumers that iterate. Cheap (≤ a
+        // handful of entries) and always resolved against the live registry, so
+        // the keys ARE the canonical singletons — callers can ContainsKey /
+        // TryGetValue against DefaultLanguages.Instance.X safely.
+        public MBReadOnlyDictionary<Language, float> Languages
         {
             get
             {
-                var progress = 0f;
-                if (CurrentLanguage != null && languages.ContainsKey(CurrentLanguage))
-                {
-                    progress = languages[CurrentLanguage];
-                }
-
-                return progress;
+                var dict = new Dictionary<Language, float>();
+                if (languageFluency != null)
+                    foreach (var kv in languageFluency)
+                    {
+                        var lang = LangById(kv.Key);
+                        if (lang != null) dict[lang] = kv.Value;
+                    }
+                return dict.GetReadOnlyDictionary();
             }
         }
 
-        [field: SaveableField(7)] public Hero LanguageInstructor { get; private set; }
-        [field: SaveableField(4)] public Lifestyle Lifestyle { get; private set; }
-        [field: SaveableField(9)] public float LifestyleProgress { get; private set; }
-        [field: SaveableField(10)] public Innovation Research { get; private set; }
-
-        public bool HasRead(BookType book) => Books.ContainsKey(book) && Books[book] >= 1f;
-
-        public void ResetProgress()
+        public MBReadOnlyDictionary<BookType, float> Books
         {
-            LifestyleProgress = 0f;
+            get
+            {
+                var dict = new Dictionary<BookType, float>();
+                if (bookProgress != null)
+                    foreach (var kv in bookProgress)
+                    {
+                        var book = BookById(kv.Key);
+                        if (book != null) dict[book] = kv.Value;
+                    }
+                return dict.GetReadOnlyDictionary();
+            }
         }
+
+        public ExplainedNumber CurrentLanguageLearningRate => BannerKingsConfig.Instance.EducationModel
+            .CalculateLanguageLearningRate(hero, languageInstructor, CurrentLanguage);
+        public ExplainedNumber CurrentBookReadingRate => BannerKingsConfig.Instance.EducationModel
+            .CalculateBookReadingRate(CurrentBook, hero);
+        public ExplainedNumber CurrentLifestyleRate => BannerKingsConfig.Instance.EducationModel
+            .CalculateLifestyleProgress(hero);
+
+        public void PostInitialize()
+        {
+            // Lifestyle: restore behaviour from the registry template (as before).
+            var lf = DefaultLifestyles.Instance.GetById(lifestyle);
+            if (lf != null)
+            {
+                lifestyle.Initialize(lf.Name, lf.Description, lf.FirstSkill, lf.SecondSkill, new List<PerkObject>(lf.Perks),
+                    lf.PassiveEffects, lf.FirstEffect, lf.SecondEffect, this, lf.Culture);
+            }
+
+            // ONE-TIME MIGRATION from the legacy object-keyed save slots. Resolve
+            // each legacy key to its StringId and fold it into the string store
+            // (taking the higher value on any collision), then clear the legacy
+            // containers so they don't re-save or get read again. A new save has
+            // empty legacy containers, so this is a no-op there.
+            languageFluency ??= new Dictionary<string, float>();
+            bookProgress ??= new Dictionary<string, float>();
+
+            if (languages != null && languages.Count > 0)
+            {
+                foreach (var pair in languages)
+                {
+                    if (pair.Key == null) continue;
+                    var id = pair.Key.StringId;
+                    if (string.IsNullOrEmpty(id)) continue;
+                    if (!languageFluency.TryGetValue(id, out var existing) || pair.Value > existing)
+                        languageFluency[id] = pair.Value;
+                }
+                languages.Clear();
+            }
+
+            if (books != null && books.Count > 0)
+            {
+                foreach (var pair in books)
+                {
+                    if (pair.Key == null) continue;
+                    var id = pair.Key.StringId;
+                    if (string.IsNullOrEmpty(id)) continue;
+                    if (!bookProgress.TryGetValue(id, out var existing) || pair.Value > existing)
+                        bookProgress[id] = pair.Value;
+                }
+                books.Clear();
+            }
+
+            if (currentLanguageId == null && legacyCurrentLanguage != null)
+                currentLanguageId = legacyCurrentLanguage.StringId;
+            if (currentBookId == null && legacyCurrentBook != null)
+                currentBookId = legacyCurrentBook.StringId;
+            legacyCurrentLanguage = null;
+            legacyCurrentBook = null;
+
+            // Drop a current selection that no longer resolves (orphaned id).
+            if (currentLanguageId != null && LangById(currentLanguageId) == null) currentLanguageId = null;
+            if (currentBookId != null && BookById(currentBookId) == null) currentBookId = null;
+        }
+
+        public void ResetProgress() => lifestyleProgress = 0f;
 
         public void AddProgress(float progress)
         {
-            float result = MBMath.ClampFloat(LifestyleProgress + progress, 0f, 1f);
-            float current = LifestyleProgress;
-            LifestyleProgress = result;
+            float result = MBMath.ClampFloat(lifestyleProgress + progress, 0f, 1f);
+            float current = lifestyleProgress;
+            lifestyleProgress = result;
 
             if (result >= 1f && current < 1f)
             {
@@ -117,102 +241,27 @@ namespace BannerKings.Managers.Education
             }
         }
 
-        public MBReadOnlyDictionary<Language, float> Languages => languages.GetReadOnlyDictionary();
-        public MBReadOnlyDictionary<BookType, float> Books => books.GetReadOnlyDictionary();
-
-        public ExplainedNumber CurrentLanguageLearningRate => BannerKingsConfig.Instance.EducationModel.CalculateLanguageLearningRate(hero, LanguageInstructor, CurrentLanguage);
-
-        public ExplainedNumber CurrentBookReadingRate => BannerKingsConfig.Instance.EducationModel.CalculateBookReadingRate(CurrentBook, hero);
-
-        public ExplainedNumber CurrentLifestyleRate => BannerKingsConfig.Instance.EducationModel.CalculateLifestyleProgress(hero);
-
-        public void PostInitialize()
-        {
-            var lf = DefaultLifestyles.Instance.GetById(Lifestyle);
-
-            if (lf != null)
-            {
-                Lifestyle.Initialize(lf.Name, lf.Description, lf.FirstSkill, lf.SecondSkill, new List<PerkObject>(lf.Perks), 
-                    lf.PassiveEffects, lf.FirstEffect, lf.SecondEffect, this, lf.Culture);
-            }
-
-            // RE-KEY the language + book dicts to the canonical DefaultLanguages /
-            // DefaultBookTypes singletons. The save system reconstructs these
-            // MBObjectBase dict KEYS as fresh instances that are NOT the registry
-            // singletons the rest of the code looks up — GetLanguageFluency,
-            // KnowsLanguage, CalculateBookReadingRate all query
-            // DefaultLanguages.Instance.X / DefaultBookTypes.Instance.X. The OLD
-            // PostInitialize only re-initialised each loaded key's FIELDS but left
-            // the key instance in place, so ContainsKey/TryGetValue against the
-            // singletons still missed every entry post-load → fluency read 0
-            // everywhere → no instructors offered and book reading made no
-            // progress (and GetNativeLanguage had to fall back to .First().Key to
-            // survive the miss). Re-keying to the singletons makes lookups hit by
-            // reference again. Resolve by StringId; drop a key only if it can't be
-            // resolved (orphan), so a partial map never wipes a recoverable entry.
-            RekeyByStringId(languages, lang => DefaultLanguages.Instance.GetById(lang));
-            RekeyByStringId(books, book => DefaultBookTypes.Instance.GetById(book));
-
-            // Point the current selections at the same canonical instances so the
-            // tick's GainLanguageFluency(CurrentLanguage) / GainBookReading(CurrentBook)
-            // mutate the re-keyed dict entries rather than orphaned copies.
-            var l = DefaultLanguages.Instance.GetById(CurrentLanguage);
-            if (l != null) CurrentLanguage = l;
-            var cb = DefaultBookTypes.Instance.GetById(CurrentBook);
-            if (cb != null) CurrentBook = cb;
-        }
-
-        // Rebuild a saved MBObjectBase-keyed dict in place so its keys are the
-        // canonical registry singletons (resolved by StringId). Readonly fields are
-        // fine — we Clear + re-add rather than reassign. Unresolvable keys are
-        // dropped. No-op for an already-canonical / empty dict.
-        private static void RekeyByStringId<TKey>(Dictionary<TKey, float> dict, System.Func<TKey, TKey> resolve)
-            where TKey : class
-        {
-            if (dict == null || dict.Count == 0) return;
-            var rebuilt = new Dictionary<TKey, float>();
-            foreach (var pair in dict)
-            {
-                TKey canonical;
-                try { canonical = resolve(pair.Key) ?? pair.Key; }
-                catch { canonical = pair.Key; }
-                if (canonical == null) continue;
-                // Keep the higher value if two loaded keys collapse to one singleton.
-                if (!rebuilt.TryGetValue(canonical, out var existing) || pair.Value > existing)
-                    rebuilt[canonical] = pair.Value;
-            }
-            dict.Clear();
-            foreach (var p in rebuilt) dict[p.Key] = p.Value;
-        }
-
         public void SetCurrentBook(BookType book)
         {
-            if (book != null && !books.ContainsKey(book))
-            {
-                books.Add(book, 0f);
-            }
-
-            CurrentBook = book;
+            if (book != null && !bookProgress.ContainsKey(book.StringId))
+                bookProgress[book.StringId] = 0f;
+            currentBookId = book?.StringId;
         }
 
         internal void AddLanguageWithProgress(Language language, float progress)
         {
-            if (language != null && !languages.ContainsKey(language))
-            {
-                languages.Add(language, progress);
-            }
+            if (language != null && !languageFluency.ContainsKey(language.StringId))
+                languageFluency[language.StringId] = progress;
         }
 
         public void SetCurrentLanguage(Language language, Hero instructor)
         {
-            // v1.9.10.15 — guard: if the student is already fully
-            // fluent in the picked language (native speaker, or one
-            // they previously mastered), don't accept the setup.
-            // Otherwise the daily tick would add +0.000913 to a
-            // languages[lang] already at 1.0, the >=1f branch in
-            // GainLanguageFluency would silently clear the instructor,
-            // and the player sees no progress and no error.
-            if (language != null && languages.TryGetValue(language, out var existing) && existing >= 1f)
+            // Guard: if the student is already fully fluent in the picked
+            // language (native speaker, or one they previously mastered), reject
+            // the setup — otherwise the tick would nudge a 1.0 entry, the
+            // completion branch would clear the instructor, and the player would
+            // see no progress and no reason.
+            if (language != null && languageFluency.TryGetValue(language.StringId, out var existing) && existing >= 1f)
             {
                 if (hero == Hero.MainHero)
                 {
@@ -225,88 +274,58 @@ namespace BannerKings.Managers.Education
                 return;
             }
 
-            if (language != null && !languages.ContainsKey(language))
-            {
-                languages.Add(language, 0f);
-            }
+            if (language != null && !languageFluency.ContainsKey(language.StringId))
+                languageFluency[language.StringId] = 0f;
 
-            CurrentLanguage = language;
-            LanguageInstructor = instructor;
+            currentLanguageId = language?.StringId;
+            languageInstructor = instructor;
         }
 
-        public void AddPerk(PerkObject perk)
-        {
-            gainedPerks.Add(perk);
-        }
+        public void AddPerk(PerkObject perk) => gainedPerks.Add(perk);
 
         public bool HasPerk(PerkObject perk)
         {
             gainedPerks ??= new List<PerkObject>();
-
             return gainedPerks.Contains(perk);
         }
 
-        public void SetCurrentLifestyle(Lifestyle lifestyle)
+        public void SetCurrentLifestyle(Lifestyle value)
         {
-            if (lifestyle != null)
-            {
-                Lifestyle = Lifestyle.CreateLifestyle(lifestyle, this);
-            }
-            else
-            {
-                Lifestyle = null;
-            }
+            lifestyle = value != null ? Lifestyle.CreateLifestyle(value, this) : null;
         }
 
         public float GetLanguageFluency(Language language)
-        {
-            if (languages.ContainsKey(language))
-            {
-                return languages[language];
-            }
-
-            return 0f;
-        }
+            => (language != null && languageFluency != null && languageFluency.TryGetValue(language.StringId, out var v)) ? v : 0f;
 
         public void GainLanguageFluency(Language language, float rate)
         {
-            // v1.9.10.16 — defensive: SetCurrentLanguage normally adds
-            // the language to the dict at 0.0, but a re-loaded save or
-            // a state migration could leave CurrentLanguage pointing
-            // at a language not present in the dict. The `languages[
-            // language] += ...` below would then KeyNotFoundException
-            // and the daily tick chain dies silently inside the wrap.
-            // Cheap one-line guard restores the invariant.
             if (language == null) return;
-            if (!languages.ContainsKey(language)) languages.Add(language, 0f);
+            var id = language.StringId;
+            languageFluency ??= new Dictionary<string, float>();
+            if (!languageFluency.ContainsKey(id)) languageFluency[id] = 0f;
 
-            // The rate is floored to a sane minimum upstream in the model
-            // (CalculateLanguageLearningRate), so this layer only sanitises
-            // the arithmetic: drop NaN/negative to zero and cap a single
-            // day's gain so no degenerate factor can complete a language in
-            // one tick.
+            // The model floors the rate to a sane minimum; this layer only
+            // sanitises the arithmetic (NaN/negative → 0, cap a single day's
+            // gain so no degenerate factor completes a language in one tick).
             var result = LANGUAGE_RATE * rate;
             if (float.IsNaN(result) || float.IsInfinity(result) || result < 0f) result = 0f;
             if (result > 0.05f) result = 0.05f;
-            languages[language] += result;
-            if (languages[language] >= 1f)
+
+            languageFluency[id] += result;
+            if (languageFluency[id] >= 1f)
             {
-                languages[language] = 1f;
-                CurrentLanguage = null;
-                LanguageInstructor = null;
+                languageFluency[id] = 1f;
+                currentLanguageId = null;
+                languageInstructor = null;
                 if (hero.Clan == Clan.PlayerClan)
                 {
                     InformationManager.DisplayMessage(new InformationMessage(
-                        new TextObject("{HERO} has finished learning the {LANGUAGE} language.")
+                        new TextObject("{=BKlang_finished}{HERO} has finished learning the {LANGUAGE} language.")
                             .SetTextVariable("HERO", hero.Name)
                             .SetTextVariable("LANGUAGE", language.Name)
                             .ToString()));
                 }
 
-                // Completion bonuses scaled down from 2000 → 500: with the
-                // universal learning-rate floor removed, vanilla decay caps how
-                // quickly the bonus can actually translate into skill levels,
-                // but 500 still gives a noticeable jump for finishing a language.
                 hero.AddSkillXp(BKSkills.Instance.Scholarship, 500);
 
                 Religion religion = BannerKingsConfig.Instance.ReligionsManager.GetHeroReligion(hero);
@@ -317,28 +336,30 @@ namespace BannerKings.Managers.Education
                 }
             }
 
-            // Daily fluency-progress XP scaled down from 50 → 10: a hero
-            // actively learning across multiple languages and reading a book
-            // simultaneously was banking 100+ Scholarship XP/day from these
-            // ticks alone, which compounded over a year-long campaign.
             hero.AddSkillXp(BKSkills.Instance.Scholarship, 10);
         }
 
         public void GainBookReading(BookType book, float rate)
         {
+            if (book == null) return;
+            var id = book.StringId;
+            bookProgress ??= new Dictionary<string, float>();
+            if (!bookProgress.ContainsKey(id)) bookProgress[id] = 0f;
+
             var result = BOOK_RATE * rate;
             if (float.IsNaN(result) || float.IsInfinity(result) || result < 0f) result = 0f;
             if (result > 0.10f) result = 0.10f;
-            books[book] += result;
-            if (books[book] >= 1f)
+
+            bookProgress[id] += result;
+            if (bookProgress[id] >= 1f)
             {
-                books[book] = 1f;
+                bookProgress[id] = 1f;
                 book.FinishBook(hero);
-                CurrentBook = null;
+                currentBookId = null;
                 if (hero.Clan == Clan.PlayerClan)
                 {
                     InformationManager.DisplayMessage(new InformationMessage(
-                        new TextObject("{HERO} has finished reading {BOOK}.")
+                        new TextObject("{=BKbook_finished}{HERO} has finished reading {BOOK}.")
                             .SetTextVariable("HERO", hero.Name)
                             .SetTextVariable("BOOK", book.Name)
                             .ToString()));
@@ -370,14 +391,14 @@ namespace BannerKings.Managers.Education
 
         public void GainResearch(float progress)
         {
-            Research.AddProgress(progress);
+            research.AddProgress(progress);
             hero.AddSkillXp(BKSkills.Instance.Scholarship, 10);
-            hero.AddSkillXp(Research.ResearchSkill, 5);
+            hero.AddSkillXp(research.ResearchSkill, 5);
         }
 
         public void SetResearch(Innovation i)
         {
-            Research = i;
+            research = i;
             if (hero.Clan == Clan.PlayerClan)
             {
                 InformationManager.DisplayMessage(new InformationMessage(
@@ -391,39 +412,31 @@ namespace BannerKings.Managers.Education
 
         internal override void Update(PopulationData data)
         {
-            // v1.9.10.15 — was `IsDead || IsDisabled`. IsDisabled can be
-            // true for transient states (wounded, traveling-between-
-            // settlements, sometimes for court members the engine has
-            // momentarily marked unavailable) — clearing on every such
-            // tick wiped the user's instructor selection daily without
-            // a CTD. Only sever the relationship on permanent failure
-            // states: dead, or no longer in a state any UI surface
-            // could rebind them through.
-            if (LanguageInstructor != null && LanguageInstructor.IsDead)
+            // Sever the instructor relationship only on a PERMANENT failure
+            // (dead). IsDisabled is transient (wounded, travelling) and was
+            // wiping the user's selection daily.
+            if (languageInstructor != null && languageInstructor.IsDead)
             {
                 if (hero == Hero.MainHero)
                 {
-                    InformationManager.DisplayMessage(
-                        new InformationMessage(
+                    var lang = CurrentLanguage;
+                    InformationManager.DisplayMessage(new InformationMessage(
                         new TextObject("{=EP03brzX}{HERO} has stopped learning {LANGUAGE}. The instructor {INSTRUCTOR} is unavailable or dead.")
                         .SetTextVariable("HERO", hero.Name)
-                        .SetTextVariable("LANGUAGE", CurrentLanguage.Name)
-                        .SetTextVariable("INSTRUCTOR", LanguageInstructor.Name)
+                        .SetTextVariable("LANGUAGE", lang != null ? lang.Name : new TextObject("{=!}?"))
+                        .SetTextVariable("INSTRUCTOR", languageInstructor.Name)
                         .ToString()));
                 }
 
-                CurrentLanguage = null;
-                LanguageInstructor = null;
+                currentLanguageId = null;
+                languageInstructor = null;
             }
 
-            if (hero.IsDead || hero.IsPrisoner)
-            {
-                return;
-            }
+            if (hero.IsDead || hero.IsPrisoner) return;
 
-            if (Research != null)
+            if (research != null)
             {
-                if (!Research.Finished)
+                if (!research.Finished)
                 {
                     GainResearch(ResearchProgress);
                 }
@@ -434,44 +447,53 @@ namespace BannerKings.Managers.Education
                         InformationManager.DisplayMessage(new InformationMessage(
                             new TextObject("{=bfzcDHdP}{HERO} has stopped researching {RESEARCH}: innovation is fully researched.")
                             .SetTextVariable("HERO", hero.Name)
-                            .SetTextVariable("RESEARCH", Research.Name)
+                            .SetTextVariable("RESEARCH", research.Name)
                             .ToString(),
                             Color.FromUint(Utils.TextHelper.COLOR_LIGHT_YELLOW)));
                     }
-                    Research = null;
+                    research = null;
                 }
             }
 
-            if (CurrentLanguage != null && LanguageInstructor != null)
+            if (currentLanguageId != null && languageInstructor != null)
             {
-                float rate = CurrentLanguageLearningRate.ResultNumber;
-                GainLanguageFluency(CurrentLanguage, rate);
-            }
-            else if (CurrentLanguage != null || LanguageInstructor != null)
-            {
-                // Only one half of the (language, instructor) pair is set.
-                // Setup and teardown always move them together now, so this
-                // should never occur — but if a malformed save or migration
-                // leaves a dangling half, clear both quietly so the next
-                // pick starts from a clean state instead of spinning.
-                CurrentLanguage = null;
-                LanguageInstructor = null;
-            }
-
-            if (CurrentBook != null)
-            {
-                var rate = CurrentBookReadingRate.ResultNumber;
-                if (rate == 0f)
+                var language = CurrentLanguage;
+                if (language != null)
                 {
-                    CurrentBook = null;
+                    float rate = CurrentLanguageLearningRate.ResultNumber;
+                    GainLanguageFluency(language, rate);
                 }
                 else
                 {
-                    GainBookReading(CurrentBook, CurrentBookReadingRate.ResultNumber);
+                    // Orphaned id with no resolvable language — clear the pair.
+                    currentLanguageId = null;
+                    languageInstructor = null;
+                }
+            }
+            else if (currentLanguageId != null || languageInstructor != null)
+            {
+                // Only one half of the (language, instructor) pair is set — a
+                // malformed state; clear both so the next pick starts clean.
+                currentLanguageId = null;
+                languageInstructor = null;
+            }
+
+            if (currentBookId != null)
+            {
+                var book = CurrentBook;
+                if (book == null)
+                {
+                    currentBookId = null;
+                }
+                else
+                {
+                    var rate = CurrentBookReadingRate.ResultNumber;
+                    if (rate == 0f) currentBookId = null;
+                    else GainBookReading(book, rate);
                 }
             }
 
-            if (Lifestyle != null)
+            if (lifestyle != null)
             {
                 AddProgress(CurrentLifestyleRate.ResultNumber);
                 hero.AddSkillXp(BKSkills.Instance.Scholarship, 5f);

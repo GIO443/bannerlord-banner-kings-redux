@@ -280,8 +280,9 @@ namespace BannerKings
             ConstructContainerDefinition(typeof(Dictionary<RiteType, CampaignTime>));
             ConstructContainerDefinition(typeof(Dictionary<Religion, Dictionary<Hero, FaithfulData>>));
             ConstructContainerDefinition(typeof(Dictionary<Hero, EducationData>));
-            ConstructContainerDefinition(typeof(Dictionary<BookType, float>));
-            ConstructContainerDefinition(typeof(Dictionary<Language, float>));
+            ConstructContainerDefinition(typeof(Dictionary<BookType, float>));   // legacy (old-save migration only)
+            ConstructContainerDefinition(typeof(Dictionary<Language, float>));   // legacy (old-save migration only)
+            ConstructContainerDefinition(typeof(Dictionary<string, float>));     // string-keyed education stores
             ConstructContainerDefinition(typeof(Dictionary<Hero, ItemRoster>));
             ConstructContainerDefinition(typeof(Dictionary<Hero, float>));
             ConstructContainerDefinition(typeof(List<Innovation>));
