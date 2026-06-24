@@ -229,10 +229,21 @@
   is no object identity to go stale — what the daily tick writes and what the
   screen reads are always the same entry. **Existing saves heal automatically
   on load**: your already-learned languages and books are migrated into the new
-  store, and a language you were mid-learning resumes growing. (To confirm, run
-  `campaign.bannerkings.education_debug` in the console — it writes
-  `BK_education_debug.txt`; the `manual UpdateHeroData` line should now show a
-  non-zero delta on the language you're learning.)
+  store, and a language you were mid-learning resumes growing.
+  - **The *actual* "rate is fine but fluency never grows" cause — fixed
+    v1.9.31.1.** Even after the rewrite above, learning could still show a correct
+    rate yet add exactly **zero** each day on a save loaded **directly** from the
+    main menu — with the telltale that starting a *new* character first and *then*
+    loading the save made it work. The per-day gain is `1 / (days in a year)`, and
+    it was computed **once**, the first time the education system was touched. On a
+    cold load that happened before the campaign clock was ready, so "days in a year"
+    read **0**, the gain became `1 / 0 = infinity`, and the safety check that blocks
+    absurd one-day jumps clamped it to **0** — so fluency never moved. Starting a new
+    game first evaluated the value while the clock was valid and cached it for the
+    rest of the session, which is exactly why that workaround "unstuck" it. The gain
+    is now computed fresh each day, so it's always correct. (To confirm, run
+    `campaign.bannerkings.education_debug`; the `manual UpdateHeroData` line should
+    show a non-zero delta on the language you're learning.)
 - **"A workshop / rite / building / quest says I don't have a good even though I
   clearly do" (fixed v1.9.31.0)** — BK used to stamp a random *quality modifier*
   (crude / fine, etc.) onto goods produced by workshops and villages, so your

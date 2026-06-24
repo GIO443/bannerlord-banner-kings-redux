@@ -43,8 +43,18 @@ namespace BannerKings.Managers.Education
         // year. A skilled instructor / intelligible language pushes the rate
         // above 1.0 (down to ~6 months); a poor tutor keeps it near 1.0
         // (~12 months). See BKEducationModel.CalculateLanguageLearningRate.
-        private static readonly float LANGUAGE_RATE = 1f / CampaignTime.DaysInYear;
-        private static readonly float BOOK_RATE = 1f / (CampaignTime.DaysInYear * 1.5f);
+        //
+        // COMPUTED PER CALL — must NOT be a static readonly field. A static
+        // initialiser runs the first time the class is touched; on a COLD
+        // save-load that can be before the campaign clock is up, so
+        // CampaignTime.DaysInYear reads 0 → 1f/0 = Infinity → the sanitiser in
+        // GainLanguageFluency zeroes the gain → fluency "never grows". (Starting
+        // a new game first evaluated it while the clock was valid and cached the
+        // good value statically, which is EXACTLY why new-game-then-load
+        // 'unstuck' it — the long-standing language-learning bug.) Evaluating it
+        // at use time always sees a valid DaysInYear.
+        private static float LANGUAGE_RATE => 1f / CampaignTime.DaysInYear;
+        private static float BOOK_RATE => 1f / (CampaignTime.DaysInYear * 1.5f);
 
         [SaveableField(1)] private readonly Hero hero;
 
