@@ -207,6 +207,72 @@ namespace BannerKings.Utils
             }
         }
 
+        // A fungible trade good (food / livestock / general goods) that should
+        // NEVER carry a quality ItemModifier — modifiers on these break every
+        // requirement check that matches by base ItemObject (workshop inputs,
+        // rite offerings, building materials, vanilla quests). Weapons, armour
+        // and horses legitimately carry modifiers and are excluded.
+        public static bool IsFungibleTradeGood(ItemObject item)
+        {
+            if (item == null) return false;
+            if (item.HasHorseComponent || item.WeaponComponent != null || item.ArmorComponent != null) return false;
+            return item.IsFood || item.IsAnimal || item.ItemType == ItemObject.ItemTypeEnum.Goods;
+        }
+
+        // Replace any quality-modified fungible trade good in the roster with its
+        // unmodified base, preserving counts. One-time heal for saves made while
+        // BK was stamping modifiers onto produced goods. Snapshot first, then
+        // mutate — AddToCounts shifts indices. Data-only; never throws.
+        public static void StripTradeGoodModifiers(ItemRoster roster)
+        {
+            if (roster == null) return;
+            try
+            {
+                List<(EquipmentElement modified, int amount)> toFix = null;
+                for (int i = 0; i < roster.Count; i++)
+                {
+                    var el = roster.GetElementCopyAtIndex(i);
+                    var ee = el.EquipmentElement;
+                    if (ee.Item == null || ee.ItemModifier == null) continue;
+                    if (!IsFungibleTradeGood(ee.Item)) continue;
+                    (toFix ??= new List<(EquipmentElement, int)>()).Add((ee, el.Amount));
+                }
+                if (toFix == null) return;
+                foreach (var (modified, amount) in toFix)
+                {
+                    roster.AddToCounts(modified, -amount);
+                    roster.AddToCounts(new EquipmentElement(modified.Item), amount);
+                }
+            }
+            catch { }
+        }
+
+        // One-time normalisation across EVERY roster that can hold trade goods —
+        // settlement markets + stashes AND all mobile parties (player, lords,
+        // caravans, villagers). Sweeping all parties too is what makes the heal
+        // complete: a modified good left in a caravan can't trade back into a
+        // freshly-cleaned market, so once this runs and production stops creating
+        // modifiers, no roster anywhere holds a modified fungible good again.
+        // Cheap (in-memory roster scans, no pathfinding) and idempotent.
+        public static void NormalizeTradeGoodModifiers()
+        {
+            try
+            {
+                foreach (var settlement in Settlement.All)
+                {
+                    if (settlement == null) continue;
+                    StripTradeGoodModifiers(settlement.ItemRoster);
+                    try { StripTradeGoodModifiers(settlement.Stash); } catch { }
+                }
+                foreach (var party in MobileParty.All)
+                {
+                    if (party == null) continue;
+                    StripTradeGoodModifiers(party.ItemRoster);
+                }
+            }
+            catch { }
+        }
+
         public static ItemModifierGroup GetItemModifierGroup(ItemObject item)
         {
             ItemModifierGroup modifierGroup = null;

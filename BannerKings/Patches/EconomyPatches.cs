@@ -1216,22 +1216,24 @@ namespace BannerKings.Patches
                 }
 
                 var result = BannerKingsConfig.Instance.WorkshopModel.GetProductionQuality(workshop).ResultNumber;
-                var itemPrice = town.GetItemPrice(new EquipmentElement(outputItem));
+                var basePrice = town.GetItemPrice(new EquipmentElement(outputItem));
                 int totalValue = 0;
                 for (int i = 0; i < count; i++)
                 {
-                    ItemModifier modifier = null;
+                    // Produce the good UNMODIFIED. A quality ItemModifier on a
+                    // fungible trade good makes it unrecognisable to every
+                    // requirement check that matches by base ItemObject — workshop
+                    // inputs, rite offerings, building materials, and vanilla
+                    // quests. The production-quality bonus is kept as extra
+                    // workshop REVENUE instead of being stamped onto the item.
+                    int unitPrice = basePrice;
                     if (modifierGroup != null)
                     {
-                        modifier = modifierGroup.GetRandomModifierWithTarget(result, 0.2f);
-                        if (modifier != null)
-                        {
-                            itemPrice = (int)(itemPrice * modifier.PriceMultiplier);
-                        }
+                        var modifier = modifierGroup.GetRandomModifierWithTarget(result, 0.2f);
+                        if (modifier != null) unitPrice = (int)(unitPrice * modifier.PriceMultiplier);
                     }
-                    var element = new EquipmentElement(outputItem.Item, modifier);
-                    totalValue += itemPrice;
-                    town.Owner.ItemRoster.AddToCounts(element, 1);
+                    totalValue += unitPrice;
+                    town.Owner.ItemRoster.AddToCounts(new EquipmentElement(outputItem.Item), 1);
                 }
 
                 if (TaleWorlds.CampaignSystem.Campaign.Current.GameStarted && effectCapital)
@@ -1563,15 +1565,12 @@ namespace BannerKings.Patches
 
                         if (num > 0)
                         {
-                            ItemModifierGroup modifierGroup = Utils.Helpers.GetItemModifierGroup(item);
-                            ItemModifier modifier = null;
-                            if (modifierGroup != null)
-                            {
-                                modifier = modifierGroup.GetRandomModifierWithTarget(data.EconomicData.ProductionQuality.ResultNumber, 
-                                    0.2f);
-                            }
-
-                            EquipmentElement element = new EquipmentElement(item, modifier);
+                            // Produce the good UNMODIFIED so it is recognised by all
+                            // requirement checks (workshop inputs, rite offerings,
+                            // building materials, vanilla quests). A quality modifier
+                            // on a fungible trade good is what broke that recognition;
+                            // see the workshop-output patch above for the rationale.
+                            EquipmentElement element = new EquipmentElement(item);
                             if (!initialProductionForTowns)
                             {
                                 village.Owner.ItemRoster.AddToCounts(element, num);

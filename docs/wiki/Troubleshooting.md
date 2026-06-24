@@ -233,6 +233,21 @@
   `campaign.bannerkings.education_debug` in the console — it writes
   `BK_education_debug.txt`; the `manual UpdateHeroData` line should now show a
   non-zero delta on the language you're learning.)
+- **"A workshop / rite / building / quest says I don't have a good even though I
+  clearly do" (fixed v1.9.31.0)** — BK used to stamp a random *quality modifier*
+  (crude / fine, etc.) onto goods produced by workshops and villages, so your
+  stock could be all "Fine Grain" with no plain "Grain". Anything that asks for a
+  good by its base type — workshop input consumption, religious rite offerings,
+  building material costs, and **vanilla quests** — counted only the plain
+  version and saw zero, so it blocked even though your inventory was full.
+  Trade goods are meant to be fungible commodities, so as of v1.9.31.0 BK **no
+  longer puts quality modifiers on produced goods** (the workshop keeps the
+  quality bonus as extra gold revenue instead). **Existing saves heal on load**:
+  a one-time pass strips the stray modifiers off all trade goods in every market,
+  stash and party, so requirements recognise them immediately. (Side effect:
+  village trade goods no longer fetch a small "quality" price premium when sold —
+  a minor, intentional economy correction. Weapons, armour and horses keep their
+  modifiers — those are legitimate.)
 - **"Late-game days take minutes to pass / the game crawls but doesn't hard-freeze
   (improved v1.9.23.3)."** A vassal-list lookup used all over BK (banner-calling,
   levies, army formation) is cached once per day per clan — but the cache was being

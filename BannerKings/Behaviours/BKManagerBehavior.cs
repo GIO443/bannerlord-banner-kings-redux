@@ -194,6 +194,14 @@ namespace BannerKings.Behaviours
                 }
             }
 
+            // One-time heal: strip quality ItemModifiers off fungible trade goods
+            // in markets / the player party. BK used to stamp crude/fine modifiers
+            // onto produced goods, which made them unrecognisable to requirement
+            // checks (workshop inputs, rite offerings, building materials, vanilla
+            // quests). Production no longer creates them; this normalises any that
+            // a pre-fix save already has. Idempotent — a no-op once goods are clean.
+            BannerKings.Utils.Helpers.NormalizeTradeGoodModifiers();
+
             // Repair saves whose title hierarchy was broken by the
             // XML-comment early-return bug fixed in v1.8.10.31. Idempotent.
             try
