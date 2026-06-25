@@ -650,6 +650,11 @@ namespace BannerKings.UI.VanillaTabs.Character.Education
             data.Lifestyle.InvestFocus(data, hero);
             developerVM.CurrentCharacter.RefreshValues();
             developerVM.RefreshValues();
+            // Refresh THIS panel too — without it the lifestyle section kept showing
+            // the pre-investment state (same invested-focus count, the focus still
+            // "open") until the player exited and re-entered the screen, which read
+            // as "the click did nothing / didn't consume a point".
+            RefreshValues();
         }
     }
 }

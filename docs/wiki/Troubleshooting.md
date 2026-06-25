@@ -270,6 +270,14 @@
   diplomacy parties). Note this only stops the *crash*; the underlying "one clan,
   two kingdoms" situation (a personal union) is being addressed separately — see
   [Internal Politics](Internal-Politics).
+- **"Lifestyle focus doesn't register until I exit and re-enter, and resets on
+  save load" (fixed v1.9.32.1)** — two separate bugs. (1) Clicking *Invest Focus*
+  did consume the point and unlock the perk, but the education panel didn't redraw
+  itself, so it looked unchanged until you left and came back — now it refreshes
+  immediately. (2) The list of invested lifestyle perks wasn't registered with the
+  save system, so it never round-tripped — your invested focus reset every load.
+  That list now persists, so invested focus sticks across saves. (Already-affected
+  saves can't recover focus lost before the fix, but won't lose any more.)
 - **"Late-game days take minutes to pass / the game crawls but doesn't hard-freeze
   (improved v1.9.23.3)."** A vassal-list lookup used all over BK (banner-calling,
   levies, army formation) is cached once per day per clan — but the cache was being

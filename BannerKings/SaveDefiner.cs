@@ -283,6 +283,10 @@ namespace BannerKings
             ConstructContainerDefinition(typeof(Dictionary<BookType, float>));   // legacy (old-save migration only)
             ConstructContainerDefinition(typeof(Dictionary<Language, float>));   // legacy (old-save migration only)
             ConstructContainerDefinition(typeof(Dictionary<string, float>));     // string-keyed education stores
+            // EducationData.gainedPerks — the source of truth for invested lifestyle
+            // focus. Without this container def the list never round-tripped, so
+            // invested focus reset on every save/load (players "had to redo it").
+            ConstructContainerDefinition(typeof(List<TaleWorlds.CampaignSystem.CharacterDevelopment.PerkObject>));
             ConstructContainerDefinition(typeof(Dictionary<Hero, ItemRoster>));
             ConstructContainerDefinition(typeof(Dictionary<Hero, float>));
             ConstructContainerDefinition(typeof(List<Innovation>));
