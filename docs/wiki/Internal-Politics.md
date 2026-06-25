@@ -610,6 +610,33 @@ rather than appearing immediately.
 
 ---
 
+## Personal unions — inheriting a second crown
+
+Bannerlord lets a clan rule only **one** kingdom. So if your house comes to hold
+the **crown of a second kingdom** — most often by **inheriting it** when another
+realm's king dies and you held a claim to that throne — the two realms can't both
+keep you as ruler. BK resolves this by **merging them into one united kingdom**
+rather than leaving a realm without a ruler (which previously produced a broken,
+crash-prone half-state).
+
+What happens when the union triggers:
+
+- **You choose which crown leads.** A prompt asks under which kingdom's name the
+  union is ruled — keep your founded realm, or take up the inherited one. (AI
+  rulers automatically keep their **larger** realm, by fief count.)
+- **The other realm joins it whole.** Every clan of the absorbed kingdom — with
+  all their fiefs — becomes part of the surviving kingdom, and its **duchies are
+  kept intact**, carried over as duchies of the united crown (so you can still
+  grant them to vassals later). The absorbed crown itself is dissolved.
+- **Wars follow the surviving crown.** The united realm keeps the survivor's
+  diplomatic stances; the absorbed realm's separate wars end with its crown.
+
+In short: instead of two thrones you can't both sit on, you end with one larger
+kingdom under a single crown. The merge only fires when a clan genuinely ends up
+entitled to two kingdoms; normal vassalage and dukedoms are untouched.
+
+---
+
 ## When kingdoms make peace
 
 An AI realm's decision to end a war is now a **continuous weighing of two numbers

@@ -611,6 +611,13 @@ namespace BannerKings.Behaviours
             TaleWorlds.CampaignSystem.Campaign.Current
                 .GetCampaignBehavior<BannerKings.Behaviours.Diplomacy.Dilemmas.BKDilemmaBehavior>()
                 ?.RaiseSuccessionDisputes(titles, victim);
+
+            // If this succession/inheritance just handed an heir the crown of a
+            // SECOND kingdom (their clan already ruled one), the engine left one
+            // realm leaderless — a personal union. Merge the two realms into one
+            // so no kingdom is left without a ruler (also the root of the
+            // leaderless-realm diplomacy crash). No-op when no union exists.
+            BannerKings.Actions.KingdomActions.ResolvePersonalUnion();
         }
 
         private void OnOwnerChanged(Settlement settlement, bool openToClaim, Hero newOwner, Hero oldOwner,
