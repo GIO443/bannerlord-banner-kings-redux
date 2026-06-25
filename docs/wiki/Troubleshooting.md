@@ -278,6 +278,16 @@
   save system, so it never round-tripped — your invested focus reset every load.
   That list now persists, so invested focus sticks across saves. (Already-affected
   saves can't recover focus lost before the fix, but won't lose any more.)
+- **"Crash on the map (AI tick) — `BKAIVisitSettlementBehavior` null-reference"
+  (fixed v1.9.32.2)** — BK's AI settlement-visit scoring dereferenced a party's
+  leader (and its clan, and the settlement owner) without a null check, so a
+  kingdom party that momentarily had **no leader / a clanless leader** — which
+  happens transiently around clan moves, leaderless realms and crown merges — could
+  crash the hourly AI tick. Those scoring paths now skip such parties instead of
+  dereferencing null. (Unrelated patch-skip warnings like `[BK] Skipped Harmony
+  patches on …` in a crash log are BK *gracefully* declining to patch a method
+  whose signature it doesn't recognise — usually a game update or another mod
+  transpiling it first — and are not themselves the crash.)
 - **"Late-game days take minutes to pass / the game crawls but doesn't hard-freeze
   (improved v1.9.23.3)."** A vassal-list lookup used all over BK (banner-calling,
   levies, army formation) is cached once per day per clan — but the cache was being

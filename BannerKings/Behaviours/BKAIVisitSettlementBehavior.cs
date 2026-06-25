@@ -284,7 +284,14 @@ namespace BannerKings.Behaviours
                                 num33 = 0;
                             }
                         }
-                        if (!value2.IsCastle && !mobileParty.Party.IsStarving && (float)leaderHero.Gold > num12 && (leaderHero.Clan.Leader == leaderHero || (float)leaderHero.Clan.Gold > num11) && num9 > mobileParty.PartySizeRatio)
+                        // leaderHero (and its Clan) can be null here — this method
+                        // only filters leaderless parties when the faction ISN'T a
+                        // kingdom, so a kingdom party with no leader / a clanless
+                        // leader (transitional states around clan moves, leaderless
+                        // realms, mid-merge) reaches this volunteer-recruit gate.
+                        // Guard before the first deref (&& short-circuits) — the NRE
+                        // crash at this line in AiHourlyTickImpl.
+                        if (!value2.IsCastle && !mobileParty.Party.IsStarving && leaderHero != null && leaderHero.Clan != null && (float)leaderHero.Gold > num12 && (leaderHero.Clan.Leader == leaderHero || (float)leaderHero.Clan.Gold > num11) && num9 > mobileParty.PartySizeRatio)
                         {
                             num31 = (float)this.ApproximateNumberOfVolunteersCanBeRecruitedFromSettlement(leaderHero, value2);
                             num31 = ((num31 > (float)((int)((num9 - mobileParty.PartySizeRatio) * 100f))) ? ((float)((int)((num9 - mobileParty.PartySizeRatio) * 100f))) : num31);
@@ -544,6 +551,13 @@ namespace BannerKings.Behaviours
             float item = 1f;
             Hero leaderHero = mobileParty.LeaderHero;
             IFaction mapFaction = mobileParty.MapFaction;
+            // "Being the owner" scoring is meaningless without a clanned leader, and
+            // the body below dereferences leaderHero.Clan and settlement.OwnerClan
+            // unguarded. Return neutral scores for a leaderless / clanless party or an
+            // unowned settlement rather than NRE (same null-party class as the
+            // AiHourlyTickImpl line-287 crash).
+            if (leaderHero == null || leaderHero.Clan == null || settlement?.OwnerClan == null)
+                return new ValueTuple<float, float, float, float>(num, num2, num3, item);
             if (currentSettlement != settlement && (mobileParty.Army == null || mobileParty.Army.LeaderParty != mobileParty))
             {
                 if (settlement.OwnerClan.Leader == leaderHero)
