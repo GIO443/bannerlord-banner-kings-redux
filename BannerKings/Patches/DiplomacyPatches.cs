@@ -383,6 +383,7 @@ namespace BannerKings.Patches
 
             private static void ShowAlliance(KingdomDiplomacy diplomacy, Kingdom newAlly, KingdomDiplomacyVM __instance)
             {
+                if (newAlly?.RulingClan?.Leader == null) return; // leaderless realm — no valid party to name
                 // Route through vanilla's StartAllianceDecision pipeline.
                 // BK's BKDiplomacyBehavior.MakeAlliance was a no-op stub
                 // (FactionManager.DeclareAlliance was removed in 1.3.x and
@@ -432,6 +433,7 @@ namespace BannerKings.Patches
 
             private static void ShowTruce(KingdomDiplomacy diplomacy, Kingdom enemyKingdom, KingdomDiplomacyVM __instance)
             {
+                if (enemyKingdom?.RulingClan?.Leader == null) return; // leaderless realm — no valid party to name
                 int denars = MBRandom.RoundRandomized(BannerKingsConfig.Instance.DiplomacyModel.GetTruceDenarCost(diplomacy.Kingdom,
                     enemyKingdom)
                     .ResultNumber);
@@ -455,6 +457,7 @@ namespace BannerKings.Patches
 
             private static void ShowTradePact(KingdomDiplomacy diplomacy, Kingdom enemyKingdom, KingdomDiplomacyVM __instance)
             {
+                if (enemyKingdom?.RulingClan?.Leader == null) return; // leaderless realm — no valid party to name
                 int influence = MBRandom.RoundRandomized(BannerKingsConfig.Instance.DiplomacyModel.GetTradePactInfluenceCost(diplomacy.Kingdom,
                     enemyKingdom)
                     .ResultNumber);

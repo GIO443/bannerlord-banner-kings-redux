@@ -325,6 +325,11 @@ namespace BannerKings.Behaviours.Diplomacy
 
         public void MakeTradePact(Kingdom proposer, Kingdom proposed)
         {
+            // Both realms must be led — a leaderless party (e.g. a realm mid-
+            // succession) has no RulingClan to charge and no valid diplomacy state.
+            if (proposer?.RulingClan?.Leader == null || proposed?.RulingClan?.Leader == null
+                || proposer == proposed) return;
+
             int influence = MBRandom.RoundRandomized(BannerKingsConfig.Instance.DiplomacyModel.GetPactInfluenceCost(proposer,
                     proposed).ResultNumber);
             ChangeClanInfluenceAction.Apply(proposed.RulingClan, -influence);
@@ -1250,11 +1255,21 @@ namespace BannerKings.Behaviours.Diplomacy
 
         private void ConsiderAIDiplomacy()
         {
-            Kingdom kingdom = Kingdom.All.GetRandomElementWithPredicate(x => !x.IsEliminated && x.RulingClan != Clan.PlayerClan);
+            // Only ever consider LED realms. A kingdom can be non-eliminated yet
+            // leaderless (RulingClan or its Leader null) during a fragile window —
+            // e.g. when a clan that ruled it leaves to take another throne by
+            // succession (the player succeeding Vlandia while holding their own
+            // kingdom leaves the old realm leaderless until it's wound down). Every
+            // diplomacy desire/cost calc below dereferences RulingClan.Leader, so a
+            // leaderless party here is a guaranteed NullReferenceException crash.
+            Kingdom kingdom = Kingdom.All.GetRandomElementWithPredicate(x => !x.IsEliminated
+                && x.RulingClan?.Leader != null && x.RulingClan != Clan.PlayerClan);
+            if (kingdom == null) return;
 
             foreach (var target in Kingdom.All)
             {
                 if (target.IsEliminated) continue;
+                if (target == kingdom || target.RulingClan?.Leader == null) continue;
 
                 TextObject pactReason;
                 if (BannerKingsConfig.Instance.KingdomDecisionModel.IsTradePactAllowed(kingdom, target, out pactReason) &&

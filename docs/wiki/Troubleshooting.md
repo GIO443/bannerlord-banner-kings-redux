@@ -259,6 +259,17 @@
   village trade goods no longer fetch a small "quality" price premium when sold —
   a minor, intentional economy correction. Weapons, armour and horses keep their
   modifiers — those are legitimate.)
+- **"Crash around a trade agreement / truce / alliance, often right after a
+  succession" (fixed v1.9.31.2)** — a kingdom can be briefly **leaderless** (no
+  ruling clan) without being eliminated — most notably when a clan leaves a realm
+  to take another throne (e.g. you succeed to another kingdom's crown while still
+  holding your own, leaving the old realm without a ruler until it winds down).
+  BK's diplomacy (trade pacts, truces, alliances) read the ruling clan's leader
+  with no null check, so evaluating a deal involving that leaderless realm threw a
+  null-reference crash. Those paths now skip leaderless realms (they're not valid
+  diplomacy parties). Note this only stops the *crash*; the underlying "one clan,
+  two kingdoms" situation (a personal union) is being addressed separately — see
+  [Internal Politics](Internal-Politics).
 - **"Late-game days take minutes to pass / the game crawls but doesn't hard-freeze
   (improved v1.9.23.3)."** A vassal-list lookup used all over BK (banner-calling,
   levies, army formation) is cached once per day per clan — but the cache was being

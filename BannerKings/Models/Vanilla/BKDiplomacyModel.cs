@@ -719,6 +719,7 @@ namespace BannerKings.Models.Vanilla
         public override ExplainedNumber GetTruceDenarCost(Kingdom proposer, Kingdom proposed, float years = 3f, bool explanations = false)
         {
             ExplainedNumber result = new ExplainedNumber(0, explanations);
+            if (!BothLed(proposer, proposed)) return result;
             float peace = GetScoreOfDeclaringPeace(proposed, proposer) / 2f;
             result.Add((100000f - peace) * MathF.Sqrt(years), new TextObject("{=PsRfxMEv}Truce duration"));
 
@@ -736,6 +737,7 @@ namespace BannerKings.Models.Vanilla
 
         public override void AddAmicablePactDesireEffects(Kingdom proposer, Kingdom proposed, ref ExplainedNumber result, bool explanations = false)
         {
+            if (!BothLed(proposer, proposed)) return;
             result.Add(proposer.RulingClan.Leader.GetTraitLevel(DefaultTraits.Honor) * 15f,
                 new TextObject("{=vrm5pNf3}Honor of {HERO}")
                 .SetTextVariable("HERO", proposer.RulingClan.Leader.Name));
@@ -744,9 +746,19 @@ namespace BannerKings.Models.Vanilla
             Utils.Helpers.ApplyPerk(BKPerks.Instance.LordshipDiplomaticTies, proposer.Leader, ref result);
         }
 
+        // Both realms must be LED — a non-eliminated kingdom can be momentarily
+        // leaderless (RulingClan / Leader null) mid-succession, e.g. when a clan
+        // leaves a realm to take another throne. Every desire/cost calc here
+        // dereferences RulingClan.Leader, so a leaderless party would NRE. Callers
+        // (AI diplomacy loop, daily Update, UI) treat a 0 result as "no deal".
+        private static bool BothLed(Kingdom a, Kingdom b)
+            => a != null && b != null && a != b
+               && a.RulingClan?.Leader != null && b.RulingClan?.Leader != null;
+
         public override ExplainedNumber GetTradeDesire(Kingdom proposer, Kingdom proposed, bool explanations = false)
         {
             ExplainedNumber result = new ExplainedNumber(0, explanations);
+            if (!BothLed(proposer, proposed)) return result;
             result.Add(-50f, new TextObject("{=Gq5BnNiN}Reluctance"));
 
             result.Add(proposed.Leader.GetTraitLevel(DefaultTraits.Generosity) * 10f, 
@@ -764,6 +776,7 @@ namespace BannerKings.Models.Vanilla
         public override ExplainedNumber GetAllianceDesire(Kingdom proposer, Kingdom proposed, bool explanations = false)
         {
             ExplainedNumber result = new ExplainedNumber(0, explanations);
+            if (!BothLed(proposer, proposed)) return result;
             result.Add(-100f, new TextObject("{=Gq5BnNiN}Reluctance"));
 
             KingdomElection election = new KingdomElection(new BKDeclareWarDecision(null, proposed.RulingClan, proposer));
