@@ -200,6 +200,17 @@
   recipe under [Player guide → Estates](Player-Guide#estates). On older
   builds, upgrade — current builds added a backstop payout that fixes
   the silent finance-model-replaced-by-another-mod case.
+- **"Governor perks (Logistician / Price of Loyalty) show *negative*
+  tax income"** — fixed in v1.9.32.3. The town's Autonomy penalty was
+  being subtracted from the tax total in a way that could flip the
+  underlying tax base negative, which inverted the sign of every
+  percentage line in the Population Tax tooltip — so positive governor
+  perks displayed as losses and the town collected ~0 tax. It got
+  *worse* the more you leveled the governor's Steward (bigger perk
+  bonuses pushed the base further negative). Autonomy is now applied as
+  a proper percentage reduction (up to 60%, scaled by the settlement's
+  autonomy), so those perks show positive income again and the town
+  collects the tax it should. Upgrade to fix; no save action needed.
 - **"Can't change demesne law"** — locked behind a contract-change cooldown
   (≈ 1 in-game year) and minimum loyalty / authority gates.
 - **"Skills level too fast in Banner Kings"** — older builds shipped

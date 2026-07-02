@@ -251,9 +251,21 @@ namespace BannerKings.Models.Vanilla
                         }
                     }*/
 
-                    if (baseResult.ResultNumber > 0f)
+                    // Autonomy reduces tax by up to 60%, scaled by the settlement's
+                    // autonomy (0..1). It MUST be applied as a percentage factor, not as a
+                    // flat Add of a factor-inflated amount: ExplainedNumber renders every
+                    // percentage line as factor * BaseNumber, and BaseNumber is the sum of the
+                    // raw (pre-factor) tax additions. Subtracting ResultNumber*0.6*autonomy
+                    // (ResultNumber already includes every other factor — perks, loyalty,
+                    // security) from BaseNumber overshoots when the governor's factors are
+                    // large, flipping BaseNumber negative. That inverts the sign of every
+                    // factor line in the tooltip — so positive governor perks (Logistician,
+                    // Price of Loyalty) display as negative income — and clamps the town's
+                    // actual tax to 0. As a factor it stays consistent with the other factors
+                    // and leaves BaseNumber positive.
+                    if (data.Autonomy > 0f)
                     {
-                        baseResult.Add(baseResult.ResultNumber * -0.6f * data.Autonomy, new TextObject("{=xMsWoSnL}Autonomy"));
+                        baseResult.AddFactor(-0.6f * data.Autonomy, new TextObject("{=xMsWoSnL}Autonomy"));
                     }
 
                     CouncilData council = BannerKingsConfig.Instance.CourtManager.GetCouncil(town.Settlement.OwnerClan);
