@@ -45,6 +45,16 @@ namespace BannerKings.Behaviours.Diplomacy.Dilemmas
             var type = DefaultDilemmas.Instance.GetById(typeId);
             if (type == null) return null;
 
+            // Initiator influence floor — the initiator's clan must muster the
+            // type's minimum influence to raise the dilemma at all. Default 0, so
+            // no current row gates on this; a balance mod can require standing to
+            // press a claim / petition. The PLAYER is exempt: a player-initiated
+            // dilemma always goes through (it's fast-tracked in Promote), so this
+            // gate must never silently sink a deliberate player claim.
+            if (type.MinInitiatorInfluence > 0f && initiator.Clan != Clan.PlayerClan
+                && (initiator.Clan == null || initiator.Clan.Influence < type.MinInitiatorInfluence))
+                return null;
+
             var diplomacy = GetDiplomacy(kingdom);
             if (diplomacy == null) return null;
 
@@ -179,7 +189,7 @@ namespace BannerKings.Behaviours.Diplomacy.Dilemmas
                 }
                 if (law == null) return false;
 
-                var d = CreateAndEnqueue(kingdom, "law", group.Leader, ruler, sovereign, law.StringId);
+                var d = CreateAndEnqueue(kingdom, "law_change", group.Leader, ruler, sovereign, law.StringId);
                 if (d != null)
                     BannerKings.Utils.Logs.Politics(() => $"{kingdom.Name}: group '{group.Name}' tension maxed — raised LAW dilemma to enact '{law.Name}'");
                 return d != null;
@@ -300,9 +310,15 @@ namespace BannerKings.Behaviours.Diplomacy.Dilemmas
                 if (clan == null || clan.IsEliminated || clan.Leader == null || clan.Leader.IsDead) continue;
                 if (dilemma.HasCommitment(clan)) continue; // already picked a side
 
-                DilemmaSide lean = handler.AssignSide(dilemma, clan);
                 bool isPrincipal = (dilemma.Initiator != null && clan == dilemma.Initiator.Clan)
                                 || (dilemma.Target != null && clan == dilemma.Target.Clan);
+
+                // Peers-only realms restrict the deliberating electorate to
+                // full-peerage clans; the principals (the disputants themselves)
+                // always take part regardless of peerage.
+                if (type.PeersOnly && !isPrincipal && !BKDilemmaModel.IsFullPeer(clan)) continue;
+
+                DilemmaSide lean = handler.AssignSide(dilemma, clan);
 
                 if (lean != DilemmaSide.Neutral)
                 {
@@ -378,6 +394,21 @@ namespace BannerKings.Behaviours.Diplomacy.Dilemmas
 
         private enum ResolutionBand { Strong, Win, Partial, Fail, Backfire }
 
+        // Player-facing, localizable phrasing for a resolution band — the engine
+        // enum (Strong / Backfire / …) is internal jargon and must not surface raw.
+        private static TextObject BandDisplayName(ResolutionBand band)
+        {
+            switch (band)
+            {
+                case ResolutionBand.Strong:   return new TextObject("{=BKdilBandStrong}decisively carried");
+                case ResolutionBand.Win:      return new TextObject("{=BKdilBandWin}carried");
+                case ResolutionBand.Partial:  return new TextObject("{=BKdilBandPartial}left to the ruler to settle");
+                case ResolutionBand.Fail:     return new TextObject("{=BKdilBandFail}defeated");
+                case ResolutionBand.Backfire: return new TextObject("{=BKdilBandBackfire}backfired on its initiator");
+                default:                      return new TextObject("{=BKdilBandResolved}resolved");
+            }
+        }
+
         private static ResolutionBand BandForRatio(float ratio, DilemmaType type)
         {
             if (ratio >= type.StrongThreshold) return ResolutionBand.Strong;
@@ -415,10 +446,10 @@ namespace BannerKings.Behaviours.Diplomacy.Dilemmas
             diplomacy.RemoveDilemma(dilemma);
             diplomacy.DilemmaBreatherUntil = CampaignTime.DaysFromNow(PromotionBreatherDays);
 
-            NotifyPlayer(dilemma, new TextObject("{=!}A dilemma in {KINGDOM} has been resolved: {NAME} ({BAND}).")
+            NotifyPlayer(dilemma, new TextObject("{=BKdilResolved}A dilemma in {KINGDOM} has been resolved: {NAME} — {BAND}.")
                 .SetTextVariable("KINGDOM", dilemma.Kingdom != null ? dilemma.Kingdom.Name : new TextObject("?"))
                 .SetTextVariable("NAME", DisplayNameOf(dilemma, type))
-                .SetTextVariable("BAND", band.ToString()));
+                .SetTextVariable("BAND", BandDisplayName(band)));
 
             BannerKings.Utils.Logs.Kingdom(() =>
                 $"dilemma resolved: {type.StringId} in {dilemma.Kingdom?.Name} band={band} ratio={dilemma.Ratio:0.00}");
@@ -450,7 +481,7 @@ namespace BannerKings.Behaviours.Diplomacy.Dilemmas
                 }
                 diplomacy.ActivateDilemma(dilemma, CampaignTime.DaysFromNow(t.TimerDays));
                 ProcessParticipation(dilemma, t);
-                NotifyPlayer(dilemma, new TextObject("{=!}A dilemma has arisen in {KINGDOM}: {NAME}.")
+                NotifyPlayer(dilemma, new TextObject("{=BKdilArisen}A dilemma has arisen in {KINGDOM}: {NAME}.")
                     .SetTextVariable("KINGDOM", dilemma.Kingdom != null ? dilemma.Kingdom.Name : new TextObject("?"))
                     .SetTextVariable("NAME", DisplayNameOf(dilemma, t)));
                 return;
@@ -499,7 +530,7 @@ namespace BannerKings.Behaviours.Diplomacy.Dilemmas
             // deliberation window.
             ProcessParticipation(best, bestType);
 
-            NotifyPlayer(best, new TextObject("{=!}A dilemma has arisen in {KINGDOM}: {NAME}.")
+            NotifyPlayer(best, new TextObject("{=BKdilArisen}A dilemma has arisen in {KINGDOM}: {NAME}.")
                 .SetTextVariable("KINGDOM", best.Kingdom != null ? best.Kingdom.Name : new TextObject("?"))
                 .SetTextVariable("NAME", DisplayNameOf(best, bestType)));
         }

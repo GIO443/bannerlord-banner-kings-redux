@@ -477,7 +477,13 @@ them from the console with `campaign.bannerkings.dilemmas`.
 **Taking part.** On a selected dilemma, **Support** and **Oppose** spend
 influence to add your clan's weight to that side. AI clans pick a side by
 relation, faction, ambition and government, and spend their own spare resources
-on it over the window — so the bar moves as the realm deliberates.
+on it over the window — so the bar moves as the realm deliberates. By default the
+**deliberating lords are the realm's full peers** — clans without full peerage
+watch but don't vote — while the two clans directly involved (the initiator and
+the clan they're pressing) always take part regardless. A balance mod can lift
+that restriction, or require the initiator to hold a minimum influence to raise
+the dilemma at all, by retuning `peers_only` / `min_initiator_influence` in
+`bk_dilemmas.xml`.
 
 **Radical factions (pretender / secession) — when they form and dissolve.**
 A radical group occupies one slot per type per realm. An AI only spins one up

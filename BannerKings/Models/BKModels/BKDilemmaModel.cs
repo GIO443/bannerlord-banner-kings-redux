@@ -25,14 +25,27 @@ namespace BannerKings.Models.BKModels
             float clout = clan.Tier * 12f;
             try
             {
-                var council = BannerKingsConfig.Instance.CourtManager.GetCouncil(clan);
-                if (council?.Peerage != null && council.Peerage.IsFullPeerage) clout += 15f;
+                if (IsFullPeer(clan)) clout += 15f;
 
                 var titles = BannerKingsConfig.Instance.TitleManager.GetAllDeJure(clan);
                 if (titles != null) clout += titles.Count * 6f;
             }
             catch { /* missing managers on a fresh / half-built realm — tier only */ }
             return MathF.Max(0f, clout);
+        }
+
+        /// <summary>Whether a clan holds full peerage — i.e. has a voice in a
+        /// <c>peers_only</c> dilemma's electorate. Defensive: a missing council or
+        /// peerage on a fresh / half-built realm reads as "not a peer".</summary>
+        public static bool IsFullPeer(Clan clan)
+        {
+            if (clan == null) return false;
+            try
+            {
+                var council = BannerKingsConfig.Instance.CourtManager.GetCouncil(clan);
+                return council?.Peerage != null && council.Peerage.IsFullPeerage;
+            }
+            catch { return false; }
         }
 
         /// <summary>Martial weight of a clan, normalised toward the same ~0..120

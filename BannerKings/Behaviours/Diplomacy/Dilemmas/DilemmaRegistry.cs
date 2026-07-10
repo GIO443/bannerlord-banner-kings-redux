@@ -273,6 +273,12 @@ namespace BannerKings.Behaviours.Diplomacy.Dilemmas
                     var law = ResolveLaw(dilemma);
                     if (clan?.Leader == null || law == null) return DilemmaSide.Neutral;
                     if (dilemma.Initiator != null && clan == dilemma.Initiator.Clan) return DilemmaSide.For;
+                    // The pressed ruler's clan defends the status quo — mirrors the
+                    // holder going Against in the claim/succession handlers. Without
+                    // this the ruler abstains, and a peers-thinned electorate can
+                    // collapse to just the initiator (For) and enact the law
+                    // uncontested. As a principal the ruler always participates.
+                    if (dilemma.Target != null && clan == dilemma.Target.Clan) return DilemmaSide.Against;
 
                     var group = GroupOf(dilemma, clan);
                     if (group != null)
