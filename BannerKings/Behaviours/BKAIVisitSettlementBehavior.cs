@@ -87,24 +87,27 @@ namespace BannerKings.Behaviours
                 return;
             }
 
-            // Hands-off for parties sharing the player's army. Vanilla's
-            // AiVisitSettlementBehavior is still wired (see RegisterEvents
-            // comment) and contributes its own scoring tuples for these
-            // parties — BK running in parallel doubles the "go to settlement"
-            // score path without doubling "join / stay in army", biasing
-            // army-member AI toward defection. Multiple users have reported
-            // armies bleeding members the moment the player joins; this
-            // hands-off matches the same pattern v1.8.10.2 applied to the
-            // shipping behavior. Let vanilla score the player's army alone.
-            if (mobileParty.Army != null && MobileParty.MainParty != null
-                && mobileParty.Army == MobileParty.MainParty.Army
-                && mobileParty != MobileParty.MainParty)
-            {
-                return;
-            }
-
-            bool thinkParty = mobileParty.Army == null || mobileParty.Army.LeaderParty == mobileParty || mobileParty.Army.Cohesion < (float)mobileParty.Army.CohesionThresholdForDispersion;
-            if (!thinkParty) return;
+            // Hands-off for ALL army-attached parties (leader and members).
+            //
+            // Vanilla's AiVisitSettlementBehavior is still wired (see the
+            // RegisterEvents comment) and already scores the army LEADER on its
+            // own — its guard only skips attached *non-leaders*. BK loads after
+            // vanilla and its AddBehaviorTupleWithScore ACCUMULATES onto the
+            // matching tuple, so running in parallel roughly DOUBLES the leader's
+            // GoToSettlement score (plus BK's food/gold/perk boosts) while the
+            // military branch (AiMilitaryBehavior) stays single-fed. The engine
+            // re-picks the argmax behaviour for an army leader every hour
+            // (PartyHourlyAiTick num==1) with NO current-target stickiness and a
+            // low GoToSettlement floor (~0.01), so the inflated visit score
+            // intermittently beats the army's besiege/defend objective: the army
+            // breaks off to "visit", then the military branch re-wins next hour —
+            // the "army re-decides in place, never makes progress" oscillation.
+            //
+            // This generalises the old player-army-only hands-off (which targeted
+            // the very same double-count for army members) to every army. Vanilla
+            // scores armies cleanly on its own; BK keeps its lord-specific tweaks
+            // for free (non-army) lord parties, which is where they add value.
+            if (mobileParty.Army != null) return;
 
             if (mobileParty.CurrentSettlement != null && mobileParty.CurrentSettlement.OwnerClan == mobileParty.ActualClan && 
                 !mobileParty.MapFaction.IsKingdomAtWar())

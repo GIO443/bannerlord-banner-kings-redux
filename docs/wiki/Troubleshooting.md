@@ -299,6 +299,19 @@
   patches on …` in a crash log are BK *gracefully* declining to patch a method
   whose signature it doesn't recognise — usually a game update or another mod
   transpiling it first — and are not themselves the crash.)
+- **"AI armies get stuck in a loop / stutter in place and never make progress"
+  (fixed v1.9.33.1)** — an AI army would sit near one spot re-deciding every hour,
+  breaking off toward a settlement and then back toward its siege/defence target
+  without committing to either. Cause: BK's AI settlement-visit scoring ran *in
+  parallel with* the game's own (both are wired), and for an **army leader** the
+  two contributions stacked — roughly doubling the "go visit a settlement" score
+  while the "besiege / defend" score stayed single. Because an army leader re-picks
+  its behaviour every hour with no bias toward sticking with its current target,
+  the inflated visit score kept intermittently winning, so the army thrashed in
+  place. BK now leaves **all army-attached parties** to the game's own scoring
+  (it already did this for the player's own army), which scores them cleanly —
+  armies commit to their objective again. Free (non-army) lords are unaffected.
+  No new save state; existing saves load unchanged.
 - **"Late-game days take minutes to pass / the game crawls but doesn't hard-freeze
   (improved v1.9.23.3)."** A vassal-list lookup used all over BK (banner-calling,
   levies, army formation) is cached once per day per clan — but the cache was being
