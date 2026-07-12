@@ -33,8 +33,16 @@ namespace BannerKings.Patches
             try
             {
                 if (party == null) return false;
-                if (!Settings.BannerKingsSettings.Instance.LogHourlyTickPerf) return false;
-                return party.HasNavalNavigationCapability;
+                var settings = Settings.BannerKingsSettings.Instance;
+                if (settings == null) return false;
+                // Original scope: naval stuck-at-coast investigation.
+                if (settings.LogHourlyTickPerf && party.HasNavalNavigationCapability) return true;
+                // Army siege-loop investigation: trace every army-attached
+                // party's move-intent tape (the SetMoveBesiegeSettlement <->
+                // SetMoveEngageParty/SetMoveDefendSettlement flip), land OR sea,
+                // so an inland sieging army is captured too.
+                if (settings.LogArmyDecisions && party.Army != null) return true;
+                return false;
             }
             catch { return false; }
         }
@@ -329,7 +337,7 @@ namespace BannerKings.Patches
                 if (!ShouldTrace(__instance)) return;
                 string targetName = settlement?.Name?.ToString() ?? "(null)";
                 bool targetHasPort = false; try { targetHasPort = settlement?.HasPort ?? false; } catch { }
-                Log($"{__instance.Name?.ToString() ?? "?"} {PartyState(__instance)} → SetMoveDefendSettlement(target={targetName} HasPort={targetHasPort})");
+                Log($"{__instance.Name?.ToString() ?? "?"} {PartyState(__instance)} → SetMoveDefendSettlement(target={targetName} HasPort={targetHasPort}) caller={FindMoveCaller()}");
             }
         }
 
@@ -350,7 +358,7 @@ namespace BannerKings.Patches
                 if (!ShouldTrace(__instance)) return;
                 string targetName = settlement?.Name?.ToString() ?? "(null)";
                 bool targetHasPort = false; try { targetHasPort = settlement?.HasPort ?? false; } catch { }
-                Log($"{__instance.Name?.ToString() ?? "?"} {PartyState(__instance)} → SetMoveBesiegeSettlement(target={targetName} HasPort={targetHasPort})");
+                Log($"{__instance.Name?.ToString() ?? "?"} {PartyState(__instance)} → SetMoveBesiegeSettlement(target={targetName} HasPort={targetHasPort}) caller={FindMoveCaller()}");
             }
         }
 
@@ -373,7 +381,7 @@ namespace BannerKings.Patches
                 if (!ShouldTrace(__instance)) return;
                 string targetName = party?.Name?.ToString() ?? "(null)";
                 bool targetAtSea = false; try { targetAtSea = party?.IsCurrentlyAtSea ?? false; } catch { }
-                Log($"{__instance.Name?.ToString() ?? "?"} {PartyState(__instance)} → SetMoveEngageParty(target={targetName} targetAtSea={targetAtSea})");
+                Log($"{__instance.Name?.ToString() ?? "?"} {PartyState(__instance)} → SetMoveEngageParty(target={targetName} targetAtSea={targetAtSea}) caller={FindMoveCaller()}");
             }
         }
 

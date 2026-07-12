@@ -444,6 +444,11 @@ namespace BannerKings.Settings
         [SettingPropertyGroup("{=!}Diagnostics")]
         public bool LogLordDecisions { get; set; } = false;
 
+        [SettingProperty("{=!}Log Army Decisions", RequireRestart = false,
+            HintText = "{=!}Append each AI ARMY LEADER's hourly think to BK_army_decisions.txt: the top candidate behaviours (besiege / defend / raid / patrol / go-to-settlement) with their scores, plus the army's cohesion and chosen target. Use this to diagnose 'armies won't commit to a siege / keep peeling off' — the log shows which behaviour is beating besiege. Off by default; near-zero cost when off. Default: false.")]
+        [SettingPropertyGroup("{=!}Diagnostics")]
+        public bool LogArmyDecisions { get; set; } = false;
+
         [SettingProperty("{=!}Log Kingdom Decisions", RequireRestart = false,
             HintText = "{=!}Append kingdom-level decisions (war/peace/votes, council appointments, peerage votes, demesne-law changes, contract changes) to BK_kingdom_decisions.txt. Useful for understanding faction politics. Default: false.")]
         [SettingPropertyGroup("{=!}Diagnostics")]

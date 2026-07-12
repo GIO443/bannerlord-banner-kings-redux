@@ -23,6 +23,7 @@ namespace BannerKings.Utils
         private static bool RescueEnabled => Settings.BannerKingsSettings.Instance?.LogRescueSweep ?? false;
         private static bool EconomyEnabled => Settings.BannerKingsSettings.Instance?.LogEconomyDecisions ?? false;
         private static bool LordEnabled => Settings.BannerKingsSettings.Instance?.LogLordDecisions ?? false;
+        public static bool ArmyEnabled => Settings.BannerKingsSettings.Instance?.LogArmyDecisions ?? false;
         private static bool KingdomEnabled => Settings.BannerKingsSettings.Instance?.LogKingdomDecisions ?? false;
         private static bool ReligionTitleEnabled => Settings.BannerKingsSettings.Instance?.LogReligionTitleDecisions ?? false;
         private static bool MajorEventsEnabled => Settings.BannerKingsSettings.Instance?.LogMajorEvents ?? false;
@@ -53,6 +54,12 @@ namespace BannerKings.Utils
         {
             if (!KingdomEnabled) return;
             Write("kingdom_decisions.txt", line);
+        }
+
+        public static void Army(Func<string> line)
+        {
+            if (!ArmyEnabled) return;
+            Write("army_decisions.txt", line);
         }
 
         public static void ReligionTitle(Func<string> line)
