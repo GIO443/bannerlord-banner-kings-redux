@@ -310,7 +310,7 @@ namespace BannerKings.Settings
         [SettingPropertyGroup("{=k2Vw7iNm}Bandits")]
         public int BanditPartiesLimit { get; set; } = 60;
 
-        [SettingPropertyFloatingInteger("{=!}Radical Groups Factor", minValue: 0.2f, maxValue: 0.5f, "#0%", RequireRestart = false,
+        [SettingPropertyFloatingInteger("{=!}Radical Groups Factor", minValue: 0.0f, maxValue: 0.5f, "#0%", RequireRestart = false,
             HintText = "{=!}Defines the base 'reluctance' factor for AI joining or creating radical groups. The bigger, the less they partake in groups. Default: 15%.")]
         [SettingPropertyGroup("{=!}Diplomacy")]
         public float RadicalGroup { get; set; } = 0.35f;

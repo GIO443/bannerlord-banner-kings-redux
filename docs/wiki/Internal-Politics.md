@@ -495,6 +495,13 @@ cleared — and stays gone unless conditions again predict ≥40% support. That
 frees the slot, so if no faction is active you can start your own from the
 Groups tab. (Previously a spent faction could linger and block you.)
 
+**Tuning how eagerly AI joins radical groups (MCM).** **MCM → Banner Kings →
+Diplomacy → Radical Groups Factor** is a base *reluctance* multiplier: the
+higher it is, the *less* the AI joins or forms radical groups. The slider now
+spans **0%–50%** (previously it was floored at 20%), so you can drop it below
+the old minimum for a more rebellious realm, or push it up to calm factions
+down.
+
 If you lead a **claimant faction**, the claimant you pick is binding for the
 life of the group and **persists across save/reload** — load a save and your
 faction still backs the same claimant, with **Make Ultimatum** available once
