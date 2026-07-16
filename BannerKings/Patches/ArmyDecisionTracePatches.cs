@@ -29,6 +29,22 @@ namespace BannerKings.Patches
     [HarmonyPatch(typeof(TaleWorlds.CampaignSystem.CampaignBehaviors.AiBehaviors.AiPartyThinkBehavior), "PartyHourlyAiTick")]
     internal static class ArmyDecisionTracePatches
     {
+        // Last dumped board per army leader (party StringId → score fingerprint),
+        // used only to mark a dump STALE vs NEW. Concurrent because BK caches that
+        // live past a single tick have historically been the freeze surface; this
+        // one is only touched from the AI tick, but the cost of being safe is a
+        // dictionary type name. Keyed on StringId, not the MobileParty, so a
+        // destroyed party can't be held alive by the diagnostic.
+        private static readonly System.Collections.Concurrent.ConcurrentDictionary<string, string> LastBoard
+            = new System.Collections.Concurrent.ConcurrentDictionary<string, string>();
+
+        // Generous cut on printed board lines: high enough that both the military
+        // and visit branches are always visible together (the Take(6) that hid the
+        // visit set was the whole problem), low enough that a long session's log
+        // stays a readable file rather than tens of MB. options= reports the true
+        // total regardless.
+        private const int MaxBoardLines = 24;
+
         [HarmonyPostfix]
         private static void Postfix(MobileParty mobileParty)
         {
@@ -51,16 +67,55 @@ namespace BannerKings.Patches
                         ? mobileParty.LeaderHero.Name.ToString()
                         : (mobileParty.Name != null ? mobileParty.Name.ToString() : "?");
                     var army = mobileParty.Army;
-                    sb.Append($"[{leader}] cohesion={army.Cohesion:0}/{army.CohesionThresholdForDispersion} " +
+
+                    var ordered = scores.OrderByDescending(x => x.Item2).ToList();
+
+                    // Board lines, descending — the argmax at the top is what the
+                    // engine adopts (subject to the gather/stickiness gates in
+                    // PartyHourlyAiTick). Previously Take(6): on a besiege tick the
+                    // six besiege options filled the cut and hid every GoToSettlement
+                    // score below it, which made the board look like it swapped
+                    // candidate sets each tick when it was only being truncated. The
+                    // whole question is which behaviours are ON the board at all, so
+                    // the cut is now well past the number of same-behaviour options
+                    // any one branch produces, and options= below reports the TRUE
+                    // total so a cut is never mistaken for an absence.
+                    var lines = ordered.Take(MaxBoardLines).Select(t =>
+                        $"{t.Item1.AiBehavior}@{NameOf(t.Item1.Party)}" +
+                        $"{(t.Item1.WillGatherArmy ? " (gather)" : "")} = {t.Item2:0.000}").ToList();
+
+                    // PartyThinkParams is a REUSED per-party cache (ThinkParamsCache),
+                    // so a dump can show LAST tick's board when this tick's think
+                    // early-returned without refilling it. The v1.9.33.2 logs were
+                    // ambiguous for exactly this reason: consecutive dumps repeated
+                    // byte-identical scores, and there was no way to tell a genuine
+                    // recompute from a stale re-read. Fingerprint the board and mark
+                    // it, so a flip can be attributed to a real rescore rather than
+                    // to leftovers.
+                    //
+                    // Fingerprint from the RENDERED lines, not a second formatting of
+                    // the same tuples: any field shown to the reader (incl. the gather
+                    // flag) must participate, or a dump can print visibly different
+                    // and still be marked STALE — the exact wrong answer to the
+                    // question this marker exists to answer.
+                    string fingerprint = string.Join("|", lines);
+                    string id = mobileParty.StringId;
+                    bool stale = false;
+                    if (!string.IsNullOrEmpty(id))
+                    {
+                        stale = LastBoard.TryGetValue(id, out string prev) && prev == fingerprint;
+                        LastBoard[id] = fingerprint;
+                    }
+
+                    // hour= disambiguates "think ran 3x this hour" from "one think,
+                    // dumped 3x" — the date stamp alone is day-granular.
+                    sb.Append($"[{leader}] hour={(int)CampaignTime.Now.ToHours} board={(stale ? "STALE" : "NEW")} " +
+                              $"options={ordered.Count}{(ordered.Count > lines.Count ? $" (showing {lines.Count})" : "")} " +
+                              $"cohesion={army.Cohesion:0}/{army.CohesionThresholdForDispersion} " +
                               $"parties={army.LeaderPartyAndAttachedPartiesCount} waitingForMembers={army.IsWaitingForArmyMembers()} " +
                               $"curBehavior={mobileParty.DefaultBehavior} curTarget={NameOf(mobileParty.TargetSettlement)}");
 
-                    // Top candidates by score, descending — the argmax at the top
-                    // is what the engine adopts (subject to the gather/stickiness
-                    // gates in PartyHourlyAiTick).
-                    foreach (var t in scores.OrderByDescending(x => x.Item2).Take(6))
-                        sb.Append($"\n    {t.Item1.AiBehavior}@{NameOf(t.Item1.Party)}" +
-                                  $"{(t.Item1.WillGatherArmy ? " (gather)" : "")} = {t.Item2:0.000}");
+                    foreach (var line in lines) sb.Append("\n    " + line);
                     return sb.ToString();
                 });
             }

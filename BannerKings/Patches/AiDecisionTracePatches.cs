@@ -98,6 +98,45 @@ namespace BannerKings.Patches
             return "?";
         }
 
+        // Like FindMoveCaller, but returns a SHORT CHAIN of the nearest real
+        // frames ("A←B←C") instead of just the first one.
+        //
+        // FindMoveCaller stops at the first non-plumbing frame, which for the
+        // hourly-think path is vanilla's dispatcher (caller=MbEvent`1.InvokeList)
+        // — that names the event bus, not the decider, so it can't tell "BK
+        // issued this" from "vanilla issued this". The siege-loop investigation
+        // needs exactly that distinction on the GoToSettlement setter (the move
+        // that breaks an army off its siege), so keep the vanilla funnel frames
+        // (SetPartyAiAction / MbEvent) here rather than skipping them: the frame
+        // ABOVE the funnel is the actual decider, and it is only visible in a
+        // chain. Diagnostic-only, and only called on a traced party.
+        private static string FindMoveCallerChain(int max = 4)
+        {
+            try
+            {
+                var st = new System.Diagnostics.StackTrace(2, false); // skip this + the Postfix
+                var parts = new System.Collections.Generic.List<string>(max);
+                // Bound the WALK as well as the collected count (as FindMoveCaller
+                // does): a stack with fewer than `max` real frames would otherwise
+                // walk every frame to the thread root on each traced move.
+                int n = System.Math.Min(st.FrameCount, 16);
+                for (int i = 0; i < n && parts.Count < max; i++)
+                {
+                    var m = st.GetFrame(i)?.GetMethod();
+                    var t = m?.DeclaringType;
+                    if (t == null) continue; // Harmony dynamic method
+                    string ns = t.Namespace ?? "";
+                    if (ns.StartsWith("System") || ns.StartsWith("HarmonyLib") || ns.StartsWith("MonoMod")) continue;
+                    if (t.Name != null && t.Name.Contains("AiDecisionTrace")) continue;
+                    if (m.Name == "SetMoveGoToSettlement") continue; // the original being wrapped
+                    parts.Add((t.Name ?? "?") + "." + (m.Name ?? "?"));
+                }
+                if (parts.Count > 0) return string.Join("←", parts);
+            }
+            catch { }
+            return "?";
+        }
+
         // Build a rich, human-readable snapshot of a settlement move and hand
         // it to the freeze watchdog. If the engine's follower for THIS move
         // hangs, the watchdog dumps this verbatim into the crash HTM so the
@@ -298,7 +337,7 @@ namespace BannerKings.Patches
                 if (!ShouldTrace(__instance)) return;
                 string targetName = settlement?.Name?.ToString() ?? "(null)";
                 bool targetHasPort = false; try { targetHasPort = settlement?.HasPort ?? false; } catch { }
-                Log($"{__instance.Name?.ToString() ?? "?"} {PartyState(__instance)} → SetMoveGoToSettlement(target={targetName} HasPort={targetHasPort}, nav={navigationType}, targetingPort={isTargetingThePort})");
+                Log($"{__instance.Name?.ToString() ?? "?"} {PartyState(__instance)} → SetMoveGoToSettlement(target={targetName} HasPort={targetHasPort}, nav={navigationType}, targetingPort={isTargetingThePort}) caller={FindMoveCallerChain()}");
             }
         }
 
