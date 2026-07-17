@@ -185,6 +185,37 @@ Yes, but with caveats:
 
 ---
 
+## Slaves and loyalty — keeping a fief stable
+
+A large slave population drags a settlement's **loyalty** down every day (the
+*Slave population* line in the loyalty tooltip). If slaves keep piling in faster
+than they leave — common in a raid-heavy game — that drain can spiral a town all
+the way to rebellion. Two mechanisms keep it in check:
+
+- **Sell surplus slaves** (opt-in, for gold). Enact the *Sell slaves* decision on
+  a fief and BK sells ~10% of the slaves **above the desired band** each day to
+  the owner for denars, draining an oversized population back toward its band.
+- **Auto-Emancipate Slaves** (automatic, default ON — **MCM → Banner Kings →
+  Slavery → Auto-Emancipate Slaves**). When a fief's daily loyalty *loss* is
+  **dominated by its slave population**, BK automatically frees a batch of the
+  surplus slaves into the free serf population, easing the spiral. This runs for
+  **AI and player fiefs alike** — so the whole map stops drowning in slave-driven
+  rebellions — and your own fiefs show a message ("Unrest among the slaves of X
+  forced the manumission of N…") when it fires.
+
+  What it will **not** do: it only ever frees slaves **above the settlement's
+  desired band**, and only while loyalty is actually falling *because of* slaves.
+  So slave-heavy **mines** (whose desired slave share is high) and towns whose
+  slaves are within band are never touched. If you want to run a slave economy
+  and manage the loyalty by hand (extra garrison, governors, tax policy), turn
+  the toggle **off** and neither your fiefs nor the AI's will auto-free slaves.
+
+Freed slaves become **serfs** (free peasants) who stay in the settlement, so the
+population isn't lost — it shifts from bonded to free labour, and the slave-tax
+income from that batch ends.
+
+---
+
 ## Console cheats and logging
 
 Cheats must be enabled in the launcher.

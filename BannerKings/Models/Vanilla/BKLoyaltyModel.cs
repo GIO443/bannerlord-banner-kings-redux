@@ -26,6 +26,36 @@ namespace BannerKings.Models.Vanilla
         private static readonly float SLAVE_LOYALTY = -0.00035f;
         private static readonly float LOYALTY_FACTOR = 4f;
 
+        /// <summary>The daily loyalty penalty a settlement's slave population
+        /// inflicts (a negative number). Exposed so the auto-emancipation valve
+        /// (BKPartyBehavior) can test whether slaves DOMINATE a fief's loyalty
+        /// loss without re-deriving the coefficient — the two must stay in lockstep.</summary>
+        public static float GetSlaveLoyaltyPenalty(int slaves) => slaves * SLAVE_LOYALTY;
+
+        /// <summary>Marginal daily loyalty change from freeing ONE slave into the
+        /// serf population, given the town's tax policy and size. Freeing a slave
+        /// always removes its slave penalty (+|SLAVE_LOYALTY|); the new serf then
+        /// shifts the tax-policy loyalty term — POSITIVE under Low tax, NEGATIVE
+        /// under High tax, none under Standard — scaled by 1/TotalPop. Under High
+        /// tax in a small town the added serf penalty can outweigh the relief, so
+        /// the auto-emancipation valve calls this to avoid firing where manumission
+        /// would make loyalty WORSE. Constants live here so they can't drift from
+        /// CalculateLoyaltyChange's own math.</summary>
+        public static float MarginalLoyaltyOfEmancipation(Town town, int totalPop)
+        {
+            if (town == null || totalPop <= 0) return 0f;
+            float perUnit = -SLAVE_LOYALTY; // relief from removing one slave (positive)
+            float serfMarginal = (0.8f / totalPop) * LOYALTY_FACTOR; // one serf's shift of the tax term
+            try
+            {
+                var tax = ((BKTaxPolicy) BannerKingsConfig.Instance.PolicyManager.GetPolicy(town.Settlement, "tax")).Policy;
+                if (tax == TaxType.High) perUnit -= serfMarginal;
+                else if (tax == TaxType.Low) perUnit += serfMarginal;
+            }
+            catch { /* policy unavailable — treat as tax-neutral (relief only) */ }
+            return perUnit;
+        }
+
         private static readonly TextObject StarvingText = GameTexts.FindText("str_starving");
         private static readonly TextObject CultureText = new("{=LHFoaUGo}Owner Culture");
         private static readonly TextObject NotableText = GameTexts.FindText("str_notable_relations");

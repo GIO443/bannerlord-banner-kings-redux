@@ -522,6 +522,19 @@ namespace BannerKings.Behaviours
                 finally { BannerKings.Behaviours.Shipping.BKShippingBehavior.TraceExit("BKParty.DailySettlementTick.SellSurplusSlaves", __sw); }
             }
 
+            // Auto-emancipation valve: when a fief's loyalty loss is dominated by
+            // its slave population, free surplus slaves into the serf population to
+            // break the slave-driven rebellion spiral (AI + player). Automatic, not
+            // opt-in per fief like the sell lever — it's the emergency release the
+            // "slaves pile up -> everyone rebels" reports were asking for. Gated by
+            // the Auto-Emancipate Slaves MCM toggle.
+            if (BannerKings.Settings.BannerKingsSettings.Instance.AutoEmancipateSlaves && !settlement.IsUnderSiege)
+            {
+                var __sw = BannerKings.Behaviours.Shipping.BKShippingBehavior.TraceEnter("BKParty.DailySettlementTick.AutoEmancipateSlaves:" + __sid);
+                try { AutoEmancipateSlaves(settlement); }
+                finally { BannerKings.Behaviours.Shipping.BKShippingBehavior.TraceExit("BKParty.DailySettlementTick.AutoEmancipateSlaves", __sw); }
+            }
+
             {
                 var __sw = BannerKings.Behaviours.Shipping.BKShippingBehavior.TraceEnter("BKParty.DailySettlementTick.DecideSendTraders:" + __sid);
                 try { DecideSendTraders(settlement); }
@@ -1038,6 +1051,72 @@ namespace BannerKings.Behaviours
                         .SetTextVariable("COUNT", toSell)
                         .SetTextVariable("SETTLEMENT", settlement.Name)
                         .SetTextVariable("GOLD", gold)
+                        .ToString(),
+                    TaleWorlds.Library.Color.FromUint(BannerKings.Utils.TextHelper.COLOR_LIGHT_BLUE)));
+            }
+        }
+
+        // Automatic manumission valve: when a fief's daily loyalty change is
+        // DOMINATED by its slave-population penalty and loyalty is falling, free a
+        // batch of the surplus slaves (those above the desired band) into the serf
+        // population. Breaks the "slaves pile up -> loyalty spiral -> rebellion"
+        // loop that hit slave-heavy towns, for AI and player alike. Bounded to
+        // surplus-above-band so a deliberate slave economy (e.g. mines, whose
+        // desired band is high) is never gutted, and only fires while loyalty is
+        // actually dropping AND slaves are the main cause. Converts through
+        // UpdatePopType so Bannerlord Living Economy stays in sync.
+        private void AutoEmancipateSlaves(Settlement settlement)
+        {
+            if (settlement?.Town == null) return;              // towns / castles only
+            var owner = settlement.OwnerClan?.Leader;
+            if (owner == null) return;
+            var data = BannerKingsConfig.Instance.PopulationManager?.GetPopData(settlement);
+            if (data == null) return;
+
+            int slaves = data.GetTypeCount(PopType.Slaves);
+            if (slaves <= 0 || data.TotalPop <= 0) return;
+
+            // Surplus above the settlement's desired slave band — the only slaves we
+            // ever free, so mines and in-band towns keep their working population.
+            var desired = BannerKings.Managers.PopulationManager.GetDesiredPopTypes(settlement);
+            if (desired == null || !desired.ContainsKey(PopType.Slaves)) return;
+            int desiredMax = (int) (desired[PopType.Slaves][1] * data.TotalPop);
+            int surplus = slaves - desiredMax;
+            if (surplus <= 0) return;                          // in band — nothing to free
+
+            // Only now pay for the full loyalty recompute (gated behind the cheap
+            // surplus check above). Fire only when loyalty is MEANINGFULLY falling
+            // — not a town idling near its loyalty-drift equilibrium, where net
+            // hovers just below zero and any surplus would trip a naive test — AND
+            // the slave penalty is the dominant driver of that loss (>= half of it).
+            float net = TaleWorlds.CampaignSystem.Campaign.Current.Models.SettlementLoyaltyModel
+                .CalculateLoyaltyChange(settlement.Town).ResultNumber;
+            if (net >= -0.5f) return;
+            float slaveTerm = BannerKings.Models.Vanilla.BKLoyaltyModel.GetSlaveLoyaltyPenalty(slaves); // negative
+            if (slaveTerm >= 0f || -slaveTerm < 0.5f * -net) return;
+
+            // Don't emancipate where it would make loyalty WORSE: under High tax a
+            // freed slave becomes a high-tax-penalised serf, and in a small town
+            // that added penalty can outweigh the slave relief. Skip when the net
+            // marginal effect of manumission isn't positive (leave those to the
+            // sell lever / manual management instead of deepening the spiral).
+            if (BannerKings.Models.Vanilla.BKLoyaltyModel.MarginalLoyaltyOfEmancipation(settlement.Town, data.TotalPop) <= 0f) return;
+
+            // Free ~20% of the surplus per day (min 10), capped at the surplus, so an
+            // oversized population drains toward its band over a couple of weeks
+            // rather than emptying overnight, and self-stops once back in band.
+            int toFree = System.Math.Max(10, (int) (surplus * 0.2f));
+            if (toFree > surplus) toFree = surplus;
+
+            data.UpdatePopType(PopType.Slaves, -toFree);
+            data.UpdatePopType(PopType.Serfs, toFree);
+
+            if (owner == Hero.MainHero)
+            {
+                InformationManager.DisplayMessage(new InformationMessage(
+                    new TextObject("{=BKemancipateMsg}Unrest among the slaves of {SETTLEMENT} forced the manumission of {COUNT} into the free populace.")
+                        .SetTextVariable("SETTLEMENT", settlement.Name)
+                        .SetTextVariable("COUNT", toFree)
                         .ToString(),
                     TaleWorlds.Library.Color.FromUint(BannerKings.Utils.TextHelper.COLOR_LIGHT_BLUE)));
             }

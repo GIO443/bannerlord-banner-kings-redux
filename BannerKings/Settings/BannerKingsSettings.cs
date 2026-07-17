@@ -364,6 +364,11 @@ namespace BannerKings.Settings
         [SettingPropertyGroup("{=!}Slavery")]
         public bool EnableRaidCaptureSystem { get; set; } = true;
 
+        [SettingProperty("{=!}Auto-Emancipate Slaves", RequireRestart = false,
+            HintText = "{=!}When a fief's daily loyalty LOSS is dominated by its slave population, automatically free a batch of the SURPLUS slaves (those above the settlement's desired slave band) into the free serf population, relieving the loyalty spiral that otherwise drives slave-heavy towns into rebellion. Applies to AI and player fiefs alike; your own fiefs show a message when it fires. Only touches slaves ABOVE the desired band and only while loyalty is actually falling from slaves, so slave-heavy mines and in-band towns are never gutted. Turn OFF to manage slave populations entirely by hand. Default: true.")]
+        [SettingPropertyGroup("{=!}Slavery")]
+        public bool AutoEmancipateSlaves { get; set; } = true;
+
         [SettingPropertyFloatingInteger("{=!}Raid Capture Fraction", minValue: 0f, maxValue: 1f, "#0%", RequireRestart = false,
             HintText = "{=!}Share of raid-displaced population captured by the raiding party. Higher values produce larger caravans. Source village damage is unchanged regardless. Default: 40%.")]
         [SettingPropertyGroup("{=!}Slavery")]
