@@ -911,14 +911,37 @@ namespace BannerKings.Models.Vanilla
         public override float GetScoreOfDeclaringPeace(IFaction factionDeclaresPeace, IFaction factionDeclaredPeace)
         {
             TextObject peaceReason;
-            ExplainedNumber result = new ExplainedNumber(-GetScoreOfDeclaringWar(factionDeclaresPeace,
-                factionDeclaredPeace, factionDeclaresPeace, out peaceReason, null).ResultNumber);
+            float warScore = GetScoreOfDeclaringWar(factionDeclaresPeace,
+                factionDeclaredPeace, factionDeclaresPeace, out peaceReason, null).ResultNumber;
+            ExplainedNumber result = new ExplainedNumber(-warScore);
 
             War war = TaleWorlds.CampaignSystem.Campaign.Current.GetCampaignBehavior<BKDiplomacyBehavior>().GetWar(factionDeclaresPeace, factionDeclaredPeace);
             if (war != null)
             {
-                BKExplainedNumber fatigue = BannerKingsConfig.Instance.WarModel.CalculateFatigue(war, Hero.MainHero.MapFaction, true);
-                result.AddFactor(fatigue.ResultNumber);
+                // v1.9.33.6 — the "forever wars" fix. Two things were wrong here.
+                //
+                // 1) SIGN. The old code did AddFactor(fatigue) on the base
+                //    (-warScore), i.e. multiplied it by (1 + fatigue). When a
+                //    faction still wanted the war (base negative) that made peace
+                //    LESS likely the more exhausted it got — and it CANCELLED the
+                //    fatigue term already inside GetScoreOfDeclaringWar (see the
+                //    "Fatigue over this war" term ~line 1236: scale × -2 ×
+                //    fatigue), which was trying to wind the war down. Net effect:
+                //    winning-but-tired factions never sued for peace.
+                // 2) FACTION. It read Hero.MainHero.MapFaction, so every
+                //    AI-vs-AI peace score used the PLAYER's fatigue.
+                //
+                // -warScore already carries the deciding faction's fatigue push
+                // (via that inner term), but that inner ×2 is deliberately held
+                // down so residual fatigue doesn't suppress NEW war declarations
+                // (see the comment at its site). Peace wants a little MORE fatigue
+                // sensitivity than war-declaration does, so add a small ADDITIVE
+                // peace-only booster on top — enough to push a maxed-out war
+                // clearly past the peace threshold, which the inner term alone
+                // only brings to the cusp. This STACKS on the inner ×2; tune the
+                // two together. Fatigue ∈ [0,1] (0 = fresh, 1 = spent).
+                float fatigue = BannerKingsConfig.Instance.WarModel.CalculateFatigue(war, factionDeclaresPeace, false).ResultNumber;
+                result.Add(fatigue * MathF.Max(MathF.Abs(warScore), 600f) * 0.75f);
             }
 
             return result.ResultNumber * 10f;

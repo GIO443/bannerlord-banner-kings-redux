@@ -254,8 +254,12 @@ namespace BannerKings.Patches
             [HarmonyPatch(nameof(DefaultBattleRewardModel.GetLootedItemFromTroop))]
             private static void GetLootedItemFromTroopPostfix(CharacterObject character, float targetValue, ref EquipmentElement __result)
             {
+                // scale = fraction of loot KEPT (label: "Vanilla is 100%"). Destroy the
+                // item with probability (1 - scale): keep-prob must equal scale, so 100%
+                // is a true no-op and 20% keeps a fifth. (Was `scale > RandomFloat`, which
+                // destroyed with probability scale — the inverse of the label. v1.9.33.6)
                 float scale = BannerKingsSettings.Instance.LootScale;
-                if (!__result.Equals(default(EquipmentElement)) && scale > MBRandom.RandomFloat)
+                if (!__result.Equals(default(EquipmentElement)) && scale < MBRandom.RandomFloat)
                     __result = default(EquipmentElement);
             }
 

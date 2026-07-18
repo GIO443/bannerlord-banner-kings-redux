@@ -122,6 +122,27 @@
   reverting that version made it rare again, which is why it looked
   like a peace-deal bug). All access is now serialised. No save changes;
   existing saves are unaffected.
+- **"The first wars of a save drag on for years and the AI never sues
+  for peace"** — fixed in **v1.9.33.6**. Separate from the vote-push and
+  threshold fixes below: this one was in the *peace-desire score itself*.
+  BK folds a faction's war fatigue into its war score correctly, but the
+  peace scorer then **multiplied** that (negated) score by war fatigue
+  instead of adding a push toward peace — so the more exhausted a faction
+  that still wanted the war became, the *less* likely it was to make peace,
+  cancelling the fatigue term that was trying to wind the war down. It also
+  computed every AI-vs-AI peace score from the *player's* war fatigue rather
+  than the deciding faction's. Now fatigue is an additive push using the
+  correct faction, so a long, bloody war climbs toward peace as intended and
+  a losing side sues for peace instead of grinding on. (The separate "peace
+  offers spam every few seconds" complaint is a different mechanism — the
+  offer *rate*, not the score — and is still on the list.)
+- **"Loot Scale slider does the opposite of what it says"** — fixed in
+  **v1.9.33.6**. The MCM **Economy → Loot Scale** slider was inverted: the
+  label says "Vanilla is 100%", but at 100% almost all battle loot was being
+  destroyed, and at the 20% minimum you actually kept the *most* loot. The
+  default (50%) sat exactly on the fixed point, so only players who moved the
+  slider noticed. Now the slider means what it says — 100% keeps all loot
+  (true vanilla), lower values drop proportionally more.
 - **"Wars never end / forever-war stalemates"** — extended in v1.9.10.6.
   v1.9.10.2 fixed *decisively losing* kingdoms (war fatigue past 0.6
   with a clearly negative war score) — that vote now passes. But many
