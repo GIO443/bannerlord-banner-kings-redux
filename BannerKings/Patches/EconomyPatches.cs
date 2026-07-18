@@ -1243,6 +1243,19 @@ namespace BannerKings.Patches
                     town.ChangeGold(-num);
                 }
 
+                // v1.9.33.7 — workshop-income diagnostic (player-owned only, low
+                // volume). Traces every production credit so a "10k/day workshop"
+                // report can be attributed: cycles/day × per-cycle denars × count.
+                // Remove once the absurd-profit cause is pinned.
+                if (workshop.Owner == Hero.MainHero)
+                {
+                    var wsId = workshop.WorkshopType?.StringId ?? "?";
+                    var outId = outputItem.Item?.StringId ?? "?";
+                    var creditedNow = (TaleWorlds.CampaignSystem.Campaign.Current.GameStarted && effectCapital) ? totalValue : 0;
+                    BannerKings.Utils.Logs.Economy(() =>
+                        $"[ws-produce] {workshop.Settlement?.Name} {wsId} out={outId} count={count} basePrice={basePrice} credited={creditedNow} quality={result:0.00} effectCapital={effectCapital}");
+                }
+
                 CampaignEventDispatcher.Instance.OnItemProduced(outputItem.Item, town.Owner.Settlement, count);
                 return false;
             }

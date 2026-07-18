@@ -45,6 +45,15 @@ namespace BannerKings.Models.Vanilla
                 workshopTaxes.Add(workshop, taxes);
             }
 
+            // v1.9.33.7 — workshop-payout diagnostic (player-owned only). Pairs
+            // with the [ws-produce] trace so the daily owner income can be tied
+            // back to the workshop's accumulated Capital. Remove once pinned.
+            if (workshop.Owner == Hero.MainHero)
+            {
+                BannerKings.Utils.Logs.Economy(() =>
+                    $"[ws-payout] {workshop.Settlement?.Name} {workshop.WorkshopType?.StringId} capital={workshop.Capital} initialCapital={workshop.InitialCapital} profitMade={workshop.ProfitMade} ownerIncome={(int)result}");
+            }
+
             return (int)result;
         }
 
