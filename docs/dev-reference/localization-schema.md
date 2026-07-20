@@ -1,27 +1,54 @@
 # Banner Kings localization schema
 
-This is the contract between Banner Kings' C# code and its translatable
-text. **All player-visible text in BK must reach the screen via this
-schema**, so that a flavour mod (a 1500s-Europe reskin, a translation,
-a setting-swap) only needs to edit XML — never C#.
+How player-visible text in Banner Kings reaches the screen, and how to
+translate it without touching C# or the structural data.
 
-If you are writing a flavour mod, **this page is the only one you need
-to read.** Everything else is reference material for BK contributors.
+If you are **translating BK**, read [Quick start](#quick-start-translating-bk)
+and [Adding a new language](#adding-a-new-language); the rest is reference.
 
 ## On this page
 
+- [Quick start: translating BK](#quick-start-translating-bk)
+- [What is translatable (and what isn't)](#what-is-translatable-and-what-isnt)
 - [How TaleWorlds localization works (in 60 seconds)](#how-taleworlds-localization-works-in-60-seconds)
+- [BKData strings and auto-derived ids](#bkdata-strings-and-auto-derived-ids)
 - [File layout](#file-layout)
 - [ID convention](#id-convention)
 - [Categories](#categories)
-- [Per-category field reference](#per-category-field-reference)
 - [Variables (the `{TOKEN}` parts)](#variables-the-token-parts)
-- [Pluralisation, gendered forms, lists](#pluralisation-gendered-forms-lists)
-- [Adding a new translatable string (C# side)](#adding-a-new-translatable-string-c-side)
 - [Adding a new language](#adding-a-new-language)
 - [Validation](#validation)
+- [Known gaps](#known-gaps)
 
 ---
+
+## Quick start: translating BK
+
+```bash
+# from the repo root
+python tools/extract_loc.py                                  # see what exists
+python tools/extract_loc.py --lang FR --lang-name "Français" # emit templates
+python tools/extract_loc.py --report                         # coverage
+```
+
+That writes `BannerKings/_Module/ModuleData/Languages/FR/bk_*.xml`, every
+string pre-filled with its English source text and its correct id. You
+translate the `text="…"` attributes and ship the folder. Nothing else.
+
+You never need to read C#, and you never edit `ModuleData/BKData/`.
+
+## What is translatable (and what isn't)
+
+BK's text lives in three places, and one chunk of it is currently
+unreachable. Counts are from the current tree — regenerate with the
+commands above rather than trusting these numbers after a big release.
+
+| Surface | Roughly | How you translate it |
+|---|---|---|
+| **BKData structural text** — faiths, divinities, doctrines, lifestyles, innovations, successions, … | ~728 strings | `tools/extract_loc.py --lang XX`, then translate the generated files |
+| **`std_module_strings_xml.xml`** — auto-keyed UI/C# strings | ~3,170 entries | Copy into `Languages/XX/` and translate `text="…"` |
+| **`common_strings.xml`** — traits, generic UI words | ~147 entries | Same |
+| **C# strings using the `{=!}` sentinel** | ~674 | **Not translatable.** See [Known gaps](#known-gaps) |
 
 ## How TaleWorlds localization works (in 60 seconds)
 
@@ -31,43 +58,79 @@ In C# every player-visible string is wrapped in a `TextObject`:
 new TextObject("{=bk_faith_darusosian_name}Darusosian Path")
 ```
 
-The part inside `{= … }` is the **localization ID**. The text after it
-is the **default English fallback**.
+The part inside `{= … }` is the **localization id**. The text after it is
+the **English fallback**.
 
-At load time, TaleWorlds scans every `<LanguageFile>` registered in a
-`language_data.xml` for the currently selected language. If it finds a
+At load, TaleWorlds scans every `<LanguageFile>` registered in a
+`language_data.xml` for the selected language. If it finds
 `<string id="bk_faith_darusosian_name" text="…" />`, the XML text wins.
-Otherwise the inline fallback is used.
+Otherwise the inline fallback is used. **Untranslated ids silently fall
+back to English, so a partial translation is safe to ship.**
 
-There is one sentinel ID — `{=!}` — that means "no key, do not look up,
-the inline text is final." **No new BK code is allowed to use `{=!}`.**
-Every `TextObject` BK writes must have a real ID matching this schema,
-because the modder cannot override `{=!}` from XML.
+There is one sentinel id — `{=!}` — meaning "no key, do not look up, the
+inline text is final." Strings written that way cannot be overridden from
+XML by anyone.
+
+## BKData strings and auto-derived ids
+
+Text in `ModuleData/BKData/*.xml` is written inline in English:
+
+```xml
+<faith id="darusosian">
+  <name>Darusosian Path</name>
+  <description>The Darusosian Path is the imperial faith…</description>
+</faith>
+```
+
+At load, [`BKXml.LocText`](../../BannerKings/Utils/BKData/BKXml.cs) wraps
+each field in a `TextObject` carrying an id it derives on the spot:
+
+```
+bk_<loc_category>_<id>_<field>     ->  bk_faith_darusosian_name
+```
+
+So the ids are real, but **implicit** — nothing in the XML states them.
+Worse, `<loc_category>` is a token that lives in C# and does *not* reliably
+match the file or root element:
+
+| BKData root element | loc category |
+|---|---|
+| `<faiths>` | `faith` (singular) |
+| `<dilemmas>` | `dilemmas` (plural) |
+| `<interest_groups>` | `interest_group` |
+| `<casus_belli>` | `casus_belli` |
+
+This is precisely why you should use `tools/extract_loc.py` rather than
+deriving ids by hand: the script pairs each registry's
+`BKDataStore.GetRows("…")` call with its `BKXml.LocText(…)` calls to
+recover the mapping straight from the source, so it cannot drift.
+
+A flavour mod has two ways to change one of these strings: edit the text
+inline in its own BKData row, or ship a `Languages/` entry with the same
+id. Translations should always use the second — it stacks cleanly and
+doesn't require re-shipping structural data.
 
 ## File layout
 
 ```
 BannerKings/_Module/ModuleData/Languages/
-├── language_data.xml                  registers every file below
-├── common_strings.xml                 trait names, generic UI words (existing)
-├── std_module_strings_xml.xml         auto-keyed strings (existing, do not hand-edit)
+├── language_data.xml              registers the files below (English)
+├── common_strings.xml             traits, generic UI words
+├── std_module_strings_xml.xml     auto-keyed strings; do not hand-edit
 │
-├── bk_faiths.xml                      faith names, descriptions, rite text
-├── bk_divinities.xml                  gods and saints
-├── bk_religions.xml                   religion groups, doctrines, clergy ranks
-├── bk_titles.xml                      title rank labels (Emperor / Duke / Count …)
-├── bk_goals.xml                       kingdom goals + failure reasons
-├── bk_diplomacy.xml                   casus belli, demands, declarations
-├── bk_traits.xml                      BK trait + skill-effect descriptions
-├── bk_ui.xml                          tooltips and explanation text in BKModels & UI
-│
-└── DE/
-    ├── language_data.xml              same files, language="German"
-    ├── bk_faiths.xml
-    └── … (mirror)
+└── DE/                            one folder per language
+    ├── language_data.xml          same shape, language="Deutsch"
+    ├── common_strings.xml
+    └── std_module_strings_xml.xml
 ```
 
-Each `bk_*.xml` file has the standard TaleWorlds shape:
+`tools/extract_loc.py --lang XX` adds a `Languages/XX/` folder containing
+one `bk_<root_element>.xml` per BKData category (`bk_faiths.xml`,
+`bk_divinities.xml`, …) plus a `language_data.xml` listing them. The
+grouping is a convenience — TaleWorlds only cares about what
+`language_data.xml` registers, so you may merge or split files freely.
+
+Each generated file has the standard TaleWorlds shape:
 
 ```xml
 <?xml version="1.0" encoding="utf-8"?>
@@ -75,311 +138,116 @@ Each `bk_*.xml` file has the standard TaleWorlds shape:
       xmlns:xsd="http://www.w3.org/2001/XMLSchema"
       type="string">
   <tags>
-    <tag language="English" />
+    <tag language="Français" />
   </tags>
   <strings>
-    <string id="bk_faith_darusosian_name"
-            text="Darusosian Path" />
-    <string id="bk_faith_darusosian_description"
-            text="The Darusosian Path is the imperial faith…" />
-    <!-- … -->
+    <string id="bk_faith_darusosian_name" text="Voie darusosienne" />
   </strings>
 </base>
 ```
 
-A flavour mod overrides any of these by shipping its **own** XML file
-with the same `<string id="…">` and a later module load order. BK's
-defaults stay intact for players who don't install the flavour mod.
+> The generated `language_data.xml` omits `subtitle_extension` and
+> `supported_iso`. Copy those from `Languages/DE/language_data.xml` and
+> adjust for your language.
 
 ## ID convention
 
-Every BK ID is built from three or four lowercase, snake-case parts
-joined by underscores:
-
 ```
-bk_<category>_<entity>_<field>[_<index>]
+bk_<category>_<entity>_<field>
 ```
 
-| Part       | Rule                                                                      | Example                |
-|------------|---------------------------------------------------------------------------|------------------------|
-| `bk_`      | Mandatory namespace. Distinguishes BK strings from vanilla / other mods.  | `bk_`                  |
-| `category` | One of the [Categories](#categories) below. Singular noun.                | `faith`                |
-| `entity`   | Stable identifier of the thing. **Matches the C# `Id` field** if any.     | `darusosian`           |
-| `field`    | The property on that entity. Snake-case of the C# property name.          | `description`          |
-| `index`    | 1-based ordinal **only** for ordered collections (rank titles, choices).  | `_1`, `_2`             |
+| Part | Rule | Example |
+|---|---|---|
+| `bk_` | Mandatory namespace. | `bk_` |
+| `category` | The loc category from C# (see [Categories](#categories)). | `faith` |
+| `entity` | The row's `id` attribute in BKData. | `darusosian` |
+| `field` | The XML child element (or attribute) name. | `description` |
 
 Rules:
 
-1. **Stable for the lifetime of the entity.** Once shipped, an ID is a
-   public API — renaming it breaks every translation and every flavour
-   mod. If the entity is renamed in C#, the ID stays.
-2. **Lowercase, ASCII only.** No spaces, no punctuation, no diacritics
-   in the ID itself. (Diacritics in the text are fine: `Caïon` is a
-   valid `text="…"` value.)
-3. **The C# `Id` field is the source of truth for `<entity>`.** If
-   `FaithPreset.Id = "darusosian"`, the strings are
-   `bk_faith_darusosian_*`. No exceptions.
-4. **Anonymous strings** (UI tooltips with no owning entity) use a
-   short slug of 2–4 words derived from the literal, plus a
-   disambiguating short hash:
-   `bk_ui_<file_slug>_<phrase_slug>_<hash4>`, e.g.
-   `bk_ui_stability_model_loyalty_modifier_a3f1`.
-   File-slug is the BKModel / VM class name in snake case. The 4-char
-   hash prevents collisions and is generated once at extraction time.
+1. **Ids are a public API.** Once shipped, renaming one breaks every
+   translation and flavour mod. If the entity is renamed in C#, expect
+   the id to change with it — and CI will flag the orphaned strings.
+2. **Lowercase ASCII in the id.** Diacritics in the `text="…"` value are
+   fine; `Caïon` is a valid value.
+3. **The BKData `id` attribute is the source of truth for `<entity>`.**
 
 ## Categories
 
-| Category       | Owns                                                                                            | File              |
-|----------------|-------------------------------------------------------------------------------------------------|-------------------|
-| `faith`        | Each `Faith` defined in `DefaultFaiths`                                                          | `bk_faiths.xml`   |
-| `rite`         | Each `Rite` (`AstaroniaFestival`, `LanceOffering`, …)                                            | `bk_faiths.xml`   |
-| `divinity`     | Each `Divinity` defined in `DefaultDivinities`                                                   | `bk_divinities.xml`|
-| `faith_group`  | Each `FaithGroup` (`ImperialOrders`, `VlandicCanonical`, …)                                      | `bk_religions.xml`|
-| `religion`     | Each `Religion` in `DefaultReligions`                                                            | `bk_religions.xml`|
-| `doctrine`     | War, marriage, and general doctrines (`DefaultDoctrines`, `DefaultMarriageDoctrines`, …)         | `bk_religions.xml`|
-| `clergy_rank`  | The 3 rank titles per faith (`Acolyte`/`Lictor`/`Pontifex`, …)                                    | `bk_religions.xml`|
-| `title_rank`   | Emperor / King / Duke / Count / Baron and their feminine + abstract-noun forms                    | `bk_titles.xml`   |
-| `goal`         | `KingdomGoal`, `EmpireGoal`, … — name + per-failure-reason text                                  | `bk_goals.xml`    |
-| `casus_belli`  | Each entry in `DefaultCasusBelli`                                                                | `bk_diplomacy.xml`|
-| `demand`       | `ClaimantDemand`, `SecessionDemand`, `DemesneLawChangeDemand`, …                                 | `bk_diplomacy.xml`|
-| `radical_group`| `DefaultRadicalGroups`                                                                            | `bk_diplomacy.xml`|
-| `trait`        | BK-specific traits (`BKTraits`)                                                                  | `bk_traits.xml`   |
-| `skill_effect` | `BKSkillEffects` + `DefaultTraitEffects`                                                          | `bk_traits.xml`   |
-| `tooltip`      | `BKModel` explanation lines, anonymous UI strings                                                | `bk_ui.xml`       |
+There are currently **18** categories carrying translatable text. Rather
+than duplicate the list here (the previous version of this page drifted
+badly), get it live:
 
-If you need a category that isn't here, **add a row to this table in
-the same PR that introduces it.** Don't invent a category in passing.
-
-## Per-category field reference
-
-Fields are the snake-case form of the C# property name. The reference
-below lists every field the corresponding entity exposes today.
-Anything not listed is either non-text or already has a vanilla
-localization path.
-
-### `faith` (entity = `FaithPreset.Id`)
-
-| Field                          | Where it shows                                                                |
-|--------------------------------|-------------------------------------------------------------------------------|
-| `name`                         | Faith name in encyclopedia, religion tab, dialog                              |
-| `description`                  | Long flavour text in religion tab                                             |
-| `cults_desc`                   | Plural noun for the cults inside the faith (e.g. "imperial cults")            |
-| `zealots_name`                 | Name of the zealots / militant order                                          |
-| `blessing_action`              | First-person line the player says to a clergyman to request a blessing       |
-| `blessing_action_name`         | Noun phrase for the blessings (e.g. "imperial blessings")                     |
-| `blessing_question`            | Clergyman's question back to the player                                       |
-| `blessing_confirm_question`    | Confirmation prompt before committing                                         |
-| `rank_1`, `rank_2`, `rank_3`   | The three ordered clergy rank titles for this faith                           |
-
-Example block (Darusosian):
-
-```xml
-<string id="bk_faith_darusosian_name"        text="Darusosian Path" />
-<string id="bk_faith_darusosian_description" text="The Darusosian Path is the imperial faith of the Calradian Empire…" />
-<string id="bk_faith_darusosian_cults_desc"  text="imperial cults" />
-<string id="bk_faith_darusosian_zealots_name"            text="Sons of Darusos" />
-<string id="bk_faith_darusosian_blessing_action"         text="I would seek a blessing of the Triad." />
-<string id="bk_faith_darusosian_blessing_action_name"    text="imperial blessings" />
-<string id="bk_faith_darusosian_blessing_question"       text="Which of the Triad shall hear your prayer?" />
-<string id="bk_faith_darusosian_blessing_confirm_question" text="Will you commit your devotion to {DIVINITY}?" />
-<string id="bk_faith_darusosian_rank_1"      text="Acolyte" />
-<string id="bk_faith_darusosian_rank_2"      text="Lictor" />
-<string id="bk_faith_darusosian_rank_3"      text="Pontifex" />
+```bash
+python tools/extract_loc.py
 ```
 
-### `rite` (entity = rite class name, snake-cased)
+That prints every category, its loc token, its fields, and its string
+count. As of writing: `casus_belli`, `dilemmas`, `divinity`, `doctrine`,
+`era`, `faith`, `faith_group`, `gender_law`, `government`, `inheritance`,
+`innovation`, `interest_group`, `lifestyle`, `marriage_doctrine`,
+`mercenary_privilege`, `succession`, `title_name`, `war_doctrine`.
 
-| Field          | Where it shows                                  |
-|----------------|-------------------------------------------------|
-| `name`         | Menu entry, dialog                              |
-| `description`  | Tooltip / encyclopedia                          |
-| `success_log`  | Log line on successful performance              |
-| `failure_log`  | Log line on failed performance                  |
-
-Example: `bk_rite_astaronia_festival_name`.
-
-### `divinity` (entity = divinity class field name, snake-cased)
-
-| Field         | Where it shows                                  |
-|---------------|-------------------------------------------------|
-| `name`        | Divinity name in dialog, religion tab           |
-| `description` | Lore paragraph                                  |
-| `effect`      | One-line mechanical effect summary              |
-| `epithet`     | Short epithet (e.g. "Sky-Father")               |
-| `lore`        | Extended flavour paragraph                      |
-| `prayer`      | What the divinity is prayed to for              |
-
-### `faith_group` (entity = `FaithGroup.Id`)
-
-| Field         | Where it shows                          |
-|---------------|-----------------------------------------|
-| `name`        | Group name in religion tab              |
-| `description` | Group description                       |
-
-### `religion` (entity = `Religion.Id`)
-
-| Field         | Where it shows                          |
-|---------------|-----------------------------------------|
-| `name`        | Religion name                           |
-| `description` | Religion description                    |
-
-### `doctrine` (entity = `Doctrine.Id`)
-
-| Field         | Where it shows                          |
-|---------------|-----------------------------------------|
-| `name`        | Doctrine name                           |
-| `description` | Doctrine description                    |
-| `effects`     | One-line summary of mechanical effects  |
-
-### `clergy_rank` (entity = faith ID, then `_<n>`)
-
-Already covered under `faith.rank_<n>`. Listed here for completeness.
-
-### `title_rank` (entity = rank name in lowercase, e.g. `kingdom`, `dukedom`)
-
-| Field         | Where it shows                                                  |
-|---------------|-----------------------------------------------------------------|
-| `holder_m`    | Masculine title-holder noun (Emperor / King / Duke / Count)     |
-| `holder_f`    | Feminine title-holder noun (Empress / Queen / Duchess / Countess)|
-| `realm`       | Abstract-noun form of the realm (Empire / Kingdom / Dukedom)    |
-
-(The full display name is composed at runtime as `{realm} of {NAME}`,
-so the realm form is the one most translations will need to rework.)
-
-### `goal` (entity = `Goal.Id`)
-
-| Field                       | Where it shows                                       |
-|-----------------------------|------------------------------------------------------|
-| `name`                      | Goal title in goals UI                               |
-| `description`               | Goal description in goals UI                         |
-| `fail_<reason_slug>`        | One row per distinct failure reason. `<reason_slug>` is a short verb-phrase: `wrong_culture`, `wrong_faith`, `missing_settlements`, `realm_already_attached`, … |
-
-### `casus_belli` (entity = `CasusBelli.Id`)
-
-| Field              | Where it shows                                             |
-|--------------------|------------------------------------------------------------|
-| `name`             | Casus belli name in the war declaration UI                 |
-| `description`      | Long description and objective                            |
-| `objective`        | Short objective string                                     |
-| `declaration_text` | The "{ATTACKER} marches to war…" line                      |
-
-### `demand` (entity = `Demand.Id`)
-
-| Field              | Where it shows                                             |
-|--------------------|------------------------------------------------------------|
-| `name`             | Demand name                                                |
-| `description`      | Demand description                                         |
-| `accept_text`      | Text shown when AI accepts                                 |
-| `reject_text`      | Text shown when AI rejects                                 |
-| `propose_text`     | Text shown when proposing                                  |
-
-### `radical_group` (entity = `RadicalGroup.Id`)
-
-| Field         | Where it shows                          |
-|---------------|-----------------------------------------|
-| `name`        | Group name in kingdom UI                |
-| `description` | Group description / flavour             |
-
-### `trait` and `skill_effect`
-
-| Field         | Where it shows                          |
-|---------------|-----------------------------------------|
-| `name`        | Encyclopedia, character UI              |
-| `description` | Encyclopedia tooltip                    |
-| `effect`      | Mechanical effect summary (when shown)  |
-
-### `tooltip` (entity = file slug; anonymous)
-
-Used for explanation lines emitted by `BKModel.*` and view-model code.
-ID form: `bk_tooltip_<file_slug>_<phrase_slug>_<hash4>`.
-
-The generator picks `<phrase_slug>` from the first 4 words of the
-literal, stripping variables and punctuation. The hash is 4 hex chars
-of a stable SHA-1 over the literal so that incidental wording changes
-keep the same ID until the meaning changes meaningfully.
-
-Modders edit these freely — just remember they may be read mid-sentence
-inside a generated explanation, so keep tense and punctuation
-consistent with neighbouring tooltip strings.
+`bk_religions.xml` and `bk_council_positions.xml` are **structural only** —
+they bind ids to cultures, skills and privileges and carry no display
+text, so there is nothing to translate in them.
 
 ## Variables (the `{TOKEN}` parts)
 
-Strings can contain runtime variables: `{ATTACKER}`, `{DIVINITY}`,
-`{CULTURES}`, `{TIER}`. These are substituted at runtime by C# via
-`textObject.SetTextVariable("ATTACKER", value)`.
+Strings may contain runtime variables — `{DIVINITY}`, `{ATTACKER}`,
+`{TIER}` — substituted in C# via `SetTextVariable`.
 
-Rules for modders:
-
-- **Don't rename variables.** `{ATTACKER}` in BK code stays
-  `{ATTACKER}` in your translation. If you drop one, that piece of
-  data won't appear in-game.
-- **You can reorder them freely** — that's the whole point.
-- **You can add the same variable twice** if your language needs it
-  ("The {ATTACKER} marches; the {ATTACKER}'s banners…").
-- **You may use the variable in a different grammatical position** —
-  TaleWorlds' interpolation doesn't care about word order.
-- **You cannot invent new variables.** If a variable isn't already in
-  the BK fallback string, it isn't being set in C# either and will
-  render as literal `{FOO}` text.
-
-A complete list of variables in use per string can be derived from the
-fallback text — but if a string needs a variable BK currently doesn't
-provide, file an issue rather than guessing.
-
-## Pluralisation, gendered forms, lists
-
-TaleWorlds supports inline conditional forms with `{?VAR}…{?}…{\?}`
-syntax (see vanilla `std_module_strings_xml.xml` for examples). For
-the localization-only pass we keep the existing grammar of every BK
-string — if BK currently writes one form, modders write one form. If
-your language needs pluralisation BK doesn't expose (e.g. you want
-"1 soldier" vs "2 soldiers" and BK only ships a singular), open an
-issue: the field needs to become two strings in C#, which is a code
-change, not a schema change.
-
-## Adding a new translatable string (C# side)
-
-When you add a new `TextObject` in BK code:
-
-1. **Pick the category and entity** it belongs to. If neither fits,
-   add a row to the [Categories](#categories) table.
-2. **Construct the ID** per [ID convention](#id-convention). For
-   anonymous tooltip strings, run `tools/loc-id` (see below) which
-   produces the slug + hash for you.
-3. **Write the `TextObject` with the real ID, never `{=!}`**:
-   ```csharp
-   new TextObject("{=bk_faith_<faithid>_<field>}<English fallback>")
-   ```
-4. **Add the string to the matching `bk_*.xml`** in the same PR. CI
-   will fail if a `{=bk_…}` ID exists in code but is missing from XML
-   (or vice-versa).
+- **Don't rename them.** `{ATTACKER}` stays `{ATTACKER}`. A dropped
+  variable means that data never appears in-game.
+- **Reorder freely.** That is the whole point; word order is yours.
+- **Repeat one if your grammar needs it.**
+- **Don't invent new ones.** A variable not present in the English
+  fallback isn't being set in C# and will render as literal `{FOO}`.
 
 ## Adding a new language
 
-1. Create `BannerKings/_Module/ModuleData/Languages/<XX>/` where `<XX>`
-   is your language directory (e.g. `FR`, `ES`, `IT`).
-2. Copy every `bk_*.xml` from the parent folder into it.
-3. Change every `<tag language="English" />` to your language name —
-   it must match a language registered by vanilla or another module.
-4. Create a `language_data.xml` in the same folder listing every
-   `bk_*.xml` you ship.
-5. Translate each `text="…"` attribute. **Leave the `id` attributes
-   alone.** Leave `{VARIABLES}` alone (but reorder freely).
-6. Strings you don't translate fall back to the English version, so a
-   partial translation is fine to ship.
+1. `python tools/extract_loc.py --lang XX --lang-name "YourLanguage"`.
+   `--lang-name` must match a language name registered by vanilla or
+   another module (`Deutsch`, `Français`, …).
+2. Fill in `subtitle_extension` / `supported_iso` in the generated
+   `Languages/XX/language_data.xml` (copy the shape from `DE/`).
+3. Copy `common_strings.xml` and `std_module_strings_xml.xml` into
+   `Languages/XX/`, change their `<tag language="…" />`, add them to
+   `language_data.xml`, and translate them too.
+4. Translate the `text="…"` values. **Leave `id` attributes alone.**
+5. Ship. Untranslated ids fall back to English.
+
+Re-run the extractor after a BK update with `--force` to a scratch
+directory to see new strings, or use `--report` to watch coverage drop
+when new content lands.
 
 ## Validation
 
-Two CI checks (added with the localization pass) keep the schema
-honest:
+`.github/workflows/validate-bkdata.yml` runs on every push and PR that
+touches BKData, `Languages/`, BK C#, or either tool:
 
-- **No `{=!}` in BK source.** A grep over `BannerKings/**.cs` for
-  `"{=!}` returns zero matches.
-- **ID parity between code and XML.** Every `{=bk_…}` ID referenced
-  in code has a matching `<string id="…">` in some `bk_*.xml`, and
-  every `<string id="bk_…">` in XML is referenced by at least one
-  `TextObject` in code. Orphans fail CI.
+- `tools/validate_bkdata.py` — structural integrity of BKData.
+- `tools/extract_loc.py --check` — **fails the build** on orphan ids (a
+  shipped translation referencing a string BK no longer produces, i.e. a
+  renamed or deleted entity) and on duplicate ids with conflicting text.
+- `tools/extract_loc.py --report` — prints per-language coverage.
 
-A `tools/loc-id <category> <entity> <field>` helper script will
-generate well-formed IDs (and the slug+hash form for tooltips), so
-contributors don't have to remember the convention by hand.
+## Known gaps
+
+Honest list of what this schema does *not* currently cover.
+
+- **~674 `{=!}` strings in BK C# are untranslatable by anyone.** The
+  sentinel means "never look this up," so no `Languages/` entry can
+  override them. Converting them to real ids is a C# change, tracked
+  separately. If you hit an English string in-game that no XML seems to
+  control, this is almost certainly why.
+- **`std_module_strings_xml.xml` ids are opaque.** They are auto-generated
+  (`a3G31iZ0`) with no indication of where the string appears, which makes
+  translating them without in-game context slow. Emitting source-file
+  context alongside them is a possible future improvement.
+- **Only ~22 `bk_*` ids appear directly in C#.** Almost all BK `bk_*` ids
+  come from BKData via `LocText`, which is why the extractor covers the
+  bulk of BK-specific content.
+- **The German translation is a stub** — the folder exists but contains
+  effectively one translated string. It is a structural template, not a
+  reference translation.

@@ -13,6 +13,11 @@ name: Validate BKData XML
 # Scope limit: refs into game / C# objects (cultures, traits, skills,
 # policies, perks, demesne laws, council tasks, demands, rite keys) cannot
 # be checked from XML alone — see docs/dev-reference/structural-schema.md.
+#
+# The second step (tools/extract_loc.py --check) guards the localization
+# side: BKData text is surfaced under auto-derived ids
+# (bk_<category>_<id>_<field>), so renaming or deleting a row silently
+# orphans every translation of it. That check fails the build instead.
 
 on:
   push:
@@ -20,12 +25,18 @@ on:
       - main
     paths:
       - 'BannerKings/_Module/ModuleData/BKData/**'
+      - 'BannerKings/_Module/ModuleData/Languages/**'
+      - 'BannerKings/**/*.cs'
       - 'tools/validate_bkdata.py'
+      - 'tools/extract_loc.py'
       - '.github/workflows/validate-bkdata.yml'
   pull_request:
     paths:
       - 'BannerKings/_Module/ModuleData/BKData/**'
+      - 'BannerKings/_Module/ModuleData/Languages/**'
+      - 'BannerKings/**/*.cs'
       - 'tools/validate_bkdata.py'
+      - 'tools/extract_loc.py'
       - '.github/workflows/validate-bkdata.yml'
   workflow_dispatch:
 
@@ -44,3 +55,9 @@ jobs:
 
       - name: Validate BKData
         run: python tools/validate_bkdata.py
+
+      - name: Check localization ids
+        run: python tools/extract_loc.py --check
+
+      - name: Translation coverage
+        run: python tools/extract_loc.py --report

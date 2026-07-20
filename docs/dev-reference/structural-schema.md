@@ -203,6 +203,18 @@ That gives a flavor mod two ways to change a string:
   translations, and it doesn't require re-shipping the structural row.
   See [localization-schema.md](localization-schema.md).
 
+Don't derive those ids by hand — the `<category>` token comes from C# and
+does not reliably match the root element (`<faiths>` → `faith`, but
+`<dilemmas>` → `dilemmas`). Generate them:
+
+```bash
+python tools/extract_loc.py                                  # list categories + counts
+python tools/extract_loc.py --lang FR --lang-name "Français" # emit filled templates
+```
+
+CI runs `tools/extract_loc.py --check`, which fails the build if a renamed
+or deleted row orphans ids that a shipped translation still references.
+
 Either way the runtime resolution is identical — TaleWorlds looks up the
 loc id, and the `Languages/` text wins over the inline fallback when
 present.
