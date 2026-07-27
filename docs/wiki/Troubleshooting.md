@@ -333,6 +333,21 @@
   (it already did this for the player's own army), which scores them cleanly —
   armies commit to their objective again. Free (non-army) lords are unaffected.
   No new save state; existing saves load unchanged.
+- **"A naval AI army keeps peeling off a siege and never commits (islands / War
+  Sails)"** — a follow-on to the above, specific to armies crossing water. When a
+  ship-borne army heads to besiege a target on another landmass, the engine's
+  route check to that target flickers "reachable / unreachable" at the water
+  boundary; on an "unreachable" tick the game drops the siege from the army's
+  options entirely, so it wanders off to a random friendly town, then re-lays the
+  siege next tick — bouncing at the coast forever. **Army Siege Persistence** (on
+  by default — **MCM → Banner Kings → Warfare AI → Army Siege Persistence**) fixes
+  it: BK remembers the army's siege target and, on a flicker tick, **holds the
+  army in place** instead of letting it wander, then lets the game resume the
+  siege when the route reads reachable again — so the army inches across and
+  commits. BK deliberately does **not** re-issue the sea route itself (that
+  pathfind is a known freeze risk); it only holds. If a target is *genuinely*
+  unreachable it gives up after about a day rather than freezing in place. Turn
+  the toggle off for pure-vanilla siege behaviour. No new save state.
 - **"Late-game days take minutes to pass / the game crawls but doesn't hard-freeze
   (improved v1.9.23.3)."** A vassal-list lookup used all over BK (banner-calling,
   levies, army formation) is cached once per day per clan — but the cache was being

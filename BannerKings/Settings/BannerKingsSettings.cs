@@ -280,6 +280,11 @@ namespace BannerKings.Settings
         [SettingPropertyGroup("{=!}Warfare AI")]
         public float RaidIncentive { get; set; } = 0.1f;
 
+        [SettingProperty("{=!}Army Siege Persistence", RequireRestart = false,
+            HintText = "{=!}Stops AI armies from getting stuck in a besiege<->wander loop. When a naval-capable army heading to besiege an across-water target has that target flicker 'unreachable' in the engine's route check, vanilla drops the siege from its options and the army peels off to a random settlement, then re-lays it next tick — never committing. With this ON, BK holds the army in place through the flicker (no re-pathing, so it can't cause a freeze) and lets vanilla resume the siege when the route reads reachable again, so the army converges on its target. Turn OFF for pure-vanilla siege AI. Default: true.")]
+        [SettingPropertyGroup("{=!}Warfare AI")]
+        public bool ArmySiegePersistence { get; set; } = true;
+
         [SettingPropertyFloatingInteger("{=!}Patrol incentive (Parties)", minValue: 0f, maxValue: 1f, "#0%", RequireRestart = false,
             HintText = "{=!}Adds an incentive for parties to patrol their clan's lands. The incentive applies by half during wars. 0% means unaffected in relation to vanilla. Default: 50%.")]
         [SettingPropertyGroup("{=!}Warfare AI")]
