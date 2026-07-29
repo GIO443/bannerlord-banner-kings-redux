@@ -30,6 +30,24 @@ namespace BannerKings.Behaviours
         private Estate estate = null;
         private FeudalTitle lordship = null;
 
+        // --- Knight → own-clan founding tunables ---------------------------
+        // Knight-influence that fills the encyclopedia "Clan Creation"
+        // progress bar (EncyclopediaHeroPageMixin renders GetKnightInfluence /
+        // this value). Used below only to ACCELERATE the founding roll, never
+        // as a hard gate: same-clan household knights legitimately never
+        // accumulate knight-influence (BKInfluenceModel only funnels it to
+        // cross-clan vassal knights), so gating hard on it would freeze them.
+        private const float KnightInfluenceThreshold = 350f;
+
+        // Base per-weekly-tick probability that an eligible knight founds
+        // their own clan, at 100% Knight Clan Creation Speed and zero
+        // accumulated knight-influence. Scaled up to 2x by influence progress,
+        // then by the slider (0%..500%), and clamped to [0,1]. At 0% founding
+        // is disabled outright. Previously this behaviour founded a clan on
+        // EVERY weekly tick regardless of the slider — the reported "slider
+        // does nothing / 0% still spawns clans" bug.
+        private const float BaseWeeklyFoundChance = 0.08f;
+
         public override void RegisterEvents()
         {
             CampaignEvents.OnSessionLaunchedEvent.AddNonSerializedListener(this, OnSessionLaunched);
@@ -69,16 +87,55 @@ namespace BannerKings.Behaviours
                     return;
                 }
 
-                //if (hero.Clan.GetName().ToString() == "Prienicos")
-                //   if (!hero.Clan.Heroes.Contains(hero))
-                //       ClanActions.JoinClan(hero, hero.Clan);
-
                 var originalClan = hero.Clan;
-                // Knighthood now always founds a new clan (subject only to the
-                // one-knight-clan-per-village cap checked above). The single
-                // hard guard left is against knighting a clan's own leader,
-                // which would decapitate the original clan.
                 if (originalClan == null || hero == originalClan.Leader)
+                {
+                    return;
+                }
+
+                // --- Slider gate: "Knight Clan Creation Speed" ---------------
+                // 0% stops knights from founding clans altogether, exactly as
+                // the setting's hint promises; higher values make it happen
+                // sooner. This gate was missing — the behaviour founded a clan
+                // every weekly tick for any qualifying hero, so the slider (and
+                // its 0% "off") did nothing at all.
+                float speed = BannerKings.Settings.BannerKingsSettings.Instance?.KnightClanCreationSpeed ?? 1f;
+                if (speed <= 0f)
+                {
+                    return;
+                }
+
+                // Only GENUINE knights found their own clans — never the clan's
+                // own bloodline. Founding a clan pulls the hero and their
+                // household out of the original clan; if that hero is an heir in
+                // the line of inheritance, the original clan is left with no one
+                // to inherit and dies out when its leader passes. That is the
+                // reported "an heir starts their own clan and the original clan
+                // just dies off" bug. A hero only becomes a knight through the
+                // knighthood pipeline (BKTitleBehavior.PickKnightFrom →
+                // GrantKnighthood), which already excludes close family and
+                // seeds the Knights registry — so requiring IsKnight here keeps
+                // heirs in their clan. The explicit close-family guard is
+                // defence-in-depth for the rare cross-clan-vassal heir.
+                if (!BannerKingsConfig.Instance.TitleManager.IsKnight(hero))
+                {
+                    return;
+                }
+                if (Utils.Helpers.IsCloseFamily(hero, originalClan.Leader))
+                {
+                    return;
+                }
+
+                // Slider-scaled weekly probability. Accumulated knight-influence
+                // (the encyclopedia "Clan Creation" progress toward
+                // KnightInfluenceThreshold) accelerates it up to 2x, so
+                // long-serving vassal knights break away sooner while freshly
+                // shed household knights still eventually found a clan.
+                float progress = MBMath.ClampFloat(
+                    BannerKingsConfig.Instance.TitleManager.GetKnightInfluence(hero) / KnightInfluenceThreshold,
+                    0f, 1f);
+                float weeklyChance = MBMath.ClampFloat(BaseWeeklyFoundChance * speed * (1f + progress), 0f, 1f);
+                if (MBRandom.RandomFloat > weeklyChance)
                 {
                     return;
                 }
