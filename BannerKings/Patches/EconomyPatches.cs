@@ -89,6 +89,13 @@ namespace BannerKings.Patches.Diag
     {
         private static System.Reflection.MethodBase TargetMethod()
         {
+            // Disabled: patching MbEvent<Clan>.Invoke patches the SHARED generic
+            // instantiation under Mono, so the Clan-typed trampoline also runs for
+            // MbEvent<PartyBase> etc. — InvalidCastException the first time any
+            // other reference-type MbEvent fires (e.g. OnPartyVisibilityChanged
+            // during OnNewCampaignStart). Returning null makes Harmony skip it.
+            return null;
+#pragma warning disable CS0162 // unreachable — kept for reference
             try
             {
                 // Find the open generic MbEvent<> type. Search all loaded
@@ -119,6 +126,7 @@ namespace BannerKings.Patches.Diag
                     System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.NonPublic);
             }
             catch { return null; }
+#pragma warning restore CS0162
         }
 
         private static void Prefix(object[] __args)
