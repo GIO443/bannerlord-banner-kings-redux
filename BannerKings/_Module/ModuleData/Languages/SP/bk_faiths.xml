@@ -1,0 +1,112 @@
+<?xml version='1.0' encoding='utf-8'?>
+<base type="string">
+  <tags>
+    <tag language="Español (LA)" />
+  </tags>
+  <strings>
+    <string id="bk_faith_darusosian_blessing_action" text="Buscaría una bendición de la Tríada." />
+    <string id="bk_faith_darusosian_blessing_action_name" text="bendiciones imperiales" />
+    <string id="bk_faith_darusosian_blessing_confirm_question" text="¿Prometerás tu devoción a {DIVINITY}?" />
+    <string id="bk_faith_darusosian_blessing_question" text="¿Quién de la Tríada escuchará tu oración?" />
+    <string id="bk_faith_darusosian_cults_desc" text="cultos imperiales" />
+    <string id="bk_faith_darusosian_description" text="El Camino Darusosiano es la fe imperial del Imperio Calradiano: el culto a Iovis el Padre del Cielo, su novia Astaronia y el santo de hierro Darusos. Sus sacerdotes sirven a las legiones y a la ley, y sus ritos sostienen la unidad del Imperio bajo un solo cielo." />
+    <string id="bk_faith_darusosian_name" text="Camino Darusosiano" />
+    <string id="bk_faith_darusosian_zealots_name" text="Hijos de Darusos" />
+    <string id="bk_faith_canticles_blessing_action" text="Padre, ¿me cantarías un cántico?" />
+    <string id="bk_faith_canticles_blessing_action_name" text="cántico bendiciones" />
+    <string id="bk_faith_canticles_blessing_confirm_question" text="¿Te comprometerás con el camino del santo?" />
+    <string id="bk_faith_canticles_blessing_question" text="¿Para qué santo pedirás cantar?" />
+    <string id="bk_faith_canticles_cults_desc" text="cántico santos" />
+    <string id="bk_faith_canticles_description" text="Los Cánticos son la fe jurada de Vlandia: una devoción caballeresca a Caïon, coronador de reyes, y su séquito de santos guerreros. Sus sacerdotes bendicen juramentos, matrimonios y lanzas; sus grandes himnarios se cantan en cada coronación." />
+    <string id="bk_faith_canticles_name" text="Cánticos de Caión" />
+    <string id="bk_faith_canticles_zealots_name" text="Orden de la Lanza" />
+    <string id="bk_faith_amra_blessing_action" text="Buscaría la bendición de un druida." />
+    <string id="bk_faith_amra_blessing_action_name" text="bendiciones druidas" />
+    <string id="bk_faith_amra_blessing_confirm_question" text="¿Llevarás su marca?" />
+    <string id="bk_faith_amra_blessing_question" text="¿La bendición de quién llevas del lynn?" />
+    <string id="bk_faith_amra_cults_desc" text="espíritus druidas" />
+    <string id="bk_faith_amra_description" text="La fe druídica de las tierras altas de Battanian. Pérkos el Portador del Trueno gobierna el dosel, pero Máthair, Iarnan y Eilean caminan por cada cañada y lynn. Los druidas llevan las canciones y vinculan los espíritus a las hazañas de los clanes." />
+    <string id="bk_faith_amra_name" text="Amra Druidh" />
+    <string id="bk_faith_amra_zealots_name" text="Bailarines guerreros de Fian" />
+    <string id="bk_faith_asera_blessing_action" text="Imam, tendría una bendición del Altísimo." />
+    <string id="bk_faith_asera_blessing_action_name" text="bendiciones del sol" />
+    <string id="bk_faith_asera_blessing_confirm_question" text="Someteos al Altísimo y el camino será vuestro." />
+    <string id="bk_faith_asera_blessing_question" text="¿Por qué rezan hoy los fieles de Akhmar?" />
+    <string id="bk_faith_asera_cults_desc" text="el Altísimo" />
+    <string id="bk_faith_asera_description" text="Los Aserai se inclinan únicamente ante Akhmar, el Sol Altísimo, soberano del cielo del desierto. El Camino es ley, aprendizaje y sumisión; sus imanes controlan las grandes mezquitas del sur y toleran, pero cobran impuestos, a los paganos en sus puertas." />
+    <string id="bk_faith_asera_name" text="Camino de Akhmar" />
+    <string id="bk_faith_asera_zealots_name" text="Jurado por el sol" />
+    <string id="bk_faith_sixWinds_blessing_action" text="Chamán, ¿podrías leer el viento por mí?" />
+    <string id="bk_faith_sixWinds_blessing_action_name" text="bendiciones del cielo" />
+    <string id="bk_faith_sixWinds_blessing_confirm_question" text="¿Estás listo para cabalgar bajo la mano del espíritu?" />
+    <string id="bk_faith_sixWinds_blessing_question" text="¿A qué espíritu llevará el viento tu oración?" />
+    <string id="bk_faith_sixWinds_cults_desc" text="espíritus del cielo y la estepa" />
+    <string id="bk_faith_sixWinds_description" text="La fe chamánica de la estepa. Tengri gobierna el cielo eterno; Etugen, la tierra verde bajo los cascos; Sülde, el estandarte de guerra; y los Asra cabalgan tras cada hueste. Los chamanes responden primero ante el clan y después ante los espíritus." />
+    <string id="bk_faith_sixWinds_name" text="Seis Vientos" />
+    <string id="bk_faith_sixWinds_zealots_name" text="pancartas de cola" />
+    <string id="bk_faith_treelore_blessing_action" text="Eldgothi, tendría la bendición de los Dioses Antiguos." />
+    <string id="bk_faith_treelore_blessing_action_name" text="bendiciones de los dioses antiguos" />
+    <string id="bk_faith_treelore_blessing_confirm_question" text="¿Unirás tu nombre al de ellos?" />
+    <string id="bk_faith_treelore_blessing_question" text="¿A cuál de los dioses antiguos invocarás?" />
+    <string id="bk_faith_treelore_cults_desc" text="viejos dioses" />
+    <string id="bk_faith_treelore_description" text="La fe de Pérkos, Frydan, Mátr y los Vethari. Sturgia mantiene a los Dioses Antiguos en la casa comunal, el montículo de guerra y el fuego de pleno invierno; su sacerdocio no es en absoluto un sacerdocio sino el consejo mayor de clanes." />
+    <string id="bk_faith_treelore_name" text="Viejos dioses del norte" />
+    <string id="bk_faith_treelore_zealots_name" text="Juramento" />
+    <string id="bk_faith_osfeyd_blessing_action" text="Hrafnskáld, dame una bendición del mar." />
+    <string id="bk_faith_osfeyd_blessing_action_name" text="bendiciones del mar" />
+    <string id="bk_faith_osfeyd_blessing_confirm_question" text="¿Navegarás bajo su signo?" />
+    <string id="bk_faith_osfeyd_blessing_question" text="¿La marca de quién llevarás en la proa?" />
+    <string id="bk_faith_osfeyd_cults_desc" text="espíritus del mar" />
+    <string id="bk_faith_osfeyd_description" text="La fe de los saqueadores de Nordvyg, llamada así por la costa quemada donde desembarcó por primera vez la hueste de Osric. Hreinwald gobierna las profundidades; Skǫll, la estela; los Vethari cabalgan en la espuma de los drakkars. Sus ritos bendicen la proa antes de la incursión y el hacha antes de la lucha entre parientes." />
+    <string id="bk_faith_osfeyd_name" text="Tradición Osfeydiana" />
+    <string id="bk_faith_osfeyd_zealots_name" text="Hraef-jurado" />
+    <string id="bk_faith_shinto_blessing_action" text="Kannushi, tendría la bendición de los kami." />
+    <string id="bk_faith_shinto_blessing_action_name" text="bendiciones-kami" />
+    <string id="bk_faith_shinto_blessing_confirm_question" text="¿Llevarás la marca del kami?" />
+    <string id="bk_faith_shinto_blessing_question" text="¿Qué bendición de kami buscas?" />
+    <string id="bk_faith_shinto_cults_desc" text="los kami" />
+    <string id="bk_faith_shinto_description" text="Shintō es la fe nativa de las islas: la manera de los kami que habitan en montañas, ríos, arrozales y antepasados. Cada pueblo mantiene un santuario a su kami local; cada hogar honra a Amaterasu, kami gobernante de la Llanura Celestial, de quien desciende la línea imperial." />
+    <string id="bk_faith_shinto_name" text="Sintoísmo" />
+    <string id="bk_faith_shinto_zealots_name" text="Guardianes del Santuario" />
+    <string id="bk_faith_rinzai_blessing_action" text="Rōshi, recibiría una enseñanza." />
+    <string id="bk_faith_rinzai_blessing_action_name" text="bendiciones zen" />
+    <string id="bk_faith_rinzai_blessing_confirm_question" text="¿Te sentarás con la palabra del maestro?" />
+    <string id="bk_faith_rinzai_blessing_question" text="¿De quién es el linaje que deseas recibir?" />
+    <string id="bk_faith_rinzai_cults_desc" text="los patriarcas del zen" />
+    <string id="bk_faith_rinzai_description" text="La escuela Rinzai es el Zen del kōan: percepción repentina forzada por el bastón del maestro y la pregunta imposible. De todas las escuelas budistas, los daimyō son los que más prefieren a Rinzai, ya que su disciplina se convierte fácilmente en la disciplina de la espada." />
+    <string id="bk_faith_rinzai_name" text="rinzai zen" />
+    <string id="bk_faith_rinzai_zealots_name" text="Monjes guerreros de Gozan" />
+    <string id="bk_faith_soto_blessing_action" text="Zenji, recibiría una enseñanza." />
+    <string id="bk_faith_soto_blessing_action_name" text="bendiciones sentadas en silencio" />
+    <string id="bk_faith_soto_blessing_confirm_question" text="¿Le darás al cojín el tiempo que te pide?" />
+    <string id="bk_faith_soto_blessing_question" text="¿Te sentarás o hablarás?" />
+    <string id="bk_faith_soto_cults_desc" text="los patriarcas silenciosos" />
+    <string id="bk_faith_soto_description" text="La escuela Sōtō enseña que la práctica y la iluminación no son dos: siéntate en zazen y ya serás un Buda. Su casa madre, Eiheiji, se encuentra en las nieves de Echizen, y sus abades rechazan los juegos de patrocinio de la capital." />
+    <string id="bk_faith_soto_name" text="Soto Zen" />
+    <string id="bk_faith_soto_zealots_name" text="Hijos de Dogen" />
+    <string id="bk_faith_shingon_blessing_action" text="Daiajari, busco una bendición esotérica." />
+    <string id="bk_faith_shingon_blessing_action_name" text="bendiciones mandalas" />
+    <string id="bk_faith_shingon_blessing_confirm_question" text="¿Llevarás el mantra hasta el final de tus días?" />
+    <string id="bk_faith_shingon_blessing_question" text="¿A través de qué aspecto de Buda pasará la bendición?" />
+    <string id="bk_faith_shingon_cults_desc" text="el buda cósmico" />
+    <string id="bk_faith_shingon_description" text="La escuela Shingon es el budismo esotérico de Kūkai: mantra, mudra y mandala. El cosmos mismo es el cuerpo del Buda Dainichi, y el practicante que traza el mandala lo traza a él. Su asiento más alto es el monte Kōya, y sus monjes guerreros lo han defendido en todas las guerras." />
+    <string id="bk_faith_shingon_name" text="Shingón" />
+    <string id="bk_faith_shingon_zealots_name" text="Monjes guerreros del monte Kōya" />
+    <string id="bk_faith_tendai_blessing_action" text="Zasu, busco una enseñanza del Loto." />
+    <string id="bk_faith_tendai_blessing_action_name" text="bendiciones de loto" />
+    <string id="bk_faith_tendai_blessing_confirm_question" text="¿Leerás el Loto todos tus días?" />
+    <string id="bk_faith_tendai_blessing_question" text="¿A través de qué aspecto del Vehículo Único?" />
+    <string id="bk_faith_tendai_cults_desc" text="el loto y el mandala" />
+    <string id="bk_faith_tendai_description" text="La escuela Tendai es el gran sincretismo del Monte Hiei: Lotus Sūtra, ritual esotérico y práctica Zen entrelazados. Su abad principal, el Zasu, es uno de los grandes señores religiosos del reino, y sus monjes guerreros sōhei han llegado a la capital cuando los intereses de la escuela lo requerían." />
+    <string id="bk_faith_tendai_name" text="tendai" />
+    <string id="bk_faith_tendai_zealots_name" text="Sohei de Enryakuji" />
+    <string id="bk_faith_shin_blessing_action" text="Monshu, recitaría el Nembutsu." />
+    <string id="bk_faith_shin_blessing_action_name" text="Bendiciones de la Tierra Pura" />
+    <string id="bk_faith_shin_blessing_confirm_question" text="¿Dirás el nombre diariamente?" />
+    <string id="bk_faith_shin_blessing_question" text="¿Cuánto tiempo llevarás el nombre?" />
+    <string id="bk_faith_shin_cults_desc" text="El voto de Amida" />
+    <string id="bk_faith_shin_description" text="La escuela Shin enseña una única práctica: confiar en el voto de Amida y recitar su nombre. Sus sacerdotes se casan, sus laicos se gobiernan a sí mismos a través del kō, y cuando el Monshu habla, se levanta el Ikkō-Ikki: ligas de agricultores y ji-samurais bajo una única bandera religiosa." />
+    <string id="bk_faith_shin_name" text="Jōdo Shinshū" />
+    <string id="bk_faith_shin_zealots_name" text="Ikkō-Ikki" />
+  </strings>
+</base>

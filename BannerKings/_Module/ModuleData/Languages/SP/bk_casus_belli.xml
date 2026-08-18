@@ -1,0 +1,48 @@
+<?xml version='1.0' encoding='utf-8'?>
+<base type="string">
+  <tags>
+    <tag language="Español (LA)" />
+  </tags>
+  <strings>
+    <string id="bk_casus_belli_imperial_reconquest_description" text="Subyugar a los pretendientes del Imperio. Como herederos legítimos del Imperio Calradian, cualquier otro reino que afirme serlo debe ser subyugado y anexado por cualquier medio necesario.&#10;&#10;Objetivo: Capturar 1 o más feudos de la cultura del enemigo." />
+    <string id="bk_casus_belli_imperial_reconquest_name" text="Reconquista Imperial" />
+    <string id="bk_casus_belli_imperial_reconquest_objective" text="Conquistar feudos" />
+    <string id="bk_casus_belli_imperial_reconquest_war_declared_text" text="¡El {ATTACKER} avanza sobre {DEFENDER}! Afirman ser los herederos legítimos del Imperio." />
+    <string id="bk_casus_belli_imperial_superiority_description" text="Subyuga a los bárbaros con nuestro poder imperial como lo hizo alguna vez el Imperio original. La fuerza es el lenguaje que entienden.&#10;&#10;Objetivo: Capturar 1 o más feudos de la cultura del enemigo." />
+    <string id="bk_casus_belli_imperial_superiority_name" text="Superioridad imperial" />
+    <string id="bk_casus_belli_imperial_superiority_objective" text="Conquista 2 feudos" />
+    <string id="bk_casus_belli_imperial_superiority_war_declared_text" text="¡El {ATTACKER} está subyugando a los bárbaros de {DEFENDER}!" />
+    <string id="bk_casus_belli_cultural_liberation_description" text="Libera un feudo de tu pueblo del dominio de los extranjeros. Cualquier ciudad o castillo compuesto mayoritariamente por nuestra cultura es motivo suficiente para que lo gobiernemos en lugar de los extranjeros.&#10;&#10;Objetivo: Capturar el objetivo seleccionado." />
+    <string id="bk_casus_belli_cultural_liberation_name" text="Liberación Cultural" />
+    <string id="bk_casus_belli_cultural_liberation_objective" text="Conquista el feudo objetivo" />
+    <string id="bk_casus_belli_cultural_liberation_war_declared_text" text="¡El {ATTACKER} marcha a la guerra! ¡{FIEF} está siendo liberado de la opresión de {DEFENDER}!" />
+    <string id="bk_casus_belli_great_raid_description" text="Saquear y robar a nuestros enemigos como lo hacían nuestros antepasados. Gobernar sus tierras puede ser inviable, pero eso no nos impedirá tomar lo que nos debe el gobierno del más fuerte.&#10;&#10;Objetivo: asaltar 8 o más aldeas de la cultura enemiga." />
+    <string id="bk_casus_belli_great_raid_name" text="Gran incursión" />
+    <string id="bk_casus_belli_great_raid_objective" text="Incursiones masivas" />
+    <string id="bk_casus_belli_great_raid_war_declared_text" text="¡El {ATTACKER} emprende una gran incursión! {DEFENDER} ciudades y pueblos serán arrasados." />
+    <string id="bk_casus_belli_invasion_description" text="Invadir un reino extranjero como es la costumbre de nuestros antepasados. Aprovechar sus propiedades y establecer nuestro propio gobierno.&#10;&#10;Objetivo: Capturar 1 o más feudos de la cultura del enemigo." />
+    <string id="bk_casus_belli_invasion_name" text="Invasión" />
+    <string id="bk_casus_belli_invasion_objective" text="Conquistar feudos" />
+    <string id="bk_casus_belli_invasion_war_declared_text" text="¡El {ATTACKER} está lanzando una invasión a gran escala en el {DEFENDER}!" />
+    <string id="bk_casus_belli_fief_claim_description" text="Conquista un feudo reclamado por tu reino. El benefactor de la conquista será siempre el reclamante, independientemente de otros procedimientos de propiedad.&#10;&#10;Objetivo: Capturar el objetivo seleccionado." />
+    <string id="bk_casus_belli_fief_claim_name" text="Reclamar feudo" />
+    <string id="bk_casus_belli_fief_claim_objective" text="Conquista el feudo objetivo" />
+    <string id="bk_casus_belli_fief_claim_war_declared_text" text="¡El {ATTACKER} marcha a la guerra! ¡{FIEF} es reclamado por {DEFENDER} como su tierra legítima!" />
+    <string id="bk_casus_belli_SuppressThreat_description" text="Ataca un reino vecino cuya fuerza rivaliza con la nuestra antes de que se convierta en un peligro existencial. Un reino poderoso a nuestras puertas es motivo suficiente para marchar.&#10;&#10;Objetivo: Capturar 1 o más feudos de la cultura del enemigo." />
+    <string id="bk_casus_belli_SuppressThreat_name" text="Suprimir la amenaza" />
+    <string id="bk_casus_belli_SuppressThreat_objective" text="Conquistar un feudo" />
+    <string id="bk_casus_belli_SuppressThreat_war_declared_text" text="¡El {ATTACKER} marcha a la guerra! Afirman que {DEFENDER} son una amenaza existencial." />
+    <string id="bk_casus_belli_Rebellion_description" text="Ex grupos radicales libran una guerra de rebelión por un reino, después de que su gobernante rechazó su demanda. Los rebeldes buscan hacer cumplir su demanda por la fuerza.{newline}{newline}Objetivo: sobrevivir como rebelión durante más de 2 años con al menos 1 feudo." />
+    <string id="bk_casus_belli_Rebellion_name" text="Rebelión" />
+    <string id="bk_casus_belli_Rebellion_objective" text="Sobrevivir durante 2 años." />
+    <string id="bk_casus_belli_Rebellion_war_declared_text" text="¡El {ATTACKER} marcha a la guerra! Luchan en una guerra civil contra los leales al {DEFENDER}." />
+    <string id="bk_casus_belli_HolyWar_description" text="Haz la guerra santa contra una fe considerada hostil a la tuya. Diferentes religiones aceptan diferentes tipos de guerras santas a diferentes costos de piedad.&#10;&#10;Objetivo: capturar un feudo." />
+    <string id="bk_casus_belli_HolyWar_name" text="Guerra santa" />
+    <string id="bk_casus_belli_HolyWar_objective" text="Conquistar un feudo" />
+    <string id="bk_casus_belli_HolyWar_war_declared_text" text="¡El {ATTACKER} marcha hacia la guerra! ¡Hacen guerra santa contra el {DEFENDER}!" />
+    <string id="bk_casus_belli_DivineReclamation_description" text="Libra una guerra santa en un reino que alberga un lugar sagrado o un lugar de fe para tu propia fe. El éxito de la guerra depende de capturar el objetivo seleccionado específico. Diferentes religiones aceptan diferentes tipos de guerras santas a diferentes costos de piedad.&#10;&#10;Objetivo: Capturar el objetivo seleccionado." />
+    <string id="bk_casus_belli_DivineReclamation_name" text="Reclamación Divina" />
+    <string id="bk_casus_belli_DivineReclamation_objective" text="Conquista el feudo objetivo" />
+    <string id="bk_casus_belli_DivineReclamation_war_declared_text" text="¡El {ATTACKER} marcha hacia la guerra! ¡El lugar sagrado de {FIEF} debe ser recuperado!" />
+  </strings>
+</base>

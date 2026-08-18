@@ -1,0 +1,22 @@
+<?xml version='1.0' encoding='utf-8'?>
+<base type="string">
+  <tags>
+    <tag language="Español (LA)" />
+  </tags>
+  <strings>
+    <string id="bk_marriage_doctrine_Monogamy_description" text="La monogamia es un sistema matrimonial en el que dos cónyuges, hombre y mujer, están igualmente unidos entre sí. El matrimonio siempre es diplomáticamente vinculante. No acepta ningún grado cercano de parentesco consanguíneo." />
+    <string id="bk_marriage_doctrine_Monogamy_name" text="Monogamia" />
+    <string id="bk_marriage_doctrine_AvunculateMonogamy_description" text="La monogamia avanculada es un sistema matrimonial en el que dos cónyuges, hombre y mujer, están igualmente unidos entre sí. El matrimonio siempre es diplomáticamente vinculante. Los cónyuges no pueden ser parientes cercanos." />
+    <string id="bk_marriage_doctrine_AvunculateMonogamy_name" text="Monogamia" />
+    <string id="bk_marriage_doctrine_AvunculateConcubinage_description" text="La doctrina del Concubinato Avunculado permite a los líderes del clan tomar hasta 3 concubinas/consortes. Las concubinas pueden ser obligadas a concubinato cuando están encarceladas. Las concubinas no generan vínculos diplomáticos como las alianzas. Los cónyuges no pueden ser parientes cercanos." />
+    <string id="bk_marriage_doctrine_AvunculateConcubinage_name" text="Concubinato Avunculado" />
+    <string id="bk_marriage_doctrine_OpenConcubinage_description" text="La doctrina del Concubinato Abierto permite que los líderes del clan tomen hasta 3 concubinas/consortes. Las concubinas pueden ser obligadas a concubinato cuando están encarceladas. Las concubinas no generan vínculos diplomáticos como las alianzas. No existen restricciones en materia de consanguinidad: los familiares cercanos pueden casarse." />
+    <string id="bk_marriage_doctrine_OpenConcubinage_name" text="Concubinato abierto" />
+    <string id="bk_marriage_doctrine_Concubinage_description" text="La doctrina del concubinato permite que los líderes del clan tomen hasta 3 concubinas/consortes. Las concubinas pueden ser obligadas a concubinato cuando están encarceladas. Las concubinas no generan vínculos diplomáticos como las alianzas. No acepta ningún grado cercano de parentesco consanguíneo." />
+    <string id="bk_marriage_doctrine_Concubinage_name" text="Concubinato" />
+    <string id="bk_marriage_doctrine_Polygamy_description" text="La poligamia es un sistema matrimonial en el que un cónyuge principal (un líder de clan) puede tener un cónyuge principal, así como tres cónyuges secundarios. Los cónyuges secundarios no pueden ser obligados a contraer matrimonio, y sus matrimonios también son vinculantes diplomáticamente, al igual que el cónyuge principal. No acepta ningún grado cercano de parentesco consanguíneo." />
+    <string id="bk_marriage_doctrine_Polygamy_name" text="Poligamia" />
+    <string id="bk_marriage_doctrine_AvunculatePolygamy_description" text="La poligamia aunculada es un sistema matrimonial en el que un cónyuge principal (un líder de clan) puede tener un cónyuge principal, así como tres cónyuges secundarios. Los cónyuges secundarios no pueden ser obligados a contraer matrimonio, y sus matrimonios también son vinculantes diplomáticamente, al igual que el cónyuge principal." />
+    <string id="bk_marriage_doctrine_AvunculatePolygamy_name" text="Poligamia" />
+  </strings>
+</base>

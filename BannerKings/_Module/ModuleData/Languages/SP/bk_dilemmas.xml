@@ -1,0 +1,16 @@
+<?xml version='1.0' encoding='utf-8'?>
+<base type="string">
+  <tags>
+    <tag language="Español (LA)" />
+  </tags>
+  <strings>
+    <string id="bk_dilemmas_petition_description" text="Un señor pide favor al reino. Sus partidarios obtienen apoyo mientras sus rivales resisten; el resultado depende de quién tiene más peso cuando el asunto llega a un punto crítico." />
+    <string id="bk_dilemmas_petition_name" text="Petición al reino" />
+    <string id="bk_dilemmas_title_claim_description" text="Un reclamante hace valer una reclamación vigente sobre un título en manos de un rival. Los señores del reino toman partido; si el reclamante reúne un apoyo abrumador, el título cambia de manos, mientras que un resultado disputado queda en manos del gobernante." />
+    <string id="bk_dilemmas_title_claim_name" text="Reclamación de título" />
+    <string id="bk_dilemmas_succession_dispute_description" text="Un ducado ha pasado a su heredero, pero un rival de otra casa tiene un derecho de sangre casi igual y lo presenta ante el reino. Los señores toman partido por la lealtad y el parentesco; reúne suficiente peso y el ducado cambia de manos, mientras que el resultado reñido queda en manos del gobernante." />
+    <string id="bk_dilemmas_succession_dispute_name" text="Sucesión impugnada" />
+    <string id="bk_dilemmas_law_change_description" text="Un grupo de interés ha perdido la paciencia y presiona al reino para que promulgue una de las leyes del dominio que favorece. Los señores toman partido según sus inclinaciones y lealtades; si un bando reúne suficiente peso, la ley se aprueba, mientras que un reino dividido deja la decisión en manos del gobernante." />
+    <string id="bk_dilemmas_law_change_name" text="Disputa sobre una ley del dominio" />
+  </strings>
+</base>

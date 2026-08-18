@@ -1,0 +1,29 @@
+<?xml version='1.0' encoding='utf-8'?>
+<base type="string">
+  <tags>
+    <tag language="Español (LA)" />
+  </tags>
+  <strings>
+    <string id="bk_mercenary_privilege_privilege_increased_pay_description" text="Aumenta los ingresos de tu contrato de mercenario en un 5% por nivel." />
+    <string id="bk_mercenary_privilege_privilege_increased_pay_name" text="Mayor salario" />
+    <string id="bk_mercenary_privilege_privilege_increased_pay_unavailable_hint" text="No cumple con los requisitos o el privilegio ya está al máximo.&#10;&#10;Puntos: {POINTS}&#10;Nivel máximo: {LEVEL}" />
+    <string id="bk_mercenary_privilege_privilege_workshop_grant_description" text="Adquirir una propiedad taller. La propiedad estará situada en una de las localidades de su contratista." />
+    <string id="bk_mercenary_privilege_privilege_workshop_grant_name" text="Beca de taller" />
+    <string id="bk_mercenary_privilege_privilege_workshop_grant_unavailable_hint" text="Su contratista actualmente no está en condiciones de otorgarle un taller, por falta de recursos propios o de fondos para subsidiar la adquisición de uno. Alternativamente, has alcanzado el límite de tu taller.&#10;Puntos: {POINTS}&#10;Nivel máximo: {LEVEL}" />
+    <string id="bk_mercenary_privilege_privilege_estate_grant_description" text="Adquirir una propiedad inmobiliaria. La propiedad estará situada en uno de los pueblos de su contratista." />
+    <string id="bk_mercenary_privilege_privilege_estate_grant_name" text="Subvención patrimonial" />
+    <string id="bk_mercenary_privilege_privilege_estate_grant_unavailable_hint" text="Actualmente, su contratista no puede proporcionarle una propiedad vacante.&#10;Puntos: {POINTS}&#10;Nivel máximo: {LEVEL}" />
+    <string id="bk_mercenary_privilege_privilege_levy_troop_description" text="Establece una tropa de levas mercenarias (nivel III) para tu empresa. Una tropa personalizada se puede diseñar y solo estará disponible para tu clan en las ciudades del reino asociadas con la carrera para la que fueron diseñadas." />
+    <string id="bk_mercenary_privilege_privilege_levy_troop_name" text="Impuesto mercenario" />
+    <string id="bk_mercenary_privilege_privilege_levy_troop_unavailable_hint" text="No cumple con los requisitos o el privilegio ya está al máximo.&#10;&#10;Puntos: {POINTS}&#10;Nivel máximo: {LEVEL}" />
+    <string id="bk_mercenary_privilege_privilege_professional_troop_description" text="Establece una tropa mercenaria profesional (nivel V) para tu empresa. Una tropa personalizada se puede diseñar y solo estará disponible para tu clan en las ciudades del reino asociadas con la carrera para la que fueron diseñadas." />
+    <string id="bk_mercenary_privilege_privilege_professional_troop_name" text="Profesional Mercenario" />
+    <string id="bk_mercenary_privilege_privilege_professional_troop_unavailable_hint" text="No cumple con los requisitos o el privilegio ya está al máximo.&#10;&#10;Puntos: {POINTS}&#10;Nivel máximo: {LEVEL}" />
+    <string id="bk_mercenary_privilege_privilege_barony_grant_description" text="Conviértete en terrateniente como un señor. Solicita un castillo junto con su título de rango baronial. Poseer el asentamiento no pondrá fin a tu contrato de mercenario." />
+    <string id="bk_mercenary_privilege_privilege_barony_grant_name" text="Beca de baronía" />
+    <string id="bk_mercenary_privilege_privilege_barony_grant_unavailable_hint" text="No puedes poseer ningún asentamiento ni título. Es posible que tu empleador no disponga de un castillo adicional con su correspondiente título.&#10;Puntos: {POINTS}&#10;Nivel máximo: {LEVEL}" />
+    <string id="bk_mercenary_privilege_privilege_full_peerage_description" text="Por su extraordinario servicio, haga que su clan sea considerado un Peer completo. Si bien la Nobleza no será efectiva hasta que dejes atrás tu vida de mercenario, podrás unirte a reinos como la élite de la nobleza, en lugar de ser un Peer menor." />
+    <string id="bk_mercenary_privilege_privilege_full_peerage_name" text="Nobleza completa" />
+    <string id="bk_mercenary_privilege_privilege_full_peerage_unavailable_hint" text="Tu clan no debe tener un Nobleza que permita todos los privilegios de Peer.&#10;&#10;Puntos: {POINTS}&#10;Nivel máximo: {LEVEL}" />
+  </strings>
+</base>

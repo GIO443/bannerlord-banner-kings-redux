@@ -1,0 +1,14 @@
+<?xml version='1.0' encoding='utf-8'?>
+<base type="string">
+  <tags>
+    <tag language="Español (LA)" />
+  </tags>
+  <strings>
+    <string id="bk_era_FirstEra_description" text="La era de los calradoi fue el período durante el cual el Imperio reinó sin rival." />
+    <string id="bk_era_FirstEra_name" text="Era de los calradoi" />
+    <string id="bk_era_SecondEra_description" text="Tras la batalla de Pendraic y la muerte del emperador Arenicos Pethros, el antiguo Imperio quedó sumido en una guerra civil: una contienda intestina." />
+    <string id="bk_era_SecondEra_name" text="Era de las luchas intestinas" />
+    <string id="bk_era_ThirdEra_description" text="Poco se sabe del período posterior a las luchas intestinas... Sin embargo, todos los eruditos coinciden en que, en el transcurso de dos siglos, el Imperio quedó completamente destruido. Hordas saquearon y arrasaron ciudades; religiones y culturas desaparecieron, y nuevos reinos surgieron de la oscuridad. Aun así, ninguno volvió a brillar con la fuerza del Imperio." />
+    <string id="bk_era_ThirdEra_name" text="Edad Oscura" />
+  </strings>
+</base>

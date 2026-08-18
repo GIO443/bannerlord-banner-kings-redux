@@ -1,0 +1,22 @@
+<?xml version='1.0' encoding='utf-8'?>
+<base type="string">
+  <tags>
+    <tag language="Español (LA)" />
+  </tags>
+  <strings>
+    <string id="bk_interest_group_royalists_description" text="Los realistas son quienes apoyan la administración real. Favorecen al soberano incluso antes que a ellos mismos, ya sea por verdadera lealtad o por la perspectiva de una compensación. Los realistas apoyan todo lo que beneficie a la administración real independientemente de los impactos sobre otros grupos." />
+    <string id="bk_interest_group_royalists_name" text="Realistas" />
+    <string id="bk_interest_group_traditionalists_description" text="Los tradicionalistas apoyan el camino de los antepasados. Más que nada, creen en la fuerza. Si bien reconocen la necesidad de un gobernante fuerte, también reconocen la necesidad de libertad para las clases nobles. Su objetivo es lograr un equilibrio de poder entre el soberano y sus vasallos, una continuación de las antiguas tradiciones y ejercer el poder a través de la fuerza." />
+    <string id="bk_interest_group_traditionalists_name" text="Tradicionalistas" />
+    <string id="bk_interest_group_oligarchists_description" text="Los oligarcas son personas nobles e influyentes que se preocupan, ante todo, por su propio beneficio. Buscan continuamente beneficios para ellos mismos o para sus pares, entendiendo que son parte de la misma clase. Por lo tanto, sus intereses a menudo están desalineados tanto con los del gobernante como con los del pueblo común." />
+    <string id="bk_interest_group_oligarchists_name" text="Oligarquistas" />
+    <string id="bk_interest_group_zealots_description" text="Los fanáticos representan a aquellos de mayor fervor religioso dentro del reino. Como grupo, lo que más les preocupa es el fortalecimiento de su fe y la defensa de sus valores. Un gobernante que no siga la fe tradicional del reino tendrá grandes dificultades para conseguir el apoyo de tales fanáticos. Aquellos que la siguen, todavía necesitan demostrar su valía defendiendo las virtudes de la fe. Los fanáticos, leales ante todo a su fe, reúnen miembros tanto dentro como fuera de la nobleza." />
+    <string id="bk_interest_group_zealots_name" text="Fanáticos" />
+    <string id="bk_interest_group_commoners_description" text="Los plebeyos representan a la población en general, intermediados por dignatarios feudos. El beneficio de los plebeyos a menudo choca con el beneficio de la alta nobleza. Sin embargo, la población está abierta a apoyar a los gobernantes que la representen. A menudo, eso significa una tradición cultural y religiosa compartida, así como signos de ciertas virtudes, como un agudo sentido de justicia y generosidad." />
+    <string id="bk_interest_group_commoners_name" text="plebeyos" />
+    <string id="bk_interest_group_reformists_description" text="Los reformistas son voces del nuevo siglo: secretarios, magistrados, eruditos, plebeyos ambiciosos y nobles que les hacen compañía. Presionan al reino para que derribe viejas costumbres que ya no encajan: pesados ​​aranceles sobre sus clases trabajadoras, justicia señorial arbitraria, la suposición de que los poderosos están por encima de la ley. Mientras que los tradicionalistas temen que el cambio debilite el reino, los reformistas argumentan que el reino se pudre sin él. Tienen poca paciencia con la pompa de la alta corona o con los privilegios de los magnates, pero su primera disputa es con cualquiera que quisiera congelar la sociedad donde está." />
+    <string id="bk_interest_group_reformists_name" text="Reformistas" />
+    <string id="bk_interest_group_mercantile_description" text="La Liga Mercantil habla en nombre de las casas comerciales autorizadas y los prestamistas que mantienen en movimiento la moneda del reino. Su interés es claro: reglas predecibles, peajes livianos, una clase trabajadora libre de moverse hacia donde la lleven las rutas comerciales. Se oponen a la mano dura de una corona que grava el comercio para financiar sus guerras, y no sienten ningún aprecio por los magnates que obstruyen las carreteras con peajes privados. Sus reformas son silenciosas (una carta por aquí, una deuda condonada por allá), pero el reino que construirían parece muy diferente del reino de los señores y las aldeas." />
+    <string id="bk_interest_group_mercantile_name" text="Liga Mercantil" />
+  </strings>
+</base>

@@ -1,0 +1,75 @@
+<?xml version='1.0' encoding='utf-8'?>
+<base type="string">
+  <tags>
+    <tag language="Español (LA)" />
+  </tags>
+  <strings>
+    <string id="bk_innovation_innovation_heavy_plough_description" text="Una adaptación del arado, más pesada y adecuada para terrenos duros y húmedos. Permite remover una mayor cantidad de suelo, facilita el trabajo agrícola y devuelve a la superficie los nutrientes de las capas más profundas." />
+    <string id="bk_innovation_innovation_heavy_plough_effects" text="Mejora el rendimiento de las tierras de cultivo" />
+    <string id="bk_innovation_innovation_heavy_plough_name" text="Arado pesado" />
+    <string id="bk_innovation_innovation_three_field_system_description" text="Sistema de rotación que emplea simultáneamente tres tipos de cultivo en parcelas separadas. Este método, también llamado sistema de campos abiertos, mejora considerablemente el sistema de dos campos y permite que el suelo se regenere, pues cada cultivo aporta y consume nutrientes diferentes." />
+    <string id="bk_innovation_innovation_three_field_system_effects" text="Mejora enormemente el rendimiento de las tierras de cultivo" />
+    <string id="bk_innovation_innovation_three_field_system_name" text="Sistema de tres campos" />
+    <string id="bk_innovation_innovation_public_works_description" text="La inversión del Estado en infraestructuras públicas, como caminos y puentes, favorece el desarrollo de la economía." />
+    <string id="bk_innovation_innovation_public_works_effects" text="Aumenta la prosperidad de las ciudades y los costes administrativos" />
+    <string id="bk_innovation_innovation_public_works_name" text="Obras públicas" />
+    <string id="bk_innovation_innovation_cogs_description" text="Estos grandes mecanismos solían fabricarse con enormes bloques de madera resistente tallados hasta formar discos casi perfectamente circulares. Después se fijaban dientes metálicos al disco, de forma que un conjunto de engranajes pudiera producir ejes de movimiento complejos. Se empleaban sobre todo en molinos sofisticados, como los de agua o viento. Estos molinos mecánicos facilitan la molienda del grano para producir pan, un alimento esencial en todo el continente. Otros molinos también podían formar parte de grandes forjas militares dedicadas a fabricar armaduras, armas y equipo para los caballos de los ejércitos imperiales." />
+    <string id="bk_innovation_innovation_cogs_effects" text="Aumenta la eficiencia de producción" />
+    <string id="bk_innovation_innovation_cogs_name" text="Engranajes" />
+    <string id="bk_innovation_innovation_water_mill_description" text="Un gran mecanismo accionado por el agua, el viento o la fuerza muscular. Los molinos facilitan enormemente la molienda del grano para producir pan. Pueden construirse distintos tipos según el entorno: una aldea junto a un río puede aprovechar la corriente para mover uno, mientras que un molino más complejo y flexible puede funcionar con el viento. En última instancia, también pueden accionarse mediante trabajo esclavo." />
+    <string id="bk_innovation_innovation_water_mill_effects" text="Permite construir molinos" />
+    <string id="bk_innovation_innovation_water_mill_name" text="Molinos" />
+    <string id="bk_innovation_innovation_stirrups_description" text="Los estribos mejoran enormemente la estabilidad al montar. Proporcionan apoyo a los pies del jinete, lo que reduce el riesgo de caída y de perder el control del animal. En el ámbito militar, permiten que la caballería sea mucho más eficaz y fiable. También resultan muy útiles para la economía, pues el caballo se emplea ampliamente en la agricultura, el transporte y las comunicaciones." />
+    <string id="bk_innovation_innovation_stirrups_effects" text="Aumenta la eficiencia de la producción&#10;Mejora la eficacia de la caballería en las batallas simuladas" />
+    <string id="bk_innovation_innovation_stirrups_name" text="Estribos" />
+    <string id="bk_innovation_innovation_compass_description" text="Instrumento que indica los puntos cardinales y se utiliza ampliamente en los viajes largos, tanto por mar como por tierra." />
+    <string id="bk_innovation_innovation_compass_name" text="Brújula" />
+    <string id="bk_innovation_innovation_horse_collar_description" text="Un collar de tiro acolchado y adaptado al caballo permite que el animal arrastre el arado cómodamente y aproveche al máximo su fuerza. Gracias a ello, los equipos de caballos pueden sustituir a las yuntas de bueyes, con una mejora notable por la mayor velocidad y resistencia de los caballos." />
+    <string id="bk_innovation_innovation_horse_collar_effects" text="Mejora considerablemente el rendimiento de las tierras de cultivo" />
+    <string id="bk_innovation_innovation_horse_collar_name" text="Collar de tiro" />
+    <string id="bk_innovation_innovation_horse_show_description" text="Las herraduras metálicas protegen los cascos del animal frente al desgaste provocado por el trabajo intenso. Con la sustitución de los bueyes por equipos de caballos para tirar del arado, las herraduras refuerzan la ventaja de estos animales al permitirles trabajar durante más tiempo sin perjudicar su movilidad." />
+    <string id="bk_innovation_innovation_horse_show_effects" text="Mejora el rendimiento de las tierras de cultivo" />
+    <string id="bk_innovation_innovation_horse_show_name" text="Herraduras" />
+    <string id="bk_innovation_innovation_cranes_description" text="Mecanismos capaces de elevar verticalmente grandes volúmenes o pesos de material. Las grúas aumentan de forma considerable el rendimiento de las obras y los centros comerciales." />
+    <string id="bk_innovation_innovation_cranes_effects" text="Aumenta considerablemente la velocidad de construcción&#10;Aumenta la eficiencia de producción" />
+    <string id="bk_innovation_innovation_cranes_name" text="Grúas" />
+    <string id="bk_innovation_innovation_wheelbarrow_description" text="La carretilla es una herramienta de transporte que permite llevar cargas mayores con menos esfuerzo. Puede emplearse en muchas tareas, como sacar mineral de las minas, llevar materiales a las obras o transportar sacos de grano desde los campos." />
+    <string id="bk_innovation_innovation_wheelbarrow_effects" text="Aumenta la eficiencia de producción" />
+    <string id="bk_innovation_innovation_wheelbarrow_name" text="Carretilla" />
+    <string id="bk_innovation_innovation_blast_furnace_description" text="Los altos hornos transforman eficazmente el mineral de hierro en hierro fundido. Esta aleación maleable puede adoptar con facilidad distintas formas y convertirse en numerosos productos, por lo que el alto horno es una instalación industrial esencial." />
+    <string id="bk_innovation_innovation_blast_furnace_effects" text="Aumenta considerablemente la eficiencia de producción" />
+    <string id="bk_innovation_innovation_blast_furnace_name" text="Alto horno" />
+    <string id="bk_innovation_Guilds_description" text="Los gremios son asociaciones de artesanos dedicados a un oficio concreto. Su principal cometido es regularlo, formar artesanos, garantizar un nivel mínimo de calidad y combatir las falsificaciones. Gracias a ello, los artesanos de una ciudad pueden adquirir renombre en una actividad determinada, elevar los precios y aumentar los beneficios del gremio. Sin embargo, el poder que esto otorga a mercaderes y artesanos puede enfrentarlos con sus señores nobles." />
+    <string id="bk_innovation_Guilds_effects" text="Permite la existencia de gremios en las ciudades" />
+    <string id="bk_innovation_Guilds_name" text="Gremios" />
+    <string id="bk_innovation_Burgage_description" text="Una tenencia urbana es una parcela o propiedad situada dentro de una ciudad y perteneciente a un señor. Estas parcelas se arriendan a cambio de dinero, lo que proporciona a sus nobles propietarios una fuente constante de ingresos." />
+    <string id="bk_innovation_Burgage_effects" text="Aumenta el límite de población de las ciudades" />
+    <string id="bk_innovation_Burgage_name" text="Tenencia urbana" />
+    <string id="bk_innovation_Crossbows_description" text="La ballesta, un arma desarrollada por los calradoi, dispara un virote sobre un armazón horizontal gracias a la fuerza de su cuerda. En vez de mantenerla tensada con la mano, un mecanismo bloquea la cuerda y permite al ballestero apuntar con el arma lista para disparar y casi sin esfuerzo, a diferencia del arco, que exige una fuerza considerable para mantenerse tensado." />
+    <string id="bk_innovation_Crossbows_effects" text="Permite fabricar ballestas" />
+    <string id="bk_innovation_Crossbows_name" text="Ballestas" />
+    <string id="bk_innovation_Forum_description" text="El foro, una invención calradiana, es el centro de la vida urbana: allí se proclaman anuncios, se dictan sentencias y se aclama a los emperadores. Es el corazón de mármol de una ciudad y constituye por sí mismo una obra de arte." />
+    <string id="bk_innovation_Forum_effects" text="Permite construir foros" />
+    <string id="bk_innovation_Forum_name" text="Foro" />
+    <string id="bk_innovation_Aqueducts_description" text="Los acueductos, una proeza de la ingeniería calradoi, transportan agua desde una fuente hasta una ciudad mediante una pendiente continua. Este suministro fiable sacia la sed de la población y abastece actividades como la agricultura, la molienda y el teñido, lo que abarata los alimentos y mantiene activa la economía. Entre los calradoi se dice que una ciudad sin acueducto está condenada al fracaso." />
+    <string id="bk_innovation_Aqueducts_effects" text="Permite construir acueductos" />
+    <string id="bk_innovation_Aqueducts_name" text="Acueductos" />
+    <string id="bk_innovation_HalfPlateArmor_effects" text="Permite fabricar armaduras de media placa y otras similares" />
+    <string id="bk_innovation_HalfPlateArmor_name" text="Armadura de media placa" />
+    <string id="bk_innovation_Theater_description" text="No está claro si los calradianos o los laconianos inventaron primero los teatros. Más que un edificio, el teatro es una innovación cultural: el pueblo se reúne para contemplar elaboradas obras clásicas, tanto tragedias como comedias. Los teatros establecen una base cultural y difunden valores mediante las historias que representan." />
+    <string id="bk_innovation_Theater_effects" text="Permite construir teatros" />
+    <string id="bk_innovation_Theater_name" text="Teatro" />
+    <string id="bk_innovation_Manorialism_description" text="El régimen señorial, surgido de las villae calradianas, describe la relación agraria entre un señor y sus dependientes. Aunque cada campesino puede poseer o arrendar ciertas parcelas, los campos se trabajan colectivamente y se comparte su producción. Una parte considerable se entrega como tributo al señor, que suele residir en una gran propiedad: el señorío." />
+    <string id="bk_innovation_Manorialism_effects" text="Permite construir nuevos edificios en las aldeas&#10;Reduce la presencia de esclavos en las aldeas" />
+    <string id="bk_innovation_Manorialism_name" text="Régimen señorial" />
+    <string id="bk_innovation_Masonry_description" text="El arte de dar a la piedra la forma deseada. En el continente, los calradoi y los darshi fueron los primeros en dominarlo. Sus imponentes murallas de piedra hacían que, en ocasiones, los saqueadores bárbaros renunciaran por completo a atacar sus ciudades, conscientes de que no podrían superarlas. Más a menudo, las murallas les infundían respeto por el poder y la pericia de sus constructores. La albañilería evolucionó después hacia otras obras de infraestructura, como los acueductos y los foros." />
+    <string id="bk_innovation_Masonry_effects" text="Permite construir murallas de nivel 2" />
+    <string id="bk_innovation_Masonry_name" text="Albañilería" />
+    <string id="bk_innovation_AdvancedMasonry_description" text="La culminación del arte de la albañilería. La albañilería avanzada permite construir murallas de piedra altas y gruesas, con cimientos profundos. Estas murallas resisten incluso las máquinas de asedio más potentes y ofrecen una ventaja considerable a quienes se refugian tras ellas." />
+    <string id="bk_innovation_AdvancedMasonry_effects" text="Permite construir murallas de nivel 3" />
+    <string id="bk_innovation_AdvancedMasonry_name" text="Albañilería avanzada" />
+    <string id="bk_innovation_innovation_astrolabe_description" text="Instrumento astronómico que permite medir la posición de los astros y orientarse durante los viajes." />
+    <string id="bk_innovation_innovation_astrolabe_effects" text="Sin efectos conocidos" />
+    <string id="bk_innovation_innovation_astrolabe_name" text="Astrolabio" />
+  </strings>
+</base>

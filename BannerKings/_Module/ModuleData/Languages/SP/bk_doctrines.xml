@@ -1,0 +1,63 @@
+<?xml version='1.0' encoding='utf-8'?>
+<base type="string">
+  <tags>
+    <tag language="Español (LA)" />
+  </tags>
+  <strings>
+    <string id="bk_doctrine_AncestorWorship_description" text="Honrar a los antepasados ​​es una parte crucial de la fe, ya que ellos velan por los vivos y esperan que cumplan sus tradiciones. Viven como espíritus, cuando no están entre las filas de los propios dioses." />
+    <string id="bk_doctrine_AncestorWorship_effects" text="Es más fácil casarse dentro de la misma fe{newline}El renombre del clan produce piedad" />
+    <string id="bk_doctrine_AncestorWorship_name" text="Adoración de los antepasados" />
+    <string id="bk_doctrine_RenovatioImperi_description" text="La paz en Calradia sólo puede existir con un Imperio unido. Un reino bajo las enseñanzas del Cielo. Los fieles deberían dejar de lado sus ambiciones y trabajar juntos en beneficio de los dioses." />
+    <string id="bk_doctrine_RenovatioImperi_effects" text="En feudos imperiales, mostrando misericordia después del asedio, gana relaciones con todos los notables y no pierdes la estabilidad del feudo." />
+    <string id="bk_doctrine_RenovatioImperi_name" text="Renovatio Imperio" />
+    <string id="bk_doctrine_Esotericism_description" text="El conocimiento y la fe están menos divididos de lo que la mayoría piensa. El cosmos está plagado de misterios, y buscar sus respuestas es intentar llegar a los propios dioses." />
+    <string id="bk_doctrine_Esotericism_effects" text="La sabiduría produce piedad{newline}Terminar proyectos educativos produce piedad y teología" />
+    <string id="bk_doctrine_Esotericism_name" text="Esoterismo" />
+    <string id="bk_doctrine_Astrology_description" text="El estudio de las estrellas es el estudio de lo divino mismo. Al igual que el Sol bendice la tierra con fertilidad, las estrellas bendicen al hombre con sabiduría." />
+    <string id="bk_doctrine_Astrology_effects" text="Las innovaciones culturales se desarrollan más rápido (cuando Cultural Head)&#10;Los viajes en barco son más rápidos" />
+    <string id="bk_doctrine_Astrology_name" text="Astrología" />
+    <string id="bk_doctrine_Tolerant_description" text="Una fe tolerante considera que todas las religiones son diferentes interpretaciones de la Verdad, como diferentes caminos hacia el(los) dios(es) real(es). Las religiones tolerantes no tienen opiniones hostiles hacia ninguna otra fe, lo que facilita los matrimonios y disminuye las tensiones en múltiples feudos religiosos." />
+    <string id="bk_doctrine_Tolerant_effects" text="Cualquier otra fe se considera tolerada." />
+    <string id="bk_doctrine_Tolerant_name" text="Tolerante" />
+    <string id="bk_doctrine_Shamanism_description" text="Los chamanes son los intermediarios entre la humanidad y el mundo espiritual. No se adhieren a una estructura organizada, sino que se basan en la tradición oral y las costumbres locales. Los chamanes suelen vivir cerca de la naturaleza, donde yacen los espíritus, y realizan rituales para acceder al mundo espiritual para comunicarse con ellos, adquiriendo conocimientos para guiar a su gente en el plano mundano." />
+    <string id="bk_doctrine_Shamanism_effects" text="Los predicadores son capaces de curar enfermedades y maldiciones." />
+    <string id="bk_doctrine_Shamanism_name" text="chamanismo" />
+    <string id="bk_doctrine_osrics_vengeance_description" text="Osric cumplió su venganza contra los dioses Calradic cuando capturaron Pravend, quitándoles su poder y proporcionando tierras abundantes a su pueblo. Como tal, los Wilunding deberían seguir su camino de ocupar a sus enemigos." />
+    <string id="bk_doctrine_osrics_vengeance_effects" text="La ocupación de feudos produce una piedad significativa" />
+    <string id="bk_doctrine_osrics_vengeance_name" text="La venganza de Osric" />
+    <string id="bk_doctrine_Reavers_description" text="Las incursiones y saqueos se entienden como una práctica piadosa. esta fe" />
+    <string id="bk_doctrine_Reavers_effects" text="La piedad gana incursiones y saqueos de feudos de diferentes culturas." />
+    <string id="bk_doctrine_Reavers_name" text="asaltantes" />
+    <string id="bk_doctrine_Warlike_description" text="El combate es considerado por la fe una práctica piadosa. Los dioses deciden el ganador, e intentar escapar de nuestro destino mediante la cobardía es una ofensa a los dioses." />
+    <string id="bk_doctrine_Warlike_effects" text="Ganancia de piedad como recompensa de batalla" />
+    <string id="bk_doctrine_Warlike_name" text="Belicoso" />
+    <string id="bk_doctrine_druidism_description" text="El clero es considerado parte de la casta druida, que representa el poder espiritual, pero también está involucrado en asuntos políticos y materiales. En cierto modo, los druidas son una forma de nobleza menor y no pueden ser excluidos de los asuntos políticos." />
+    <string id="bk_doctrine_druidism_effects" text="Los predicadores proporcionan tropas nobles&#10;Ningún asesor del consejo religioso provoca pérdida de influencia diaria" />
+    <string id="bk_doctrine_druidism_name" text="druidismo" />
+    <string id="bk_doctrine_animism_description" text="Los espíritus habitan en todas partes de este mundo, ocultos a plena vista. Bajo la tierra, fluyendo a lo largo de ríos o atados a animales o árboles, los espíritus pueden estar en cualquier lugar. Es deber de los fieles no dañar el equilibrio del mundo material con el mundo espiritual, que muchas veces son uno solo." />
+    <string id="bk_doctrine_animism_effects" text="La superficie boscosa proporciona piedad&#10;Fervor inicial reducido" />
+    <string id="bk_doctrine_animism_name" text="Animismo" />
+    <string id="bk_doctrine_communal_faith_name" text="Fe comunitaria" />
+    <string id="bk_doctrine_legalism_description" text="Sin leyes, el hombre no es más que una bestia. La sabiduría de las generaciones anteriores se preserva a través de la ley, que debe seguirse al pie de la letra." />
+    <string id="bk_doctrine_legalism_effects" text="Los paganos no pueden ocupar puestos en el consejo&#10;+0,5 al límite de vasallo por cada virtud personal" />
+    <string id="bk_doctrine_legalism_name" text="Legalismo" />
+    <string id="bk_doctrine_heathen_tax_description" text="Se tolera a los no creyentes, pero sólo mediante su subyugación financiera. No se confía en ellos para el servicio." />
+    <string id="bk_doctrine_heathen_tax_effects" text="La población pagana genera impuestos adicionales&#10;Reducción del militarismo en asentamientos predominantemente paganos." />
+    <string id="bk_doctrine_heathen_tax_name" text="Impuestos paganos" />
+    <string id="bk_doctrine_pastorialism_description" text="Se tolera a los no creyentes, pero sólo mediante su subyugación financiera. No se confía en ellos para el servicio." />
+    <string id="bk_doctrine_pastorialism_effects" text="La superficie de pastos y tierras agrícolas es más productiva&#10;Eficiencia de dibujo reducida" />
+    <string id="bk_doctrine_pastorialism_name" text="Pastoralismo" />
+    <string id="bk_doctrine_childbirth_description" text="El nacimiento de hijos y la expansión de la familia se consideran una bendición. Cuantos más hijos tengamos, más defenderán y honrarán nuestras formas de vida en el futuro." />
+    <string id="bk_doctrine_childbirth_effects" text="El renombre del clan aumenta cada vez que nace un niño.&#10;Mayor fertilidad" />
+    <string id="bk_doctrine_childbirth_name" text="Parto honrado" />
+    <string id="bk_doctrine_pacifism_description" text="La paz es nuestro tesoro más preciado. A diferencia de las bestias belicistas, valoramos prosperar a través de la cooperación y el trabajo duro." />
+    <string id="bk_doctrine_pacifism_effects" text="Mayor estabilidad en los asentamientos&#10;Pérdida de piedad después de las batallas." />
+    <string id="bk_doctrine_pacifism_name" text="Pacifismo" />
+    <string id="bk_doctrine_literalism_description" text="Sólo a través de nuestros textos sagrados podemos defender nuestros valores y nuestra fe." />
+    <string id="bk_doctrine_literalism_effects" text="La alta erudición proporciona piedad, el analfabetismo reduce la piedad&#10;Agrega un filósofo de la corte a los consejos reales" />
+    <string id="bk_doctrine_literalism_name" text="Carácter literal" />
+    <string id="bk_doctrine_sacrifice_description" text="Los oponentes dignos merecen una muerte mejor que la plebeya en el campo de batalla. Podemos demostrar nuestra devoción sacrificándolos ritualmente." />
+    <string id="bk_doctrine_sacrifice_effects" text="Permite el rito del Sacrificio Humano" />
+    <string id="bk_doctrine_sacrifice_name" text="Sacrificios humanos" />
+  </strings>
+</base>
