@@ -29,7 +29,10 @@ namespace BannerKings.Behaviours
     {
         private static float actionGold;
         private static int actionHuntGame;
-        private static CampaignTime actionStart = CampaignTime.Now;
+        // Must not call CampaignTime.Now here: the type initializer runs during
+        // Main.OnGameStart, before Campaign.Current's time tracker exists on
+        // game v1.4.7.117484 — it is always re-assigned when an action starts.
+        private static CampaignTime actionStart;
         private float totalHours;
         private Dictionary<Town, CampaignTime> lastMercenaryRecruitment;
 
