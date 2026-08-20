@@ -1624,8 +1624,12 @@ namespace BannerKings
                             leader.SetMoveGoToSettlement(leader.LeaderHero.Clan.HomeSettlement, MobileParty.NavigationType.Default, false);
                             leader.Position = leader.LeaderHero.Clan.HomeSettlement.GatePosition;
                         }
-                        // Try the API to end the siege event.
+                        // Try the API to end the siege event. Game v1.4.8 renamed
+                        // ConcludeSiegeEvent to FinalizeSiegeEvent; try both so the
+                        // cheat works across game builds.
                         var concludeMethod = typeof(TaleWorlds.CampaignSystem.Siege.SiegeEvent).GetMethod("ConcludeSiegeEvent",
+                            System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.NonPublic)
+                            ?? typeof(TaleWorlds.CampaignSystem.Siege.SiegeEvent).GetMethod("FinalizeSiegeEvent",
                             System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.NonPublic);
                         if (concludeMethod != null) concludeMethod.Invoke(ev, null);
                         ended++;

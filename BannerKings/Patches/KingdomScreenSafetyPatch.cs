@@ -55,14 +55,13 @@ namespace BannerKings.Patches
         private static void Prefix() => BannerKings.Utils.BKFreezeTrace.Enter("KingdomDiplomacyVM.RefreshDiplomacyList");
         private static void Postfix() => BannerKings.Utils.BKFreezeTrace.Exit("KingdomDiplomacyVM.RefreshDiplomacyList");
     }
-    [HarmonyPatch(typeof(KingdomTruceItemVM), "RefreshValues")]
-    internal static class KingdomTruceItemVMRefreshTrace
-    {
-        private static void Prefix(KingdomTruceItemVM __instance)
-            => BannerKings.Utils.BKFreezeTrace.Enter("  KingdomTruceItemVM.RefreshValues " + (__instance?.Faction2?.Name?.ToString() ?? "<null>"));
-        private static void Postfix(KingdomTruceItemVM __instance)
-            => BannerKings.Utils.BKFreezeTrace.Exit("  KingdomTruceItemVM.RefreshValues " + (__instance?.Faction2?.Name?.ToString() ?? "<null>"));
-    }
+    // KingdomTruceItemVMRefreshTrace removed: as of game v1.4.8,
+    // KingdomTruceItemVM no longer declares its own RefreshValues override
+    // (only inherits ViewModel's). Patching the inherited name either
+    // silently skips or — with Harmony's base-method fallback — lands on the
+    // shared ViewModel.RefreshValues and casts every VM to
+    // KingdomTruceItemVM in the trampoline (InvalidCastException on any
+    // screen). The remaining traces below still cover the kingdom screen.
     [HarmonyPatch(typeof(KingdomWarItemVM), "RefreshValues")]
     internal static class KingdomWarItemVMRefreshTrace
     {
