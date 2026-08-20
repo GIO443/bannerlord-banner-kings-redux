@@ -22,7 +22,7 @@ namespace BannerKings.UI
         public string id;
         private GauntletLayer Layer { get; set; }
         private BannerKingsViewModel VM { get; set; }
-        private SpriteCategory categoryDeveloper, categoryEncyclopedia;
+        private SpriteCategory categoryDeveloper, categoryEncyclopedia, categoryTownManagement;
 
         public BannerKingsMapView(string id)
         {
@@ -42,6 +42,17 @@ namespace BannerKings.UI
 
             categoryEncyclopedia = spriteData.SpriteCategories["ui_encyclopedia"];
             categoryEncyclopedia.Load(resourceContext, resourceDepot);
+
+            // The village project popup (VillageProjectWindow) reuses vanilla
+            // building-icon sprite codes (e.g. "building_fortifications") the
+            // same way the base-game Town Management screen does. Those icons
+            // live in the "ui_town_management" sprite category, which vanilla
+            // loads automatically for its own screen but which this custom
+            // popup never requested — so every building/project icon rendered
+            // as a blank circle even when VisualCode was set correctly. Load
+            // it here, same pattern as the two categories above.
+            categoryTownManagement = spriteData.SpriteCategories["ui_town_management"];
+            categoryTownManagement.Load(resourceContext, resourceDepot);
             //UIManager.Instance.BKScreen.OnFinalize();
             var tuple = GetVM(id);
             Layer = new GauntletLayer("BannerKingsMapView", 500);

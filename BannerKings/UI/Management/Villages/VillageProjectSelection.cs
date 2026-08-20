@@ -78,7 +78,7 @@ namespace BannerKings.UI.Management.Villages
             }
 
             foreach (Building building in from x in buildings
-                                          where x.BuildingType!.IsDailyProject
+                                          where !x.BuildingType!.IsDailyProject
                                           select x)
             {
                 VillageBuildingProjectVM VillageBuildingProjectVM = new VillageBuildingProjectVM(
@@ -87,6 +87,14 @@ namespace BannerKings.UI.Management.Villages
                     new Action(OnResetCurrentProject),
                     building,
                     bridgeSettlement);
+                // Village rows never go through the vanilla `Building` setter (the
+                // building is passed straight into the constructor above), so the
+                // Harmony postfix in the BannerKings.UI.Patches.SettlementProjectVMPatch
+                // class (in UIManager.cs) that normally
+                // fills in VisualCode for town/castle rows never runs here. Set it
+                // directly using the same lookup so village buildings get real icons
+                // instead of blank circles.
+                VillageBuildingProjectVM.VisualCode = global::BannerKings.UI.Patches.SettlementProjectVMPatch.GetProjectVisualCode(building);
                 AvailableProjects.Add(VillageBuildingProjectVM);
                 if (VillageBuildingProjectVM.Building.BuildingType.StringId == villageData.CurrentBuilding.BuildingType.StringId)
                 {
@@ -105,6 +113,10 @@ namespace BannerKings.UI.Management.Villages
                         new Action(OnResetCurrentProject),
                         building2,
                         bridgeSettlement);
+                    // Same reasoning as above: the daily-default (Production /
+                    // Farmland / Pastureland / Woodland) rows also skip the
+                    // vanilla Building setter, so set their icon directly too.
+                    VillageBuildingDailyProjectVM.VisualCode = global::BannerKings.UI.Patches.SettlementProjectVMPatch.GetProjectVisualCode(building2);
                     DailyDefaultList.Add(VillageBuildingDailyProjectVM);
                     if (VillageBuildingDailyProjectVM.Building.BuildingType.StringId ==
                         villageData.CurrentDefault.BuildingType.StringId)

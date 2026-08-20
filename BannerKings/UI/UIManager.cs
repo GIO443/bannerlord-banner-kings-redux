@@ -415,6 +415,24 @@ namespace BannerKings.UI
             [HarmonyPatch("Building", MethodType.Setter)]
             internal static void SetterPostfix(SettlementProjectVM __instance, Building value)
             {
+                __instance.VisualCode = GetProjectVisualCode(value);
+            }
+
+            // Looks up the vanilla building-icon code for a BK building/project.
+            //
+            // This is shared by two callers:
+            //  - The Harmony postfix above, which fires whenever code calls the
+            //    vanilla `Building` property setter on a SettlementProjectVM
+            //    (this is how town/castle project rows get their icons).
+            //  - VillageProjectSelectionVM.RefreshValues(), which constructs
+            //    VillageBuildingProjectVM/VillageBuildingDailyProjectVM by
+            //    passing the Building straight into the constructor. That path
+            //    never calls the `Building` setter, so the postfix above never
+            //    runs for village rows and VisualCode is left blank (empty
+            //    icon circles). Village code calls this method directly instead
+            //    so both places stay in sync from one lookup table.
+            internal static string GetProjectVisualCode(Building value)
+            {
                 var code = value != null ? value.BuildingType.StringId.ToLower() : "";
                 code = code switch
                 {
@@ -436,7 +454,7 @@ namespace BannerKings.UI
                     _ => code
                 };
 
-                __instance.VisualCode = code;
+                return code;
             }
         }
 
