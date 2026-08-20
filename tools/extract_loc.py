@@ -275,6 +275,12 @@ def read_shipped_ids(path):
     for fname in sorted(os.listdir(path)):
         if not fname.endswith(".xml") or fname == "language_data.xml":
             continue
+        # These are the two general TaleWorlds string catalogues, not BKData
+        # structural translations.  They legitimately contain a number of
+        # bk_* ids that are defined directly in C# and must not be reported as
+        # orphaned BKData rows.
+        if fname in {"common_strings.xml", "std_module_strings_xml.xml"}:
+            continue
         try:
             root = ET.parse(os.path.join(path, fname)).getroot()
         except ET.ParseError:

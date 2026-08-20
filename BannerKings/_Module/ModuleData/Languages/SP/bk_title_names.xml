@@ -1,0 +1,32 @@
+<?xml version='1.0' encoding='utf-8'?>
+<base type="string">
+  <tags>
+    <tag language="Español (LA)" />
+  </tags>
+  <strings>
+    <string id="bk_title_name_DefaultEmpire_female" text="Emperatriz" />
+    <string id="bk_title_name_DefaultEmpire_name" text="Emperador" />
+    <string id="bk_title_name_DefaultEmpire_realm" text="Imperio" />
+    <string id="bk_title_name_DefaultKing_female" text="Reina" />
+    <string id="bk_title_name_DefaultKing_name" text="Rey" />
+    <string id="bk_title_name_DefaultKing_realm" text="Reino" />
+    <string id="bk_title_name_DefaultDuke_female" text="Duquesa" />
+    <string id="bk_title_name_DefaultDuke_name" text="Duque" />
+    <string id="bk_title_name_DefaultDuke_realm" text="Ducado" />
+    <string id="bk_title_name_DefaultCount_female" text="Condesa" />
+    <string id="bk_title_name_DefaultCount_name" text="Conde" />
+    <string id="bk_title_name_DefaultCount_realm" text="Condado" />
+    <string id="bk_title_name_DefaultBaron_female" text="Baronesa" />
+    <string id="bk_title_name_DefaultBaron_name" text="Barón" />
+    <string id="bk_title_name_DefaultBaron_realm" text="Baronía" />
+    <string id="bk_title_name_DefaultLord_female" text="Señora" />
+    <string id="bk_title_name_DefaultLord_name" text="Señor" />
+    <string id="bk_title_name_DefaultLord_realm" text="Señorío" />
+    <string id="bk_title_name_DefaultPrince_female" text="Princesa" />
+    <string id="bk_title_name_DefaultPrince_name" text="Príncipe" />
+    <string id="bk_title_name_DefaultPrince_realm" text="Príncipes" />
+    <string id="bk_title_name_DefaultKnight_female" text="Dama" />
+    <string id="bk_title_name_DefaultKnight_name" text="Caballero" />
+    <string id="bk_title_name_DefaultKnight_realm" text="Caballeros" />
+  </strings>
+</base>

@@ -1,0 +1,59 @@
+<?xml version='1.0' encoding='utf-8'?>
+<base type="string">
+  <tags>
+    <tag language="Español (LA)" />
+  </tags>
+  <strings>
+    <string id="bk_succession_AseraiElective_candidates_text" text="- Heredero del gobernante actual&#10;- Cualquier líder de clan con nobleza plena" />
+    <string id="bk_succession_AseraiElective_description" text="La sucesión nahasawi prima la prosperidad económica del reino, pues el comercio es la sangre que mantiene vivos a los clanes nahasa. Para los aserai, un líder fuerte debe ser valiente, para derrotar a sus enemigos, y generoso, para ganarse el afecto de quienes están bajo su protección. Además, siguiendo las tradiciones de Banu Asera, los nahasawi valoran la integridad religiosa y la inclinación erudita de su líder; en otras palabras, que comprenda y busque la Verdad. Un líder necio no es peor que uno cobarde." />
+    <string id="bk_succession_AseraiElective_name" text="Electiva nahasawi" />
+    <string id="bk_succession_AseraiElective_score_text" text="++ Habilidades&#10;++ Poder militar&#10;+ Nivel de clan&#10;+ Puntuación de herencia (para herederos del clan)" />
+    <string id="bk_succession_Dictatorship_candidates_text" text="- Candidatos a la herencia del gobernante actual&#10;- Reclamantes del título&#10;- Cualquiera capaz de dirigir un ejército (mariscales y legados)" />
+    <string id="bk_succession_Dictatorship_description" text="Las sucesiones imperiales quedan por completo a discreción del emperador o la emperatriz, que elige entre los miembros más capaces de su familia y otros jefes de familia. La sucesión imperial valora la edad, el prestigio familiar y las aptitudes militares y administrativas. No se celebra ninguna elección." />
+    <string id="bk_succession_Dictatorship_name" text="Dictadura" />
+    <string id="bk_succession_Dictatorship_score_text" text="++ Puntuación de herencia (para herederos del clan)&#10;+ Reclamación de título&#10;+ Habilidades" />
+    <string id="bk_succession_Imperial_candidates_text" text="- Candidatos a la herencia del gobernante actual&#10;- Reclamantes del título&#10;- Cualquier líder de clan capaz de dirigir un ejército (mariscales y legados)" />
+    <string id="bk_succession_Imperial_description" text="Las sucesiones imperiales, aunque no son electivas, pueden resultar muy inciertas." />
+    <string id="bk_succession_Imperial_name" text="Imperial" />
+    <string id="bk_succession_Imperial_score_text" text="++ Puntuación de herencia (para herederos del clan)&#10;++ Límite de influencia&#10;+ Reclamación de título&#10;+ Habilidades" />
+    <string id="bk_succession_Hereditary_candidates_text" text="- Candidatos a la herencia del gobernante actual&#10;- Reclamantes del título&#10;- Cualquiera con título de duque o superior (si no hay al menos 3 candidatos)" />
+    <string id="bk_succession_Hereditary_description" text="En las monarquías hereditarias, el monarca siempre encabeza la dinastía gobernante. No se celebran elecciones y el reino no cambia de dirigente salvo que se adopten medidas extraordinarias." />
+    <string id="bk_succession_Hereditary_name" text="Monarquía hereditaria" />
+    <string id="bk_succession_Hereditary_score_text" text="+++ Puntuación de herencia (para herederos del clan)&#10;++ Reclamación de título&#10;+ Nivel de clan" />
+    <string id="bk_succession_Republic_candidates_text" text="- Cualquier líder de clan con nobleza plena" />
+    <string id="bk_succession_Republic_description" text="Las sucesiones republicanas impiden que el poder se concentre. Cada año se elige a un nuevo gobernante entre las dinastías del reino, y el gobernante anterior tiene terminantemente prohibido participar. En los candidatos se valoran la edad, el prestigio familiar y las aptitudes administrativas." />
+    <string id="bk_succession_Republic_name" text="Republicana" />
+    <string id="bk_succession_Republic_score_text" text="+++ Rasgos políticos&#10;++ Nivel de clan&#10;++ Habilidades&#10;+ Edad" />
+    <string id="bk_succession_TheocraticElective_candidates_text" text="- Cualquier líder de clan que comparta la fe del gobernante actual" />
+    <string id="bk_succession_TheocraticElective_name" text="Electiva teocrática" />
+    <string id="bk_succession_TheocraticElective_score_text" text="++ Piedad&#10;++ Virtudes&#10;++ Fanatismo&#10;+ Habilidades&#10;+ Nivel de clan" />
+    <string id="bk_succession_BattanianElective_candidates_text" text="- Candidatos a la herencia del gobernante actual&#10;- Cualquier líder de un clan de nivel 3 o superior" />
+    <string id="bk_succession_BattanianElective_description" text="La sucesión battaniana se basa tradicionalmente en el renombre. Caladog fen Gruffendoc es una excepción notoria: aprovechó su estrecha relación con el anterior Gran Rey, Aeril fen Uthelhain, para unir tras de sí a las casas tradicionales. Aun así, perdura la tradición de líderes fuertes y célebres: los battanianos conceden poca importancia a «argumentos jurídicos» como las reclamaciones y, en cambio, respetan la fuerza y el nombre. Por lo general prefieren a los familiares del gobernante, pero los apartan enseguida cuando aparece una opción más fuerte." />
+    <string id="bk_succession_BattanianElective_name" text="Electiva battaniana" />
+    <string id="bk_succession_BattanianElective_score_text" text="+++ Nivel de clan&#10;++ Habilidades&#10;+ Puntuación de herencia (para herederos del clan)&#10;+ Poder militar" />
+    <string id="bk_succession_FeudalElective_candidates_text" text="- Candidatos a la herencia del gobernante actual&#10;- Reclamantes del título&#10;- Cualquiera con título de conde o superior y un clan de nivel 5 o superior" />
+    <string id="bk_succession_FeudalElective_description" text="La sucesión electiva feudal es un compromiso entre una monarquía hereditaria y otra plenamente electiva. Los pares emiten sus votos, pero los principales candidatos pertenecen a la familia del gobernante anterior. También se tienen en cuenta los reclamantes del título y, si hay pocos candidatos, las familias poderosas del reino. Si se elige a un heredero de la familia del anterior gobernante, este heredará el clan con independencia de las leyes de herencia." />
+    <string id="bk_succession_FeudalElective_name" text="Electiva feudal" />
+    <string id="bk_succession_FeudalElective_score_text" text="+++ Puntuación de herencia (para herederos del clan)&#10;++ Reclamación de título&#10;Límite de influencia&#10;+ Nivel de clan&#10;+ Habilidades" />
+    <string id="bk_succession_TribalElective_candidates_text" text="- Candidatos a la herencia del gobernante actual&#10;- Reclamantes del título&#10;- Cualquiera con título de conde o superior y un clan de nivel 5 o superior" />
+    <string id="bk_succession_TribalElective_description" text="La sucesión tribal electiva describe una forma general de sucesión propia de las culturas no feudales y no imperiales de Calradia. Estas tradiciones conceden poca importancia a la herencia dinástica y ninguna a formalidades jurídicas como las reclamaciones. En cambio, respetan a los líderes fuertes y capaces, en especial a quienes pertenecen a linajes célebres, pues son esa clase de gobernantes quienes pueden unir a tribus rivales que, de otro modo, se destruirían entre sí." />
+    <string id="bk_succession_TribalElective_name" text="Electiva tribal" />
+    <string id="bk_succession_TribalElective_score_text" text="++ Habilidades&#10;++ Poder militar&#10;+ Nivel de clan&#10;+ Puntuación de herencia (para herederos del clan)" />
+    <string id="bk_succession_WilundingElective_candidates_text" text="- Candidatos a la herencia del gobernante actual&#10;- Reclamantes del título&#10;- Cualquiera con título de duque o superior (si no hay al menos 3 candidatos)" />
+    <string id="bk_succession_WilundingElective_description" text="La sucesión wilundinga es la práctica tradicional que los pueblos wilunding, también conocidos como vlandianos, trajeron de su patria ancestral. Da prioridad a los herederos de la dinastía gobernante, pero, si no existe un candidato adecuado, legitima a quienes poseen reclamaciones sólidas y a los señores poderosos." />
+    <string id="bk_succession_WilundingElective_name" text="Electiva wilundinga" />
+    <string id="bk_succession_WilundingElective_score_text" text="++ Puntuación de herencia (para herederos del clan)&#10;++ Poder militar&#10;+ Nivel de clan&#10;+ Reclamación de título&#10;+ Liderazgo" />
+    <string id="bk_succession_ShogunalHereditary_candidates_text" text="- Candidatos a la herencia del Shōgun actual&#10;- Reclamantes del título&#10;- Herederos adoptivos del clan gobernante" />
+    <string id="bk_succession_ShogunalHereditary_description" text="El cargo de Shōgun pasa de padre a hijo dentro de la casa gobernante del bakufu. La corte imperial de Kioto inviste formalmente a cada nuevo Shōgun, pero el linaje está fijado —Minamoto, después Ashikaga y después Tokugawa—, y un clan que pierde el cargo rara vez lo recupera. Se reconoce la adopción dentro del linaje, pero la decisión corresponde a los ancianos de la casa, no al conjunto del reino." />
+    <string id="bk_succession_ShogunalHereditary_name" text="Sucesión hereditaria shogunal" />
+    <string id="bk_succession_ShogunalHereditary_score_text" text="+++ Puntuación de herencia (para herederos del clan)&#10;++ Reclamación de título&#10;+ Nivel de clan" />
+    <string id="bk_succession_DaimyoElective_candidates_text" text="- Candidatos a la herencia del daimyō actual&#10;- Reclamantes del título&#10;- Karō de alto rango cuyo clan sea de nivel 5 o superior" />
+    <string id="bk_succession_DaimyoElective_description" text="Cuando un daimyō muere, los vasallos principales del clan —sus karō— se reúnen para aclamar a un sucesor. La primera opción es el heredero elegido por el daimyō, pero un menor demasiado joven para dirigir una guerra puede ser apartado en favor de un hermano de armas adoptado, un yerno o incluso un vasallo principal incorporado al linaje familiar. Por tanto, la sucesión es hereditaria en su intención y electiva en la práctica." />
+    <string id="bk_succession_DaimyoElective_name" text="Electiva del daimyō" />
+    <string id="bk_succession_DaimyoElective_score_text" text="+++ Puntuación de herencia (para herederos del clan)&#10;++ Reclamación de título&#10;++ Límite de influencia&#10;+ Nivel de clan&#10;+ Habilidades" />
+    <string id="bk_succession_IkkoConfederation_candidates_text" text="- Candidatos a la herencia del Monshu actual&#10;- Cualquier líder de clan de fe shin cuyo clan sea de nivel 4 o superior" />
+    <string id="bk_succession_IkkoConfederation_description" text="Los Ikkō-Ikki no reconocen más soberano temporal que el Monshu, cabeza hereditaria del linaje Honganji y descendiente de Shinran. Cuando el Monshu nombra a un sucesor, se espera que los kō —las ligas de campesinos, ji-samurái y sacerdotes laicos— lo ratifiquen. En la práctica, el cargo se transmite dentro del linaje Honganji; en teoría, la comunidad puede rechazar al sucesor, y en momentos de crisis así ha ocurrido." />
+    <string id="bk_succession_IkkoConfederation_name" text="Confederación Ikkō" />
+    <string id="bk_succession_IkkoConfederation_score_text" text="++ Piedad&#10;++ Virtudes&#10;++ Fanatismo&#10;+ Nivel de clan&#10;+ Habilidades" />
+  </strings>
+</base>

@@ -1,0 +1,14 @@
+<?xml version='1.0' encoding='utf-8'?>
+<base type="string">
+  <tags>
+    <tag language="Español (LA)" />
+  </tags>
+  <strings>
+    <string id="bk_inheritance_Primogeniture_description" text="La herencia por primogenitura da prioridad a los hijos del difunto, del mayor al menor. Que se elija al hijo o a la hija primogénitos depende de la ley de género vigente." />
+    <string id="bk_inheritance_Primogeniture_name" text="Primogenitura" />
+    <string id="bk_inheritance_Ultimogeniture_description" text="La herencia por ultimogenitura da prioridad a los hijos del difunto, del menor al mayor. Que se elija al hijo o a la hija de menor edad depende de la ley de género vigente." />
+    <string id="bk_inheritance_Ultimogeniture_name" text="Ultimogenitura" />
+    <string id="bk_inheritance_Seniority_description" text="La herencia por antigüedad no da prioridad a ningún miembro concreto de la casa. El criterio principal es la edad, por lo que los miembros de la casa sin vínculos de sangre pueden tener prioridad sobre los hijos o los parientes cercanos. Que se elija al hombre o a la mujer de mayor edad depende de la ley de género vigente." />
+    <string id="bk_inheritance_Seniority_name" text="Antigüedad" />
+  </strings>
+</base>

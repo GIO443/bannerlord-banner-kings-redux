@@ -1,0 +1,14 @@
+<?xml version='1.0' encoding='utf-8'?>
+<base type="string">
+  <tags>
+    <tag language="Español (LA)" />
+  </tags>
+  <strings>
+    <string id="bk_war_doctrine_OpenWarfare_description" text="La doctrina de la Guerra Abierta respalda ambas formas generales de guerra santa: la guerra santa expansionista y la de recuperación. Se declaran guerras expansionistas contra los enemigos de la fe, mientras que las guerras de recuperación tienen como objetivo los lugares sagrados de la fe. Declarar una guerra santa requiere un líder religioso." />
+    <string id="bk_war_doctrine_OpenWarfare_name" text="Guerra abierta" />
+    <string id="bk_war_doctrine_Reclamation_description" text="Reclamation Warfare respalda las guerras santas de recuperación. Las guerras de recuperación están dirigidas a lugares sagrados o al lugar de fe de tu fe, y pueden usarse siempre que los enemigos de la fe las controlen. Declarar una guerra santa requiere un líder religioso." />
+    <string id="bk_war_doctrine_Reclamation_name" text="Guerra de recuperación" />
+    <string id="bk_war_doctrine_NoWarfare_description" text="La Guerra Prohibida no permite que la fe declare ningún tipo de guerras santas." />
+    <string id="bk_war_doctrine_NoWarfare_name" text="Guerra prohibida" />
+  </strings>
+</base>

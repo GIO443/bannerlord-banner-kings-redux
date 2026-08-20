@@ -1,0 +1,199 @@
+<?xml version='1.0' encoding='utf-8'?>
+<base type="string">
+  <tags>
+    <tag language="Español (LA)" />
+  </tags>
+  <strings>
+    <string id="bk_divinity_iovis_description" text="Iovis es el Alto Padre del panteón imperial, gobernante del cielo brillante y dador de leyes. El Imperio lo mantiene supremo por encima de los dioses mayores de la conquistada Calradia." />
+    <string id="bk_divinity_iovis_effects" text="Otorga inspiración marcial temporal: ganancias en liderazgo y tácticas." />
+    <string id="bk_divinity_iovis_epithet" text="Padre-cielo" />
+    <string id="bk_divinity_iovis_lore" text="Iovis es la ley que mantiene unido al Imperio. Sin su mano las ciudades arderían y las fronteras se desmoronarían." />
+    <string id="bk_divinity_iovis_name" text="Iovis" />
+    <string id="bk_divinity_iovis_prayer" text="Rezadle antes del juicio, antes de la batalla, antes de cualquier juramento que deba durar más que vosotros." />
+    <string id="bk_divinity_astaronia_description" text="Astaronia, novia de Iovis, es la Madre de Calradia. Se la honra en el equinoccio de otoño como fuente de cosecha, fertilidad y hogar." />
+    <string id="bk_divinity_astaronia_effects" text="Impulso a la lealtad del feudo y la fortuna de tener hijos para el hogar." />
+    <string id="bk_divinity_astaronia_epithet" text="Madre de la abundancia" />
+    <string id="bk_divinity_astaronia_lore" text="Astaronia adoptó a los hijos de todos los pueblos a los que llegó el Imperio. Para ella, ningún campo es extraño y ninguna cuna está vacía." />
+    <string id="bk_divinity_astaronia_name" text="Astaronia" />
+    <string id="bk_divinity_astaronia_prayer" text="Se le ofrece grano, vino y las primicias de cada estación." />
+    <string id="bk_divinity_darusos_description" text="Darusos es el santo guerrero de las legiones del sur, el verdugo de los traidores y patrón del edicto de mano de hierro." />
+    <string id="bk_divinity_darusos_effects" text="Otorga concentración en combate y una bonificación de renombre por ejecuciones justas." />
+    <string id="bk_divinity_darusos_epithet" text="Santo de hierro" />
+    <string id="bk_divinity_darusos_lore" text="Darusos caminó entre las legiones y derrotó a emperadores infieles con su propia mano. Él es la parte de la fe que temen los rebeldes." />
+    <string id="bk_divinity_darusos_name" text="Darusos" />
+    <string id="bk_divinity_darusos_prayer" text="Donde la ley no puede llegar, el santo llegará." />
+    <string id="bk_divinity_caion_description" text="Caïon es el Gran Señor de los Cánticos, quien ata los juramentos y corona a los reyes. La fe vlandica lo mantiene supremo." />
+    <string id="bk_divinity_caion_effects" text="Aumento de la influencia del clan y la fuerza del juramento." />
+    <string id="bk_divinity_caion_epithet" text="Coronador" />
+    <string id="bk_divinity_caion_lore" text="Caïon es el aliento detrás de cada coronación. Su mano fija la diadema, y ​​sólo su mano puede quitarla." />
+    <string id="bk_divinity_caion_name" text="Caión" />
+    <string id="bk_divinity_caion_prayer" text="Rompe un juramento y Caïon se alejará de ti para siempre." />
+    <string id="bk_divinity_marcosus_description" text="Marcosus es el santo guerrero de la lanza, patrón de todos los caballeros que cabalgan bajo el estandarte de Vlandic." />
+    <string id="bk_divinity_marcosus_effects" text="Bonificaciones de combate por cargas montadas; recompensa de renombre por las victorias en torneos." />
+    <string id="bk_divinity_marcosus_epithet" text="Lanza-San" />
+    <string id="bk_divinity_marcosus_lore" text="Marcosus cabalgó a través de trescientos enemigos para recuperar el estandarte. La lanza que llevas es su regalo." />
+    <string id="bk_divinity_marcosus_name" text="marcoso" />
+    <string id="bk_divinity_marcosus_prayer" text="Que tu silla nunca se vacíe y tu estandarte nunca caiga." />
+    <string id="bk_divinity_belisaria_description" text="Belisaria es la dama santa del hogar, madre de los herederos de Caïon y protectora de las viudas." />
+    <string id="bk_divinity_belisaria_effects" text="Mayor probabilidad de fertilidad y menor malus de duelo del cónyuge." />
+    <string id="bk_divinity_belisaria_epithet" text="dama del hogar" />
+    <string id="bk_divinity_belisaria_lore" text="Se canta a Belisaria en todos los salones de bodas de Vlandia. Ella bendice el lecho nupcial y el hogar que le sigue." />
+    <string id="bk_divinity_belisaria_name" text="belisaria" />
+    <string id="bk_divinity_belisaria_prayer" text="Ella mira a los niños que nadie más mira." />
+    <string id="bk_divinity_reginus_description" text="Regino es el santo de la palabra jurada: guardián de los contratos, juez de los perjuros." />
+    <string id="bk_divinity_reginus_effects" text="Reducción de la pérdida de relación al rescindir los contratos de forma honorable." />
+    <string id="bk_divinity_reginus_epithet" text="Guardián de la palabra" />
+    <string id="bk_divinity_reginus_lore" text="Reginus une al señor y al vasallo en la misma cadena. Ambos están atados; Ninguno de los dos puede soltarse." />
+    <string id="bk_divinity_reginus_name" text="Regino" />
+    <string id="bk_divinity_reginus_prayer" text="Habla con sinceridad y Reginus hablará por ti." />
+    <string id="bk_divinity_perkos_description" text="Pérkos es el portador del trueno de las religiones de las tierras altas. Su hacha rompió el Gran Roble y de su savia floreció la humanidad." />
+    <string id="bk_divinity_perkos_effects" text="Impulso de combate en tormentas; Bonificación de renombre del clan por la victoria en el duelo." />
+    <string id="bk_divinity_perkos_epithet" text="Portador del trueno" />
+    <string id="bk_divinity_perkos_lore" text="Pérkos gobierna el dosel donde se acumulan las nubes de tormenta. Cuando golpea el roble, el mundo recuerda que tiene raíces." />
+    <string id="bk_divinity_perkos_name" text="Pérkos" />
+    <string id="bk_divinity_perkos_prayer" text="Ofrécele tu espada y la tormenta no se volverá contra ti." />
+    <string id="bk_divinity_mathair_description" text="Máthair es la madera madre de los bosques de Battania, que teje y desteje las estaciones." />
+    <string id="bk_divinity_mathair_effects" text="Mayor crecimiento de los hogares de las aldeas; la superficie de pastos produce más." />
+    <string id="bk_divinity_mathair_epithet" text="Madera-Madre" />
+    <string id="bk_divinity_mathair_lore" text="Máthair camina bajo el dosel donde van a morir los ciervos. Hable en voz baja y ella podrá responder." />
+    <string id="bk_divinity_mathair_name" text="Mathair" />
+    <string id="bk_divinity_mathair_prayer" text="Ella da, toma y vuelve a dar." />
+    <string id="bk_divinity_iarnan_description" text="Iarnan es el espíritu herrero que enseñó a los Fians a sacar hierro del pantano y convertirlo en una espada." />
+    <string id="bk_divinity_iarnan_effects" text="Bonificaciones de elaboración; Reducciones de costos por niveles en la herrería." />
+    <string id="bk_divinity_iarnan_epithet" text="Herrero del pantano" />
+    <string id="bk_divinity_iarnan_lore" text="Cada espada extraída del lynn es el regalo de Iarnan." />
+    <string id="bk_divinity_iarnan_name" text="Iarnan" />
+    <string id="bk_divinity_iarnan_prayer" text="Hónralo y tu fragua no te fallará." />
+    <string id="bk_divinity_eilean_description" text="Eilean es el espíritu de los lynns sagrados, puerta de entrada entre el mundo visible y el inframundo de los antepasados." />
+    <string id="bk_divinity_eilean_effects" text="Velocidad de curación; recuperarse de la enfermedad más rápido." />
+    <string id="bk_divinity_eilean_epithet" text="dama de las aguas" />
+    <string id="bk_divinity_eilean_lore" text="Las piscinas que ella vigila no son para beber. Los muertos beben allí y escuchan." />
+    <string id="bk_divinity_eilean_name" text="eilean" />
+    <string id="bk_divinity_eilean_prayer" text="Introduce una espada, nunca saques una." />
+    <string id="bk_divinity_akhmar_description" text="Akhmar es el Altísimo, el Sol sobre Todo, soberano del cielo del desierto. Los Aserai no conocen otro." />
+    <string id="bk_divinity_akhmar_effects" text="Aumentan los beneficios de las caravanas comerciales; Reducción del riesgo de interceptación de bandidos durante el viaje." />
+    <string id="bk_divinity_akhmar_epithet" text="El Altísimo" />
+    <string id="bk_divinity_akhmar_lore" text="Akhmar está solo en el cielo y el cielo es suficiente. Di su nombre y el camino se abre." />
+    <string id="bk_divinity_akhmar_name" text="Ajmar" />
+    <string id="bk_divinity_akhmar_prayer" text="Sométete a él y no necesitarás ningún otro patrón." />
+    <string id="bk_divinity_tengri_description" text="Tengri es el Padre Cielo de la estepa, eterno azul en lo alto, otorgador de fortuna en la guerra." />
+    <string id="bk_divinity_tengri_effects" text="Bonificación de combate montado; Aumento de la moral del partido en el mapa abierto." />
+    <string id="bk_divinity_tengri_epithet" text="Cielo eterno" />
+    <string id="bk_divinity_tengri_lore" text="Tengri es la tapa del cielo que toca cada estandarte. Mientras él observa, ningún khan viaja solo." />
+    <string id="bk_divinity_tengri_name" text="tengri" />
+    <string id="bk_divinity_tengri_prayer" text="Rezale al amanecer, cabalga duro al mediodía, duerme debajo de él por la noche." />
+    <string id="bk_divinity_etugen_description" text="Etugen es la Madre Tierra, el manto verde que Tengri colocó para que pastaran los rebaños." />
+    <string id="bk_divinity_etugen_effects" text="Aumento del rendimiento de la superficie de pastos; el número de ganado crece más rápido." />
+    <string id="bk_divinity_etugen_epithet" text="Madre Tierra" />
+    <string id="bk_divinity_etugen_lore" text="Etugen es todo lo que hay debajo del casco. Ella no habla, ella nutre." />
+    <string id="bk_divinity_etugen_name" text="Etugen" />
+    <string id="bk_divinity_etugen_prayer" text="Entierra en ella tus deseos y ella responderá en la hierba." />
+    <string id="bk_divinity_sulde_description" text="Sülde es el estandarte espiritual de la hueste, encarnado en la enseña de colas de caballo que cada kan planta antes de la batalla." />
+    <string id="bk_divinity_sulde_effects" text="Bonificación de moral de batalla cuando te superan en número; recompensa de influencia por victorias aplastantes." />
+    <string id="bk_divinity_sulde_epithet" text="Espíritu de estandarte" />
+    <string id="bk_divinity_sulde_lore" text="Sülde cabalga a la cabeza de cada banda de guerra. Mientras el estandarte esté en pie, la banda de guerra está viva." />
+    <string id="bk_divinity_sulde_name" text="sulde" />
+    <string id="bk_divinity_sulde_prayer" text="Si cae el estandarte, corre más rápido que tu vergüenza." />
+    <string id="bk_divinity_asra_description" text="Asra es el nombre colectivo de los ancestros de la estepa, que cabalgan en el polvo levantado por la hueste de los vivos." />
+    <string id="bk_divinity_asra_effects" text="Bonificación de piedad en los funerales de los ancianos del clan; ganancia de relación con clanes de la misma cultura." />
+    <string id="bk_divinity_asra_epithet" text="Jinetes detrás" />
+    <string id="bk_divinity_asra_lore" text="Los muertos cabalgan a nuestras espaldas. Nos mantienen honestos porque no se les puede mentir." />
+    <string id="bk_divinity_asra_name" text="Asra" />
+    <string id="bk_divinity_asra_prayer" text="Vierta la primera taza en el polvo antes de beber." />
+    <string id="bk_divinity_frydan_description" text="Frydan es el guardián del largo invierno, que evita que el frío del lobo destruya las casas." />
+    <string id="bk_divinity_frydan_effects" text="Reducción de las penalizaciones por alimentos y moral durante la temporada de invierno." />
+    <string id="bk_divinity_frydan_epithet" text="Guardián de invierno" />
+    <string id="bk_divinity_frydan_lore" text="Frydan mantiene la puerta cerrada contra la estación oscura. Hónralo antes de que llegue la nieve." />
+    <string id="bk_divinity_frydan_name" text="fridan" />
+    <string id="bk_divinity_frydan_prayer" text="Una pila de leña es la oración más verdadera." />
+    <string id="bk_divinity_matr_description" text="Mátr es la madre del hogar de la casa comunal, poseedora tanto de la olla de caldo como de la cuna." />
+    <string id="bk_divinity_matr_effects" text="Mayor fertilidad; reducción de la mortalidad por enfermedades infantiles." />
+    <string id="bk_divinity_matr_epithet" text="Madre del hogar" />
+    <string id="bk_divinity_matr_lore" text="Mátr es el calor en el centro de la casa de invierno. Mientras ella mantiene su lugar, la familia perdura." />
+    <string id="bk_divinity_matr_name" text="matr" />
+    <string id="bk_divinity_matr_prayer" text="Ella escucha la cuna incluso cuando nadie más lo hace." />
+    <string id="bk_divinity_vethari_description" text="Los Vethari son los ancestros nombrados de la fe de los Dioses Antiguos: cada clan mantiene una lista y cada lista se lee en pleno invierno." />
+    <string id="bk_divinity_vethari_effects" text="Ganancia de renombre en los funerales; piedad al continuar una línea familiar." />
+    <string id="bk_divinity_vethari_epithet" text="Los muertos nombrados" />
+    <string id="bk_divinity_vethari_lore" text="Los Vethari no se han ido. Se sientan junto al fuego mientras cuentas sus historias." />
+    <string id="bk_divinity_vethari_name" text="vethari" />
+    <string id="bk_divinity_vethari_prayer" text="Olvídalos y ellos también te olvidarán." />
+    <string id="bk_divinity_hreinwald_description" text="Hreinwald es el Rey del Mar de Nordvyg, señor de las aguas grises, patrón del drakkar y del cuervo de proa." />
+    <string id="bk_divinity_hreinwald_effects" text="Moral de combate naval; bonificación por manipulación de buques; piedad en las incursiones exitosas." />
+    <string id="bk_divinity_hreinwald_epithet" text="Rey del Mar" />
+    <string id="bk_divinity_hreinwald_lore" text="Hreinwald gobierna donde la quilla toca las profundidades. Ningún juramento hecho sobre la ola se rompe sin su aviso." />
+    <string id="bk_divinity_hreinwald_name" text="Hreinwald" />
+    <string id="bk_divinity_hreinwald_prayer" text="Vierte agua de mar sobre la proa antes de zarpar." />
+    <string id="bk_divinity_skoll_description" text="Skǫll es el Lobo de las Profundidades, que sigue al drakkar tras su estela. Se alimenta del miedo de aquellos a cuya orilla llegas." />
+    <string id="bk_divinity_skoll_effects" text="Botín de bonificación en incursiones; Pena reducida en las relaciones por saquear aldeas." />
+    <string id="bk_divinity_skoll_epithet" text="Lobo de las profundidades" />
+    <string id="bk_divinity_skoll_lore" text="Skǫll no bendice al hombre que nunca navega. Él es para los que siguen la proa." />
+    <string id="bk_divinity_skoll_name" text="habilidad" />
+    <string id="bk_divinity_skoll_prayer" text="Aliméntelo antes de que decida alimentarse solo." />
+    <string id="bk_divinity_amaterasu_description" text="Amaterasu es la Diosa del Sol y kami gobernante de la Llanura Celestial. De su línea desciende la Casa Imperial, y de su luz madura el arroz cada otoño." />
+    <string id="bk_divinity_amaterasu_effects" text="Otorga enfoque de liderazgo y un bono de lealtad para todo el hogar." />
+    <string id="bk_divinity_amaterasu_epithet" text="Resplandeciente del cielo" />
+    <string id="bk_divinity_amaterasu_lore" text="Retira el sol y el mundo se acaba. Amaterasu se escondió en la cueva una vez y los propios kami tuvieron que convencerla de salir con un espejo y un baile. La línea imperial no se ha roto porque su nieto renunció para gobernarla." />
+    <string id="bk_divinity_amaterasu_name" text="Amaterasu Ōmikami" />
+    <string id="bk_divinity_amaterasu_prayer" text="Reza a ella en el santuario de la casa antes de cualquier juramento que te sobreviva." />
+    <string id="bk_divinity_hachiman_description" text="Hachiman es el kami de guerra del arco y la flecha, patrón de los samuráis, guardián divino de la línea Minamoto. Ningún daimyō viaja a la batalla sin un estandarte de Hachiman cerca del campamento de guerra." />
+    <string id="bk_divinity_hachiman_effects" text="Bonificación de combate cuando te superan en número; recompensa de renombre por la victoria del duelo." />
+    <string id="bk_divinity_hachiman_epithet" text="dios de la guerra" />
+    <string id="bk_divinity_hachiman_lore" text="Hachiman camina entre las casas de los guerreros. Sus santuarios están dondequiera que se reúnan los arqueros; su estandarte ondea a la cabeza de cada hueste samurái." />
+    <string id="bk_divinity_hachiman_name" text="hachiman" />
+    <string id="bk_divinity_hachiman_prayer" text="Inclínate una vez ante él antes de tensar el arco contra otro." />
+    <string id="bk_divinity_inari_description" text="Inari es el kami del arroz, el sake, la prosperidad y el zorro blanco. Cada santuario de aldea y cada dintel de comerciante lleva las puertas bermellones de Inari." />
+    <string id="bk_divinity_inari_effects" text="Mayor crecimiento de los hogares de las aldeas; Aumentan los beneficios de las caravanas comerciales." />
+    <string id="bk_divinity_inari_epithet" text="Portador de arroz" />
+    <string id="bk_divinity_inari_lore" text="Por donde pasan los zorros de Inari, el arroz crece. Los comerciantes preparan sake antes de abrir la tienda; Los pueblos ofrecen el primer arroz cocido del año." />
+    <string id="bk_divinity_inari_name" text="Inari Ōkami" />
+    <string id="bk_divinity_inari_prayer" text="Deja un platillo en la puerta y el almacén quedará lleno." />
+    <string id="bk_divinity_susanoo_description" text="Susanoo es el Storm-kami, hermano de Amaterasu, asesino de la serpiente de ocho cabezas Yamata-no-Orochi de cuya cola sacó la espada que fundó las insignias imperiales." />
+    <string id="bk_divinity_susanoo_effects" text="Impulso de combate en tormentas; piedad extra por victorias aplastantes." />
+    <string id="bk_divinity_susanoo_epithet" text="Hermano Tormenta" />
+    <string id="bk_divinity_susanoo_lore" text="Susanoo fue desterrado del cielo por su temperamento y se ganó su redención en la tierra, matando a la serpiente a la que ningún kami de arriba se enfrentaría. La espada que sacó de su cola es uno de los tres tesoros sagrados." />
+    <string id="bk_divinity_susanoo_name" text="Susanoo-no-Mikoto" />
+    <string id="bk_divinity_susanoo_prayer" text="El trabajo bendecido por la tormenta termina cuando llega la tormenta." />
+    <string id="bk_divinity_tsukuyomi_description" text="Tsukuyomi es el kami de la luna, el segundo hijo de los tres nobles. Él gobierna la noche frente al día de su hermana, y no se han mirado desde el asesinato de Uke Mochi." />
+    <string id="bk_divinity_tsukuyomi_epithet" text="contador lunar" />
+    <string id="bk_divinity_tsukuyomi_lore" text="Tsukuyomi marca las mareas, los meses y las vigilias nocturnas. Su rostro se aparta del de su hermana debido a una vieja ofensa que los propios kami no nombrarán." />
+    <string id="bk_divinity_tsukuyomi_name" text="Tsukuyomi-no-Mikoto" />
+    <string id="bk_divinity_tsukuyomi_prayer" text="Los viajes nocturnos son suyos para bendecirlos o negarlos." />
+    <string id="bk_divinity_shakyamuni_description" text="Shakyamuni es el Buda histórico, el príncipe del clan Shakya que abandonó su palacio, despertó bajo el árbol bodhi y dio la enseñanza que fundó todas las escuelas del Dharma." />
+    <string id="bk_divinity_shakyamuni_effects" text="La sabiduría produce piedad; terminar proyectos educativos produce piedad y Teología." />
+    <string id="bk_divinity_shakyamuni_epithet" text="El despierto" />
+    <string id="bk_divinity_shakyamuni_lore" text="Las enseñanzas de Shakyamuni son más antiguas que cualquier templo. Cada escuela budista en Japón, ya sea que lea el Loto o se siente en zazen, remonta su linaje a su primer sermón." />
+    <string id="bk_divinity_shakyamuni_name" text="Shakyamuni" />
+    <string id="bk_divinity_shakyamuni_prayer" text="El Dharma se escucha una vez y se recuerda para siempre." />
+    <string id="bk_divinity_amida_description" text="Amida es el Buda de la Luz Infinita, soberano de la Tierra Pura de Occidente. Su voto original promete renacer allí a cualquiera que invoque su nombre con fe sincera." />
+    <string id="bk_divinity_amida_effects" text="Malus reducido del duelo del cónyuge; piedad por la muerte de miembros de la familia nombrados con el Nembutsu." />
+    <string id="bk_divinity_amida_epithet" text="Buda de la Luz Infinita" />
+    <string id="bk_divinity_amida_lore" text="El voto de Amida es la puerta abierta. Seis sílabas – Namu Amida Butsu – y la puerta no se cierra. Los fieles de Shin no necesitan otra práctica." />
+    <string id="bk_divinity_amida_name" text="Amida Nyorai" />
+    <string id="bk_divinity_amida_prayer" text="Di el nombre y el nombre te llevará." />
+    <string id="bk_divinity_dainichi_description" text="Dainichi es el Gran Buda Sol, el Buda cósmico cuyo cuerpo es el universo mismo. La escuela Shingon enseña que todos los demás Budas son aspectos de él." />
+    <string id="bk_divinity_dainichi_effects" text="Las innovaciones culturales se desarrollan más rápido (cuando Cultural Head); bono de piedad beca." />
+    <string id="bk_divinity_dainichi_epithet" text="Gran Buda Sol" />
+    <string id="bk_divinity_dainichi_lore" text="Dainichi no se ve porque todo es Dainichi. El mandala es su cuerpo acostado; los mantras son su discurso; los mudras son sus manos moviéndose por el mundo." />
+    <string id="bk_divinity_dainichi_name" text="Dainichi Nyorai" />
+    <string id="bk_divinity_dainichi_prayer" text="Traza el mandala y el cosmos contigo." />
+    <string id="bk_divinity_bodhidharma_description" text="Bodhidharma es el patriarca que trajo el Chan –Zen– desde las tierras occidentales a la corte Tang y luego al muro silencioso donde permaneció nueve años." />
+    <string id="bk_divinity_bodhidharma_effects" text="Bonificación de concentración en combate; Pérdida de moral reducida en campañas prolongadas." />
+    <string id="bk_divinity_bodhidharma_epithet" text="Observador de la pared" />
+    <string id="bk_divinity_bodhidharma_lore" text="Bodhidharma le dijo al emperador que no había ningún mérito en sus templos. Estuvo nueve años sentado frente a una pared. El muro, al final, fue la respuesta." />
+    <string id="bk_divinity_bodhidharma_name" text="Bodhidharma" />
+    <string id="bk_divinity_bodhidharma_prayer" text="Siéntate hasta que la pregunta se disuelva." />
+    <string id="bk_divinity_kannon_description" text="Kannon es el Bodhisattva de la Compasión, oyente de los gritos del mundo. De todas las figuras mahayana, ninguna es más adorada en las escuelas budistas de Japón." />
+    <string id="bk_divinity_kannon_effects" text="Velocidad de curación; reducción de la mortalidad por enfermedades infantiles." />
+    <string id="bk_divinity_kannon_epithet" text="Oyente de los gritos" />
+    <string id="bk_divinity_kannon_lore" text="Kannon toma cualquier forma que el sufrimiento necesite. Kannon, de mil brazos, llega a todas partes; Kannon, con cabeza de caballo, escucha a los animales; Kannon, de once cabezas, ve en todas direcciones." />
+    <string id="bk_divinity_kannon_name" text="Kannon Bosatsu" />
+    <string id="bk_divinity_kannon_prayer" text="Habla el sufrimiento en voz alta y Kannon te oirá, incluso cuando no haya ningún templo cerca." />
+    <string id="bk_divinity_fudo_myo_o_description" text="Fudō es el guardián iracundo inamovible del Dharma, espada en una mano y lazo en la otra, rodeado de llamas. La escuela Shingon lo invoca en cada ritual del fuego." />
+    <string id="bk_divinity_fudo_myo_o_effects" text="Impulso de combate al defender; las relaciones se benefician al reprimir las rebeliones." />
+    <string id="bk_divinity_fudo_myo_o_epithet" text="lo inamovible" />
+    <string id="bk_divinity_fudo_myo_o_lore" text="Fudō no cede. Su espada corta la ignorancia; su lazo retira lo que se caería; su llama quema lo que es indigno en el practicante." />
+    <string id="bk_divinity_fudo_myo_o_name" text="Fudō Myō-ō" />
+    <string id="bk_divinity_fudo_myo_o_prayer" text="Enfréntalo sin inmutarte y tu propia determinación te responderá." />
+  </strings>
+</base>

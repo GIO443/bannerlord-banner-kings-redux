@@ -1,0 +1,14 @@
+<?xml version='1.0' encoding='utf-8'?>
+<base type="string">
+  <tags>
+    <tag language="Español (LA)" />
+  </tags>
+  <strings>
+    <string id="bk_gender_law_Agnatic_description" text="La ley de género agnática da prioridad a los herederos varones sobre las herederas. Aunque las mujeres no quedan excluidas de la herencia, por lo general solo heredan cuando se han agotado las opciones masculinas, salvo que una candidata supere con claridad en competencia al mejor candidato varón. Las mujeres quedan excluidas de cargos importantes, como el nombramiento como caballero." />
+    <string id="bk_gender_law_Agnatic_name" text="Agnático" />
+    <string id="bk_gender_law_Cognatic_description" text="La ley de género cognática no da prioridad a ningún género: ambos pueden ocupar cargos importantes y la herencia del clan se decide únicamente según la competencia. Por ejemplo, con la primogenitura cognática, hereda el descendiente de mayor edad con independencia de su género." />
+    <string id="bk_gender_law_Cognatic_name" text="Cognático" />
+    <string id="bk_gender_law_Enatic_description" text="La ley de género enática da prioridad a las herederas sobre los herederos. Aunque los hombres no quedan excluidos de la herencia, por lo general solo heredan cuando se han agotado las opciones femeninas, salvo que un candidato supere con claridad en competencia a la mejor candidata. Los hombres quedan excluidos de cargos importantes, como el nombramiento como caballero." />
+    <string id="bk_gender_law_Enatic_name" text="Enático" />
+  </strings>
+</base>

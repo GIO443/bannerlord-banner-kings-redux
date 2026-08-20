@@ -1,0 +1,47 @@
+<?xml version='1.0' encoding='utf-8'?>
+<base type="string">
+  <tags>
+    <tag language="Español (LA)" />
+  </tags>
+  <strings>
+    <string id="bk_faith_group_imperial_orders_description" text="Las Órdenes Imperiales descienden de los templos-colegios de Old Pravend, organizados bajo la supervisión de la línea imperial reinante. Su pontífice está tradicionalmente sentado en la capital imperial." />
+    <string id="bk_faith_group_imperial_orders_name" text="Órdenes Imperiales" />
+    <string id="bk_faith_group_imperial_orders_title" text="Pontífice" />
+    <string id="bk_faith_group_vlandic_canonical_description" text="La Sede Canónica es la asamblea de sacerdotes que ostentan beneficios en toda Vlandia y reconocen a un solo primarca mediante juramento." />
+    <string id="bk_faith_group_vlandic_canonical_name" text="Sede Canónica" />
+    <string id="bk_faith_group_vlandic_canonical_title" text="Primarca" />
+    <string id="bk_faith_group_druidic_circles_description" text="Los druidas de las tierras altas de Battania no ocupan ningún asiento central. Sus consejos se escuchan en los lirios sagrados y en los anillos de roble, nunca bajo un mismo techo." />
+    <string id="bk_faith_group_druidic_circles_name" text="Círculos druídicos" />
+    <string id="bk_faith_group_druidic_circles_title" text="Archidruida" />
+    <string id="bk_faith_group_aserai_ulama_description" text="Los Ulama son los fieles eruditos de los oasis de Aserai, reunidos alrededor de las grandes mezquitas y madrasas del sur." />
+    <string id="bk_faith_group_aserai_ulama_name" text="Ulama del Sol" />
+    <string id="bk_faith_group_aserai_ulama_title" text="Imán" />
+    <string id="bk_faith_group_steppe_khanate_description" text="Los chamanes de la estepa responden primero al clan y al khan, y luego a los espíritus bajo el cielo abierto." />
+    <string id="bk_faith_group_steppe_khanate_name" text="Chamanes del cielo" />
+    <string id="bk_faith_group_steppe_khanate_title" text="Khan-chamán" />
+    <string id="bk_faith_group_northern_elders_description" text="El consejo de ancianos de los pueblos del norte se reúne cada año en los grandes robles para renovar los vínculos de los Dioses Antiguos con los vivos." />
+    <string id="bk_faith_group_northern_elders_name" text="Consejo de ancianos de los dioses antiguos" />
+    <string id="bk_faith_group_northern_elders_title" text="Eldgothi" />
+    <string id="bk_faith_group_nord_chieftains_description" text="Los Nordvyg no reconocen ningún sacerdocio más allá de sus propios jefes, quienes dirigen la ofrenda y el rito de guerra por igual." />
+    <string id="bk_faith_group_nord_chieftains_name" text="Hraef-jurado" />
+    <string id="bk_faith_group_nord_chieftains_title" text="Hrafnskáld" />
+    <string id="bk_faith_group_shinto_shrines_description" text="Los kami son honrados en miles de santuarios en todas las islas. No existe un sacerdocio nacional: cada santuario responde ante los kami allí consagrados, y los kannushi que lo atienden responden ante la comunidad local." />
+    <string id="bk_faith_group_shinto_shrines_name" text="Santuarios sintoístas" />
+    <string id="bk_faith_group_shinto_shrines_title" text="kannushi" />
+    <string id="bk_faith_group_rinzai_sangha_description" text="La escuela Rinzai Zen está organizada alrededor de Gozan (las grandes Cinco Montañas) bajo abades cuyos linajes descienden de los maestros chinos de la línea Linji. Los Daimyō patrocinan abiertamente estos monasterios." />
+    <string id="bk_faith_group_rinzai_sangha_name" text="Secta Rinzai" />
+    <string id="bk_faith_group_rinzai_sangha_title" text="Roshi" />
+    <string id="bk_faith_group_soto_sangha_description" text="La escuela Sōtō Zen tiene su origen en Dōgen y Keizan, y su casa madre, Eiheiji, se encuentra en las nieves de Echizen. Sus abades enseñan a sentarse en silencio antes de cualquier otra práctica." />
+    <string id="bk_faith_group_soto_sangha_name" text="Secta Soto" />
+    <string id="bk_faith_group_soto_sangha_title" text="zenji" />
+    <string id="bk_faith_group_shingon_sangha_description" text="La escuela esotérica Shingon mantiene su sede en el monte Kōya, donde se dice que el fundador Kūkai espera en eterna meditación. Su gran abad transmite los mandalas del Útero y del Diamante a un sucesor elegido." />
+    <string id="bk_faith_group_shingon_sangha_name" text="Secta Shingon" />
+    <string id="bk_faith_group_shingon_sangha_title" text="Daiajari" />
+    <string id="bk_faith_group_tendai_sangha_description" text="La escuela Tendai posee el monte Hiei en las afueras de la capital, y su abad principal, el Zasu, es uno de los grandes señores religiosos del reino. Los monjes guerreros de la escuela han creado y deshecho emperadores." />
+    <string id="bk_faith_group_tendai_sangha_name" text="Secta Tendai" />
+    <string id="bk_faith_group_tendai_sangha_title" text="zasu" />
+    <string id="bk_faith_group_shin_sangha_description" text="La escuela Jōdo Shinshū está dirigida hereditariamente por los descendientes de Shinran, cuya línea Honganji gobierna una comunidad ininterrumpida de creyentes laicos en las provincias centrales. La palabra de Monshu puede reunir un ejército de agricultores." />
+    <string id="bk_faith_group_shin_sangha_name" text="Secta Shin" />
+    <string id="bk_faith_group_shin_sangha_title" text="monshu" />
+  </strings>
+</base>

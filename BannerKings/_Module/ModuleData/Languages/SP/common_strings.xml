@@ -1,0 +1,155 @@
+<?xml version="1.0" encoding="utf-8"?>
+<base type="string">
+  <tags>
+    <tag language="Español (LA)" />
+  </tags>
+  <strings>
+    <string id="gaJDVkvHA" text="Marcador de posición" />
+    <string id="trait_obtuse" text="Obtuso" />
+    <string id="trait_blunt" text="Brusco" />
+    <string id="trait_provocative" text="Provocativo" />
+    <string id="trait_seductive" text="Seductor" />
+    <string id="trait_tyrant" text="Tirano" />
+    <string id="trait_unjust" text="Injusto" />
+    <string id="trait_just" text="Justo" />
+    <string id="trait_unbiased" text="Imparcial" />
+    <string id="trait_pacifist" text="Pacifista" />
+    <string id="trait_mild" text="Apacible" />
+    <string id="trait_violent" text="Violento" />
+    <string id="trait_vicious" text="Cruel" />
+    <string id="trait_oblivious" text="Despistado" />
+    <string id="trait_distracted" text="Distraído" />
+    <string id="trait_studious" text="Estudioso" />
+    <string id="trait_erudite" text="Erudito" />
+    <string id="trait_reclusive" text="Huraño" />
+    <string id="trait_introspective" text="Introspectivo" />
+    <string id="trait_sociable" text="Sociable" />
+    <string id="trait_gregarious" text="Gregario" />
+    <string id="trait_satisfied" text="Satisfecho" />
+    <string id="trait_content" text="Conforme" />
+    <string id="trait_ambitious" text="Ambicioso" />
+    <string id="trait_relentless" text="Implacable" />
+    <string id="trait_arrogant" text="Arrogante" />
+    <string id="trait_pretentious" text="Pretencioso" />
+    <string id="trait_modest" text="Modesto" />
+    <string id="trait_humble" text="Humilde" />
+    <string id="trait_lazy" text="Perezoso" />
+    <string id="trait_weary" text="Cansado" />
+    <string id="trait_diligent" text="Diligente" />
+    <string id="trait_tireless" text="Incansable" />
+    <string id="trait_cynic" text="Cínico" />
+    <string id="trait_skeptic" text="Escéptico" />
+    <string id="trait_faithful" text="Fiel" />
+    <string id="trait_zealot" text="Fanático" />
+    <string id="bk_law_slave_duties" text="Deberes del esclavo" />
+    <string id="bk_law_serf_duties" text="Deberes de siervo" />
+    <string id="bk_law_craftsmen_duties" text="Deberes de los artesanos" />
+    <string id="bk_law_noble_duties" text="Deberes de la nobleza" />
+    <string id="bk_law_estate_tenure" text="Tenencia de fincas" />
+    <string id="bk_slavery" text="Esclavitud" />
+    <string id="bk_law_tenancy" text="Tenencia de los plebeyos" />
+    <string id="bk_law_high_council" text="Alto Consejo" />
+    <string id="bk_law_high_army" text="Ejército" />
+    <string id="bk_rich" text="Rico" />
+    <string id="bk_adequate" text="Adecuado" />
+    <string id="bk_poor" text="Pobre" />
+    <string id="bk_taxation" text="Impuestos" />
+    <string id="bk_drafting" text="Reclutamiento de levas" />
+    <string id="bk_land_expansion" text="Ampliación de terrenos" />
+    <string id="bk_production" text="Producción" />
+    <string id="bk_description_clay" text="Con una historia casi tan antigua como la madera dura, la arcilla tiene una larga tradición de uso para la construcción. Al ser extremadamente común en todo el continente, el material proporciona una base más fuerte que la madera. Se puede hornear para formar ladrillos y, por tanto, ser muy versátil." />
+    <string id="bk_description_marble" text="Un material más raro y valioso que la piedra caliza. Los imperiales descubrieron el mármol como un material lo suficientemente blando como para ser tallado en esculturas. Este rasgo combinado con la belleza natural del material lo hizo muy buscado. Se utiliza comúnmente en edificios más elaborados para transmitir riqueza y poder, como palacios y foros." />
+    <string id="bk_description_hardwood" text="La madera noble es el material de construcción por excelencia y se utiliza desde mucho antes de que el ser humano pudiera dejar constancia escrita de sus hazañas. Sirve para levantar estructuras completas y también complementa construcciones con bases más resistentes, como las de arcilla o piedra caliza." />
+    <string id="bk_description_limestone" text="La piedra caliza es un mineral común que sirve como material resistente para edificios, muros y caminos de piedra. A pesar de ser común, su extracción y transporte son significativamente más costosos que simplemente usar madera o arcilla." />
+    <string id="bk_description_iron" text="El hierro es el material esencial para herramientas y estructuras de soporte de edificios. La mayoría de los edificios avanzados utilizan hierro hasta cierto punto." />
+    <string id="bk_description_tools" text="Cualquier cosa, excepto las construcciones más toscas, requiere herramientas especializadas. A medida que los edificios se vuelven más avanzados, más herramientas requieren, especialmente los edificios de piedra debido a la naturaleza excepcionalmente dura de la piedra." />
+    <string id="bk_limestone" text="Piedra caliza{@Plural}bloques de piedra caliza{\@}" />
+    <string id="bk_gold" text="Oro{@Plural}cargas de oro{\@}" />
+    <string id="bk_mead" text="Hidromiel{@Plural}barriles de hidromiel{\@}" />
+    <string id="bk_marble" text="Mármol{@Plural}bloques de mármol{\@}" />
+    <string id="bk_egg" text="Huevos{@Plural}cajas de huevos{\@}" />
+    <string id="bk_dyes" text="Tintes{@Plural}tarros de tintes{\@}" />
+    <string id="bk_primogeniture" text="Primogenitura" />
+    <string id="bk_ultimogeniture" text="Ultimogenitura" />
+    <string id="bk_seniority" text="Antigüedad" />
+    <string id="bk_republic" text="República" />
+    <string id="bk_imperial" text="Imperial" />
+    <string id="bk_feudal" text="Feudal" />
+    <string id="bk_tribal" text="Tribal" />
+    <string id="bk_agnatic" text="Agnático" />
+    <string id="bk_cognatic" text="cognático" />
+    <string id="bk_hereditary_monarchy" text="Monarquía hereditaria" />
+    <string id="bk_elective_monarchy" text="Monarquía electiva" />
+    <string id="bk_crafting_itemtype_bodyarmor" text="Armaduras corporales" />
+    <string id="bk_crafting_itemtype_barding" text="Bardas" />
+    <string id="bk_crafting_itemtype_shield" text="Escudos" />
+    <string id="bk_crafting_itemtype_ammo" text="Munición" />
+    <string id="bk_modifier_purebred" text="De pura raza: {ITEMNAME}" />
+    <string id="bk_modifier_strong" text="Fuerte {ITEMNAME}" />
+    <string id="bk_modifier_stubborn" text="Obstinado {ITEMNAME}" />
+    <string id="bk_modifier_anaemic" text="Anémico {ITEMNAME}" />
+    <string id="bk_modifier_poor" text="Pobre {ITEMNAME}" />
+    <string id="bk_privileges" text="Privilegios" />
+    <string id="bk_council_privilege_low_wage" text="Salario bajo" />
+    <string id="bk_council_privilege_mid_wage" text="Salario" />
+    <string id="bk_council_privilege_high_wage" text="Salario alto" />
+    <string id="bk_council_privilege_influence" text="Influencia" />
+    <string id="bk_council_privilege_high_influence" text="Alta influencia" />
+    <string id="bk_council_privilege_clergymen_exclusive" text="Exclusivo para clérigos" />
+    <string id="bk_council_privilege_noble_exclusive" text="Solo para nobles" />
+    <string id="bk_council_privilege_army_privilege" text="Privilegio del ejército" />
+    <string id="bk_council_privilege_low_wage_description" text="Un salario diario bajo, apto para puestos menos importantes en un consejo." />
+    <string id="bk_council_privilege_mid_wage_description" text="Un salario normal, utilizado para los cargos principales de los consejos menores y para cargos intermedios de los consejos reales." />
+    <string id="bk_council_privilege_high_wage_description" text="Un salario diario elevado, reservado para los cargos principales de los grandes consejos reales." />
+    <string id="bk_council_privilege_influence_description" text="Los consejeros con este privilegio reciben influencia adicional (o poder, si son personajes notables)." />
+    <string id="bk_council_privilege_high_influence_description" text="Los consejeros con este privilegio reciben una gran cantidad de influencia para sus clanes." />
+    <string id="bk_council_privilege_clergymen_exclusive_description" text="Este puesto sólo puede ser ocupado por clérigos del clan o fe del reino." />
+    <string id="bk_council_privilege_noble_exclusive_description" text="Este puesto es importante y, por lo tanto, sólo debe ser ocupado por nobles. No se aceptan personajes notables de los asentamientos." />
+    <string id="bk_council_privilege_army_privilege_description" text="Este cargo concede al consejero la capacidad irrevocable de formar ejércitos." />
+    <string id="bk_council_description_marshall" text="El {NAME} supervisa la administración militar del reino. Se ocupa de la eficacia de las defensas de los asentamientos y del reclutamiento de la población." />
+    <string id="bk_council_description_steward" text="El {NAME} administra las finanzas y el comercio. Mejora las perspectivas económicas y la prosperidad de los feudos." />
+    <string id="bk_council_description_chancellor" text="El {NAME} representa a su señor en asuntos diplomáticos y mejora las relaciones con sus pares y vasallos." />
+    <string id="bk_council_description_spymaster" text="El {NAME} se ocupa de la seguridad y de las labores clandestinas del consejo. Protege personalmente a su señor y combate las actividades delictivas, aunque también puede recurrir a ellas." />
+    <string id="bk_council_description_spiritual" text="El {NAME} representa a la fe dentro del círculo íntimo del señor. Sirve de puente entre el poder material y el espiritual y procura que su soberano respete los principios religiosos." />
+    <string id="bk_council_description_elder" text="El {NAME} representa a la casta de ancianos respetados de una sociedad tribal. Su presencia aumenta la influencia del soberano sobre el pueblo llano." />
+    <string id="bk_council_description_castellan" text="El {NAME} supervisa los castillos y su administración. Favorece su prosperidad y garantiza el crecimiento constante de sus dominios." />
+    <string id="bk_council_description_constable" text="El {NAME} administra la justicia penal y el cumplimiento de la ley en los asentamientos. Supervisa la estabilidad del reino y actúa como mediador entre la Corona y los gobernadores." />
+    <string id="bk_council_description_philosopher" text="El {NAME} impulsa la cultura y la educación general de la familia. Investiga innovaciones y enseña a sus miembros lectura, escritura, historia y otras materias." />
+    <string id="bk_council_description_spouse" text="El {NAME} ayuda al líder de la casa con los asuntos familiares y patrimoniales. Un buen cónyuge conoce la ley y puede encargarse de las cuestiones importantes que el cabeza de familia no logra atender." />
+    <string id="bk_council_description_courtphysician" text="El {NAME} vela por la salud de la casa de su soberano. Como la medicina es un conocimiento escaso, las familias nobles suelen recompensar generosamente a estos expertos, a quienes confían sus vidas." />
+    <string id="bk_council_description_courtsmith" text="El {NAME} equipa y arma a la casa. Su salario le permite concentrar el oficio en fabricar equipo de gran calidad digno de una familia noble." />
+    <string id="bk_council_description_courtmusician" text="El {NAME} entretiene a la familia noble y a sus invitados, principalmente durante los banquetes. Como estos son una ocasión habitual de encuentro para la alta sociedad, requieren comodidades costosas y artistas dedicados." />
+    <string id="bk_skill_scholarship_learn" text="Lee libros, aprende idiomas y progresa en estilos de vida. También puedes estudiar con los libreros que encuentres en los asentamientos." />
+    <string id="bk_skill_theology_learn" text="Mantén una ganancia positiva de piedad, realiza ritos y conversiones y recibe bendiciones." />
+    <string id="bk_skill_lordship_learn" text="Conviértete en propietario legal de asentamientos y realiza acciones sobre títulos, como concederlos, usurparlos o fundarlos." />
+    <string id="pop_class_nobles" text="Nobles" />
+    <string id="pop_class_craftsmen" text="Artesanos" />
+    <string id="pop_class_serfs" text="Siervos" />
+    <string id="pop_class_slaves" text="Esclavos" />
+    <string id="pop_class_tenants" text="Arrendatarios" />
+    <string id="pop_class_serfs_sturgia" text="Gente humilde" />
+    <string id="pop_class_serfs_empire" text="Colonos" />
+    <string id="pop_class_serfs_aserai" text="Plebeyos" />
+    <string id="pop_class_serfs_battania" text="Hombres libres" />
+    <string id="pop_class_serfs_khuzait" text="Nómadas" />
+    <string id="pop_class_serfs_vlandia" text="Siervos" />
+    <string id="pop_class_slaves_sturgia" text="Esclavos sometidos" />
+    <string id="pop_class_slaves_aserai" text="Mamelucos" />
+    <string id="pop_class_slaves_vlandia" text="esclavos" />
+    <string id="pop_class_slaves_battania" text="esclavos" />
+    <string id="pop_class_slaves_empire" text="Sclavi" />
+    <string id="pop_class_slaves_khuzait" text="esclavos" />
+    <string id="pop_class_craftsmen_battania" text="Artesanos" />
+    <string id="pop_class_craftsmen_khuzait" text="Artesanos" />
+    <string id="pop_class_craftsmen_vlandia" text="Artesanos" />
+    <string id="pop_class_craftsmen_empire" text="Cives" />
+    <string id="pop_class_craftsmen_sturgia" text="Artesanos" />
+    <string id="pop_class_craftsmen_aserai" text="Artesanos" />
+    <string id="pop_class_nobles_empire" text="Nobiles" />
+    <string id="pop_class_nobles_sturgia" text="Knyaz" />
+    <string id="pop_class_nobles_vlandia" text="Ealdormen" />
+    <string id="pop_class_nobles_battania" text="Nobles" />
+    <string id="pop_class_nobles_aserai" text="Nobles" />
+    <string id="pop_class_nobles_khuzait" text="Nobles" />
+  </strings>
+</base>
