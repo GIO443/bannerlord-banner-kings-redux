@@ -38,6 +38,7 @@ This **Redux fork** brings the mod current with Bannerlord v1.4 and adds a layer
 - **Naval shipping & adaptive risk weighting** — caravans and lord parties cross water via a graph-driven shipping system; war, siege, and banditry adjust routes and freight prices in real time.
 - **Raid capture** — village raids produce actual captives (not just gold and disabled production), with culture-specific dispositions. Toggleable in MCM.
 - **MCM kill switches** for the (now-legacy) religion system and the shipping rescue paths, in case either causes issues with your specific mod stack. The religion subsystem is being moved to Banner Kings Content Expansion (BKCE); it now defaults OFF in BK.
+- **Spanish (Español LA) localization** *(new in v1.9.34.0)* — the complete mod translated by the community (Juanyagami). Just set the game language to Español (LA); see [Installing → Languages](Installing#languages).
 
 ---
 

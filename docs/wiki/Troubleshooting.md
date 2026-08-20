@@ -18,6 +18,31 @@
   the title event log in the encyclopedia → titles tab.
 - **"BK menu is empty"** — the feature was disabled in the MCM settings.
   Re-enable and reload the save.
+- **"100% crash on the 'Starting Sandbox' loading screen (new game or
+  load) on game build v1.4.7"** — fixed in v1.9.34.0 (community fix by
+  depiec). Two separate crashes: a BK behaviour class asked for the
+  campaign clock while the game was still constructing it, and a
+  diagnostic trace patch mis-fired on the newer runtime. If you updated
+  Bannerlord to v1.4.7.x and every campaign died on the loading screen
+  with no crash report, update BK — no save-side action needed.
+- **"Hard crash (StackOverflow) or silent freeze on the daily tick once a
+  Great Raid war exists"** — fixed in v1.9.34.0 (community fix by
+  veryolab). The Great Raid casus belli defined "objective fulfilled" in
+  terms of the war score, and the war score awards a bonus for the
+  objective being fulfilled — an infinite loop that overflowed the stack
+  (or, with Better Exception Window installed, deadlocked into a silent
+  freeze with audio still playing). The evaluation is now re-entrancy
+  guarded; existing saves with active Great Raid wars just work on load.
+- **"Village Manage screen shows the four daily projects twice and no
+  real buildings / all project icons are blank circles"** — fixed in
+  v1.9.34.0 (community fix by jcjennings1-wq). An inverted filter put
+  the daily projects (Production/Farmland/Pastureland/Woodland) in both
+  lists and hid the village's actual buildable projects; the icon sprite
+  set for building projects was also never loaded for the village popup.
+  Open a village you own → **Banner Kings → Manage village**: you should
+  now see the real project list with icons, matching the town/castle
+  Manage screen. (Some BK-specific buildings still share a generic icon
+  on all settlement types — that's a known content gap, not a bug.)
 - **"A huge bandit army (500–600+) is sitting outside a town doing
   nothing"** — fixed in v1.9.16.18–.19. BK spawns special bandit-hero
   hordes; an inflated size formula let them balloon to ~600 troops, and

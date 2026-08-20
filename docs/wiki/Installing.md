@@ -58,6 +58,24 @@ enabled but Living Economy missing, BK will fail to load.
    carries your existing BK population into Living Economy on first load;
    back the save up first, as always.
 
+## Languages
+
+Banner Kings — Redux ships in **English** and, as of v1.9.34.0, a complete
+**Spanish (Español LA)** localization — every BK string: titles, religions,
+lifestyles, innovations, UI text, and item/name catalogs (translation by
+**Juanyagami**, integrated by saygasteiz).
+
+Nothing to configure: the mod follows the game's language. Set Bannerlord to
+*Español (LA)* in the launcher or in-game options and all BK text switches
+with it. Any Spanish regional variant your system reports (es-MX, es-AR,
+es-ES, …) resolves to the same catalog.
+
+If you play in another language, BK falls back to English for its own
+strings. Translations are welcome — the string catalogs live in
+`ModuleData/Languages/` and there's a coverage checker in the repo
+(`tools/extract_loc.py --report`); open a PR or an issue if you want to
+contribute one.
+
 ## Sub-mods
 
 **Sub-mods built against the original Banner Kings are not supported.** This
