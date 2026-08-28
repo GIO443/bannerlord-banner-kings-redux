@@ -18,6 +18,21 @@
   the title event log in the encyclopedia → titles tab.
 - **"BK menu is empty"** — the feature was disabled in the MCM settings.
   Re-enable and reload the save.
+- **"Enemy parties are entering my city as if it were theirs — walking in
+  just to trade, then leaving"** — fixed in v1.9.34.1. Banner Kings'
+  civilian parties ("Travelling Serfs/Craftsmen/Nobles from X", slave
+  caravans, garrison patrols) picked their destination when they spawned
+  and never re-checked it: if war broke out (or you captured their
+  destination or home town) while they were on the road, they walked
+  straight through your gates anyway, flying their owner clan's banner —
+  which reads as "enemy army entering my city". Now a destination that
+  turns hostile makes the party turn around and head home (or disperse
+  if home is gone), the daily traveller dispatch re-checks wars instead
+  of using a stale peacetime list, and a captured town's old garrison
+  patrol disbands instead of marching back in. Existing saves self-heal:
+  in-flight offenders correct themselves within one in-game hour of
+  loading. You may still see *neutral* (non-warring) kingdoms' civilians
+  visit your towns — that's intended traffic, same as vanilla caravans.
 - **"100% crash on the 'Starting Sandbox' loading screen (new game or
   load) on game build v1.4.7"** — fixed in v1.9.34.0 (community fix by
   depiec). Two separate crashes: a BK behaviour class asked for the

@@ -438,6 +438,50 @@ namespace BannerKings.Components
             var target = TargetSettlement;
             if (target != null)
             {
+                // War-flip guard on the FINAL target. These parties hold AI
+                // disabled by design and this tick re-issues their move every
+                // hour, so vanilla's decision layer never gets a chance to
+                // veto a destination that turned hostile after spawn (war
+                // declared mid-route, or the target captured). Without this,
+                // enemy-bannered traveller/caravan parties walk straight into
+                // a hostile town — the "enemy parties entering my city as if
+                // it were theirs" report. The intermediate-hop preserve below
+                // already checks this for hops; the final target needs it too.
+                if (target.MapFaction != null && MobileParty.MapFaction != null
+                    && target.MapFaction.IsAtWarWith(MobileParty.MapFaction))
+                {
+                    // Never destroy or reroute a party that's mid-battle —
+                    // DestroyPartyAction on a party still referenced by a
+                    // MapEventSide corrupts the event. Skip this hour; the
+                    // guard re-fires next tick once the fight resolves.
+                    if (MobileParty.MapEvent != null)
+                    {
+                        return;
+                    }
+                    if (MobileParty.CurrentSettlement == target)
+                    {
+                        // Pre-fix straggler already inside the now-hostile
+                        // target: the civilians disperse rather than
+                        // "occupying" it. (Inside a different, friendly
+                        // settlement the retarget below applies instead —
+                        // next tick's stuck-in-transit recovery walks them
+                        // out toward home.)
+                        DestroyPartyAction.Apply(null, MobileParty);
+                    }
+                    else if (Home != null && Home.MapFaction == MobileParty.MapFaction && !Home.IsUnderSiege)
+                    {
+                        // Turn the convoy around: walk back home and deliver
+                        // the population/cargo back where it came from.
+                        TargetSettlement = Home;
+                        MobileParty.SetMoveGoToSettlement(Home, MobileParty.NavigationType.Default, false);
+                    }
+                    else
+                    {
+                        DestroyPartyAction.Apply(null, MobileParty);
+                    }
+                    return;
+                }
+
                 // Arrival check #1: party is already INSIDE the target. This
                 // covers cases where the party reached the settlement (e.g.
                 // teleport, save/load with CurrentSettlement preserved) but

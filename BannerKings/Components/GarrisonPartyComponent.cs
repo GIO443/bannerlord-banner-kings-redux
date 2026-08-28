@@ -68,6 +68,23 @@ namespace BannerKings.Components
         {
             if (MobileParty.MapEvent == null)
             {
+                // The patrol's clan is fixed at spawn (ActualClan = owner clan
+                // at creation) and Home never changes. If Home is captured
+                // while the patrol is out, ReturnHome() would march the OLD
+                // owner's patrol back through the new owner's gates every hour
+                // (no ownership or hostility check on GoToSettlement) — the
+                // "Patrol from X entering my captured city as if it were
+                // theirs" case. The patrol's town is gone; the men disperse.
+                // Must stay inside the MapEvent==null gate: destroying a party
+                // still referenced by a MapEventSide corrupts the event. A
+                // patrol caught in the capture fight disperses the hour after.
+                if (Home == null || Home.MapFaction == null || MobileParty.MapFaction == null
+                    || Home.MapFaction != MobileParty.MapFaction)
+                {
+                    TaleWorlds.CampaignSystem.Actions.DestroyPartyAction.Apply(null, MobileParty);
+                    return;
+                }
+
                 if (HoursPatrolled > 48 && MobileParty.TargetParty == null) ReturnHome();
                 else if (MobileParty.DefaultBehavior != AiBehavior.EngageParty)
                 {

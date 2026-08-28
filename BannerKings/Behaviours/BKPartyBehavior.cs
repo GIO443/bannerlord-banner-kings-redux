@@ -940,25 +940,29 @@ namespace BannerKings.Behaviours
                 travelCache = new Dictionary<Settlement, List<Settlement>>(Town.AllFiefs.Count());
             }
 
-            if (!travelCache.TryGetValue(origin, out list)) 
+            if (!travelCache.TryGetValue(origin, out list))
             {
+                // Cache GEOGRAPHY only (distance is static for the whole
+                // campaign). The war filter must NOT be baked into the cache:
+                // it used to be, and since nothing invalidated the cache on a
+                // war declaration, a peacetime list kept dispatching traveller
+                // parties into towns their kingdom was now at war with — the
+                // "enemy parties entering my city to trade" report. Politics
+                // are filtered fresh on every read below.
                 list = new List<Settlement>();
                 foreach (var fortification in Town.AllFiefs)
                 {
                     if (fortification.Settlement == origin) continue;
 
-                    if (!origin.MapFaction.IsAtWarWith(fortification.MapFaction))
-                    {
-                        if (TaleWorlds.CampaignSystem.Campaign.Current.Models.MapDistanceModel.GetDistance(fortification.Settlement, origin, false, false, MobileParty.NavigationType.Default) < 100f)
-                            list.Add(fortification.Settlement);
-                    }
+                    if (TaleWorlds.CampaignSystem.Campaign.Current.Models.MapDistanceModel.GetDistance(fortification.Settlement, origin, false, false, MobileParty.NavigationType.Default) < 100f)
+                        list.Add(fortification.Settlement);
                 }
 
                 travelCache[origin] = list;
             }
-            
 
-            return list;
+            return list.Where(s => origin.MapFaction == null || s.MapFaction == null
+                || !origin.MapFaction.IsAtWarWith(s.MapFaction)).ToList();
         }
 
         private void SendTravellerParty(Settlement origin, Settlement target)
