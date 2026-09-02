@@ -175,18 +175,60 @@ namespace BannerKings.Behaviours.Diplomacy.Dilemmas
                 var sovereign = BannerKingsConfig.Instance.TitleManager.GetSovereignTitle(kingdom);
                 if (sovereign == null) return false;
 
-                // First supported law the realm hasn't enacted and that fits the
-                // kingdom (culture / conditional gate). DemesneLaw.Equals is by
-                // StringId, so Contains matches the registry singleton.
-                BannerKings.Managers.Titles.Laws.DemesneLaw law = null;
+                // v1.9.35 — the push is drawn at random from EVERY law the group
+                // has a grievance about, not the first supported one. "First
+                // supported" made the group data's list order a hidden ranking:
+                // Manumission led most lists, so every realm's first push was
+                // abolition and every realm ended up abolitionist. Two kinds of
+                // grievance qualify:
+                //   (a) a SUPPORTED law the realm hasn't enacted, and
+                //   (b) an ENACTED law the group SHUNS — pushed as "repeal it back
+                //       to the realm's own default for that law type" (the
+                //       culture / government default from GetAdequateLaws), so
+                //       laws can move back the other way. Before this, no group
+                //       ever pushed a pro-slavery law, so a Manumission realm
+                //       could never un-abolish: the dilemma was a one-way ratchet.
+                // Both kinds pass the culture gate and the same Crown Authority
+                // lean gate the peer vote applies (BKDemesneLawDecision).
+                // DemesneLaw.Equals is by StringId, so Contains matches copies.
+                var enacted = sovereign.Contract != null ? sovereign.Contract.DemesneLaws : null;
+                var candidates = new List<BannerKings.Managers.Titles.Laws.DemesneLaw>();
+
                 foreach (var l in group.SupportedLaws)
                 {
                     if (l == null) continue;
-                    if (sovereign.Contract != null && sovereign.Contract.DemesneLaws.Contains(l)) continue;
+                    if (enacted != null && enacted.Contains(l)) continue;
                     if (!l.IsAdequateForKingdom(kingdom)) continue;
-                    law = l;
-                    break;
+                    if (!BannerKings.Managers.Kingdoms.Contract.BKDemesneLawDecision.IsLawLeanAllowed(kingdom, l)) continue;
+                    if (!candidates.Contains(l)) candidates.Add(l);
                 }
+
+                if (group.ShunnedLaws != null && enacted != null)
+                {
+                    List<BannerKings.Managers.Titles.Laws.DemesneLaw> defaults = null;
+                    foreach (var current in enacted.ToList())
+                    {
+                        if (current == null || !group.ShunnedLaws.Contains(current)) continue;
+                        if (defaults == null)
+                            defaults = BannerKings.Managers.Titles.Laws.DefaultDemesneLaws.Instance.GetAdequateLaws(sovereign)
+                                ?? new List<BannerKings.Managers.Titles.Laws.DemesneLaw>();
+                        foreach (var def in defaults)
+                        {
+                            if (def == null || def.LawType != current.LawType || def.StringId == current.StringId) continue;
+                            if (group.ShunnedLaws.Contains(def)) continue;
+                            // GetAdequateLaws hands out copies (no culture predicate);
+                            // resolve to the registry law before gating.
+                            var registry = BannerKings.Managers.Titles.Laws.DefaultDemesneLaws.Instance.All
+                                .FirstOrDefault(x => x != null && x.StringId == def.StringId) ?? def;
+                            if (!registry.IsAdequateForKingdom(kingdom)) continue;
+                            if (!BannerKings.Managers.Kingdoms.Contract.BKDemesneLawDecision.IsLawLeanAllowed(kingdom, registry)) continue;
+                            if (!candidates.Contains(registry)) candidates.Add(registry);
+                        }
+                    }
+                }
+
+                if (candidates.Count == 0) return false;
+                var law = candidates.GetRandomElement();
                 if (law == null) return false;
 
                 var d = CreateAndEnqueue(kingdom, "law_change", group.Leader, ruler, sovereign, law.StringId);

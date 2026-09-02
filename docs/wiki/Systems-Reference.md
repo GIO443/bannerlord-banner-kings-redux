@@ -136,7 +136,7 @@ proposal. The slavery laws are illustrative:
 | Vlandic Law | Slave demand −30%; Vlandian prisoners cannot be enslaved |
 | Aseran Law | Slave demand +50%; slaves count as military manpower |
 | Nordic Thrall Law *(Nord-only)* | Slave demand +80%; slaves count as military manpower; Nord ports run slave caravans regardless of policy; no automatic manumission |
-| Manumission | Slave demand reduced to zero — abolitionist law |
+| Manumission | Slave demand reduced to zero — abolitionist law. Prisoners sold in a Manumission realm fetch the vanilla ransom price, not the (zero) slave price |
 
 Other law families: drafting (Hidage / Vassalage / Free Contracts), tenancy
 (Full / Mixed / None), council (Appointed / Elected), army type (Private /

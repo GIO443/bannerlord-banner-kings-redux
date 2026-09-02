@@ -584,10 +584,30 @@ while the group has an unmet grievance and the realm's mood runs against it);
 when it peaks, the group raises a **Demesne Law Dispute** in the **Dilemmas**
 section. Clans line up by their *own* group's stance — a group that favours the
 same law pushes For, one that opposes it pushes Against, and unaligned lords lean
-on their relationship with the group's leader. If the For side carries, the law
-is enacted on the realm's sovereign title; a divided realm (the contested middle
-band) lands on the **ruler's desk** to enact or reject; a weak showing fails and
-a rout costs the group's leader some standing with the crown.
+first on their relationship with the group's leader and, failing that, on their
+own politics: a centralist lord backs an authoritarian-leaning law and opposes an
+egalitarian one, an autonomist the reverse (the same read the peer vote uses).
+If the For side carries, the law is enacted on the realm's sovereign title; a
+divided realm (the contested middle band) lands on the **ruler's desk** to enact
+or reject; a weak showing fails and a rout costs the group's leader some standing
+with the crown.
+
+**Which law gets pushed (v1.9.35).** A group draws its push at random from every
+law it has a grievance about: a law it *supports* that the realm hasn't enacted,
+or a law it *shuns* that the realm *has* enacted — that second kind is pushed as a
+repeal back to the realm's own cultural default for that law type (Calradic,
+Vlandic, Aseran or Nordic slavery law, and so on), so laws can move both ways.
+Every push has to clear the realm's **Crown Authority** lean gate, exactly like a
+vote proposal: a strongly egalitarian law such as Manumission can't be forced on
+a centralised realm, and a strongly authoritarian one can't be forced on a
+decentralised one. Group agendas were also trimmed: abolition is a populist cause,
+so only the **Commoners** back Manumission now; Zealots and Reformists are neutral
+on the ordinary slavery laws, and Royalists, Oligarchists and the Mercantile League
+never push it. Before this, six of seven groups listed Manumission *first*, the
+push always took the first supported law, nothing ever pushed a slavery law back,
+and every kingdom on the map ended up abolitionist within a few years — which is
+also why prisoner sales everywhere dropped to 0 gold (see
+[Slavery & raiding](Slavery-and-Raiding#slavery--raiding-faq)).
 
 For **you**, this shows up two ways. As **ruler**, a group in your realm can force
 a law you'd otherwise never have raised — back it by spending influence on

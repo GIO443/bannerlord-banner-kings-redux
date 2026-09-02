@@ -187,26 +187,32 @@ namespace BannerKings.Managers.Kingdoms.Contract
         public override bool IsAllowed()
         {
             if (Title.Contract == null || ProposedLaw.Equals(CurrentLaw)) return false;
+            return IsLawLeanAllowed(Kingdom, ProposedLaw);
+        }
 
-            // Politics rework — the realm's Crown Authority gates which way
-            // its law code can lean. A markedly authoritarian law needs a
-            // centralised realm; a markedly egalitarian one a decentralised
-            // one. The threshold is the midpoint of the government's CA band,
-            // so each government type naturally favours different laws.
-            if (BannerKings.Settings.BannerKingsSettings.Instance.EnablePoliticsRework && ProposedLaw != null)
-            {
-                var diplomacy = Kingdom != null ? Kingdom.GetKingdomDiplomacy() : null;
-                var government = diplomacy != null ? diplomacy.Government : null;
-                if (diplomacy != null && government != null)
-                {
-                    int mid = (government.CrownAuthorityFloor + government.CrownAuthorityCeiling) / 2;
-                    float auth = ProposedLaw.AuthoritarianWeight;
-                    float egal = ProposedLaw.EgalitarianWeight;
-                    if (auth > egal + 0.1f && diplomacy.CrownAuthority < mid) return false;
-                    if (egal > auth + 0.1f && diplomacy.CrownAuthority > mid) return false;
-                }
-            }
+        // Politics rework — the realm's Crown Authority gates which way its
+        // law code can lean. A markedly authoritarian law needs a centralised
+        // realm; a markedly egalitarian one a decentralised one. The threshold
+        // is the midpoint of the government's CA band, so each government type
+        // naturally favours different laws.
+        //
+        // v1.9.35 — shared with the interest-group law-push dilemma
+        // (BKDilemmaBehavior.RaiseLawPush). Before, only the peer vote ran
+        // this gate, so a group could force Manumission (egalitarian 0.9)
+        // through a dilemma on a realm whose vote would have refused it.
+        public static bool IsLawLeanAllowed(Kingdom kingdom, DemesneLaw law)
+        {
+            if (law == null || !BannerKings.Settings.BannerKingsSettings.Instance.EnablePoliticsRework) return true;
 
+            var diplomacy = kingdom != null ? kingdom.GetKingdomDiplomacy() : null;
+            var government = diplomacy != null ? diplomacy.Government : null;
+            if (diplomacy == null || government == null) return true;
+
+            int mid = (government.CrownAuthorityFloor + government.CrownAuthorityCeiling) / 2;
+            float auth = law.AuthoritarianWeight;
+            float egal = law.EgalitarianWeight;
+            if (auth > egal + 0.1f && diplomacy.CrownAuthority < mid) return false;
+            if (egal > auth + 0.1f && diplomacy.CrownAuthority > mid) return false;
             return true;
         }
 

@@ -144,18 +144,36 @@ namespace BannerKings.Behaviours.Diplomacy.Groups.Demands
             if (kingdomTitle != null)
             {
                 Title = kingdomTitle;
-                Law = (Group as InterestGroup).SupportedLaws.GetRandomElementWithPredicate(x => !Title.Contract.DemesneLaws.Contains(x));
+                var group = Group as InterestGroup;
+                var enacted = Title.Contract != null ? Title.Contract.DemesneLaws : null;
+                Law = group.SupportedLaws.GetRandomElementWithPredicate(x => x != null
+                    && (enacted == null || !enacted.Contains(x))
+                    && x.IsAdequateForKingdom(kingdom));
                 if (Law == null)
                 {
+                    // v1.9.35 — a group with no supported law to demand used to
+                    // fall back to ANY unenacted law in the registry that it
+                    // didn't shun, regardless of type, culture or realm — so a
+                    // Royalist group would happily demand Manumission. Now the
+                    // fallback is "return to the realm's own default for a law
+                    // type it has drifted from" (the culture / government set
+                    // from GetAdequateLaws), and only if the group doesn't shun
+                    // that default. If nothing qualifies the demand stays
+                    // inactive and SetUp() finishes it — no demand is raised.
                     var options = new List<DemesneLaw>();
-                    foreach (var law in DefaultDemesneLaws.Instance.All)
+                    var defaults = DefaultDemesneLaws.Instance.GetAdequateLaws(Title);
+                    if (defaults != null && enacted != null)
                     {
-                        if (!(Group as InterestGroup).ShunnedLaws.Contains(law) && !Title.Contract.DemesneLaws.Contains(law))
+                        foreach (var def in defaults)
                         {
-                            options.Add(law);
+                            if (def == null || enacted.Contains(def)) continue;
+                            if (group.ShunnedLaws != null && group.ShunnedLaws.Contains(def)) continue;
+                            var registry = DefaultDemesneLaws.Instance.All.FirstOrDefault(x => x != null && x.StringId == def.StringId) ?? def;
+                            if (!registry.IsAdequateForKingdom(kingdom)) continue;
+                            options.Add(registry);
                         }
                     }
-                    Law = options.GetRandomElement();
+                    Law = options.Count > 0 ? options.GetRandomElement() : null;
                 }
             }
         }

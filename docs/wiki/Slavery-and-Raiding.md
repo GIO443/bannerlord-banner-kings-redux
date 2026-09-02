@@ -249,6 +249,16 @@ Any town accepts prisoners via the standard prisoner-ransom UI. With the
 ransom to BK's slave-price calculation. Nord ports under the Nordic Thrall
 Law pay the most (≈ +80% demand), Aserai second (+50%).
 
+**Q: Why are my troop prisoners selling for 0 gold?**
+Before v1.9.35 this happened in any realm that had enacted *Manumission*: the
+law zeroes slave demand, the slave price became 0, and the sale paid 0. Now
+the slave price only replaces the vanilla ransom while the town is actually
+buying slaves. In a Manumission realm (or a market so oversupplied the slave
+price bottoms out) the town pays the **vanilla ransom-broker price** instead, so
+a sale is never worth nothing. If you still see 0, check the town's
+*criminal* policy in the settlement management screen and the realm's slavery
+law under **Kingdom → BannerKings → Laws**.
+
 **Q: How do slave caravans work?**
 AI-only feature. Towns with enough surplus slaves and the *Slave Export*
 decision enacted dispatch caravans that move 0.5% of the slave population

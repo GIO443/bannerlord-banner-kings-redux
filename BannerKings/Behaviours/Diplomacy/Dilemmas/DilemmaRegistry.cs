@@ -293,6 +293,19 @@ namespace BannerKings.Behaviours.Diplomacy.Dilemmas
                         if (rel >= 15) return DilemmaSide.For;
                         if (rel <= -15) return DilemmaSide.Against;
                     }
+
+                    // v1.9.35 — a lord with no group stance and no strong tie to
+                    // the pusher reads the law itself, the way the peer vote does
+                    // (BKDemesneLawDecision.DetermineSupport): a centralist backs
+                    // an authoritarian-weighted law and opposes an egalitarian /
+                    // oligarchic one; an autonomist the reverse. Before this the
+                    // unaligned simply abstained, so a contest's outcome was set
+                    // entirely by how many groups happened to list the law.
+                    float centralism = BKPoliticalDisposition.Get(clan).Centralism;
+                    float lean = law.AuthoritarianWeight - law.EgalitarianWeight - law.OligarchicWeight;
+                    float stance = centralism * lean;
+                    if (stance > 0.15f) return DilemmaSide.For;
+                    if (stance < -0.15f) return DilemmaSide.Against;
                     return DilemmaSide.Neutral;
                 },
 

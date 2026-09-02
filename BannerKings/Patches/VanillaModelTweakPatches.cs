@@ -1059,7 +1059,27 @@ namespace BannerKings.Patches
                     {
                         var crime = ((BKCriminalPolicy)BannerKingsConfig.Instance.PolicyManager.GetPolicy(settlement, "criminal")).Policy;
                         if (crime == CriminalPolicy.Enslavement)
-                            __result = (int)BannerKingsConfig.Instance.GrowthModel.CalculateSlavePrice(settlement).ResultNumber;
+                        {
+                            // v1.9.35 — the slave price only REPLACES the vanilla
+                            // ransom while the town is actually buying slaves. Under
+                            // Manumission slave demand is -100%, so the price is 0
+                            // (or a few gold), and players saw every troop sell for
+                            // nothing. A market bottomed out by oversupply can hit 0
+                            // the same way. In either case nobody is enslaving the
+                            // prisoner, so the vanilla ransom-broker price stands.
+                            bool manumission = false;
+                            var kingdom = settlement.OwnerClan != null ? settlement.OwnerClan.Kingdom : null;
+                            var sovereign = kingdom != null ? BannerKingsConfig.Instance.TitleManager.GetSovereignTitle(kingdom) : null;
+                            if (sovereign != null && sovereign.Contract != null
+                                && sovereign.Contract.IsLawEnacted(BannerKings.Managers.Titles.Laws.DefaultDemesneLaws.Instance.SlaveryManumission))
+                                manumission = true;
+
+                            if (!manumission)
+                            {
+                                int slavePrice = (int)BannerKingsConfig.Instance.GrowthModel.CalculateSlavePrice(settlement).ResultNumber;
+                                if (slavePrice > 0) __result = slavePrice;
+                            }
+                        }
                     }
 
                     var education = BannerKingsConfig.Instance.EducationManager.GetHeroEducation(sellerHero);

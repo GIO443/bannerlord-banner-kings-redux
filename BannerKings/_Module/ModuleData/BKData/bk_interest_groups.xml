@@ -58,9 +58,12 @@
       <policy ref="policy_feudal_inheritance"/>
       <policy ref="policy_war_tax"/>
     </shunned_policies>
-    <supported_laws>
-      <law ref="slavery_manumission"/>
-    </supported_laws>
+    <!-- v1.9.35 — Royalists no longer back Manumission. Since the law-push
+         dilemma went live, a group's supported laws are pushed on the whole
+         realm; with six of seven groups listing Manumission every kingdom
+         abolished slavery within a few years. The crown's party has no
+         abolitionist agenda — it keeps whatever slavery law the realm has. -->
+    <supported_laws/>
     <shunned_laws>
       <law ref="slavery_aserai"/>
     </shunned_laws>
@@ -159,9 +162,9 @@
       <policy ref="policy_trial_by_jury"/>
       <policy ref="policy_hunting_rights"/>
     </shunned_policies>
-    <supported_laws>
-      <law ref="slavery_manumission"/>
-    </supported_laws>
+    <!-- v1.9.35 — Oligarchists no longer back Manumission (see Royalists).
+         The slave-owning magnates are the last people to push abolition. -->
+    <supported_laws/>
     <shunned_laws>
       <law ref="slavery_aserai"/>
     </shunned_laws>
@@ -198,15 +201,15 @@
       <policy ref="policy_road_tolls"/>
       <policy ref="policy_serfdom"/>
     </shunned_policies>
+    <!-- v1.9.35 — Zealots are neutral on the realm's slavery law: abolition is
+         the Commoners' cause alone (see Royalists for why). They keep the
+         duty-law agenda and still shun the Aseran chattel law. -->
     <supported_laws>
-      <law ref="slavery_manumission"/>
       <law ref="serfs_lax_duties"/>
       <law ref="craftsmen_lax_duties"/>
     </supported_laws>
     <shunned_laws>
       <law ref="slavery_aserai"/>
-      <law ref="slavery_standard"/>
-      <law ref="slavery_vlandia"/>
       <law ref="serfs_agriculture_duties"/>
       <law ref="serfs_military_service_duties"/>
       <law ref="craftsmen_military_service_duties"/>
@@ -245,6 +248,9 @@
       <policy ref="policy_road_tolls"/>
       <policy ref="policy_serfdom"/>
     </shunned_policies>
+    <!-- v1.9.35 — the Commoners are the ONLY group that backs Manumission.
+         Abolition is a populist cause; see Royalists for why the other groups
+         dropped it. -->
     <supported_laws>
       <law ref="slavery_manumission"/>
       <law ref="serfs_lax_duties"/>
@@ -300,16 +306,15 @@
       <policy ref="policy_royal_privilege"/>
       <policy ref="policy_sacred_majesty"/>
     </shunned_policies>
+    <!-- v1.9.35 — Reformists are neutral on the realm's slavery law: abolition
+         is the Commoners' cause alone (see Royalists for why). -->
     <supported_laws>
-      <law ref="slavery_manumission"/>
       <law ref="serfs_lax_duties"/>
       <law ref="craftsmen_lax_duties"/>
       <law ref="nobles_lax_duties"/>
     </supported_laws>
     <shunned_laws>
       <law ref="slavery_aserai"/>
-      <law ref="slavery_standard"/>
-      <law ref="slavery_vlandia"/>
       <law ref="serfs_agriculture_duties"/>
       <law ref="serfs_military_service_duties"/>
       <law ref="craftsmen_military_service_duties"/>
@@ -355,8 +360,9 @@
       <policy ref="policy_state_monopolies"/>
       <policy ref="policy_marshals"/>
     </shunned_policies>
+    <!-- v1.9.35 — the League no longer backs Manumission: the slave trade is
+         trade, and the trading houses run the caravans. See Royalists. -->
     <supported_laws>
-      <law ref="slavery_manumission"/>
       <law ref="craftsmen_lax_duties"/>
       <law ref="serfs_lax_duties"/>
     </supported_laws>

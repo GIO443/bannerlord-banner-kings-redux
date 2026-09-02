@@ -160,8 +160,12 @@ namespace BannerKings.Behaviours.Diplomacy
             // adequate set (respects government + culture restrictions).
             var adequate = DefaultDemesneLaws.Instance.GetAdequateLaws(sovereign);
             if (adequate == null || adequate.Count == 0) return;
+            // v1.9.35 — same Crown Authority lean gate the peer vote and the
+            // group law-push dilemma apply, so the ruler doesn't table a law
+            // the realm's constitution would refuse.
             var candidates = adequate
-                .Where(l => l != null && l.LawType == currentLaw.LawType && l.StringId != currentLaw.StringId)
+                .Where(l => l != null && l.LawType == currentLaw.LawType && l.StringId != currentLaw.StringId
+                    && BKDemesneLawDecision.IsLawLeanAllowed(kingdom, l))
                 .ToList();
             if (candidates.Count == 0) return;
 
