@@ -126,7 +126,9 @@ namespace BannerKings.Utils
         public const string AdonnaysTroopChangerAsm = "AdonnaysTroopChanger";
 
         // Fourberie (Cunning) — https://www.nexusmods.com/mountandblade2bannerlord/mods/2969
-        // TODO: Describe mod interaction
+        // Scheme/grudge mod. Soft integration via FourberieBridge (reflection): BK
+        // weights Fourberie grudges into rival selection, and ruler revocation /
+        // treacherous-lever pressure on the player clan feeds Fourberie grudges.
         public const string FourberieId = "Fourberie";
         public const string FourberieAsm = "Fourberie";
 

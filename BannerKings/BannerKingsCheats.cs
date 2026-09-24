@@ -25,8 +25,6 @@ using TaleWorlds.CampaignSystem.Settlements;
 using TaleWorlds.CampaignSystem.CampaignBehaviors;
 using BannerKings.Managers.Titles;
 using BannerKings.Utils;
-using HarmonyLib;
-using System.Reflection;
 
 namespace BannerKings
 {
@@ -564,7 +562,7 @@ namespace BannerKings
                 if (FourberieBridge.Available)
                 {
                     string clanString = strings[0];
-                    Clan clan = Clan.All.Where(clan => clan.Name.ToString().Replace(" ", "") == clanString || clan.StringId == clanString).FirstOrDefault();
+                    Clan clan = Clan.All.FirstOrDefault(c => c.Name.ToString().Replace(" ", "") == clanString || c.StringId == clanString);
                     if (clan == null) return "Clan not found!";
                     int existingGrudge = FourberieBridge.GetExistingGrudge(clan);
                     FourberieBridge.SetGrudgeValue(clan, amount);

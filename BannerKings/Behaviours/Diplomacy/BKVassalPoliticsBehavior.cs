@@ -112,12 +112,10 @@ namespace BannerKings.Behaviours.Diplomacy
                 {
                     int existingGrudge = FourberieBridge.GetExistingGrudge(clan);
 
-                    // Grudge degrades pretty rapidly and almost never gets to even half of the 250 ceiling for clans in same kindom,
-                    // hence high weighting below to have an even remotely noticable effect.
+                    // Grudge degrades pretty rapidly and almost never gets to even half of the 250 ceiling for clans in same kingdom,
+                    // hence high weighting below to have an even remotely noticeable effect.
                     grudgeFactor = existingGrudge / 250f;
                 }
-
-
 
                 float score = tierCloseness * 0.5f + relationFactor * 0.8f + peerAmbition * 0.4f + grudgeFactor * 2f;
                 if (score > bestScore)
