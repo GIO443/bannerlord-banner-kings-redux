@@ -241,8 +241,12 @@ namespace BannerKings.Models.Vanilla
             return cost;
         }
 
+        // Mercenary Contracts MCM toggle off → vanilla scoring for hire / sack /
+        // join / leave, so other mercenary mods see unmodified behaviour.
         public override float GetScoreOfKingdomToHireMercenary(Kingdom kingdom, Clan mercenaryClan) =>
-            KingdomRecruitMercenary(kingdom, mercenaryClan).ResultNumber;
+            Settings.BannerKingsSettings.MercenaryContractsEnabled
+                ? KingdomRecruitMercenary(kingdom, mercenaryClan).ResultNumber
+                : base.GetScoreOfKingdomToHireMercenary(kingdom, mercenaryClan);
 
         public ExplainedNumber KingdomRecruitMercenary(Kingdom kingdom, Clan mercenaryClan, bool explanations = false)
         {
@@ -362,7 +366,9 @@ namespace BannerKings.Models.Vanilla
         }
 
         public override float GetScoreOfKingdomToSackMercenary(Kingdom kingdom, Clan mercenaryClan) =>
-            KingdomSackMercenary(kingdom, mercenaryClan).ResultNumber;
+            Settings.BannerKingsSettings.MercenaryContractsEnabled
+                ? KingdomSackMercenary(kingdom, mercenaryClan).ResultNumber
+                : base.GetScoreOfKingdomToSackMercenary(kingdom, mercenaryClan);
 
         public ExplainedNumber KingdomSackMercenary(Kingdom kingdom, Clan mercenaryClan, bool explanations = false)
         {
@@ -432,7 +438,9 @@ namespace BannerKings.Models.Vanilla
         }
 
         public override float GetScoreOfMercenaryToJoinKingdom(Clan mercenaryClan, Kingdom kingdom) =>
-            MercenaryJoinScore(mercenaryClan, kingdom).ResultNumber;     
+            Settings.BannerKingsSettings.MercenaryContractsEnabled
+                ? MercenaryJoinScore(mercenaryClan, kingdom).ResultNumber
+                : base.GetScoreOfMercenaryToJoinKingdom(mercenaryClan, kingdom);
 
         public ExplainedNumber MercenaryJoinScore(Clan mercenaryClan, Kingdom kingdom, bool explanations = false)
         {
@@ -471,6 +479,8 @@ namespace BannerKings.Models.Vanilla
 
         public override float GetScoreOfMercenaryToLeaveKingdom(Clan mercenaryClan, Kingdom kingdom)
         {
+            if (!Settings.BannerKingsSettings.MercenaryContractsEnabled)
+                return base.GetScoreOfMercenaryToLeaveKingdom(mercenaryClan, kingdom);
             float leave = MercenaryLeaveScore(mercenaryClan, kingdom).ResultNumber;
             return leave;
         }

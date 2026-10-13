@@ -8,7 +8,8 @@ using TaleWorlds.Localization;
 
 namespace BannerKings.UI.VanillaTabs.Clans
 {
-    [ViewModelMixin("SetSelectedCategory")]
+    // handleDerived: War Sails swaps in NavalClanManagementVM (a subclass).
+    [ViewModelMixin("SetSelectedCategory", true)]
     internal class ClanManagementMixin : BaseViewModelMixin<ClanManagementVM>
     {
         //private BasicTooltipViewModel pietyHint;
@@ -119,8 +120,23 @@ namespace BannerKings.UI.VanillaTabs.Clans
             }
         }
 
+        // handleDerived double-patches the inherited SetSelectedCategory (see
+        // KingdomManagementMixin); run OnRefresh once per real call.
+        private static int refreshGeneration;
+        private int lastRefreshGeneration = -1;
+
+        [HarmonyLib.HarmonyPatch(typeof(ClanManagementVM), "SetSelectedCategory")]
+        internal static class RefreshGenerationPatch
+        {
+            private static void Prefix() => refreshGeneration++;
+        }
+
         public override void OnRefresh()
         {
+            // Generation 0 = prefix never applied; fail open (refresh every time).
+            if (refreshGeneration != 0 && lastRefreshGeneration == refreshGeneration) return;
+            lastRefreshGeneration = refreshGeneration;
+
             courtVM.RefreshValues();
             if (clanManagement.IsMembersSelected || clanManagement.IsPartiesSelected || clanManagement.IsFiefsSelected ||
                 clanManagement.IsIncomeSelected)

@@ -20,7 +20,11 @@ namespace BannerKings.UI.Extensions
     // code (contract aspects + demesne laws). Both panels are backed by the
     // one KingdomDemesneVM — RealmSelected / LawsSelected on that VM gate
     // which prefab shows — so the Change* action methods stay on one VM.
-    [ViewModelMixin("RefreshValues")]
+    //
+    // handleDerived: War Sails swaps in NavalKingdomManagementVM (a subclass);
+    // without it the mixin never attaches and the BannerKings tab button does
+    // nothing on click.
+    [ViewModelMixin("RefreshValues", true)]
     internal class KingdomManagementMixin : BaseViewModelMixin<KingdomManagementVM>
     {
         private readonly KingdomManagementVM kingdomManagement;
@@ -326,8 +330,27 @@ namespace BannerKings.UI.Extensions
             }
         }
 
+        // handleDerived makes UIExtenderEx patch the inherited RefreshValues a
+        // second time (once for KingdomManagementVM, once for the Naval
+        // subclass, which doesn't override it), so OnRefresh fires twice per
+        // call. The prefix below bumps a generation on each real call; the
+        // second OnRefresh for the same generation is skipped — the sub-VM
+        // refreshes are what made the kingdom screen slow to open.
+        private static int refreshGeneration;
+        private int lastRefreshGeneration = -1;
+
+        [HarmonyLib.HarmonyPatch(typeof(KingdomManagementVM), nameof(KingdomManagementVM.RefreshValues))]
+        internal static class RefreshGenerationPatch
+        {
+            private static void Prefix() => refreshGeneration++;
+        }
+
         public override void OnRefresh()
         {
+            // Generation 0 = prefix never applied; fail open (refresh every time).
+            if (refreshGeneration != 0 && lastRefreshGeneration == refreshGeneration) return;
+            lastRefreshGeneration = refreshGeneration;
+
             var council = BannerKingsConfig.Instance.CourtManager.GetCouncil(Clan.PlayerClan);
             if (council != null)
             {

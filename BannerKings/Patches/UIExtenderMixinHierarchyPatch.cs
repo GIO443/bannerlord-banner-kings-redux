@@ -19,6 +19,12 @@ namespace BannerKings.Patches
     /// the runtime type so the mixin attaches normally. Activator runs the
     /// mixin's ctor with the subclass instance, which works fine because
     /// the subclass IS-A the registered base.
+    ///
+    /// Fallback only: the mixins targeting VMs NavalDLC subclasses now use
+    /// [ViewModelMixin(..., handleDerived: true)], UIExtenderEx's supported
+    /// path. This reflection hook binds to UIExtenderEx internals and goes
+    /// silently inert if they change (Prepare() returns false), which is how
+    /// the Kingdom-screen BannerKings button went dead for some players.
     /// </summary>
     [HarmonyPatch]
     internal static class UIExtenderMixinHierarchyPatch

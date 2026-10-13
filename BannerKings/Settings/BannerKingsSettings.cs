@@ -335,6 +335,13 @@ namespace BannerKings.Settings
         [SettingPropertyGroup("{=!}Diplomacy")]
         public int HostileThreshold { get; set; } = -50;
 
+        [SettingProperty("{=!}Mercenary Contracts", RequireRestart = false,
+            HintText = "{=!}BK's mercenary contract layer: earnest-money down payment on joining, yearly due dates with renewal prompts, rulers firing mercenaries, penalties for leaving before the due date, and BK's hire / sack / join / leave scoring and mercenary-offer dialogue gating. Turn OFF if another mercenary mod conflicts — vanilla mercenary behaviour takes over. Mercenary reputation, career points and privileges keep working either way. Default: true.")]
+        [SettingPropertyGroup("{=!}Diplomacy")]
+        public bool MercenaryContracts { get; set; } = true;
+
+        public static bool MercenaryContractsEnabled => Instance?.MercenaryContracts ?? true;
+
         [SettingPropertyInteger("{=!}Charm Xp Threshold", minValue: 1, maxValue: 10, "#0", RequireRestart = false,
             HintText = "{=!}Defines the minimum relationship gain to trigger Charm experience gain. Any threshold above 1 by definition removes experience gain from relationship ticks caused by Relations Target (which is good). Vanilla is 1. Default: 5.")]
         [SettingPropertyGroup("{=!}Diplomacy")]

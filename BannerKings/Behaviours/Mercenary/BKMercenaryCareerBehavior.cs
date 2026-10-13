@@ -153,7 +153,7 @@ namespace BannerKings.Behaviours.Mercenary
         {
             if (detail == ChangeKingdomAction.ChangeKingdomActionDetail.JoinAsMercenary)
             {
-                AddDownPayment(clan, newKingdom);
+                if (Settings.BannerKingsSettings.MercenaryContractsEnabled) AddDownPayment(clan, newKingdom);
                 AddCareer(clan, newKingdom);
             }
 
@@ -197,7 +197,8 @@ namespace BannerKings.Behaviours.Mercenary
                     career.Tick(BannerKingsConfig.Instance.MercenaryModel.GetDailyCareerPointsGain(clan, careers[clan], false).ResultNumber);
                 }
             }
-            else if (clan.Kingdom != null && clan.Kingdom.RulingClan == clan)
+            else if (Settings.BannerKingsSettings.MercenaryContractsEnabled
+                && clan.Kingdom != null && clan.Kingdom.RulingClan == clan)
             {
                 List<Clan> toFire = new List<Clan>();
                 foreach (Clan merc in clan.Kingdom.Clans)

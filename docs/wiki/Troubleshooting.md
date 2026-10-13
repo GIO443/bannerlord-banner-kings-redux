@@ -18,6 +18,29 @@
   the title event log in the encyclopedia → titles tab.
 - **"BK menu is empty"** — the feature was disabled in the MCM settings.
   Re-enable and reload the save.
+- **"The BannerKings button on the Kingdom screen does nothing when I
+  click it"** — fixed in v1.9.35.1. With War Sails installed, the
+  game swaps in its own version of the Kingdom, Clan and settlement
+  Encyclopedia screens, and on some setups BK's extra tabs failed to
+  attach to them. The button rendered and registered the click, but
+  the view stayed on the current tab. This had nothing to do with your rank,
+  peerage or being a ruler. After updating, open the Kingdom screen (K)
+  → click **BannerKings**. You should land on *Realm* (or *Court* if
+  your kingdom has no BK title). The Clan screen's *Court* tab and the
+  workshop list on settlement Encyclopedia pages are covered by the
+  same fix.
+- **"Another mercenary mod conflicts with BK's mercenary contracts"** —
+  open MCM → *Banner Kings* → *Diplomacy* → untick **Mercenary
+  Contracts**. Takes effect immediately, with no restart and mid-campaign
+  is fine. With it off, vanilla (or the other mod) runs mercenary service:
+  you get no earnest-money payment on joining, no yearly "due date"
+  renewal pop-up, rulers stop firing mercenaries on BK's schedule, leaving
+  early costs no relation or reputation, and the "offer your service"
+  dialogue uses vanilla's requirements. Mercenary reputation, career
+  points, privileges and custom troops on the *Mercenary* tab keep
+  working. Tick it again to get BK's contracts back. If you re-enable it
+  mid-service after the old due date has passed, expect the renewal
+  pop-up the next day.
 - **"Enemy parties are entering my city as if it were theirs — walking in
   just to trade, then leaving"** — fixed in v1.9.34.1. Banner Kings'
   civilian parties ("Travelling Serfs/Craftsmen/Nobles from X", slave

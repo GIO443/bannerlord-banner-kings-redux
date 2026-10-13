@@ -8,7 +8,8 @@ using TaleWorlds.Library;
 
 namespace BannerKings.UI.Extensions.Encyclopedia
 {
-    [ViewModelMixin("Refresh")]
+    // handleDerived: War Sails swaps in NavalEncyclopediaSettlementPageVM (a subclass).
+    [ViewModelMixin("Refresh", true)]
     internal class EncyclopediaSettlementPageMixin : BaseViewModelMixin<EncyclopediaSettlementPageVM>
     {
         private bool addedFields;

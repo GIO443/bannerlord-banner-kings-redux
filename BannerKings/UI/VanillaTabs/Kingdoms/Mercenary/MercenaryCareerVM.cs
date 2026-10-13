@@ -149,7 +149,9 @@ namespace BannerKings.UI.VanillaTabs.Kingdoms.Mercenary
             PointsText = Career.GetPoints(Career.Kingdom).ToString();
 
             var contractDaysLeft = (int)Career.ContractDueDate.RemainingDaysFromNow;
-            TimeText = (contractDaysLeft > 0
+            TimeText = (!Settings.BannerKingsSettings.MercenaryContractsEnabled
+                ? new TextObject("{=BKmercSvcNoContract}{DAYS} days served")
+                : contractDaysLeft > 0
                 ? new TextObject("{=BKmercSvcDue}{DAYS} days served - contract due in {LEFT} days")
                     .SetTextVariable("LEFT", contractDaysLeft)
                 : new TextObject("{=BKmercSvcOver}{DAYS} days served - contract term complete, renew or leave freely"))

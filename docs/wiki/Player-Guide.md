@@ -229,7 +229,9 @@ runs on a fixed term:
 3. **Tournament prize riding** (early game) — visit any town with an
    active tournament, win, take the prize.
 4. **Mercenary contracts** to a wealthy kingdom (mid game) — talk to
-   their ruler about service; payment is daily.
+   their ruler about service; payment is daily. (BK's contract terms can
+   be switched off in MCM → Diplomacy → *Mercenary Contracts* if another
+   mercenary mod conflicts. See [Troubleshooting](Troubleshooting).)
 5. **Raiding** — strongest with a raid-focused lifestyle (Outlaw,
    Mercenary, Varyag, Jawwal, Kheshig, Drakkar Captain). See
    [Slavery & raiding](Slavery-and-Raiding) for the full system.

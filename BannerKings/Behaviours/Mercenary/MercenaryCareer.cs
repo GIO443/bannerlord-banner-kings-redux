@@ -137,6 +137,10 @@ namespace BannerKings.Behaviours.Mercenary
                 }
             }
 
+            // Contract layer off (MCM): no due-date renewal prompts; vanilla
+            // decides when the clan leaves.
+            if (!Settings.BannerKingsSettings.MercenaryContractsEnabled) return;
+
             if (ContractDueDate.IsNow || ContractDueDate.IsPast)
             {
                 if (Clan == Clan.PlayerClan)
@@ -481,7 +485,8 @@ namespace BannerKings.Behaviours.Mercenary
             if (Kingdom != kingdom) return;
 
             int daysLeft = (int)ContractDueDate.RemainingDaysFromNow;
-            if (daysLeft > 0 && daysLeft < (CampaignTime.DaysInYear + 1))
+            if (Settings.BannerKingsSettings.MercenaryContractsEnabled
+                && daysLeft > 0 && daysLeft < (CampaignTime.DaysInYear + 1))
             {
                 Hero ruler = kingdom.RulingClan.Leader;
                 float relation = -MBMath.Map(daysLeft, 1, CampaignTime.DaysInYear, 15, 50);

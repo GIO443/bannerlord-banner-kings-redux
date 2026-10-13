@@ -21,6 +21,7 @@ namespace BannerKings.Patches
             [HarmonyPatch("CreateMercenaryOffer")]
             private static bool CreateMercenaryOfferPrefix(Kingdom kingdom)
             {
+                if (!Settings.BannerKingsSettings.MercenaryContractsEnabled) return true;
                 if (BannerKingsConfig.Instance.DiplomacyModel.GetScoreOfKingdomToHireMercenary(kingdom, Clan.PlayerClan) >
                     BannerKingsConfig.Instance.DiplomacyModel.GetScoreOfKingdomToSackMercenary(kingdom, Clan.PlayerClan))
                     return true;
@@ -37,6 +38,8 @@ namespace BannerKings.Patches
             [HarmonyPatch("conversation_player_is_offering_mercenary_on_clickable_condition")]
             private static bool OfferMercenaryPrefix(ref bool __result, out TextObject hintText)
             {
+                hintText = null;
+                if (!Settings.BannerKingsSettings.MercenaryContractsEnabled) return true;
                 List<IFaction> list;
                 List<IFaction> first;
                 Kingdom kingdom = (Kingdom)Hero.OneToOneConversationHero.MapFaction;
