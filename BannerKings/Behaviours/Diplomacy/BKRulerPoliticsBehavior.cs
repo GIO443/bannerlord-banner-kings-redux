@@ -6,6 +6,7 @@ using BannerKings.Managers.Kingdoms.Contract;
 using BannerKings.Managers.Titles;
 using BannerKings.Managers.Titles.Laws;
 using BannerKings.Settings;
+using BannerKings.Utils;
 using TaleWorlds.CampaignSystem;
 using TaleWorlds.CampaignSystem.CharacterDevelopment;
 using TaleWorlds.CampaignSystem.Election;
@@ -113,6 +114,12 @@ namespace BannerKings.Behaviours.Diplomacy
 
                 float threat = ScoreVassalThreat(ruler, vassalClan, diplomacy);
                 if (threat < threshold) continue;
+
+                // In addition to normal BK title revoke consideration, also build Fourberie grudge against player vassal depending on honor.
+                if (FourberieBridge.Available && vassalClan == Clan.PlayerClan)
+                {
+                    FourberieBridge.ConsiderFourberieGrudge(ruler, vassalClan);
+                }
 
                 var (title, action) = FindCheapestRevocableTitle(ruler, vassalClan.Leader);
                 if (title == null || action == null || !action.Possible) continue;
