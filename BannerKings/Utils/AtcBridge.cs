@@ -2,6 +2,7 @@ using System;
 using System.Reflection;
 using HarmonyLib;
 using TaleWorlds.CampaignSystem;
+using TaleWorlds.CampaignSystem.Party;
 using TaleWorlds.Core;
 using TaleWorlds.Library;
 using static BannerKings.Managers.PopulationManager;
@@ -61,7 +62,7 @@ namespace BannerKings.Utils
             {
                 var type = AccessTools.TypeByName(AtcConfigType);
                 if (type == null) return;
-                _getFactionRecruit = AccessTools.Method(type, "GetFactionRecruit");
+                _getFactionRecruit = AccessTools.Method(type, "GetFactionRecruit", new Type[] { typeof(Hero), typeof(MobileParty) });
                 _eliteTroopTarget = AccessTools.Method(type, "NotableShouldGiveEliteTroop");
             }
             catch
@@ -98,7 +99,7 @@ namespace BannerKings.Utils
             if (!ModCompat.AdonnaysTroopChanger) return;
             Resolve();
             if (_eliteTroopTarget == null) return;
-
+ 
             var prefix = new HarmonyMethod(typeof(AtcBridge).GetMethod(
                 nameof(EliteTroopPrefix), BindingFlags.NonPublic | BindingFlags.Static));
             harmony.Patch(_eliteTroopTarget, prefix: prefix);
