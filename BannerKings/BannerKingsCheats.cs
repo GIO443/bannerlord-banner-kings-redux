@@ -24,6 +24,9 @@ using TaleWorlds.ObjectSystem;
 using TaleWorlds.CampaignSystem.Settlements;
 using TaleWorlds.CampaignSystem.CampaignBehaviors;
 using BannerKings.Managers.Titles;
+using BannerKings.Utils;
+using HarmonyLib;
+using System.Reflection;
 
 namespace BannerKings
 {
@@ -544,6 +547,40 @@ namespace BannerKings
             catch (Exception ex)
             {
                 string err = "shipping_topology failed: " + ex.GetType().Name + ": " + ex.Message;
+                InformationManager.DisplayMessage(new InformationMessage(err, Color.FromUint(0xFFFF4040)));
+                return err + "\n" + ex.StackTrace;
+            }
+        }
+
+        [CommandLineFunctionality.CommandLineArgumentFunction("set_fourberie_grudge", "bannerkings")]
+        public static string SetFourberieGrudge(List<string> strings)
+        {
+            string summary;
+            if (!CampaignCheats.CheckCheatUsage(ref CampaignCheats.ErrorType)) return CampaignCheats.ErrorType;
+            if (strings == null || strings.Count != 2 || !int.TryParse(strings[1], out int amount))
+                return "Format: bannerkings.set_fourberie_grudge <clan> <amount>";
+            try
+            {
+                if (FourberieBridge.Available)
+                {
+                    string clanString = strings[0];
+                    Clan clan = Clan.All.Where(clan => clan.Name.ToString().Replace(" ", "") == clanString || clan.StringId == clanString).FirstOrDefault();
+                    if (clan == null) return "Clan not found!";
+                    int existingGrudge = FourberieBridge.GetExistingGrudge(clan);
+                    FourberieBridge.SetGrudgeValue(clan, amount);
+
+                    summary = "set_fourberie_grudge: " + "old_value = " + existingGrudge + "   new_value = " + amount;
+                }
+                else
+                {
+                    summary = "Fourberie not detected!";
+                }
+                InformationManager.DisplayMessage(new InformationMessage(summary, Color.FromUint(0xFFFFD700)));
+                return summary;
+            }
+            catch (Exception ex)
+            {
+                string err = "set_fourberie_grudge failed: " + ex.GetType().Name + ": " + ex.Message;
                 InformationManager.DisplayMessage(new InformationMessage(err, Color.FromUint(0xFFFF4040)));
                 return err + "\n" + ex.StackTrace;
             }

@@ -3,6 +3,7 @@ using BannerKings.Extensions;
 using BannerKings.Managers.Titles;
 using BannerKings.Managers.Titles.Governments;
 using BannerKings.Settings;
+using BannerKings.Utils;
 using System.Collections.Generic;
 using TaleWorlds.CampaignSystem;
 using TaleWorlds.CampaignSystem.Actions;
@@ -104,8 +105,21 @@ namespace BannerKings.Behaviours.Diplomacy
                 int relation = clan.Leader.GetRelation(peer.Leader);
                 float relationFactor = relation < 0 ? -relation / 100f : 0f;
                 float peerAmbition = MathF.Max(0f, BKPoliticalDisposition.Get(peer).Ambition);
+                float grudgeFactor = 0f;
 
-                float score = tierCloseness * 0.5f + relationFactor * 0.8f + peerAmbition * 0.4f;
+                // Clans consider grudge against player when choosing a rival.
+                if (FourberieBridge.Available && peer == Clan.PlayerClan)
+                {
+                    int existingGrudge = FourberieBridge.GetExistingGrudge(clan);
+
+                    // Grudge degrades pretty rapidly and almost never gets to even half of the 250 ceiling for clans in same kindom,
+                    // hence high weighting below to have an even remotely noticable effect.
+                    grudgeFactor = existingGrudge / 250f;
+                }
+
+
+
+                float score = tierCloseness * 0.5f + relationFactor * 0.8f + peerAmbition * 0.4f + grudgeFactor * 2f;
                 if (score > bestScore)
                 {
                     bestScore = score;
@@ -238,6 +252,12 @@ namespace BannerKings.Behaviours.Diplomacy
                         .SetTextVariable("KINGDOM", kingdom.Name)
                         .ToString(),
                     Color.FromUint(Utils.TextHelper.COLOR_LIGHT_RED)));
+            }
+
+            // In addition to normal BK lever pull, also build Fourberie grudge against vassal depending on honor.
+            if (FourberieBridge.Available && treacherous && rival == Clan.PlayerClan)
+            {
+                FourberieBridge.ConsiderFourberieGrudge(clan.Leader, rival);
             }
         }
 

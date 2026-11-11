@@ -125,6 +125,11 @@ namespace BannerKings.Utils
         public const string AdonnaysTroopChangerId = "AdonnaysTroopChanger";
         public const string AdonnaysTroopChangerAsm = "AdonnaysTroopChanger";
 
+        // Fourberie (Cunning) — https://www.nexusmods.com/mountandblade2bannerlord/mods/2969
+        // TODO: Describe mod interaction
+        public const string FourberieId = "Fourberie";
+        public const string FourberieAsm = "Fourberie";
+
         // De Re Militari (DRM) — historical troop/item/culture overhaul.
         // Data-only (empty <SubModules>, no DLL): redefines troop objects in place,
         // adds new troops/items/crafting, patches cultures via XSLT. No code conflict —
@@ -215,6 +220,10 @@ namespace BannerKings.Utils
         /// <summary>True if Adonnay's Troop Changer is loaded.</summary>
         public static bool AdonnaysTroopChanger
             => IsLoaded(AdonnaysTroopChangerId, AdonnaysTroopChangerAsm);
+
+        /// <summary>True if Fourberie is loaded.</summary>
+        public static bool Fourberie
+            => IsLoaded(FourberieId, FourberieAsm);
 
         /// <summary>True if De Re Militari (data-only troop/item overhaul) is loaded.</summary>
         public static bool DeReMilitari

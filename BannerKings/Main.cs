@@ -381,6 +381,7 @@ namespace BannerKings
                 if (BannerKings.Utils.ModCompat.EconomyOverhaul) detected.Add("EconomyOverhaul");
                 if (BannerKings.Utils.ModCompat.BetterEconomy) detected.Add("BetterEconomy");
                 if (BannerKings.Utils.ModCompat.RealmOfThrones) detected.Add("RealmOfThrones");
+                if (BannerKings.Utils.ModCompat.Fourberie) detected.Add("Fourberie");
                 BannerKings.Utils.Logs.MajorEvent(() =>
                     detected.Count == 0
                         ? "[BK] ModCompat: no compat-tracked mods detected"
