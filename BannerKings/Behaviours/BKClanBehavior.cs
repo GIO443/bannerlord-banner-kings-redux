@@ -19,6 +19,7 @@ using TaleWorlds.CampaignSystem;
 using TaleWorlds.CampaignSystem.Actions;
 using TaleWorlds.CampaignSystem.CharacterDevelopment;
 using TaleWorlds.CampaignSystem.Conversation;
+using TaleWorlds.CampaignSystem.Extensions;
 using TaleWorlds.CampaignSystem.Party;
 using TaleWorlds.CampaignSystem.Party.PartyComponents;
 using TaleWorlds.CampaignSystem.Settlements;
@@ -1371,15 +1372,26 @@ namespace BannerKings.Behaviours
         private CharacterObject GetAdequateTemplate(List<SkillObject> traits, CultureObject culture)
         {
             CharacterObject template = null;
-            foreach (var skill in traits)
+
+                    
+            var query = CreateGetWandererQuery(culture);
+            // filter for skill
+            if(!traits.IsEmpty())
             {
-                if (template != null) break;
-                template = (from x in culture.NotableTemplates
-                    where x.Occupation == Occupation.Wanderer && x.GetSkillValue(skill) >= 50
-                    select x).GetRandomElementInefficiently();
+                query = query.Where((CharacterObject character) => traits.Any((SkillObject containedSkill) => character.GetSkillValue(containedSkill) >= 50));
             }
+            // pick random
+            template = query.GetRandomElementInefficiently();
 
             return template;
+        }
+
+        private static IQueryable<CharacterObject> CreateGetWandererQuery(CultureObject culture)
+        {
+            var query = MBObjectManager.Instance.GetObjectTypeList<CharacterObject>().AsQueryable();
+            // get wanderers of same culture
+            query = query.Where((CharacterObject character) => character != null && character.IsReady && character.IsTemplate && !character.IsHero && character.Occupation == Occupation.Wanderer && character.Culture == culture);
+            return query;
         }
 
         private Equipment GetEquipmentIfPossible(Clan clan, bool noble, Town town = null)
@@ -1455,26 +1467,17 @@ namespace BannerKings.Behaviours
                 return;
             }
 
-            CharacterObject template;
+            var query = CreateGetWandererQuery(clan.Culture);
             var genderLaw = title.Contract.GenderLaw;
             if (genderLaw == DefaultGenderLaws.Instance.Agnatic)
             {
-                template = (from e in clan.Culture.NotableTemplates
-                            where e.Occupation == Occupation.Wanderer && !e.IsFemale
-                            select e).GetRandomElementInefficiently();
+                query = query.Where((CharacterObject character) => !character.IsFemale);
             }
             else if (genderLaw == DefaultGenderLaws.Instance.Enatic)
             {
-                template = (from e in clan.Culture.NotableTemplates
-                            where e.Occupation == Occupation.Wanderer && e.IsFemale
-                            select e).GetRandomElementInefficiently();
+                query = query.Where((CharacterObject character) => character.IsFemale);
             }
-            else
-            {
-                template = (from e in clan.Culture.NotableTemplates
-                            where e.Occupation == Occupation.Wanderer
-                            select e).GetRandomElementInefficiently();
-            }
+            CharacterObject template = query.GetRandomElementInefficiently();
 
             if (template == null)
             {
