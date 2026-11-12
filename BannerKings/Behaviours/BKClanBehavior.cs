@@ -42,8 +42,9 @@ namespace BannerKings.Behaviours
             CampaignEvents.OnSessionLaunchedEvent.AddNonSerializedListener(this, OnSessionLaunched);
             CampaignEvents.AfterSettlementEntered.AddNonSerializedListener(this, OnSettlementEntered);
             CampaignEvents.NewCompanionAdded.AddNonSerializedListener(this, OnCompanionAdded);
-            CampaignEvents.OnCharacterCreationIsOverEvent.AddNonSerializedListener(this, () =>
+            CampaignEvents.OnCharacterCreationIsOverEvent.AddNonSerializedListener(this, phase =>
             {
+                if (!CharacterCreationPhase.IsFinal(phase)) return;
                 foreach (Clan clan in Clan.All)
                 {
                     if (clan.IsEliminated || clan.IsBanditFaction || clan.Kingdom == null || clan.Leader == null)

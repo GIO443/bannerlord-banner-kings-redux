@@ -828,10 +828,10 @@ namespace BannerKings.Patches
                     {
                         ExplainedNumber explainedNumber2 = new ExplainedNumber((float)((int)((float)town.TradeTaxAccumulated / 5f)), false, null);
                         int num = MathF.Round(explainedNumber2.ResultNumber);
-                        PerkHelper.AddPerkBonusForTown(DefaultPerks.Trade.ContentTrades, town, ref explainedNumber2);
-                        PerkHelper.AddPerkBonusForTown(DefaultPerks.Crossbow.Steady, town, ref explainedNumber2);
-                        PerkHelper.AddPerkBonusForTown(DefaultPerks.Roguery.SaltTheEarth, town, ref explainedNumber2);
-                        PerkHelper.AddPerkBonusForTown(DefaultPerks.Steward.GivingHands, town, ref explainedNumber2);
+                        BannerKings.Utils.GovernorPerkHelper.AddPerkBonusForTown(DefaultPerks.Trade.ContentTrades, town, ref explainedNumber2);
+                        BannerKings.Utils.GovernorPerkHelper.AddPerkBonusForTown(DefaultPerks.Crossbow.Steady, town, ref explainedNumber2);
+                        BannerKings.Utils.GovernorPerkHelper.AddPerkBonusForTown(DefaultPerks.Roguery.SaltTheEarth, town, ref explainedNumber2);
+                        BannerKings.Utils.GovernorPerkHelper.AddPerkBonusForTown(DefaultPerks.Steward.GivingHands, town, ref explainedNumber2);
                         if (applyWithdrawals)
                         {
                             town.TradeTaxAccumulated -= num;

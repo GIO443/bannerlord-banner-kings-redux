@@ -120,8 +120,9 @@ namespace BannerKings.Behaviours
             return 0;
         }
 
-        private void OnCreationOver()
+        private void OnCreationOver(int phase)
         {
+            if (!CharacterCreationPhase.IsFinal(phase)) return;
             miningRevenues = new Dictionary<Town, int>();
             materialExpenses = new Dictionary<Town, int>();
         }

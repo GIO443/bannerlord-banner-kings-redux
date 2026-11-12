@@ -108,17 +108,24 @@ namespace BannerKings.Behaviours.Diplomacy
             foreach (var vassalClan in kingdom.Clans)
             {
                 if (vassalClan == null || vassalClan == ruler.Clan) continue;
-                if (vassalClan.Leader == null || vassalClan.Leader == Hero.MainHero) continue;
+                if (vassalClan.Leader == null) continue;
                 if (vassalClan.IsMinorFaction || vassalClan.IsEliminated) continue;
-                if (IsOnCooldown(ruler, vassalClan.Leader)) continue;
+
+                // The player's titles are never revoked by this AI path. With
+                // Fourberie installed, a threatening player vassal instead builds
+                // grudge in the ruler's clan (scaled by the ruler's dishonour)
+                // and Fourberie decides whether/what to scheme.
+                bool isPlayerVassal = vassalClan.Leader == Hero.MainHero;
+                if (isPlayerVassal && !FourberieBridge.Available) continue;
+                if (!isPlayerVassal && IsOnCooldown(ruler, vassalClan.Leader)) continue;
 
                 float threat = ScoreVassalThreat(ruler, vassalClan, diplomacy);
                 if (threat < threshold) continue;
 
-                // In addition to normal BK title revoke consideration, also build Fourberie grudge against player vassal depending on honor.
-                if (FourberieBridge.Available && vassalClan == Clan.PlayerClan)
+                if (isPlayerVassal)
                 {
-                    FourberieBridge.ConsiderFourberieGrudge(ruler, vassalClan);
+                    FourberieBridge.ConsiderFourberieGrudge(ruler);
+                    continue;
                 }
 
                 var (title, action) = FindCheapestRevocableTitle(ruler, vassalClan.Leader);

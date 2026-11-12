@@ -183,8 +183,9 @@ namespace BannerKings.Behaviours
         {
         }
 
-        private void OnGameCreatedFollowUp()
+        private void OnGameCreatedFollowUp(int phase)
         {
+            if (!CharacterCreationPhase.IsFinal(phase)) return;
             foreach (Settlement settlement in Settlement.All)
             {
                 InitializeGentry(settlement, true);

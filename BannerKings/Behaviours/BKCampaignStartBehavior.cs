@@ -54,9 +54,10 @@ namespace BannerKings.Behaviours
             }
             else
             {
-                 CampaignEvents.OnCharacterCreationIsOverEvent.AddNonSerializedListener(this, 
-                () => 
+                 CampaignEvents.OnCharacterCreationIsOverEvent.AddNonSerializedListener(this,
+                phase =>
                 {
+                    if (!BannerKings.Utils.CharacterCreationPhase.IsFinal(phase)) return;
                     OnCharacterCreationOver();
                     GiveClansResources();
                     GiveTownsResources();

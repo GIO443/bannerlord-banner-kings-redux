@@ -102,11 +102,10 @@ namespace BannerKings.Behaviours.Criminality
                    {
                        foreach (Hero friend in Hero.AllAliveHeroes)
                        {
-                           if (friend.IsFriend(hero))
+                           if (friend != executor && friend.IsFriend(hero))
                            {
-                               bool affectRelatives;
-                               int relationChangeForExecutingHero = TaleWorlds.CampaignSystem.Campaign.Current.Models.ExecutionRelationModel
-                                   .GetRelationChangeForExecutingHero(hero, friend, out affectRelatives);
+                               int relationChangeForExecutingHero = ExecutionRelations
+                                   .GetRelationChangeForExecutingHero(hero, friend, out _);
                                if (relationChangeForExecutingHero != 0)
                                {
                                    ChangeRelationAction.ApplyRelationChangeBetweenHeroes(executor,

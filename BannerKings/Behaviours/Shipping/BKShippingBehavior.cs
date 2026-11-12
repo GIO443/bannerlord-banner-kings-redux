@@ -577,7 +577,8 @@ namespace BannerKings.Behaviours.Shipping
                     MBCommon.UnPauseGameEngine();
                 }
             }
-            party.Party.UpdateVisibilityAndInspected(party.Position);
+            // Game 1.5 removed PartyBase.UpdateVisibilityAndInspected; the engine
+            // recomputes visibility every frame and forces inactive parties hidden.
             party.IsVisible = false;
         }
 
@@ -603,7 +604,6 @@ namespace BannerKings.Behaviours.Shipping
             if (teleportOutside) travel.Party.Position = travel.Destination.GatePosition;
             else EnterSettlementAction.ApplyForParty(party, travel.Destination);
 
-            party.Party.UpdateVisibilityAndInspected(party.Position);
             RemoveParty(travel.Party);
         }
 
@@ -1424,7 +1424,6 @@ namespace BannerKings.Behaviours.Shipping
                             try { party.IsActive = true; } catch { }
                             try { party.Ai?.EnableAi(); } catch { }
                             try { party.IsVisible = true; } catch { }
-                            try { party.Party.UpdateVisibilityAndInspected(party.Position); } catch { }
                             // Stale TargetSettlement — the original target
                             // may have been conquered/destroyed while AI
                             // was off. EnableAi alone doesn't refresh it

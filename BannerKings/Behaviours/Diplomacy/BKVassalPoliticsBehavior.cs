@@ -117,8 +117,6 @@ namespace BannerKings.Behaviours.Diplomacy
                     grudgeFactor = existingGrudge / 250f;
                 }
 
-
-
                 float score = tierCloseness * 0.5f + relationFactor * 0.8f + peerAmbition * 0.4f + grudgeFactor * 2f;
                 if (score > bestScore)
                 {
@@ -257,7 +255,7 @@ namespace BannerKings.Behaviours.Diplomacy
             // In addition to normal BK lever pull, also build Fourberie grudge against vassal depending on honor.
             if (FourberieBridge.Available && treacherous && rival == Clan.PlayerClan)
             {
-                FourberieBridge.ConsiderFourberieGrudge(clan.Leader, rival);
+                FourberieBridge.ConsiderFourberieGrudge(clan.Leader);
             }
         }
 

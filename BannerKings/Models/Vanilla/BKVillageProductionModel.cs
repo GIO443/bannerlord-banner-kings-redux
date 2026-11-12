@@ -76,7 +76,7 @@ namespace BannerKings.Models.Vanilla
                             item.ItemCategory == DefaultItemCategories.Fish ||
                             item.ItemCategory == DefaultItemCategories.DateFruit)
                         {
-                            PerkHelper.AddPerkBonusForTown(DefaultPerks.Trade.GranaryAccountant, village.Bound.Town,
+                            BannerKings.Utils.GovernorPerkHelper.AddPerkBonusForTown(DefaultPerks.Trade.GranaryAccountant, village.Bound.Town,
                                 ref explainedNumber);
                         }
 
@@ -87,25 +87,25 @@ namespace BannerKings.Models.Vanilla
                                  item.ItemCategory ==
                                  DefaultItemCategories.Silver)
                         {
-                            PerkHelper.AddPerkBonusForTown(DefaultPerks.Trade.TradeyardForeman, village.Bound.Town,
+                            BannerKings.Utils.GovernorPerkHelper.AddPerkBonusForTown(DefaultPerks.Trade.TradeyardForeman, village.Bound.Town,
                                 ref explainedNumber);
                         }
 
                         if (item.IsTradeGood)
                         {
-                            PerkHelper.AddPerkBonusForTown(DefaultPerks.Athletics.Steady, village.Bound.Town,
+                            BannerKings.Utils.GovernorPerkHelper.AddPerkBonusForTown(DefaultPerks.Athletics.Steady, village.Bound.Town,
                                 ref explainedNumber);
                         }
 
                         if (PerkHelper.GetPerkValueForTown(DefaultPerks.Riding.Breeder, village.Bound.Town))
                         {
-                            PerkHelper.AddPerkBonusForTown(DefaultPerks.Riding.Breeder, village.Bound.Town,
+                            BannerKings.Utils.GovernorPerkHelper.AddPerkBonusForTown(DefaultPerks.Riding.Breeder, village.Bound.Town,
                                 ref explainedNumber);
                         }
 
                         if (item.IsAnimal)
                         {
-                            PerkHelper.AddPerkBonusForTown(DefaultPerks.Medicine.PerfectHealth, village.Bound.Town,
+                            BannerKings.Utils.GovernorPerkHelper.AddPerkBonusForTown(DefaultPerks.Medicine.PerfectHealth, village.Bound.Town,
                                 ref explainedNumber);
                         }
 

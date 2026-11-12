@@ -80,9 +80,27 @@ namespace BannerKings.Patches
     /// passes through so unrelated bugs stay visible. No reflection
     /// needed; both methods are public on their VMs.
     /// </summary>
-    [HarmonyPatch(typeof(ClanPartyItemVM), "UpdateProperties")]
+    // Game 1.5: ClanPartyItemVM.UpdateProperties became abstract (Harmony cannot
+    // patch a method without a body) with concrete overrides on
+    // ClanPartyItem.ClanPartyItemWithHeroVM / ClanPartyItemWithPartyVM. Target
+    // every concrete declared override so a future subclass is covered too.
+    [HarmonyPatch]
     internal static class ClanPartyItemUpdatePropertiesSafetyPatch
     {
+        private static System.Collections.Generic.IEnumerable<System.Reflection.MethodBase> TargetMethods()
+        {
+            var baseType = typeof(ClanPartyItemVM);
+            Type[] types;
+            try { types = baseType.Assembly.GetTypes(); }
+            catch (System.Reflection.ReflectionTypeLoadException e) { types = e.Types; }
+            foreach (var t in types)
+            {
+                if (t == null || t.IsAbstract || !baseType.IsAssignableFrom(t)) continue;
+                var m = AccessTools.DeclaredMethod(t, "UpdateProperties", Type.EmptyTypes);
+                if (m != null && !m.IsAbstract) yield return m;
+            }
+        }
+
         private static Exception Finalizer(Exception __exception)
         {
             if (__exception == null) return null;

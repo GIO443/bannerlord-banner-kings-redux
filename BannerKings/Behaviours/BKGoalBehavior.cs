@@ -19,7 +19,7 @@ namespace BannerKings.Behaviours
                 BannerKings.Utils.TickTrace.WrapHero("BKGoal.DailyTickHero", OnDailyTickHeroEvent));
         }
 
-        private void OnCreationEnded()
+        private void OnCreationEnded(int phase)
         {
             
         }

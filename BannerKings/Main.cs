@@ -288,12 +288,14 @@ namespace BannerKings
             campaignStarter.AddModel(BannerKingsConfig.Instance.ClanFinanceModel);
             campaignStarter.AddModel(BannerKingsConfig.Instance.ArmyManagementModel);
             campaignStarter.AddModel(BannerKingsConfig.Instance.VolunteerModel);
-            // v1.9.9.3: ImprovedGarrisons compat gate retired. The IG
-            // integration was non-functional in practice (yielding to IG
-            // produced incompatible behaviour rather than coexistence) so
-            // BK now always registers BKGarrisonModel. Players running IG
-            // alongside BK should expect the BK garrison model to override.
-            campaignStarter.AddModel(new BKGarrisonModel());
+            // Game 1.5: BKGarrisonModel retired. Its only override,
+            // FindNumberOfTroopsToLeaveToGarrison, was removed from the base
+            // model — and already had no caller in 1.4 (garrison donations are
+            // decided by GarrisonTroopsCampaignBehavior's own balancer), so the
+            // model was dead weight. The garrison-policy recruit rate stays a
+            // postfix on DefaultSettlementGarrisonModel.CalculateBaseGarrisonChange
+            // (VanillaModelTweakPatches). Not registering a model also lets
+            // NavalDLC's (pass-through) garrison model keep its slot.
             campaignStarter.AddModel(new BKPartyWageModel());
             // BK's smithing overhaul (smelting yield caps, custom stamina costs,
             // armor crafting UI mode, botching, hourly smithing fee) is opt-out

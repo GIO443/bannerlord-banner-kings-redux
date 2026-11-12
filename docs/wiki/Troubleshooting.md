@@ -13,6 +13,20 @@
 
 ## Edge cases & frequent confusions
 
+- **"After updating Bannerlord to v1.5.x, BK errors constantly / town
+  loyalty and prosperity tooltips break / AI clans start with absurd
+  gold"** — Bannerlord 1.5 changed parts of the game code BK builds on.
+  A BK build made for v1.4 throws errors in the town loyalty, prosperity,
+  wage and village-production calculations, and its new-game setup ran
+  repeatedly (the game now signals "character creation finished" ten
+  times, once per setup stage). Update to BK v1.9.36.0 or later (built for
+  Bannerlord 1.5) — BK's new-game setup now runs once, after the game's own
+  advanced-start options have been applied. Existing saves need no action.
+- **"Someone else executed a criminal and *I* lost relations"** — fixed in
+  v1.9.36.0. When an AI ruler carried out a tyrannical
+  sentence, the relation penalty from the victim's clan and kin was charged
+  to the player instead of the ruler who passed it. It now lands on whoever
+  executed the sentence.
 - **"My title disappeared"** — usually inherited by an heir on a death you
   didn't notice, or absorbed into a higher-tier title via succession. Check
   the title event log in the encyclopedia → titles tab.

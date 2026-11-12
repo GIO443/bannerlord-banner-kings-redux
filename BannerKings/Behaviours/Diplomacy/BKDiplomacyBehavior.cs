@@ -697,25 +697,12 @@ namespace BannerKings.Behaviours.Diplomacy
                 }
                 else if (kingdom.Clans.Count == 0) DestroyKingdomAction.Apply(kingdom);
 
-                float strength = kingdom.CurrentTotalStrength;
-                int fiefs = kingdom.Fiefs.Count;
-
-                float highestStrength = 0f;
-                foreach (Kingdom k in FactionHelper.GetEnemyKingdoms(kingdom))
-                {
-                    float enemyStrength = k.CurrentTotalStrength;
-                    if (enemyStrength > highestStrength) highestStrength = enemyStrength;
-                }
-
-                MobileParty.PartyObjective objective = MobileParty.PartyObjective.Neutral;
-                if (fiefs == 1 || highestStrength >= strength * 1.5f) objective = MobileParty.PartyObjective.Defensive;
-
-                if (strength >= highestStrength * 1.5f) objective = MobileParty.PartyObjective.Aggressive;
-
-                foreach (WarPartyComponent party in kingdom.WarPartyComponents)
-                {
-                    party.MobileParty.SetPartyObjective(objective);
-                }
+                // Game 1.5 removed MobileParty.SetPartyObjective / Objective and
+                // every vanilla reader of it (the ×1.2 / ×0.8 target-score
+                // multipliers), so BK's per-party Aggressive/Defensive posture
+                // stamp had no effect and was dropped. A kingdom-posture bias,
+                // if wanted back, belongs in a postfix on the target-score model
+                // computed on demand — not stored per party.
 
                 ConsiderCrownAuthority(kingdom);
 

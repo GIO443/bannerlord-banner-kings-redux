@@ -397,7 +397,7 @@ namespace BannerKings.Models.Vanilla
                 if (currentSettlement?.Town == town)
                 {
                     SkillHelper.AddSkillBonusForTown(DefaultSkillEffects.TownProjectBuildingBonus, town, ref result);
-                    PerkHelper.AddPerkBonusForTown(DefaultPerks.Steward.ForcedLabor, town, ref result);
+                    BannerKings.Utils.GovernorPerkHelper.AddPerkBonusForTown(DefaultPerks.Steward.ForcedLabor, town, ref result);
 
                     if (!town.BuildingsInProgress.IsEmpty())
                     {
@@ -454,13 +454,13 @@ namespace BannerKings.Models.Vanilla
                 buildingType == DefaultBuildingTypes.CastleSiegeWorkshop ||
                 buildingType == DefaultBuildingTypes.SettlementSiegeWorkshop)
             {
-                PerkHelper.AddPerkBonusForTown(DefaultPerks.TwoHanded.Confidence, town, ref result);
+                BannerKings.Utils.GovernorPerkHelper.AddPerkBonusForTown(DefaultPerks.TwoHanded.Confidence, town, ref result);
             }
 
             if (buildingType == DefaultBuildingTypes.SettlementMarketplace ||
                 buildingType == DefaultBuildingTypes.SettlementWaterworks)
             {
-                PerkHelper.AddPerkBonusForTown(DefaultPerks.Trade.SelfMadeMan, town, ref result);
+                BannerKings.Utils.GovernorPerkHelper.AddPerkBonusForTown(DefaultPerks.Trade.SelfMadeMan, town, ref result);
             }
 
             town.AddEffectOfBuildings(BuildingEffectEnum.ConstructionPerDay, ref result);

@@ -55,13 +55,13 @@
 	     MSBuild's reference resolver only surfaced the Core DLLs and the
 	     SandBox/StoryMode/Native types went missing. -->
 	<ItemGroup Condition="'$(BANNERLORD_GAME_DIR)' == ''">
-		<PackageReference Include="Bannerlord.ReferenceAssemblies.Core" Version="1.4.5.114896" IncludeAssets="compile" PrivateAssets="all" />
-		<PackageReference Include="Bannerlord.ReferenceAssemblies.Native" Version="1.4.5.114896" IncludeAssets="compile" PrivateAssets="all" />
-		<PackageReference Include="Bannerlord.ReferenceAssemblies.SandBox" Version="1.4.5.114896" IncludeAssets="compile" PrivateAssets="all" />
-		<PackageReference Include="Bannerlord.ReferenceAssemblies.StoryMode" Version="1.4.5.114896" IncludeAssets="compile" PrivateAssets="all" />
-		<PackageReference Include="Bannerlord.ReferenceAssemblies.CustomBattle" Version="1.4.5.114896" IncludeAssets="compile" PrivateAssets="all" />
-		<PackageReference Include="Bannerlord.ReferenceAssemblies.BirthAndDeath" Version="1.4.5.114896" IncludeAssets="compile" PrivateAssets="all" />
-		<PackageReference Include="Bannerlord.ReferenceAssemblies.NavalDLC" Version="1.4.5.114896" IncludeAssets="compile" PrivateAssets="all" />
+		<PackageReference Include="Bannerlord.ReferenceAssemblies.Core" Version="1.5.7.125802" IncludeAssets="compile" PrivateAssets="all" />
+		<PackageReference Include="Bannerlord.ReferenceAssemblies.Native" Version="1.5.7.125802" IncludeAssets="compile" PrivateAssets="all" />
+		<PackageReference Include="Bannerlord.ReferenceAssemblies.SandBox" Version="1.5.7.125802" IncludeAssets="compile" PrivateAssets="all" />
+		<PackageReference Include="Bannerlord.ReferenceAssemblies.StoryMode" Version="1.5.7.125802" IncludeAssets="compile" PrivateAssets="all" />
+		<PackageReference Include="Bannerlord.ReferenceAssemblies.CustomBattle" Version="1.5.7.125802" IncludeAssets="compile" PrivateAssets="all" />
+		<PackageReference Include="Bannerlord.ReferenceAssemblies.BirthAndDeath" Version="1.5.7.125802" IncludeAssets="compile" PrivateAssets="all" />
+		<PackageReference Include="Bannerlord.ReferenceAssemblies.NavalDLC" Version="1.5.7.125802" IncludeAssets="compile" PrivateAssets="all" />
 	</ItemGroup>
 
 	<ItemGroup>

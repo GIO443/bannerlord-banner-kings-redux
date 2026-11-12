@@ -77,7 +77,7 @@ namespace BannerKings.Behaviours.Workshops
 
                     if (town.Governor != null && town.Governor.GetPerkValue(DefaultPerks.Trade.MercenaryConnections))
                     {
-                        PerkHelper.AddPerkBonusForTown(DefaultPerks.Trade.MercenaryConnections, town, ref explainedNumber);
+                        BannerKings.Utils.GovernorPerkHelper.AddPerkBonusForTown(DefaultPerks.Trade.MercenaryConnections, town, ref explainedNumber);
                     }
 
                     if (town.Owner != null)

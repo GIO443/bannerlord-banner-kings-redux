@@ -137,7 +137,7 @@ namespace BannerKings.Models.Vanilla
             }
             if (party.IsGarrison && party.CurrentSettlement != null && party.CurrentSettlement.Town.IsUnderSiege)
             {
-                PerkHelper.AddPerkBonusForTown(DefaultPerks.Athletics.StrongLegs, party.CurrentSettlement.Town, ref result);
+                BannerKings.Utils.GovernorPerkHelper.AddPerkBonusForTown(DefaultPerks.Athletics.StrongLegs, party.CurrentSettlement.Town, ref result);
             }
             if (party.Army != null)
             {

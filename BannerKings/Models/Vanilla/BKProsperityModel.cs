@@ -124,8 +124,8 @@ namespace BannerKings.Models.Vanilla
                 explainedNumber.Add(MathF.Min(skill * 0.001f, 1.5f), Governor);
             }
 
-            PerkHelper.AddPerkBonusForTown(DefaultPerks.Medicine.PristineStreets, fortification, ref explainedNumber);
-            PerkHelper.AddPerkBonusForTown(DefaultPerks.Riding.Veterinary, fortification, ref explainedNumber);
+            BannerKings.Utils.GovernorPerkHelper.AddPerkBonusForTown(DefaultPerks.Medicine.PristineStreets, fortification, ref explainedNumber);
+            BannerKings.Utils.GovernorPerkHelper.AddPerkBonusForTown(DefaultPerks.Riding.Veterinary, fortification, ref explainedNumber);
             if (PerkHelper.GetPerkValueForTown(DefaultPerks.Engineering.Apprenticeship, fortification))
             {
                 var num4 = 0f;
@@ -149,7 +149,7 @@ namespace BannerKings.Models.Vanilla
                 if (building2.BuildingType == DefaultBuildingTypes.SettlementWaterworks ||
                     building2.BuildingType == DefaultBuildingTypes.CastleGranary)
                 {
-                    PerkHelper.AddPerkBonusForTown(DefaultPerks.Medicine.CleanInfrastructure, fortification,
+                    BannerKings.Utils.GovernorPerkHelper.AddPerkBonusForTown(DefaultPerks.Medicine.CleanInfrastructure, fortification,
                         ref explainedNumber);
                 }
             }

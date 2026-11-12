@@ -302,6 +302,7 @@ namespace BannerKings.Patches
                 typeof(CharacterObject), typeof(CharacterObject),
                 typeof(PartyBase), typeof(PartyBase),
                 typeof(float), typeof(MapEvent),
+                typeof(BattleEnvironment),   // added in game 1.5
                 typeof(float), typeof(float)
             })]
             private static void SimulateHitPostfix(CharacterObject strikerTroop, CharacterObject struckTroop,
@@ -1472,7 +1473,10 @@ namespace BannerKings.Patches
             }
         }
 
-        // --- BKGarrisonModel (kept for FindNumberOfTroopsToLeaveToGarrison) --------------
+        // --- Garrison policy recruit rate --------------------------------------------------
+        // (BKGarrisonModel retired in the game-1.5 port: its only override,
+        // FindNumberOfTroopsToLeaveToGarrison, had no caller since 1.4 —
+        // GarrisonTroopsCampaignBehavior's own balancer decides donations.)
         [HarmonyPatch(typeof(DefaultSettlementGarrisonModel))]
         internal static class BKGarrisonTweakPatches
         {

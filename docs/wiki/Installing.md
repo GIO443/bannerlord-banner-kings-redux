@@ -11,7 +11,11 @@ page is hidden.
 
 ## Requirements
 
-- **Mount & Blade II: Bannerlord v1.4** (built against v1.4.5).
+- **Mount & Blade II: Bannerlord v1.5** (built against v1.5.7, the current
+  Steam public branch) — BK v1.9.36.0 and later. BK v1.9.35.1 and older
+  were made for v1.4 and break on v1.5 — if you updated the game, update
+  BK too. If you deliberately stay on v1.4 (Steam → Properties → Betas),
+  use BK v1.9.35.1.
 - **Bannerlord Living Economy** — **required.** As of v1.9.0.0 this is a
   hard dependency; BK will not load without it. See the note below.
   [Download on Nexus](https://www.nexusmods.com/mountandblade2bannerlord/mods/10796).
@@ -115,6 +119,31 @@ in-game.
 
 Both should load **before** Banner Kings; the launcher does this for you (BK
 declares the dependency), so just enable all three.
+
+### Fourberie (scheming / intrigue)
+
+Optional soft integration — enable both and it just works. Fourberie tracks
+how much each AI clan holds a **grudge against you** and, once a grudge gets
+big enough, has that clan scheme against you (Fourberie decides what scheme).
+Banner Kings plugs its realm politics into that grudge:
+
+- **Rivals.** When a clan in your realm picks its political rival, the grudge
+  it holds against you counts toward choosing *you*.
+- **Treacherous peers.** If a clan pulls a treacherous political lever
+  against you, it also builds grudge against you — more if its leader is
+  dishonourable, none if its leader is highly honourable.
+- **Your ruler.** If you are a vassal and your ruler considers you a threat
+  (the same assessment that makes rulers revoke AI vassals' titles), your
+  ruler's clan builds grudge each week instead — BK never revokes *your*
+  titles through this path. A highly honourable ruler builds none.
+
+What to expect: nothing new pops up from BK. You see Fourberie's own scheme
+events against you more often when you are a rival or a threat inside your
+own realm. Small grudge amounts below Fourberie's own threshold are ignored
+by Fourberie. Without Fourberie installed, none of this runs.
+
+Debug: the console command `bannerkings.set_fourberie_grudge <clan> <amount>`
+sets a clan's grudge against you (0–250).
 
 ## Recommended load order
 

@@ -48,8 +48,9 @@ namespace BannerKings.Behaviours
             CampaignEvents.HeroKilledEvent.AddNonSerializedListener(this, OnHeroKilled);
             CampaignEvents.OnSiegeAftermathAppliedEvent.AddNonSerializedListener(this, OnSiegeAftermath);
             CampaignEvents.MapEventEnded.AddNonSerializedListener(this, EventEnded);
-            CampaignEvents.OnCharacterCreationIsOverEvent.AddNonSerializedListener(this, () =>
+            CampaignEvents.OnCharacterCreationIsOverEvent.AddNonSerializedListener(this, phase =>
             {
+                if (!BannerKings.Utils.CharacterCreationPhase.IsFinal(phase)) return;
                 foreach (Settlement settlement in Settlement.All)
                 {
                     PopulationData data = settlement.PopulationData();

@@ -59,12 +59,14 @@ namespace BannerKings.Patches
 
         [HarmonyPrefix]
         [HarmonyPatch(typeof(CraftingCampaignBehavior), "CreateTownOrder")]
+        // Game 1.5: CreateTownOrder(Town town, Hero orderOwner, int orderSlot) —
+        // the town is now passed in instead of being derived from
+        // orderOwner.CurrentSettlement, so guard the town vanilla will index.
         private static bool CreateTownOrder_Prefix(
-            CraftingCampaignBehavior __instance, Hero orderOwner, int orderSlot)
+            CraftingCampaignBehavior __instance, Town town, Hero orderOwner, int orderSlot)
         {
             try
             {
-                var town = orderOwner?.CurrentSettlement?.Town;
                 if (town == null)
                 {
                     Log($"CreateTownOrder skip: orderOwner={orderOwner?.StringId ?? "null"} town=null");

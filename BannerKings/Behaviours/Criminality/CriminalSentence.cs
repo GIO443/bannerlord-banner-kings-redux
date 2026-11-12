@@ -39,17 +39,23 @@ namespace BannerKings.Behaviours.Criminality
             {
                 foreach (var clan in crime.Kingdom.Clans)
                 {
-                    if (!clan.IsEliminated && !clan.IsBanditFaction && clan != Clan.PlayerClan)
+                    if (!clan.IsEliminated && !clan.IsBanditFaction && clan != Clan.PlayerClan && clan.Leader != null
+                        && executor != null && clan.Leader != executor)
                     {
-                        bool affectRelatives;
-                        int relationChangeForExecutingHero = TaleWorlds.CampaignSystem.Campaign.Current.Models.ExecutionRelationModel
-                            .GetRelationChangeForExecutingHero(crime.Hero, clan.Leader, out affectRelatives);
+                        int relationChangeForExecutingHero = ExecutionRelations.GetRelationChangeForExecutingHero(
+                            crime.Hero, clan.Leader, out bool showNotification);
                         if (relationChangeForExecutingHero != 0)
                         {
-                            ChangeRelationAction.ApplyPlayerRelation(clan.Leader,
-                                relationChangeForExecutingHero,
-                                affectRelatives,
-                                true);
+                            // Penalise the hero who actually carried out the sentence.
+                            // Player: unchanged 1.4 call (spreads to the leader's
+                            // relatives). AI: was wrongly ApplyPlayerRelation too,
+                            // charging the player for an AI ruler's sentence.
+                            if (executor == Hero.MainHero)
+                                ChangeRelationAction.ApplyPlayerRelation(clan.Leader,
+                                    relationChangeForExecutingHero, showNotification, true);
+                            else
+                                ChangeRelationAction.ApplyRelationChangeBetweenHeroes(executor, clan.Leader,
+                                    relationChangeForExecutingHero, false);
                         }
                     }
                 }

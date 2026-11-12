@@ -83,8 +83,9 @@ namespace BannerKings.Behaviours
                 SeedBKAttributesAndSkills(hero);
         }
 
-        private void OnCharacterCreationOver()
+        private void OnCharacterCreationOver(int phase)
         {
+            if (!BannerKings.Utils.CharacterCreationPhase.IsFinal(phase)) return;
             // Fresh-new-game path. Seed every existing hero so the player's
             // starting clan and the world's pre-existing heroes all have
             // Wisdom = 2 and the BK skill placeholders before the campaign

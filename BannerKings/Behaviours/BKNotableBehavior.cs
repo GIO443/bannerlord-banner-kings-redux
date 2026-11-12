@@ -55,8 +55,9 @@ namespace BannerKings.Behaviours
             }
         }
 
-        private void OnCreationOver()
+        private void OnCreationOver(int phase)
         {
+            if (!CharacterCreationPhase.IsFinal(phase)) return;
             ExtendVolunteersArray();
         }
 

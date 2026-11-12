@@ -1734,7 +1734,7 @@ namespace BannerKings.Behaviours
         private bool conversation_warn_player_on_condition()
         {
             IFaction mapFaction = MobileParty.ConversationParty.MapFaction;
-            MBTextManager.SetTextVariable("KINGDOM", mapFaction.IsKingdomFaction ? ((Kingdom)mapFaction).EncyclopediaTitle : mapFaction.Name, false);
+            MBTextManager.SetTextVariable("KINGDOM", mapFaction.IsKingdomFaction ? ((Kingdom)mapFaction).FormalName : mapFaction.Name, false);
             return PlayerEncounter.Current != null && !PlayerEncounter.LeaveEncounter && !MobileParty.MainParty.MapFaction.IsAtWarWith(MobileParty.ConversationParty.MapFaction);
         }
 
