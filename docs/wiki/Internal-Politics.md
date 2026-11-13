@@ -213,6 +213,20 @@ action popup — you see relations and renown drift, and eventually a
 realm-wide consequence (election, succession crisis, group escalation)
 fires from the accumulated pressure.
 
+**Blood feuds (Bannerlord 1.5):** a clan that has a blood feud with you
+never makes a *positive* move toward you. If you rule the realm, its loyal
+levers ("imperial patronage", "courting the dictator", "petitioning the
+crown") still fire, but your relation with its leader doesn't rise. If
+you're a vassal, its peer rally passes over your clan. Its hostile moves
+work as normal. A feud starts your relation with that clan's leader at
+−100. Vanilla ends the feud once that relation climbs back to 0. Without
+this rule, a feuding vassal's ambient courting would end the feud by
+itself in roughly a game year. To end a feud, raise the relation
+yourself (gifts, quests, favours). Or find a ransom broker in a town
+tavern, pick "I'm involved in a blood feud, and I would like to end
+it", choose the clan and pay. The price starts at 5,000 denars and goes
+up by 50,000 for every execution your side is ahead.
+
 ### 3b — AI ruler revokes ambitious vassals' titles (`BKRulerPoliticsBehavior`)
 
 ```

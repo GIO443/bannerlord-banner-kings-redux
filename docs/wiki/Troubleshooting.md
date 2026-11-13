@@ -27,6 +27,40 @@
   sentence, the relation penalty from the victim's clan and kin was charged
   to the player instead of the ruler who passed it. It now lands on whoever
   executed the sentence.
+- **"The game crashed when I executed a renowned criminal"** — fixed in
+  v1.9.37.0. BK's "renowned criminal" bandit
+  heroes belong to bandit clans, which have no leader. Bannerlord 1.5
+  starts a blood feud with the clan of any hero you execute, and with no
+  leader to set relations with, the game threw an error. Executing a
+  bandit hero (party screen → prisoner → Execute) now starts no feud and
+  costs no Honor or Mercy for starting one. Executing a lord works as in
+  vanilla.
+- **"My Generous lord's troop wages went up" / "the trait encyclopedia
+  lists effects that never showed up"** — from v1.9.37.0,
+  BK applies Bannerlord 1.5's personality effects. BK replaces
+  the wage, party food, town loyalty and project-boost calculations, and
+  in v1.9.36.0 and older those effects went missing. They now appear as
+  a "Personality" line in each tooltip:
+  - Stingy party leader or garrison governor: troop wages −5% / −10%.
+  - Generous party leader: party food consumption +10%.
+  - Honorable governor: loyalty gain +10% / +20%, only while loyalty is rising.
+  - Stingy governor: project boosts 10% / 20% cheaper.
+
+  BK's own old Generosity wage effect worked the other way (generous =
+  cheaper wages, stingy = dearer). It has been removed so it no longer
+  contradicts vanilla's trait description. To check: hover the party wage
+  in the party screen, or the loyalty number in the town menu.
+- **"Garrison wage perks and buildings barely change my garrison's
+  wages"** — fixed in v1.9.37.0. BK halves garrison wages, but it
+  did so in a way that also cancelled most of the percentage modifiers:
+  - governor perks
+  - wage-reducing buildings
+  - culture bonuses
+  - the new personality effect
+
+  Garrisons now cost half the vanilla base, and each of those modifiers
+  then applies in full. Expect garrison wages to drop further with
+  wage-reducing perks and buildings than they did before.
 - **"My title disappeared"** — usually inherited by an heir on a death you
   didn't notice, or absorbed into a higher-tier title via succession. Check
   the title event log in the encyclopedia → titles tab.

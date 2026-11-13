@@ -91,6 +91,25 @@ together. See [Slavery & raiding](Slavery-and-Raiding) for the full system.
 If you've never played BK before, the systems can feel overwhelming. A
 condensed onboarding:
 
+0. **Choose your start: vanilla Advanced Start *or* a BK Custom Start —
+   not both.** When character creation ends, BK opens a popup with
+   *Custom Start*, *Religion* and *Important Concepts*.
+   - If you left Bannerlord 1.5's Advanced Start on the default start, you
+     can pick a BK Custom Start there. It sets your gold, food and starting
+     lifestyle, and resets your inventory.
+   - If you picked a vanilla starting scenario (King, Vassal, Mercenary,
+     Trader, Outlaw, Beggar), *Custom Start* is greyed out. Hover it to see
+     why: it would wipe the gold, gear and goods that scenario gave you.
+     *Religion* and *Important Concepts* still work.
+   - A **King** or **Vassal** start makes you the rightful (de jure)
+     holder of what the game gives you. That covers the titles of your
+     starting castles and towns and their villages, plus the realm's
+     kingdom title if you start as King. Check under Encyclopedia → your
+     kingdom → *Titles*: you should be listed as holder, not just as the
+     de facto owner, so no claimant can call you a usurper on day one.
+     BK's start-of-game seeding gives AI clans companions and knights.
+     It skips your clan, so your starting villages are never knighted to
+     strangers. You grant knighthoods yourself.
 1. **Pick a starting culture you want to commit to.** Some lifestyles, laws,
    and opportunities are culture-locked. Vlandian → Ritter / feudal lord
    ergonomics. Battanian → Fian / woodland skirmisher. Aserai → Jawwal /

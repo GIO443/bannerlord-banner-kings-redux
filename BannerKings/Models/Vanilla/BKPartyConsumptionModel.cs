@@ -155,6 +155,12 @@ namespace BannerKings.Models.Vanilla
                     result.AddFactor(DefaultPerks.Steward.MasterOfPlanning.PrimaryBonus, DefaultPerks.Steward.MasterOfPlanning.Name);
                 }
             }
+            // Bannerlord 1.5 personality effect (generous leader → party eats
+            // more), as in DefaultMobilePartyFoodConsumptionModel.
+            if (party.LeaderHero != null)
+            {
+                TraitEffectHelper.ApplyTraitEffect(party.LeaderHero, DefaultPersonalityTraitEffects.GenerosityFoodCostEffect, ref result);
+            }
         }
 
         public override ExplainedNumber CalculateDailyFoodConsumptionf(MobileParty party, ExplainedNumber baseConsumption)

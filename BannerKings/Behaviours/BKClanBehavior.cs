@@ -47,7 +47,12 @@ namespace BannerKings.Behaviours
                 if (!CharacterCreationPhase.IsFinal(phase)) return;
                 foreach (Clan clan in Clan.All)
                 {
-                    if (clan.IsEliminated || clan.IsBanditFaction || clan.Kingdom == null || clan.Leader == null)
+                    // PlayerClan: a Bannerlord 1.5 King / Vassal advanced start
+                    // puts it in a kingdom with villages before this runs; the
+                    // AI seeding would hand the player free companions and
+                    // knight away the player's villages.
+                    if (clan.IsEliminated || clan.IsBanditFaction || clan.Kingdom == null || clan.Leader == null
+                        || clan == Clan.PlayerClan)
                     {
                         continue;
                     }

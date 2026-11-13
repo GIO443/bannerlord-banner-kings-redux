@@ -260,6 +260,20 @@ namespace BannerKings.Models.Vanilla
             {
                 result.AddFactor(DefaultPerks.Trade.ContentTrades.SecondaryBonus, DefaultPerks.Trade.ContentTrades.Name);
             }
+            // Bannerlord 1.5 personality effect (stingy leader / governor →
+            // cheaper wages), same placement and rule as DefaultPartyWageModel.
+            if (mobileParty.LeaderHero != null)
+            {
+                TraitEffectHelper.ApplyTraitEffect(mobileParty.LeaderHero, DefaultPersonalityTraitEffects.GenerosityUpkeepReductionEffect, ref result);
+            }
+            else if (mobileParty.IsGarrison)
+            {
+                Hero governor = mobileParty.CurrentSettlement?.Town?.Governor;
+                if (governor != null && governor.CurrentSettlement == mobileParty.CurrentSettlement)
+                {
+                    TraitEffectHelper.ApplyTraitEffect(governor, DefaultPersonalityTraitEffects.GenerosityUpkeepReductionEffect, ref result);
+                }
+            }
             return result;
         }
 
@@ -330,7 +344,11 @@ namespace BannerKings.Models.Vanilla
 
                 if (mobileParty.IsGarrison)
                 {
-                    result.Add(result.ResultNumber * -0.5f);
+                    // Halve the base (ResultNumber = Base × (1 + factors)).
+                    // Adding −0.5 × ResultNumber instead shrank the base by a
+                    // factor-dependent amount and flattened every garrison
+                    // wage perk / building / personality factor to ~1/10.
+                    result.Add(result.BaseNumber * -0.5f);
                 }
 
                 var education = BannerKingsConfig.Instance.EducationManager.GetHeroEducation(leader);
@@ -347,7 +365,9 @@ namespace BannerKings.Models.Vanilla
                     result.AddFactor(-0.3f, DefaultLifestyles.Instance.SiegeEngineer.Name);
                 }
 
-                Utils.Helpers.ApplyTraitEffect(leader, DefaultTraitEffects.Instance.GenerosityPartyCost, ref result);
+                // Generosity's wage effect is vanilla's (GetVanillaWage). BK's
+                // old GenerosityPartyCost ran the opposite way (generous =
+                // cheaper) and contradicted the 1.5 trait tooltip.
             }
 
             if (mobileParty.IsCaravan && mobileParty.Owner != null)

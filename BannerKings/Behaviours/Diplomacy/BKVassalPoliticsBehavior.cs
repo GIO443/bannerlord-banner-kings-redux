@@ -167,7 +167,8 @@ namespace BannerKings.Behaviours.Diplomacy
                     else
                     {
                         lever = "imperial patronage";
-                        ChangeRelationAction.ApplyRelationChangeBetweenHeroes(leader, ruler, mag, false);
+                        if (!FeudBlocksWarmth(clan, ruler))
+                            ChangeRelationAction.ApplyRelationChangeBetweenHeroes(leader, ruler, mag, false);
                     }
                     break;
 
@@ -196,7 +197,8 @@ namespace BannerKings.Behaviours.Diplomacy
                     else
                     {
                         lever = "courting the dictator";
-                        ChangeRelationAction.ApplyRelationChangeBetweenHeroes(leader, ruler, mag, false);
+                        if (!FeudBlocksWarmth(clan, ruler))
+                            ChangeRelationAction.ApplyRelationChangeBetweenHeroes(leader, ruler, mag, false);
                     }
                     break;
 
@@ -229,7 +231,8 @@ namespace BannerKings.Behaviours.Diplomacy
                     else
                     {
                         lever = "petitioning the crown";
-                        ChangeRelationAction.ApplyRelationChangeBetweenHeroes(leader, ruler, mag, false);
+                        if (!FeudBlocksWarmth(clan, ruler))
+                            ChangeRelationAction.ApplyRelationChangeBetweenHeroes(leader, ruler, mag, false);
                     }
                     break;
             }
@@ -343,9 +346,21 @@ namespace BannerKings.Behaviours.Diplomacy
             {
                 if (peer == null || peer == clan || peer == kingdom.RulingClan || peer.Leader == null) continue;
                 if (peer.IsEliminated) continue;
+                if (FeudBlocksWarmth(clan, peer.Leader)) continue;
                 ChangeRelationAction.ApplyRelationChangeBetweenHeroes(clan.Leader, peer.Leader, 1, false);
                 if (++n >= 3) break;
             }
+        }
+
+        // Bannerlord 1.5 blood feuds end on their own once the two clan
+        // leaders' relation climbs back to 0 (ExecutionCampaignBehavior
+        // .OnHeroRelationChanged). A feuding clan doesn't court the player, so
+        // BK's ambient "loyal climb" nudges skip the player clan while the feud
+        // stands — otherwise they wear a -100 feud down in about a game year.
+        // Ending a feud stays with the player (gifts, quests, blood money).
+        private static bool FeudBlocksWarmth(Clan clan, Hero target)
+        {
+            return target != null && target.Clan == Clan.PlayerClan && clan.HasBloodFeudWithPlayer;
         }
     }
 }

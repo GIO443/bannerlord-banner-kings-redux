@@ -47,9 +47,10 @@ namespace BannerKings.Behaviours.Criminality
                         if (relationChangeForExecutingHero != 0)
                         {
                             // Penalise the hero who actually carried out the sentence.
-                            // Player: unchanged 1.4 call (spreads to the leader's
-                            // relatives). AI: was wrongly ApplyPlayerRelation too,
-                            // charging the player for an AI ruler's sentence.
+                            // Player: unchanged 1.4 call (its affectRelatives flag
+                            // is ignored since 1.5). AI: was wrongly
+                            // ApplyPlayerRelation too, charging the player for an
+                            // AI ruler's sentence.
                             if (executor == Hero.MainHero)
                                 ChangeRelationAction.ApplyPlayerRelation(clan.Leader,
                                     relationChangeForExecutingHero, showNotification, true);

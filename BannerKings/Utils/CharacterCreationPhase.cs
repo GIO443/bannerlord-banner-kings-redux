@@ -1,3 +1,5 @@
+using TaleWorlds.CampaignSystem.Extensions;
+
 namespace BannerKings.Utils
 {
     /// <summary>
@@ -15,6 +17,31 @@ namespace BannerKings.Utils
     {
         public const int Final = 9;
 
+        public const string StartKing = "king";
+        public const string StartVassal = "vassal";
+
         public static bool IsFinal(int phase) => phase == Final;
+
+        /// <summary>
+        /// The player's Bannerlord 1.5 Advanced Start type ("king", "vassal",
+        /// "mercenary", "trader", "outlaw", "beggar"), or null for the default
+        /// start / story mode / no advanced-start data. Read from the
+        /// campaign's saved start options, so it is stable after load too.
+        /// </summary>
+        public static string VanillaStartType
+        {
+            get
+            {
+                try
+                {
+                    string type = TaleWorlds.CampaignSystem.Campaign.Current?.AdvancedStartData?.GetStartType();
+                    return string.IsNullOrEmpty(type) || type == "default" ? null : type;
+                }
+                catch
+                {
+                    return null;
+                }
+            }
+        }
     }
 }

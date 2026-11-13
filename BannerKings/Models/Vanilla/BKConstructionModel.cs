@@ -266,7 +266,14 @@ namespace BannerKings.Models.Vanilla
                 if (data != null)
                 {
                     var craftsmen = data.GetTypeCount(PopType.Craftsmen);
-                    return town.IsCastle ? (int)(craftsmen * 2f) : (int)(craftsmen / 2f);
+                    float cost = town.IsCastle ? craftsmen * 2f : craftsmen / 2f;
+                    // Bannerlord 1.5 personality effect (stingy governor →
+                    // cheaper boosts), as in DefaultBuildingConstructionModel.
+                    if (town.Governor != null && town.Governor.CurrentSettlement?.Town == town)
+                    {
+                        cost *= 1f - TraitEffectHelper.GetTraitEffectBonus(town.Governor, DefaultPersonalityTraitEffects.GenerosityTownProjectEffect);
+                    }
+                    return (int)cost;
                 }
             }
 

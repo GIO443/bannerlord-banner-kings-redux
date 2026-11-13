@@ -171,6 +171,14 @@ namespace BannerKings.Models.Vanilla
                 Utils.Helpers.ApplyTraitEffect(town.Governor, DefaultTraitEffects.Instance.MercyLoyalty, ref baseResult);
             }
 
+            // Bannerlord 1.5 personality effect (honorable governor → faster
+            // loyalty gain), vanilla's rule applied to BK's full total so the
+            // "only while gaining" check sees every BK line.
+            if (town.Governor != null && town.Governor.CurrentSettlement?.Town == town && baseResult.ResultNumber > 0f)
+            {
+                TraitEffectHelper.ApplyTraitEffect(town.Governor, DefaultPersonalityTraitEffects.HonorLoyaltyGainEffect, ref baseResult);
+            }
+
             return baseResult;
         }
 

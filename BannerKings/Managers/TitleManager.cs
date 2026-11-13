@@ -1139,6 +1139,19 @@ namespace BannerKings.Managers
             }
         }
 
+        /// <summary>
+        /// Makes <paramref name="newOwner"/> both de jure and de facto holder of
+        /// <paramref name="title"/>, whoever held it before. No relation, cost or
+        /// claim side effects — used to reconcile titles with ownership the
+        /// engine set directly (e.g. Bannerlord 1.5 advanced start).
+        /// </summary>
+        public void AssignTitle(FeudalTitle title, Hero newOwner)
+        {
+            if (title == null || newOwner == null) return;
+            if (title.deJure != newOwner) ExecuteOwnershipChange(title.deJure, newOwner, title, true);
+            if (title.deFacto != newOwner) ExecuteOwnershipChange(title.deFacto, newOwner, title, false);
+        }
+
         public void DeactivateTitle(FeudalTitle title)
         {
             ExecuteOwnershipChange(title.deJure, null, title, true);

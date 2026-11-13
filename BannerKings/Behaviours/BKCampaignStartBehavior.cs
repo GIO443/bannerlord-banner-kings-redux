@@ -82,6 +82,8 @@ namespace BannerKings.Behaviours
             DefaultStartOptions.Instance.Initialize();
         }
 
+        private static bool HasVanillaAdvancedStart() => BannerKings.Utils.CharacterCreationPhase.VanillaStartType != null;
+
         private void CheckShowStartOptions()
         {
             if (option != null)
@@ -249,7 +251,18 @@ namespace BannerKings.Behaviours
                 TextObject.GetEmpty(),
                 TextObject.GetEmpty(),
                 () => UIManager.Instance.ShowWindow("campaignStart"));
-            elements.Add(new InquiryElement(start, start.Name.ToString(), null));
+            // Bannerlord 1.5 advanced start (King / Vassal / Mercenary / Trader
+            // / Outlaw / Beggar) is applied at creation phase 8, before this
+            // popup. A BK custom start resets gold and strips the inventory,
+            // which would wipe that start — so it only applies to the default.
+            bool vanillaStart = HasVanillaAdvancedStart();
+            elements.Add(new InquiryElement(start,
+                start.Name.ToString(),
+                null,
+                !vanillaStart,
+                vanillaStart
+                    ? new TextObject("{=BKvanStrt}You chose a starting scenario in Advanced Start. Banner Kings custom starts only apply to the default start, so they would overwrite it.").ToString()
+                    : string.Empty));
 
             int count = DefaultReligions.Instance.All.Count();
             TextObject relHint = TextObject.GetEmpty();

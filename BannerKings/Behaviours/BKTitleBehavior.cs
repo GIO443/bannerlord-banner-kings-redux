@@ -10,6 +10,7 @@ using HarmonyLib;
 using SandBox.CampaignBehaviors;
 using TaleWorlds.CampaignSystem;
 using TaleWorlds.CampaignSystem.Actions;
+using TaleWorlds.CampaignSystem.Extensions;
 using TaleWorlds.CampaignSystem.Settlements;
 using TaleWorlds.Core;
 
@@ -27,6 +28,62 @@ namespace BannerKings.Behaviours
             CampaignEvents.OnClanDestroyedEvent.AddNonSerializedListener(this, OnClanDestroyed);
             CampaignEvents.OnSettlementOwnerChangedEvent.AddNonSerializedListener(this,
                 BannerKings.Utils.TickTrace.WrapOwnerChanged("BKTitle.OwnerChanged", OnOwnerChanged));
+            CampaignEvents.OnCharacterCreationIsOverEvent.AddNonSerializedListener(this, OnCharacterCreationOver);
+        }
+
+        // Bannerlord 1.5 advanced start: the King / Vassal starts (creation
+        // phase 8) hand the player fiefs by setting Town.OwnerClan directly and
+        // crown them by setting Kingdom.RulingClan directly — no owner-changed
+        // event, so the titles BK generated at OnNewGameCreated still name the
+        // previous lords. A starting king or vassal is the rightful holder:
+        // assign those titles de jure and de facto once vanilla is done.
+        private void OnCharacterCreationOver(int phase)
+        {
+            if (!BannerKings.Utils.CharacterCreationPhase.IsFinal(phase)) return;
+            try
+            {
+                string startType = BannerKings.Utils.CharacterCreationPhase.VanillaStartType;
+                bool isKing = startType == BannerKings.Utils.CharacterCreationPhase.StartKing;
+                if (!isKing && startType != BannerKings.Utils.CharacterCreationPhase.StartVassal) return;
+
+                var titles = BannerKingsConfig.Instance.TitleManager;
+                Hero hero = Hero.MainHero;
+                if (titles == null || hero == null) return;
+
+                int assigned = 0;
+                void Assign(FeudalTitle title)
+                {
+                    if (title == null || (title.deJure == hero && title.deFacto == hero)) return;
+                    titles.AssignTitle(title, hero);
+                    assigned++;
+                }
+
+                foreach (Town town in Town.AllFiefs)
+                {
+                    if (town?.OwnerClan != Clan.PlayerClan) continue;
+                    Assign(titles.GetTitle(town.Settlement));
+                    foreach (Village village in town.Settlement.BoundVillages)
+                        Assign(titles.GetTitle(village.Settlement));
+                }
+
+                Kingdom kingdom = Clan.PlayerClan.Kingdom;
+                if (isKing && kingdom != null)
+                {
+                    FeudalTitle sovereign = titles.GetSovereignTitle(kingdom);
+                    if (sovereign != null) Assign(sovereign);
+                    // e.g. the "unitedempire" world scenario's new kingdom has
+                    // no title in titles.xml — nothing to assign.
+                    else BannerKings.Utils.Logs.ReligionTitle(() =>
+                        $"Advanced start 'king': {kingdom.Name} has no sovereign title");
+                }
+
+                BannerKings.Utils.Logs.ReligionTitle(() =>
+                    $"Advanced start '{startType}': assigned {assigned} title(s) to {hero.Name}");
+            }
+            catch (Exception ex)
+            {
+                BannerKings.Utils.Logs.ReligionTitle(() => "Advanced start title sync failed: " + ex);
+            }
         }
 
         public override void SyncData(IDataStore dataStore)

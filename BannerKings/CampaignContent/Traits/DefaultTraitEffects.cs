@@ -23,7 +23,6 @@ namespace BannerKings.CampaignContent.Traits
 
         public TraitEffect GenerosityRelation { get; } = new TraitEffect("GenerosityRelation");
         public TraitEffect GenerosityIncome { get; } = new TraitEffect("GenerosityIncome");
-        public TraitEffect GenerosityPartyCost { get; } = new TraitEffect("GenerosityPartyCost");
 
         public TraitEffect CalculatingProposals { get; } = new TraitEffect("CalculatingCohesion");
         public TraitEffect CalculatingCohesion { get; } = new TraitEffect("CalculatingCohesion");
@@ -51,7 +50,6 @@ namespace BannerKings.CampaignContent.Traits
                 yield return HonorInfluence;
                 yield return GenerosityRelation;
                 yield return GenerosityIncome;
-                yield return GenerosityPartyCost;
                 yield return MercyRaid;
                 yield return MercyLoyalty;
                 yield return CalculatingProposals;
@@ -131,12 +129,6 @@ namespace BannerKings.CampaignContent.Traits
                 DefaultTraits.Generosity,
                 PartyRole.Governor,
                 -0.1f,
-                true);
-
-            GenerosityPartyCost.Initialize(new TextObject("{=!}Party wage: {EFFECT}%"),
-                DefaultTraits.Generosity,
-                PartyRole.PartyLeader,
-                -0.12f,
                 true);
 
             MercyRaid.Initialize(new TextObject("{=!}Likelihood to raid fiefs: {EFFECT}%"),
