@@ -452,9 +452,11 @@ namespace BannerKings.Patches.BetterEconomy
             var result = new List<Type>();
             foreach (var asm in AppDomain.CurrentDomain.GetAssemblies())
             {
-                Type[] types;
-                try { types = asm.GetTypes(); } catch { continue; }
-                foreach (var t in types)
+                // Not a bare try/catch: on game 1.5 BetterEconomy's GetTypes() throws
+                // ReflectionTypeLoadException (two of its models can't load), and
+                // skipping the whole assembly silently dropped every BE model from the
+                // layering postfixes. SafeGetTypes keeps the loadable types.
+                foreach (var t in BleGameVersionCompat.SafeGetTypes(asm))
                 {
                     if (t == null) continue;
                     if (t.IsAbstract) continue;

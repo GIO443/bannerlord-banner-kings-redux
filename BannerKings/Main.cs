@@ -490,6 +490,27 @@ namespace BannerKings
             // Game.Current and GameTexts are both initialized before any cctor fires.
         }
 
+        protected override void OnBeforeInitialModuleScreenSetAsRoot()
+        {
+            base.OnBeforeInitialModuleScreenSetAsRoot();
+
+            // Bannerlord Living Economy (BetterEconomy) ↔ game 1.5 compat shim. BLE
+            // 1.4.x has two models that fail to load on 1.5 (TypeLoadException), which
+            // kills its OnGameStart. Runs here — after BLE's OnSubModuleLoad, before any
+            // OnGameStart, and outside the game's submodule-dictionary enumeration (the
+            // shim swaps BLE's entry). Self-retires when BLE ships a 1.5 build; idempotent.
+            if (ModCompat.BetterEconomy)
+            {
+                try { BannerKings.Patches.BetterEconomy.BleGameVersionCompat.Install(); }
+                catch (System.Exception ex)
+                {
+                    TaleWorlds.Library.Debug.Print(
+                        $"[BK] BLE compat shim install failed: {ex.GetType().Name}: {ex.Message}",
+                        color: TaleWorlds.Library.Debug.DebugColor.Red);
+                }
+            }
+        }
+
 
         public override void OnGameEnd(Game game)
         {

@@ -22,6 +22,16 @@
   times, once per setup stage). Update to BK v1.9.36.0 or later (built for
   Bannerlord 1.5) — BK's new-game setup now runs once, after the game's own
   advanced-start options have been applied. Existing saves need no action.
+- **"Bannerlord Living Economy does nothing on Bannerlord 1.5" / "the game
+  errors when I start or load a campaign with Living Economy"** — fixed in
+  v1.9.37.1. Living Economy (up to at least v1.4.6) was built for an older
+  game version, and two of its pieces (its caravan speed and caravan party
+  size rules) no longer fit Bannerlord 1.5. The game refuses to load them,
+  which stopped Living Economy from setting up anything at campaign start.
+  BK now carries a compatibility fix that supplies working versions of
+  those two pieces and lets Living Economy start normally. It switches
+  itself off once Living Economy releases a 1.5 build. Living Economy stays
+  optional. Existing saves need no action.
 - **"Someone else executed a criminal and *I* lost relations"** — fixed in
   v1.9.36.0. When an AI ruler carried out a tyrannical
   sentence, the relation penalty from the victim's clan and kin was charged

@@ -463,3 +463,7 @@ CLAUDE.md
 
 # Release zip outputs.
 dist/
+
+# Bannerlord Living Economy (BetterEconomy) — local reference copy of the
+# third-party module, used for compat analysis. Not ours to redistribute.
+BLE/
